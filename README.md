@@ -1,68 +1,141 @@
-# Welcome to your Lovable project
+# ScanMaster - NDT Ultrasonic Testing Software
 
-## Project info
+**Professional Technique Sheet Generator for Non-Destructive Testing**
 
-**URL**: https://lovable.dev/projects/8fccca02-f592-4240-96ae-24740f3c873e
+ScanMaster is a comprehensive web application for creating, managing, and exporting ultrasonic testing technique sheets compliant with aerospace and industrial NDT standards.
 
-## How can I edit this code?
+## 🚀 Features
 
-There are several ways of editing your application.
+### Standards Compliance
+- ✅ **AMS-STD-2154E** (Aerospace Material Specification)
+- ✅ **ASTM A388** (Steel Forgings)
+- ✅ **BS-EN-10228-3** (European Steel Standards)
+- ✅ **BS-EN-10228-4** (European Steel Standards)
 
-**Use Lovable**
+### Shape Library (27+ Geometries)
+- Cylinders, Tubes, Rings, Disks
+- Plates, Bars, Boxes, Spheres
+- Cones, Pyramids, Hexagons, Ellipses
+- Forgings, Profiles, Irregular shapes
+- Real-time technical drawing generation
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/8fccca02-f592-4240-96ae-24740f3c873e) and start prompting.
+### Key Capabilities
+- 📊 **Automated technique sheets** with smart field dependencies
+- 🎨 **Live technical drawings** with dimension annotations
+- 📝 **PDF/DOCX export** with professional formatting
+- 🔍 **Calibration block catalog** with recommendations
+- 📐 **A-Scan & C-Scan generators**
+- 🎯 **Scan coverage visualization**
+- 🔐 **Multi-tenant SaaS** with Supabase authentication
+- 💳 **Lemon Squeezy payment integration** (in progress)
+- 📱 **PWA support** with offline mode
+- 🖥️ **Electron desktop app**
 
-Changes made via Lovable will be committed automatically to this repo.
+## 🛠️ Tech Stack
 
-**Use your preferred IDE**
+- **Frontend:** React 18.3.1 + TypeScript + Vite 7.0.5
+- **UI:** shadcn/ui + Tailwind CSS + Radix UI
+- **Backend:** Express + Supabase PostgreSQL
+- **Drawing:** Konva.js for technical drawings
+- **3D:** Three.js for shape visualization
+- **Export:** jsPDF + Docxtemplater
+- **Deployment:** Docker, AWS, GCP, Netlify
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+## 📦 Installation
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+# Clone the repository
+git clone https://github.com/amitay1/ScanMasterMain.git
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+# Navigate to project
+cd ScanMasterMain
 
-# Step 3: Install the necessary dependencies.
-npm i
+# Install dependencies
+npm install
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Set up environment variables
+cp .env.example .env
+# Edit .env with your Supabase credentials
+
+# Start development server
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+## 🔧 Environment Setup
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+Required environment variables:
+```env
+DATABASE_URL=your_supabase_connection_string
+SUPABASE_URL=your_supabase_url
+SUPABASE_ANON_KEY=your_supabase_anon_key
+JWT_SECRET=your_jwt_secret
+LEMON_SQUEEZY_API_KEY=your_lemon_squeezy_key
+```
 
-**Use GitHub Codespaces**
+See `.env.production.template` for complete configuration guide.
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## 📚 Documentation
 
-## What technologies are used for this project?
+- [Production Readiness Report](./PRODUCTION_READINESS_REPORT.md) - 83% ready, see critical fixes
+- [Completion Report](./COMPLETION_REPORT_OPTION_B.md) - Recent updates summary
+- [Auto-Fill Documentation](./AUTO_FILL_DOCUMENTATION.md) - Smart field logic
+- [Advanced Drawing Status](./ADVANCED_DRAWING_STATUS.md) - Technical drawing capabilities
+- [Deployment Guide](./DEPLOYMENT.md) - Docker, AWS, GCP instructions
+- [Roadmap](./ROADMAP.md) - Future features
 
-This project is built with:
+## 🚢 Deployment
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+### Docker
+```sh
+docker-compose up -d
+```
 
-## How can I deploy this project?
+### AWS Lambda
+```sh
+npm run deploy:aws
+```
 
-Simply open [Lovable](https://lovable.dev/projects/8fccca02-f592-4240-96ae-24740f3c873e) and click on Share -> Publish.
+### Google Cloud Run
+```sh
+npm run deploy:gcp
+```
+
+### Desktop App (Electron)
+```sh
+npm run build:desktop
+```
+
+## 📄 Legal
+
+- [Terms of Service Template](./legal/TERMS_OF_SERVICE_TEMPLATE.md)
+- [Privacy Policy Template](./legal/PRIVACY_POLICY_TEMPLATE.md)
+- [EULA Template](./legal/EULA_TEMPLATE.md)
+
+**⚠️ These templates require attorney review before use!**
+
+## 🤝 Contributing
+
+This is a private commercial project. For inquiries: amitay.mail@gmail.com
+
+## 📝 License
+
+Proprietary - All Rights Reserved
+
+## 🔐 Security
+
+- Environment-based configuration
+- JWT authentication
+- Rate limiting & CORS protection
+- Input validation & sanitization
+- SQL injection prevention
+
+## 📞 Support
+
+For technical support or sales inquiries, contact: amitay.mail@gmail.com
+
+---
+
+**Built with ❤️ for NDT professionals worldwide**
 
 ## Can I connect a custom domain to my Lovable project?
 
