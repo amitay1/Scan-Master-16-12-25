@@ -1,0 +1,59 @@
+@keyframes wave {
+  0% { transform: translateX(0) translateZ(0) scaleY(1); }
+  50% { transform: translateX(-25%) translateZ(0) scaleY(0.8); }
+  100% { transform: translateX(-50%) translateZ(0) scaleY(1); }
+}
+
+@keyframes wave2 {
+  0% { transform: translateX(0) translateZ(0) scaleY(0.9); }
+  50% { transform: translateX(-15%) translateZ(0) scaleY(1.1); }
+  100% { transform: translateX(-30%) translateZ(0) scaleY(0.9); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.1);
+  }
+}
+
+.liquid-fill {
+  transition: height 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: height;
+}
+
+.wave-layer {
+  animation: wave 3s linear infinite;
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+.wave-layer2 {
+  animation: wave2 4s linear infinite;
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+.liquid-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+  will-change: filter;
+}
+
+/* Ensure animations work even with reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .wave-layer {
+    animation: wave 6s linear infinite;
+  }
+  
+  .wave-layer2 {
+    animation: wave2 8s linear infinite;
+  }
+  
+  .liquid-glow {
+    animation: pulse-glow 4s ease-in-out infinite;
+  }
+}

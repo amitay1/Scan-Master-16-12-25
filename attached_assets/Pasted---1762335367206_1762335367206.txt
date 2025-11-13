@@ -1,0 +1,354 @@
+אני צריך לבדוק את מערכת היצוא הנוכחית לעומק כדי להכין תוכנית מסודרת. תן לי לבדוק את כל קבצי היצוא:
+
+עכשיו אני מבין את המצב הנוכחי. תן לי לבדוק איך מתבצע היצוא בפועל:
+
+מצוין! עכשיו אני מבין את המצב. תן לי להכין תוכנית מפורטת לשיפור מערכת היצוא:
+
+# תוכנית מקיפה לשדרוג מערכת היצוא של הכרטיסים הטכניים
+
+## ניתוח מצב קיים
+
+### קבצי יצוא נוכחיים:
+1. **techniqueSheetExport.ts** - יצוא בסיסי, פריסה דחוסה בשתי עמודות
+2. **comprehensiveTechniqueSheetExport.ts** - יצוא מפורט יותר, מרובה עמודים
+3. **inspectionReportExport.ts** - דוח בדיקה (19 עמודים)
+4. **calibrationBlockExport.ts** - יצוא בלוקים בלבד
+
+### בעיות מזוהות:
+- ❌ ללא תמיכה ב-Word/DOCX
+- ❌ עיצוב גרפי בסיסי מאוד
+- ❌ רזולוציה נמוכה של תרשימים
+- ❌ טבלאות לא מעוצבות מקצועית
+- ❌ חסר לוגו וברנדינג
+- ❌ חסר headers/footers מעוצבים
+- ❌ ציורי calibration blocks פשוטים מדי
+- ❌ אין אפשרות לבחור פורמט (רק PDF)
+- ❌ אין template עיצובי אחיד
+
+---
+
+## שלב 1: הוספת תמיכה ב-Word (DOCX)
+
+### טכנולוגיה:
+- **docx** - ספריית npm לייצור קבצי Word
+- **officegen** - אלטרנטיבה עם יותר פיצ'רים
+
+### מה ייושם:
+1. יצירת מחלקה חדשה `WordExporter` 
+2. תמיכה בכל המבנים הקיימים (טבלאות, תמונות, כותרות)
+3. שימוש ב-styles של Word (Heading 1, 2, Table Grid)
+4. הוספת TOC (Table of Contents) אוטומטי
+5. תמיכה בתמונות high-resolution
+6. אפשרות עריכה של המסמך אחר כך
+
+### קבצים חדשים:
+- `src/utils/exporters/wordExporter.ts` - מחלקת יצוא ל-Word
+- `src/utils/exporters/baseExporter.ts` - מחלקת בסיס לכל המייצאים
+- `src/utils/exporters/pdfExporter.ts` - refactor של PDF הקיים
+
+---
+
+## שלב 2: שיפור העיצוב הגרפי של PDF
+
+### שיפורים עיצוביים:
+
+#### 2.1 כותרות ו-Headers מקצועיים:
+```typescript
+- לוגו החברה בראש כל עמוד (אופציונלי)
+- Header עם פס צבע מעוצב (כחול/אפור)
+- Watermark "DRAFT" / "APPROVED" 
+- Footer עם מספור עמודים מעוצב
+- QR code עם קישור למסמך (אופציונלי)
+```
+
+#### 2.2 טבלאות מתקדמות:
+```typescript
+- שורות עם צבעי רקע לסירוגין מעוצבים
+- Headers עם gradients
+- Borders מעודנים (0.5pt במקום 1pt)
+- Padding מותאם לקריאות
+- Column widths אוטומטיים חכמים
+- Merged cells לכותרות קבוצות
+```
+
+#### 2.3 צבעים ופלטה מקצועית:
+```typescript
+// Primary Colors
+--primary-blue: #2563EB      // כחול מקצועי
+--secondary-gray: #64748B     // אפור רך
+--accent-orange: #F97316      // כתום להדגשות
+--success-green: #10B981      // ירוק לאישורים
+--error-red: #EF4444          // אדום לשגיאות
+--warning-amber: #F59E0B      // ענבר לאזהרות
+
+// Neutrals
+--background: #F8FAFC
+--text-primary: #1E293B
+--text-secondary: #64748B
+--border: #E2E8F0
+```
+
+#### 2.4 טיפוגרפיה מתקדמת:
+```typescript
+- שימוש ב-Roboto או Inter (פונטים מודרניים)
+- Headings: Bold 16pt-24pt
+- Body: Regular 10pt-11pt
+- Tables: 8pt-9pt
+- Line height: 1.4-1.6 לקריאות
+```
+
+---
+
+## שלב 3: שיפור ציורי Calibration Blocks
+
+### בעיות בציורים הנוכחיים:
+- פשוטים מדי (קווים בסיסיים)
+- חסרים מידות
+- לא מסומנים FBH/Notches בצורה ברורה
+- אין סקלה
+
+### פתרון:
+1. **ציורים טכניים מפורטים** עם:
+   - Dimension lines עם חיצים
+   - Annotations לכל FBH
+   - Cross-sections (חתכים)
+   - Isometric view + Top view + Side view
+   - Grid background לסקלה
+   - Legend עם סמלים
+
+2. **שימוש ב-Canvas API מתקדם**:
+   ```typescript
+   - Dashed lines למימדים נסתרים
+   - Hatching לחתכים
+   - Arrows מעוצבים
+   - Text labels מסובבים
+   - Shadow effects לעומק
+   ```
+
+3. **ייצוא כתמונות PNG/SVG איכותיות**:
+   - רזולוציה: 300 DPI
+   - Transparent background
+   - Anti-aliasing
+
+---
+
+## שלב 4: מערכת Templates
+
+### יצירת מערכת תבניות:
+```typescript
+interface ExportTemplate {
+  id: string;
+  name: string;
+  type: 'minimal' | 'standard' | 'comprehensive' | 'report';
+  branding: {
+    logo?: string;
+    companyName?: string;
+    colors: ColorPalette;
+    fonts: FontSettings;
+  };
+  layout: {
+    pageSize: 'A4' | 'Letter' | 'A3';
+    orientation: 'portrait' | 'landscape';
+    margins: Margins;
+    columns: 1 | 2 | 3;
+  };
+  sections: SectionConfig[];
+  includeWatermark: boolean;
+  includeQRCode: boolean;
+}
+```
+
+### Templates מוכנים:
+1. **Minimal** - עמוד אחד, רק נתונים חיוניים
+2. **Standard** - 2-3 עמודים, טבלאות בסיסיות
+3. **Comprehensive** - 6+ עמודים, כולל ציורים ותרשימים
+4. **Report Mode** - 19 עמודים, כולל C-Scan ו-A-Scan
+5. **Audit Ready** - עם חתימות ואישורים
+
+---
+
+## שלב 5: מנוע ייצוא מאוחד
+
+### ארכיטקטורה חדשה:
+```typescript
+// Base class
+abstract class TechniqueSheetExporter {
+  abstract export(data: TechniqueSheetData, format: ExportFormat): Promise;
+  protected abstract renderHeader(): void;
+  protected abstract renderSection(section: Section): void;
+  protected abstract renderFooter(): void;
+}
+
+// Implementations
+class PDFExporter extends TechniqueSheetExporter { }
+class WordExporter extends TechniqueSheetExporter { }
+class HTMLExporter extends TechniqueSheetExporter { }
+```
+
+### Export Manager:
+```typescript
+class ExportManager {
+  async export(
+    data: TechniqueSheetData,
+    format: 'pdf' | 'docx' | 'html',
+    template: ExportTemplate,
+    options: ExportOptions
+  ): Promise {
+    const exporter = this.getExporter(format);
+    const blob = await exporter.export(data, template, options);
+    this.download(blob, filename);
+  }
+}
+```
+
+---
+
+## שלב 6: UI לבחירת פורמט ותבנית
+
+### קומפוננטה חדשה: `ExportDialog`
+```typescript
+ setShowExportDialog(false)}
+  data={techniqueSheetData}
+>
+
+  Export
+
+```
+
+---
+
+## שלב 7: שיפורים טכניים נוספים
+
+### 7.1 תמיכה בתמונות באיכות גבוהה:
+- Canvas rendering ב-300 DPI
+- SVG export לתרשימים
+- PNG compression אופטימלי
+
+### 7.2 Progress Bar:
+```typescript
+
+  Generating page 3 of 6...
+
+```
+
+### 7.3 Preview לפני ייצוא:
+```typescript
+
+    Cancel
+    Confirm & Export
+
+```
+
+### 7.4 Batch Export:
+- ייצוא מרובה של technique sheets
+- ZIP archive עם כל הקבצים
+- Excel summary table
+
+---
+
+## שלב 8: אופטימיזציות Performance
+
+1. **Lazy Loading** של פונטים וספריות
+2. **Web Workers** לעיבוד PDF כבדים
+3. **Caching** של templates שנשמרו
+4. **Streaming** לקבצים גדולים
+5. **Compression** של תמונות
+
+---
+
+## סדר יישום מומלץ:
+
+### Sprint 1 (שבוע 1-2):
+1. ✅ הוספת תמיכה ב-DOCX (שלב 1)
+2. ✅ יצירת UI לבחירת פורמט (שלב 6 - חלק 1)
+3. ✅ Refactor של מנוע PDF הקיים
+
+### Sprint 2 (שבוע 3-4):
+1. ✅ שיפור עיצוב PDF (שלב 2)
+2. ✅ ציורי calibration blocks מתקדמים (שלב 3)
+3. ✅ מערכת צבעים ופונטים (שלב 2.3, 2.4)
+
+### Sprint 3 (שבוע 5-6):
+1. ✅ מערכת Templates (שלב 4)
+2. ✅ Preview לפני ייצוא (שלב 7.3)
+3. ✅ Progress indicators (שלב 7.2)
+
+### Sprint 4 (שבוע 7):
+1. ✅ אופטימיזציות (שלב 8)
+2. ✅ בדיקות QA
+3. ✅ תיעוד למשתמשים
+
+---
+
+## Dependencies חדשות נדרשות:
+
+```json
+{
+  "docx": "^8.5.0",              // Word export
+  "file-saver": "^2.0.5",        // Download files
+  "pdfmake": "^0.2.10",          // Alternative PDF (optional)
+  "canvas": "^2.11.2",           // High-quality canvas
+  "html2canvas": "^1.4.1",       // Screenshot to PDF
+  "jszip": "^3.10.1",            // Batch export
+  "@react-pdf/renderer": "^3.4.4" // PDF preview (optional)
+}
+```
+
+---
+
+## קבצים שייווצרו/ישונו:
+
+### קבצים חדשים:
+1. `src/utils/exporters/baseExporter.ts`
+2. `src/utils/exporters/pdfExporter.ts`
+3. `src/utils/exporters/wordExporter.ts`
+4. `src/utils/exporters/htmlExporter.ts`
+5. `src/utils/exporters/exportManager.ts`
+6. `src/components/export/ExportDialog.tsx`
+7. `src/components/export/FormatSelector.tsx`
+8. `src/components/export/TemplateSelector.tsx`
+9. `src/components/export/ExportPreview.tsx`
+10. `src/utils/drawings/calibrationBlockDrawings.ts`
+11. `src/types/exportTemplates.ts`
+12. `src/config/exportTemplates.ts`
+
+### קבצים לשינוי:
+1. `src/pages/Index.tsx` - integration עם ExportDialog
+2. `src/components/MenuBar.tsx` - הוספת אופציות export
+3. `src/utils/techniqueSheetExport.ts` - refactor ל-PDFExporter
+4. `src/utils/comprehensiveTechniqueSheetExport.ts` - שיפורים
+5. `src/utils/calibrationBlockExport.ts` - שימוש בציורים חדשים
+
+---
+
+## תוצאה סופית:
+
+### מה המשתמש יקבל:
+✅ **אופציות ייצוא**: PDF, Word, HTML
+✅ **תבניות מעוצבות**: 5 תבניות מוכנות + custom
+✅ **איכות מקצועית**: ציורים ב-300 DPI, טיפוגרפיה משופרת
+✅ **גמישות**: בחירת סעיפים, ברנדינג, watermarks
+✅ **מהירות**: Web workers, caching, optimization
+✅ **Preview**: תצוגה מקדימה לפני ייצוא
+✅ **Batch**: ייצוא מרובה של דוחות
+
+### השוואה לפני/אחרי:
+
+#### לפני:
+- רק PDF
+- עיצוב בסיסי
+- טבלאות פשוטות
+- ציורים פרימיטיביים
+- ללא אפשרויות
+
+#### אחרי:
+- PDF + Word + HTML
+- עיצוב מקצועי ברמת תעשייה
+- טבלאות מעוצבות עם gradients
+- ציורים טכניים מפורטים עם מידות
+- מערכת templates גמישה
+- Preview ואפשרויות התאמה אישית
+
+האם לממש את התוכנית? אני ממליץ להתחיל מ-Sprint 1 (תמיכה ב-Word + UI לבחירת פורמט) כי זה יתן ערך מיידי למשתמשים.
+
+Implement the plan

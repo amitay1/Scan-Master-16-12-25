@@ -1,0 +1,269 @@
+{
+  "standard": {
+    "id": "MIL-STD-2154",
+    "name": "MIL-STD-2154 / AMS-STD-2154E",
+    "title": "Military Standard - Ultrasonic Inspection",
+    "revision": "E",
+    "description": "Aerospace Materials Specification for Ultrasonic Inspection"
+  },
+  "tables": {
+    "tableI": {
+      "title": "Flat Bottom Hole (FBH) Sizes per Material Thickness",
+      "description": "Reference reflector sizes for calibration",
+      "data": [
+        {
+          "thicknessRange": "0.25-0.50 inches",
+          "classAAA": "1/64 inch (0.4 mm)",
+          "classAA": "1/64 inch (0.4 mm)",
+          "classA": "2/64 inch (0.8 mm)",
+          "classB": "3/64 inch (1.2 mm)",
+          "classC": "4/64 inch (1.6 mm)"
+        },
+        {
+          "thicknessRange": "0.50-1.00 inches",
+          "classAAA": "1/64 inch (0.4 mm)",
+          "classAA": "2/64 inch (0.8 mm)",
+          "classA": "3/64 inch (1.2 mm)",
+          "classB": "4/64 inch (1.6 mm)",
+          "classC": "5/64 inch (2.0 mm)"
+        },
+        {
+          "thicknessRange": "1.00-2.00 inches",
+          "classAAA": "2/64 inch (0.8 mm)",
+          "classAA": "3/64 inch (1.2 mm)",
+          "classA": "3/64 inch (1.2 mm)",
+          "classB": "5/64 inch (2.0 mm)",
+          "classC": "5/64 inch (2.0 mm)"
+        },
+        {
+          "thicknessRange": "2.00-4.00 inches",
+          "classAAA": "3/64 inch (1.2 mm)",
+          "classAA": "3/64 inch (1.2 mm)",
+          "classA": "5/64 inch (2.0 mm)",
+          "classB": "5/64 inch (2.0 mm)",
+          "classC": "8/64 inch (3.2 mm)"
+        },
+        {
+          "thicknessRange": ">4.00 inches",
+          "classAAA": "3/64 inch (1.2 mm)",
+          "classAA": "5/64 inch (2.0 mm)",
+          "classA": "5/64 inch (2.0 mm)",
+          "classB": "8/64 inch (3.2 mm)",
+          "classC": "8/64 inch (3.2 mm)"
+        }
+      ]
+    },
+    "tableII": {
+      "title": "Equipment Performance Requirements",
+      "description": "Minimum performance criteria for ultrasonic equipment",
+      "data": {
+        "verticalLinearity": {
+          "minimum": 5,
+          "maximum": 98,
+          "units": "% FSH",
+          "description": "Amplitude linearity range"
+        },
+        "horizontalLinearity": {
+          "minimum": 90,
+          "units": "%",
+          "description": "Time base accuracy"
+        },
+        "entrySurfaceResolution": {
+          "2.25MHz": "0.250 inches",
+          "5.0MHz": "0.125 inches",
+          "10.0MHz": "0.063 inches",
+          "15.0MHz": "0.031 inches",
+          "description": "Minimum distance from entry surface"
+        },
+        "backSurfaceResolution": {
+          "2.25MHz": "0.100 inches",
+          "5.0MHz": "0.050 inches",
+          "10.0MHz": "0.025 inches",
+          "15.0MHz": "0.013 inches",
+          "description": "Minimum distance from back surface"
+        },
+        "frequencyTolerance": "±10%",
+        "pulseRepetitionRate": "100-10000 Hz",
+        "scanSpeed": {
+          "maximum": "150 mm/s",
+          "description": "Maximum scanning velocity for automated systems"
+        }
+      }
+    },
+    "tableVI": {
+      "title": "Acceptance Criteria per Class",
+      "description": "Maximum allowable discontinuity sizes and quantities",
+      "data": {
+        "classAAA": {
+          "singleDiscontinuity": "Reference FBH size",
+          "multipleDiscontinuities": "50% reference FBH, max 3 indications",
+          "linearIndications": "Not permitted",
+          "backwallLoss": "50% maximum",
+          "noiseLevel": "10% FSH maximum"
+        },
+        "classAA": {
+          "singleDiscontinuity": "Reference FBH size",
+          "multipleDiscontinuities": "75% reference FBH, max 5 indications",
+          "linearIndications": "3 inches maximum length",
+          "backwallLoss": "50% maximum",
+          "noiseLevel": "15% FSH maximum"
+        },
+        "classA": {
+          "singleDiscontinuity": "150% reference FBH size",
+          "multipleDiscontinuities": "Reference FBH, max 10 indications",
+          "linearIndications": "6 inches maximum length",
+          "backwallLoss": "50% maximum",
+          "noiseLevel": "20% FSH maximum"
+        },
+        "classB": {
+          "singleDiscontinuity": "200% reference FBH size",
+          "multipleDiscontinuities": "150% reference FBH, unlimited quantity",
+          "linearIndications": "No limit",
+          "backwallLoss": "75% maximum",
+          "noiseLevel": "25% FSH maximum"
+        },
+        "classC": {
+          "singleDiscontinuity": "No limit",
+          "multipleDiscontinuities": "No limit",
+          "linearIndications": "No limit",
+          "backwallLoss": "90% maximum",
+          "noiseLevel": "30% FSH maximum"
+        }
+      }
+    }
+  },
+  "formulas": {
+    "metalTravelDistance": {
+      "formula": "MTD = 3T rounded to nearest 5mm",
+      "description": "Metal travel distance for calibration",
+      "variables": {
+        "T": "Material thickness in mm",
+        "MTD": "Metal travel distance in mm"
+      },
+      "example": "For T=25mm: MTD = 3×25 = 75mm"
+    },
+    "scanIndex": {
+      "formula": "SI = BW × (1 - C/100)",
+      "description": "Maximum scan index for coverage",
+      "variables": {
+        "SI": "Scan index in mm",
+        "BW": "Effective beam width in mm",
+        "C": "Required coverage percentage"
+      },
+      "example": "For BW=10mm, C=100%: SI = 10×(1-100/100) = 10×0.3 = 3mm (70% overlap)"
+    },
+    "nearFieldDistance": {
+      "formula": "N = D²/(4λ)",
+      "description": "Near field distance calculation",
+      "variables": {
+        "N": "Near field distance in mm",
+        "D": "Transducer diameter in mm",
+        "λ": "Wavelength in mm (V/f)"
+      },
+      "example": "For D=12.7mm, f=5MHz, V=5900m/s: N = 12.7²/(4×1.18) = 34.2mm"
+    },
+    "focalZone": {
+      "formula": "FZ = 0.7 × F to 1.3 × F",
+      "description": "Usable focal zone range for focused transducers",
+      "variables": {
+        "FZ": "Focal zone range in mm",
+        "F": "Focal length in mm"
+      },
+      "example": "For F=50mm: FZ = 35mm to 65mm"
+    },
+    "beamSpread": {
+      "formula": "θ = sin⁻¹(1.22λ/D)",
+      "description": "Half-angle beam spread",
+      "variables": {
+        "θ": "Beam spread half-angle in degrees",
+        "λ": "Wavelength in mm",
+        "D": "Transducer diameter in mm"
+      }
+    }
+  },
+  "requirements": {
+    "calibration": {
+      "frequency": "Before each inspection, every 4 hours, and at completion",
+      "referenceBlock": "Same material specification and heat treatment as part",
+      "sensitivity": "Set to 80% FSH on reference reflector",
+      "scanning": "Add 6-12 dB above reference for scanning"
+    },
+    "coverage": {
+      "standard": "100% volumetric coverage required",
+      "overlap": "Minimum 30% overlap between adjacent scans",
+      "documentation": "Coverage map required for complex geometries"
+    },
+    "couplant": {
+      "immersion": ["Deionized water", "Demineralized water", "Tap water with rust inhibitor"],
+      "contact": ["Glycerin", "Commercial ultrasonic gel", "Light machine oil", "Water-based gel"],
+      "requirements": "Must not corrode or stain the material"
+    },
+    "documentation": {
+      "techniqueSheet": "Required for all inspections",
+      "calibrationRecords": "Maintain for 7 years minimum",
+      "inspectionReports": "Include all indications above 50% reference",
+      "traceability": "Full material and equipment traceability required"
+    }
+  },
+  "scanPatterns": {
+    "plate": {
+      "pattern": "Bidirectional raster",
+      "directions": ["0°", "90°"],
+      "specialRequirements": "If W/T > 5, check for laminations"
+    },
+    "bar": {
+      "round": {
+        "pattern": "Radial from circumference",
+        "coverage": "360° circumferential",
+        "additional": "Axial scan from end faces if accessible"
+      },
+      "rectangular": {
+        "pattern": "Scan from two adjacent faces",
+        "requirement": "If T or W > 9 inches, scan from opposite sides"
+      }
+    },
+    "forging": {
+      "ring": {
+        "pattern": "Radial, axial, and circumferential",
+        "specialCase": "If T > 0.2×OD, use special procedures",
+        "shearWave": "45° shear wave for circumferential discontinuities"
+      },
+      "disk": {
+        "pattern": "Flat face and radial from OD",
+        "coverage": "Both flat faces if accessible"
+      }
+    },
+    "complexShapes": {
+      "requirement": "Develop specific scan plan",
+      "documentation": "Include scan direction diagrams",
+      "validation": "Verify coverage with modeling or mockups"
+    }
+  },
+  "qualityClasses": {
+    "AAA": {
+      "name": "Ultra-Critical",
+      "applications": ["Rotating turbine components", "Primary flight controls", "Pressure vessels >10,000 psi"],
+      "stringency": "Highest"
+    },
+    "AA": {
+      "name": "Super-Critical",
+      "applications": ["Engine mount components", "Landing gear primary structure", "Rotor hubs"],
+      "stringency": "Very High"
+    },
+    "A": {
+      "name": "Critical",
+      "applications": ["Primary airframe structure", "Engine components", "Transmission components"],
+      "stringency": "High"
+    },
+    "B": {
+      "name": "Semi-Critical",
+      "applications": ["Secondary structure", "Non-flight critical components", "Support brackets"],
+      "stringency": "Medium"
+    },
+    "C": {
+      "name": "Non-Critical",
+      "applications": ["Non-structural components", "Tooling", "Ground support equipment"],
+      "stringency": "Low"
+    }
+  }
+}

@@ -1,0 +1,218 @@
+{
+  "standard": {
+    "id": "ASTM-A388",
+    "name": "ASTM A388/A388M",
+    "title": "Standard Practice for Ultrasonic Examination of Heavy Steel Forgings",
+    "revision": "Latest",
+    "description": "Covers procedures for contact, pulse-echo ultrasonic examination of heavy steel forgings"
+  },
+  "fbhSizes": {
+    "description": "Flat bottom hole sizes based on material thickness",
+    "data": [
+      {
+        "thicknessRange": "Up to 1.5 inches (38 mm)",
+        "fbhSize": "1/16 inch (1.6 mm)",
+        "fbhNumber": "#1"
+      },
+      {
+        "thicknessRange": "1.5 to 6.0 inches (38 to 152 mm)",
+        "fbhSize": "1/8 inch (3.2 mm)",
+        "fbhNumber": "#2"
+      },
+      {
+        "thicknessRange": "Over 6.0 inches (152 mm)",
+        "fbhSize": "1/4 inch (6.4 mm)",
+        "fbhNumber": "#3"
+      }
+    ]
+  },
+  "dgsMethod": {
+    "title": "Distance Gain Size (DGS) Method",
+    "description": "Alternative calibration method using calculated curves",
+    "requirements": {
+      "transducerData": "Accurate transducer frequency and diameter required",
+      "materialVelocity": "Precise material sound velocity measurement",
+      "calibrationBlock": "Use of DGS scale or electronic DGS system",
+      "verification": "Verify with actual FBH reflectors when possible"
+    },
+    "procedure": [
+      "Determine transducer near field distance",
+      "Calculate beam spread angle",
+      "Generate DGS curves for the specific probe",
+      "Calibrate on back wall echo or known reflector",
+      "Apply transfer correction for surface conditions"
+    ]
+  },
+  "angleBeanRequirements": {
+    "rings": {
+      "description": "Specific requirements for ring forgings",
+      "angles": ["45°", "60°", "70°"],
+      "procedure": [
+        "Scan from OD for radial discontinuities",
+        "Scan from ID when accessible",
+        "Use 45° for general inspection",
+        "Use 60-70° for near-surface discontinuities"
+      ],
+      "coverage": "100% circumferential coverage required"
+    },
+    "shafts": {
+      "angles": ["45°"],
+      "coverage": "Full length scanning with overlap"
+    }
+  },
+  "calibration": {
+    "referenceBlocks": {
+      "material": "Same or acoustically similar material",
+      "heatTreatment": "Similar condition to production parts",
+      "surfaceFinish": "125 μin Ra maximum",
+      "geometry": "Match part curvature when diameter < 20 inches"
+    },
+    "sensitivitySetting": {
+      "primary": "14 dB above reference FBH for scanning",
+      "recording": "6 dB above reference for evaluation",
+      "dac": "Distance amplitude correction curve required for thickness > 4 inches"
+    }
+  },
+  "coverage": {
+    "formula": {
+      "overlap": "O = (1 - I/D) × 100%",
+      "description": "Overlap percentage calculation",
+      "variables": {
+        "O": "Overlap percentage",
+        "I": "Index (step) distance",
+        "D": "Effective beam diameter at depth"
+      },
+      "minimum": "10% overlap (15% recommended)"
+    },
+    "scanPatterns": {
+      "straight": {
+        "grid": "Perpendicular scans in two directions",
+        "parallel": "Single direction with proper indexing"
+      },
+      "radial": {
+        "description": "For cylindrical forgings",
+        "axial": "Along the length",
+        "circumferential": "Around the circumference",
+        "radial": "From OD to center"
+      }
+    }
+  },
+  "acceptanceCriteria": {
+    "qualityLevels": {
+      "QL1": {
+        "description": "Most stringent",
+        "singleIndication": "Reference FBH size",
+        "multipleIndications": "50% reference FBH",
+        "linearIndications": "Not acceptable",
+        "lossOfBackReflection": "50% maximum"
+      },
+      "QL2": {
+        "description": "Standard quality",
+        "singleIndication": "2× reference FBH size",
+        "multipleIndications": "Reference FBH size",
+        "linearIndications": "Length ≤ 1 inch",
+        "lossOfBackReflection": "75% maximum"
+      },
+      "QL3": {
+        "description": "Commercial quality",
+        "singleIndication": "4× reference FBH size",
+        "multipleIndications": "2× reference FBH size",
+        "linearIndications": "Length ≤ 2 inches",
+        "lossOfBackReflection": "90% maximum"
+      },
+      "QL4": {
+        "description": "Minimum quality",
+        "singleIndication": "No specific limit",
+        "multipleIndications": "4× reference FBH size",
+        "linearIndications": "As agreed",
+        "lossOfBackReflection": "Complete loss acceptable"
+      }
+    }
+  },
+  "equipment": {
+    "frequency": {
+      "range": "1.0 to 5.0 MHz",
+      "typical": "2.25 MHz",
+      "selection": "Based on grain structure and attenuation"
+    },
+    "transducers": {
+      "straightBeam": {
+        "diameter": "0.375 to 1.125 inches",
+        "type": "Single or dual element"
+      },
+      "angleBeam": {
+        "size": "0.5 × 0.5 to 1 × 1 inch",
+        "angles": "45°, 60°, 70°"
+      }
+    },
+    "couplants": {
+      "contact": [
+        "SAE 20 or 30 motor oil",
+        "Glycerin",
+        "Cellulose gel",
+        "Water with wetting agent"
+      ],
+      "temperature": "Match part temperature ±25°F"
+    }
+  },
+  "scanningProcedure": {
+    "speed": {
+      "manual": "Maximum 6 inches/second",
+      "automated": "Maximum 12 inches/second",
+      "verification": "Confirm detection at maximum speed"
+    },
+    "gridSize": {
+      "heavy": "9-inch maximum for thickness > 6 inches",
+      "medium": "6-inch maximum for thickness 3-6 inches",
+      "light": "3-inch maximum for thickness < 3 inches"
+    },
+    "surfacePreparation": {
+      "roughness": "250 μin Ra maximum",
+      "cleanliness": "Free of scale, dirt, and loose material",
+      "temperature": "40°F to 125°F typical range"
+    }
+  },
+  "specialRequirements": {
+    "diskForgings": {
+      "radialScan": "From OD toward center",
+      "faceScan": "Both faces when accessible",
+      "boreInspection": "When center bore exists"
+    },
+    "ringForgings": {
+      "axialScan": "From both faces",
+      "radialScan": "From OD and ID",
+      "circumferentialScan": "Shear wave inspection"
+    },
+    "shaftForgings": {
+      "straightBeam": "Full length from both ends",
+      "angleBeam": "For surface and subsurface",
+      "criticalZones": "Increased sensitivity at stress concentrations"
+    }
+  },
+  "documentation": {
+    "required": [
+      "Forging identification",
+      "Equipment settings",
+      "Calibration records",
+      "Scan coverage map",
+      "Indication location and size",
+      "Acceptance/rejection status"
+    ],
+    "retention": "Minimum 5 years or per contract"
+  },
+  "dacCurve": {
+    "description": "Distance Amplitude Correction",
+    "points": "Minimum 3 points over examination range",
+    "primaryReference": "80% screen height",
+    "transferLoss": "Account for surface roughness difference",
+    "verification": "Check at mid-range during inspection"
+  },
+  "qualifications": {
+    "personnel": {
+      "level1": "Can perform specific calibrations and scans under supervision",
+      "level2": "Can set up, calibrate, and evaluate indications",
+      "level3": "Can develop procedures and interpret results"
+    },
+    "certification": "ASNT SNT-TC-1A or equivalent"
+  }
+}

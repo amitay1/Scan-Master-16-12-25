@@ -1,0 +1,204 @@
+{
+  "standard": {
+    "id": "BS-EN-10228-4",
+    "name": "BS EN 10228-4:2016",
+    "title": "Non-destructive testing of steel forgings - Part 4: Ultrasonic testing of austenitic and austenitic-ferritic stainless steel forgings",
+    "description": "European standard for ultrasonic testing of stainless steel forgings"
+  },
+  "qualityClasses": {
+    "description": "Four quality classes adapted for austenitic materials",
+    "classes": {
+      "1": {
+        "name": "Quality Class 1",
+        "description": "Highest quality - adapted for coarse grain",
+        "recordingLevel": "Reference DAC -14 dB",
+        "acceptanceLevel": "Reference DAC -8 dB",
+        "evaluationLevel": "Reference DAC -2 dB"
+      },
+      "2": {
+        "name": "Quality Class 2",
+        "description": "High quality - standard stringency",
+        "recordingLevel": "Reference DAC -8 dB",
+        "acceptanceLevel": "Reference DAC -2 dB",
+        "evaluationLevel": "Reference DAC +4 dB"
+      },
+      "3": {
+        "name": "Quality Class 3",
+        "description": "Standard quality - commercial",
+        "recordingLevel": "Reference DAC -2 dB",
+        "acceptanceLevel": "Reference DAC +4 dB",
+        "evaluationLevel": "Reference DAC +10 dB"
+      },
+      "4": {
+        "name": "Quality Class 4",
+        "description": "Basic quality - general purpose",
+        "recordingLevel": "Reference DAC +4 dB",
+        "acceptanceLevel": "Reference DAC +10 dB",
+        "evaluationLevel": "Reference DAC +14 dB"
+      }
+    },
+    "note": "Levels adjusted for higher attenuation in austenitic materials"
+  },
+  "materialConsiderations": {
+    "grainStructure": {
+      "issue": "Coarse, anisotropic grain structure",
+      "effect": "High attenuation and beam scattering",
+      "compensation": "Lower frequency, larger probes, adjusted sensitivity"
+    },
+    "soundVelocity": {
+      "longitudinal": "5650-5790 m/s",
+      "transverse": "3100-3230 m/s",
+      "variability": "Can vary with heat treatment and composition"
+    },
+    "attenuation": {
+      "typical": "0.05-0.20 dB/mm at 2 MHz",
+      "measurement": "Required before inspection",
+      "compensation": "Use DAC or TCG correction"
+    }
+  },
+  "specialRequirements": {
+    "frequencySelection": {
+      "preferred": "1-2 MHz for general inspection",
+      "finegrain": "2-4 MHz for fine grain material",
+      "coarsegrain": "0.5-1 MHz for very coarse grain",
+      "dual": "Consider dual element for near surface"
+    },
+    "probeSelection": {
+      "diameter": "20-30 mm preferred",
+      "type": "Low noise, high damping",
+      "coupling": "Ensure consistent pressure"
+    },
+    "calibration": {
+      "referenceBlock": "Same or similar austenitic material",
+      "attenuationCheck": "Measure on actual component",
+      "sensitivity": "Adjust for grain noise level",
+      "verification": "Every 2 hours during inspection"
+    }
+  },
+  "noiseAssessment": {
+    "grassNoise": {
+      "description": "Background noise from grain structure",
+      "acceptable": "< 20% screen height",
+      "action": "If > 20%, reduce frequency or use special techniques"
+    },
+    "signalToNoise": {
+      "minimum": "3:1 for valid indication",
+      "preferred": "6:1 for accurate evaluation",
+      "improvement": "Average multiple scans, use filters"
+    }
+  },
+  "techniques": {
+    "straightBeam": {
+      "application": "Primary inspection method",
+      "frequency": "1-2 MHz typical",
+      "gridSize": "25 mm maximum",
+      "overlap": "20% minimum"
+    },
+    "angleBeam": {
+      "application": "Surface and near-surface",
+      "angles": ["45°", "60°"],
+      "frequency": "1-2 MHz",
+      "challenge": "Mode conversion and skewing"
+    },
+    "dualElement": {
+      "application": "Near surface resolution",
+      "advantage": "Reduced dead zone",
+      "roofAngle": "4-10 degrees typical"
+    },
+    "immersion": {
+      "advantage": "Consistent coupling",
+      "focusedProbes": "Improved signal-to-noise",
+      "waterPath": "25-75 mm typical"
+    }
+  },
+  "acceptanceCriteria": {
+    "adjustments": {
+      "note": "Criteria adjusted for material characteristics",
+      "noiseLevel": "Consider grass noise in evaluation",
+      "grouping": "Larger grouping distance due to beam spread"
+    },
+    "individualIndications": {
+      "class1": "No echo > acceptance level above noise",
+      "class2": "Max 2 echoes > acceptance level in 100cm²",
+      "class3": "Max 4 echoes > acceptance level in 100cm²",
+      "class4": "As agreed, considering noise level"
+    },
+    "continuousIndications": {
+      "definition": "Echo sustained over > 50 mm travel",
+      "evaluation": "Investigate with multiple angles",
+      "acceptance": "Generally not acceptable in Class 1 & 2"
+    }
+  },
+  "scanningProcedure": {
+    "surfacePreparation": {
+      "roughness": "Ra ≤ 6.3 μm preferred",
+      "cleanliness": "Free from scale and oxidation",
+      "temperature": "Ambient to 60°C standard"
+    },
+    "speed": {
+      "manual": "Maximum 100 mm/s",
+      "automated": "Maximum 250 mm/s",
+      "verification": "Detect reference at max speed"
+    },
+    "coverage": {
+      "pattern": "Orthogonal grid pattern",
+      "overlap": "20% minimum due to beam distortion",
+      "documentation": "Record actual scan paths"
+    }
+  },
+  "documentation": {
+    "additionalRequirements": [
+      "Material grade and condition",
+      "Measured attenuation value",
+      "Noise level assessment",
+      "Actual velocity measurements",
+      "Special techniques used"
+    ],
+    "indiciationRecording": {
+      "threshold": "All indications > recording level",
+      "information": "Location, amplitude, extent",
+      "noiseLevel": "Document background noise"
+    }
+  },
+  "limitations": {
+    "thickness": {
+      "minimum": "20 mm (due to near field)",
+      "maximum": "Limited by attenuation",
+      "practical": "Up to 500 mm with proper technique"
+    },
+    "grainSize": {
+      "fine": "ASTM 5 or finer - standard technique",
+      "medium": "ASTM 3-5 - adjusted technique",
+      "coarse": "ASTM > 3 - special technique required"
+    }
+  },
+  "alternativeTechniques": {
+    "phaseArray": {
+      "advantage": "Multiple angles simultaneously",
+      "application": "Complex geometries",
+      "limitation": "Cost and training requirements"
+    },
+    "tofd": {
+      "advantage": "Accurate sizing",
+      "application": "Thick sections",
+      "limitation": "Surface blind zones"
+    },
+    "creepingWave": {
+      "advantage": "Near surface detection",
+      "application": "Surface breaking defects",
+      "angle": "75-80 degrees typical"
+    }
+  },
+  "qualityAssurance": {
+    "systemCheck": {
+      "frequency": "Start, every 4 hours, end",
+      "parameters": "Gain, DAC curve, sensitivity",
+      "acceptance": "Within ±2 dB of initial"
+    },
+    "personnelRequirements": {
+      "qualification": "Level 2 minimum",
+      "experience": "Specific to austenitic materials",
+      "training": "Document material-specific training"
+    }
+  }
+}

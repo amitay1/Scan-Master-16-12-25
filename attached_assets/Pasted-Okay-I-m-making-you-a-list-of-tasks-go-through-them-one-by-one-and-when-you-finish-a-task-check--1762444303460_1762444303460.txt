@@ -1,0 +1,13 @@
+Okay, I'm making you a list of tasks, go through them one by one, and when you finish a task, check the box to let you know you've finished it, then I'll start
+1) A critical task that I've requested for the fifth time and you can't fix it, so I'll be as clear as I can, the entire area where you choose between standards, or rather, the entire area below the three icons for saving, exporting, and validating, up to the card completion gauge. Every time you fill out a field, it fills up. The entire area there is completely messy. The text there overflows the borders of the containers. I don't want to send you a picture because it's really messy and you don't understand it too much.
+2) The card's progress gauge. It's time to revamp it. I need you to turn it into a more invested gauge. It won't just be numbers and percentages. I want you to imagine it like a transparent test tube with a liquid inside that fills up every time you fill out a field. I think you know how to make something like that, but if you don't tell me you can't, don't just try it, and then it won't work in the end!
+
+3) Task 3 is a critical and complex task and it deals with Show Scan Coverage found in the Technical Drawing tab. Currently, the level of coloring the shapes in the drawing is very, very low.
+There is no accuracy in coloring and it seems that there is no intelligent reason behind it.
+I don't care how I want accurate coloring according to the depths, which actually tells us when to change the tracker, because some trackers are good for close and some for far away. That's why the colors. If you think it will be easier for you to display it in 3D in a nice and creative way, it can be great, but when you export the card, it must export the drawing with the colors, so do it carefully.
+This is not an easy task, but you are super smart and you can do it.
+
+4) Opening screen for the software. When I click on a certain software, usually a kind of opening screen opens with the company's logo. I want you to do it for me with an animation. Here I allow you to be super creative and cool.
+You can go wild with animations of Scans and sound waves, think about it I trust you
+
+There are more tasks but I can see that it can be too much for you so it seems like you manage to solve them all!
