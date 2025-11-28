@@ -1,0 +1,12 @@
+{
+  "shapeType": "tube",
+  "parameters": {
+    "outerDiameter": 50.0,
+    "innerDiameter": 30.0,
+    "length": 100.0
+  },
+  "outputPath": "D:\\Scan-Master-Replit_NEW\\Scan-Master\\cad-3d-output\\current-user\\test-tube.step",
+  "metadata": {
+    "partName": "Test Tube"
+  }
+}

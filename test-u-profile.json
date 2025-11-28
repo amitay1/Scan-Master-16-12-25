@@ -1,0 +1,14 @@
+{
+  "shapeType": "u-profile",
+  "parameters": {
+    "profileHeight": 150.0,
+    "flangeWidth": 80.0,
+    "webThickness": 6.0,
+    "flangeThickness": 10.0,
+    "length": 400.0
+  },
+  "outputPath": "D:\\Scan-Master-Replit_NEW\\Scan-Master\\cad-3d-output\\current-user\\test-u-profile.step",
+  "metadata": {
+    "partName": "Test U-Profile"
+  }
+}

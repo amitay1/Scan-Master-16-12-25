@@ -1,0 +1,13 @@
+{
+  "shapeType": "l-profile",
+  "parameters": {
+    "leg1": 50.0,
+    "leg2": 40.0,
+    "thickness": 5.0,
+    "length": 300.0
+  },
+  "outputPath": "D:\\Scan-Master-Replit_NEW\\Scan-Master\\cad-3d-output\\current-user\\test-l-profile.step",
+  "metadata": {
+    "partName": "Test L-Profile"
+  }
+}

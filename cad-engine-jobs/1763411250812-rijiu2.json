@@ -1,0 +1,14 @@
+{
+  "jobId": "1763411250812-rijiu2",
+  "engine": "ScanMaster CAD Engine v3.0",
+  "shapeType": "sphere",
+  "parameters": {
+    "material": "aluminum",
+    "quality": "high",
+    "source": "ScanMaster TechnicalDrawingTest",
+    "geometry_type": "sphere",
+    "radius": 100
+  },
+  "outputFormat": "step",
+  "outputPath": "D:\\Scan-Master-Replit_NEW\\Scan-Master\\cad-3d-output\\00000000-0000-0000-0000-000000000000\\1763411250812-rijiu2.step"
+}

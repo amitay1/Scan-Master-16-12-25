@@ -1,0 +1,35 @@
+{
+  "jobId": "1763430618161-3y447p",
+  "engine": "ScanMaster CAD Engine v3.0",
+  "shapeType": "calibration_block",
+  "parameters": {
+    "length": 100,
+    "width": 50,
+    "height": 25
+  },
+  "calibrationData": {
+    "fbhSizes": "2/64, 3/64, 5/64",
+    "metalTravelDistance": 25.4,
+    "blockDimensions": {
+      "L": 100,
+      "W": 50,
+      "H": 25
+    },
+    "standardType": "rectangular_block",
+    "material": "aluminum",
+    "partThickness": 25,
+    "partType": "cylinder",
+    "isHollow": true,
+    "acceptanceClass": "A",
+    "probeType": "immersion",
+    "frequency": 5,
+    "inspectionType": "straight_beam"
+  },
+  "metadata": {
+    "userId": "current-user",
+    "projectId": "current-project",
+    "partName": "Calibration_Block_1763430617815"
+  },
+  "outputFormat": "step",
+  "outputPath": "D:\\Scan-Master-Replit_NEW\\Scan-Master\\cad-3d-output\\current-user\\1763430618161-3y447p.step"
+}

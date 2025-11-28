@@ -1,0 +1,15 @@
+{
+  "jobId": "1763589032710-0kwjnh",
+  "engine": "ScanMaster CAD Engine v3.0",
+  "shapeType": "cone",
+  "parameters": {
+    "material": "aluminum",
+    "quality": "high",
+    "source": "ScanMaster TechnicalDrawingTest",
+    "geometry_type": "cone",
+    "base_diameter": 150,
+    "height": 200
+  },
+  "outputFormat": "step",
+  "outputPath": "D:\\Scan-Master-Replit_NEW\\Scan-Master\\cad-3d-output\\00000000-0000-0000-0000-000000000000\\1763589032710-0kwjnh.step"
+}

@@ -1,0 +1,194 @@
+{
+  "standard": {
+    "id": "BS-EN-10228-3",
+    "name": "BS EN 10228-3:2016",
+    "title": "Non-destructive testing of steel forgings - Part 3: Ultrasonic testing of ferritic or martensitic steel forgings",
+    "description": "European standard for ultrasonic testing of steel forgings"
+  },
+  "qualityClasses": {
+    "description": "Four quality classes with increasing stringency",
+    "classes": {
+      "1": {
+        "name": "Quality Class 1",
+        "description": "Highest quality - most stringent",
+        "recordingLevel": "Reference DAC -12 dB",
+        "acceptanceLevel": "Reference DAC -6 dB",
+        "evaluationLevel": "Reference DAC"
+      },
+      "2": {
+        "name": "Quality Class 2", 
+        "description": "High quality - stringent",
+        "recordingLevel": "Reference DAC -6 dB",
+        "acceptanceLevel": "Reference DAC",
+        "evaluationLevel": "Reference DAC +6 dB"
+      },
+      "3": {
+        "name": "Quality Class 3",
+        "description": "Standard quality",
+        "recordingLevel": "Reference DAC",
+        "acceptanceLevel": "Reference DAC +6 dB",
+        "evaluationLevel": "Reference DAC +12 dB"
+      },
+      "4": {
+        "name": "Quality Class 4",
+        "description": "Basic quality - least stringent",
+        "recordingLevel": "Reference DAC +6 dB",
+        "acceptanceLevel": "Reference DAC +12 dB",
+        "evaluationLevel": "Reference DAC +16 dB"
+      }
+    }
+  },
+  "referenceReflectors": {
+    "flatBottomHoles": {
+      "diameters": ["3 mm", "5 mm", "8 mm"],
+      "selection": "Based on thickness and quality class",
+      "depth": "Typically at T/2 and T/4 where T is thickness"
+    },
+    "siderilledHoles": {
+      "diameter": "3 mm typical",
+      "orientation": "Perpendicular to scanning surface",
+      "use": "For angle beam calibration"
+    },
+    "backWallEcho": {
+      "use": "For thickness > 600 mm",
+      "calibration": "Use back wall echo with DAC correction"
+    }
+  },
+  "couplingRequirements": {
+    "couplants": {
+      "contact": [
+        "Oil (mineral or vegetable)",
+        "Water with wetting agent",
+        "Glycerin",
+        "Cellulose paste",
+        "Commercial ultrasonic couplants"
+      ],
+      "immersion": ["Water", "Oil for special applications"],
+      "requirements": "Must not damage material or leave residue"
+    },
+    "transferCorrection": {
+      "required": "When surface roughness differs > Ra 6.3 μm",
+      "method": "Compare echo amplitudes from reference and test surfaces",
+      "maximum": "4 dB typical maximum correction"
+    }
+  },
+  "probeMovementSpeed": {
+    "manual": {
+      "maximum": "150 mm/s",
+      "typical": "50-100 mm/s",
+      "verification": "Must detect reference reflector at max speed"
+    },
+    "automated": {
+      "maximum": "500 mm/s",
+      "typical": "100-300 mm/s",
+      "pulseRepetition": "Must ensure full coverage"
+    }
+  },
+  "scanningRequirements": {
+    "coverage": {
+      "standard": "100% of examination volume",
+      "overlap": "Minimum 10% between adjacent scans",
+      "documentation": "Scan plan required for complex geometries"
+    },
+    "gridPattern": {
+      "straightBeam": {
+        "perpendicular": "Two perpendicular directions",
+        "indexing": "Max 75% of beam diameter"
+      },
+      "angleBeam": {
+        "angles": ["45°", "60°", "70°"],
+        "directions": "From all accessible surfaces"
+      }
+    }
+  },
+  "equipment": {
+    "frequency": {
+      "range": "1 MHz to 5 MHz",
+      "typical": "2 MHz to 4 MHz",
+      "selection": "Based on material grain size and thickness"
+    },
+    "probes": {
+      "straightBeam": {
+        "diameter": "10 mm to 25 mm",
+        "nearField": "Consider for thickness evaluation"
+      },
+      "angleBeam": {
+        "size": "8×9 mm to 20×20 mm",
+        "angles": "45°, 60°, 70° standard"
+      },
+      "dual": "Permitted for near-surface resolution"
+    }
+  },
+  "dacCurve": {
+    "construction": {
+      "points": "Minimum 3 points",
+      "range": "Cover full examination thickness",
+      "primaryEcho": "Set to 80% screen height"
+    },
+    "correction": {
+      "nearField": "Apply near field correction if needed",
+      "attenuation": "Correct for material attenuation > 12 dB",
+      "transfer": "Apply surface transfer correction"
+    }
+  },
+  "acceptanceRequirements": {
+    "individualIndications": {
+      "class1": "No echo > acceptance level",
+      "class2": "Max 3 echoes > acceptance level in 100cm²",
+      "class3": "Max 5 echoes > acceptance level in 100cm²",
+      "class4": "As agreed between parties"
+    },
+    "groupedIndications": {
+      "definition": "Distance < 40 mm between indications",
+      "evaluation": "Treat as single indication",
+      "measurement": "Use 6 dB drop method for sizing"
+    },
+    "planarIndications": {
+      "detection": "Loss of back wall > 6 dB",
+      "evaluation": "Additional angle beam examination",
+      "acceptance": "Generally not acceptable in Class 1 & 2"
+    }
+  },
+  "documentation": {
+    "techniqueSheet": {
+      "required": [
+        "Material specification",
+        "Thickness range",
+        "Quality class",
+        "Equipment settings",
+        "Calibration details",
+        "Scan pattern"
+      ]
+    },
+    "testReport": {
+      "required": [
+        "Component identification",
+        "Test date and operator",
+        "Equipment used",
+        "Calibration records",
+        "Indication plot/map",
+        "Accept/reject status"
+      ]
+    },
+    "retention": "10 years minimum or per contract"
+  },
+  "personnelQualification": {
+    "minimum": "Level 2 per EN ISO 9712",
+    "certification": "Valid for ultrasonic testing",
+    "experience": "Specific to forging inspection"
+  },
+  "testLimitations": {
+    "thickness": {
+      "minimum": "10 mm",
+      "maximum": "No limit (equipment dependent)"
+    },
+    "temperature": {
+      "minimum": "0°C",
+      "maximum": "60°C standard (higher with special couplants)"
+    },
+    "surfaceCondition": {
+      "roughness": "Ra ≤ 12.5 μm",
+      "cleanliness": "Free from scale, paint, dirt"
+    }
+  }
+}

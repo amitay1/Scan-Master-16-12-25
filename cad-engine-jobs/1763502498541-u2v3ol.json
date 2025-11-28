@@ -1,0 +1,32 @@
+{
+  "jobId": "1763502498541-u2v3ol",
+  "engine": "ScanMaster CAD Engine v3.0",
+  "shapeType": "calibration_block",
+  "parameters": {
+    "length": 100,
+    "width": 50,
+    "height": 25
+  },
+  "calibrationData": {
+    "fbhSizes": "3/64, 1/8, 1/4",
+    "metalTravelDistance": 25.4,
+    "blockDimensions": {
+      "L": 100,
+      "W": 50,
+      "H": 25
+    },
+    "standardType": "MIL-STD-2154",
+    "material": "aluminum",
+    "partThickness": 25,
+    "acceptanceClass": "A",
+    "probeType": "contact",
+    "frequency": 5
+  },
+  "metadata": {
+    "userId": "current-user",
+    "projectId": "current-project",
+    "partName": "Calibration_Block_1763502498510"
+  },
+  "outputFormat": "step",
+  "outputPath": "d:\\Scan-Master-Replit_NEW\\Scan-Master\\cad-3d-output\\current-user\\1763502498541-u2v3ol.step"
+}

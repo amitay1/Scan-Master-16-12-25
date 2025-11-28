@@ -1,0 +1,14 @@
+{
+  "shapeType": "ring",
+  "parameters": {
+    "outer_radius": 37.5,
+    "inner_radius": 12.5,
+    "height": 20.0
+  },
+  "outputPath": "D:\\Scan-Master-Replit_NEW\\Scan-Master\\public\\generated\\test_ring.step",
+  "metadata": {
+    "userId": "debug_user",
+    "projectId": "debug_test",
+    "partName": "Debug Ring"
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "jobId": "1764101890691-si91ho",
+  "engine": "ScanMaster CAD Engine v3.0",
+  "shapeType": "tube",
+  "parameters": {
+    "outerDiameter": 50,
+    "innerDiameter": -25,
+    "length": 100
+  },
+  "calibrationData": {
+    "fbhSizes": "2/64, 3/64, 5/64",
+    "metalTravelDistance": 25.4,
+    "blockDimensions": {
+      "L": 100,
+      "W": 50,
+      "H": 37.5
+    },
+    "standardType": "MIL-STD-2154",
+    "material": "aluminum",
+    "partThickness": 25,
+    "partType": "tube",
+    "acceptanceClass": "A",
+    "probeType": "contact",
+    "frequency": 5,
+    "includeScanDirections": true
+  },
+  "metadata": {
+    "userId": "current-user",
+    "projectId": "current-project",
+    "partName": "Calibration_Block_1764101890370"
+  },
+  "outputFormat": "step",
+  "outputPath": "D:\\Scan-Master-Replit_NEW\\Scan-Master\\cad-3d-output\\current-user\\1764101890691-si91ho.step"
+}

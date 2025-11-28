@@ -1,0 +1,33 @@
+{
+  "jobId": "test-scan-directions",
+  "engine": "ScanMaster CAD Engine v3.0",
+  "shapeType": "cylinder",
+  "parameters": {
+    "diameter": 50,
+    "length": 100
+  },
+  "calibrationData": {
+    "fbhSizes": "2/64, 3/64, 5/64",
+    "metalTravelDistance": 25,
+    "blockDimensions": {
+      "L": 100,
+      "W": 50,
+      "H": 37.5
+    },
+    "standardType": "MIL-STD-2154",
+    "material": "aluminum",
+    "partThickness": 25,
+    "partType": "cylinder",
+    "acceptanceClass": "C",
+    "probeType": "contact",
+    "frequency": 5,
+    "includeScanDirections": true
+  },
+  "metadata": {
+    "userId": "test-user",
+    "projectId": "test-project",
+    "partName": "Cylinder_With_Scan_Directions"
+  },
+  "outputFormat": "step",
+  "outputPath": "D:\\Scan-Master-Replit_NEW\\Scan-Master\\TestFile_WITH_SCAN_DIRECTIONS.step"
+}
