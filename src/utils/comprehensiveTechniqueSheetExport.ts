@@ -5,6 +5,7 @@ import type {
   InspectionSetupData,
   EquipmentData,
   CalibrationData,
+  FBHHoleData,
   ScanParametersData,
   AcceptanceCriteriaData,
   DocumentationData,
@@ -35,7 +36,7 @@ interface ComprehensiveTechniqueSheetData {
 function parseFbhSize(sizeStr: string): number {
   // Remove quotes and mm suffix
   const cleaned = sizeStr.replace(/["'mm]/g, '').trim();
-  
+
   // Try fractional format (e.g., "3/64")
   const fractionMatch = cleaned.match(/(\d+)\/(\d+)/);
   if (fractionMatch) {
@@ -44,15 +45,27 @@ function parseFbhSize(sizeStr: string): number {
     // Convert from inches to mm (1 inch = 25.4 mm)
     return (numerator / denominator) * 25.4;
   }
-  
+
   // Try decimal format
   const decimal = parseFloat(cleaned);
   if (!isNaN(decimal)) {
     return decimal;
   }
-  
+
   // Default to 3/64" = 1.19mm
   return 1.19;
+}
+
+/**
+ * Get primary FBH size string for display (e.g., "3/64" FBH")
+ * Uses structured data if available, falls back to legacy string
+ */
+function getPrimaryFbhSizeString(calibration: CalibrationData): string {
+  if (calibration.fbhHoles && calibration.fbhHoles.length > 0) {
+    const hole = calibration.fbhHoles[0];
+    return `${hole.diameterInch}" FBH` || `${hole.diameterMm.toFixed(2)}mm FBH`;
+  }
+  return calibration.fbhSizes?.split(',')[0]?.trim() || '3/64" FBH';
 }
 
 /**
@@ -1204,22 +1217,19 @@ function drawCalibrationPage(
   doc.setTextColor(0, 0, 0);
   yPos += 20;
 
-  // Calibration specifications
+  // Calibration Block Specifications
   doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
-  doc.text('7.1 Calibration Specifications', margin, yPos);
+  doc.text('7.1 Calibration Block Specifications', margin, yPos);
   yPos += 6;
 
   autoTable(doc, {
     startY: yPos,
     head: [['Parameter', 'Value']],
     body: [
-      ['Standard Type', data.calibration.standardType || 'N/A'],
       ['Block Type', getBlockTypeName(data.calibration.standardType as CalibrationBlockType)],
       ['Reference Material', data.calibration.referenceMaterial || 'N/A'],
-      ['FBH Sizes', data.calibration.fbhSizes || 'N/A'],
-      ['Metal Travel Distance (mm)', data.calibration.metalTravelDistance?.toString() || 'N/A'],
-      ['Block Dimensions', data.calibration.blockDimensions || 'N/A'],
+      ['Block Dimensions (L×W×H)', data.calibration.blockDimensions || 'N/A'],
       ['Block Serial Number', data.calibration.blockSerialNumber || 'N/A'],
       ['Last Calibration Date', data.calibration.lastCalibrationDate || 'N/A'],
     ],
@@ -1230,7 +1240,70 @@ function drawCalibrationPage(
     tableWidth: pageWidth - 2 * margin,
   });
 
-  yPos = (doc as any).lastAutoTable.finalY + 15;
+  yPos = (doc as any).lastAutoTable.finalY + 10;
+
+  // FBH Hole Specifications Table (TÜV Professional Style)
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'bold');
+  doc.text('7.2 FBH Hole Specifications', margin, yPos);
+  yPos += 6;
+
+  // Build FBH table data from structured array or fallback to legacy string
+  const fbhHoles = data.calibration.fbhHoles;
+  const fbhTableBody: string[][] = fbhHoles && fbhHoles.length > 0
+    ? fbhHoles.map((hole: FBHHoleData) => [
+        hole.id.toString(),
+        hole.partNumber || '-',
+        hole.deltaType?.toUpperCase() || 'AREA',
+        hole.diameterInch || '-',
+        hole.diameterMm?.toFixed(2) || '-',
+        hole.distanceB?.toFixed(1) || '0',
+        hole.metalTravelH?.toFixed(2) || '-',
+      ])
+    : // Fallback: parse legacy fbhSizes string
+      (data.calibration.fbhSizes?.split(',').map((size, idx) => {
+        const trimmed = size.trim();
+        const mmValue = parseFbhSize(trimmed);
+        return [
+          (idx + 1).toString(),
+          '-',
+          'AREA',
+          trimmed || '3/64',
+          mmValue.toFixed(2),
+          '0',
+          data.calibration.metalTravelDistance?.toFixed(2) || '19.05',
+        ];
+      }) || [['1', '-', 'AREA', '3/64', '1.19', '0', '19.05']]);
+
+  autoTable(doc, {
+    startY: yPos,
+    head: [['ID', 'P/N', 'Δ Type', 'Ø FBH (inch)', 'Ø FBH (mm)', 'B (mm)', 'H MTD (mm)']],
+    body: fbhTableBody,
+    theme: 'grid',
+    headStyles: {
+      fillColor: [52, 152, 219],
+      textColor: 255,
+      fontSize: 9,
+      halign: 'center'
+    },
+    bodyStyles: {
+      fontSize: 8,
+      halign: 'center'
+    },
+    columnStyles: {
+      0: { cellWidth: 12 },  // ID
+      1: { cellWidth: 22 },  // P/N
+      2: { cellWidth: 20 },  // Δ Type
+      3: { cellWidth: 28 },  // Ø FBH inch
+      4: { cellWidth: 25 },  // Ø FBH mm
+      5: { cellWidth: 20 },  // B
+      6: { cellWidth: 28 },  // H MTD
+    },
+    margin: { left: margin, right: margin },
+    tableWidth: pageWidth - 2 * margin,
+  });
+
+  yPos = (doc as any).lastAutoTable.finalY + 8;
 
   // Technical Drawing Section - PROFESSIONAL 3D ISOMETRIC
   doc.setFontSize(11);
@@ -1267,8 +1340,12 @@ function drawCalibrationPage(
   const partLength = data.inspectionSetup.partLength || 100;
   const partWidth = data.inspectionSetup.partWidth || 50;
   const partDiameter = data.inspectionSetup.diameter || 50.8; // Default 2" per ASTM E127
-  const fbhSizes = data.calibration.fbhSizes?.split(',').map(s => s.trim()) || ['3/64"'];
-  
+
+  // Get FBH sizes from structured data or fallback to legacy string
+  const fbhSizesForDrawing = data.calibration.fbhHoles && data.calibration.fbhHoles.length > 0
+    ? data.calibration.fbhHoles.map(h => h.diameterInch)
+    : (data.calibration.fbhSizes?.split(',').map(s => s.trim()) || ['3/64"']);
+
   drawProfessionalCalibrationBlock(
     doc,
     effectiveBlockType,
@@ -1280,7 +1357,7 @@ function drawCalibrationPage(
       height: partThickness,  // This determines the 3 block heights (30%, 60%, 90%)
       outerDiameter: partDiameter,
       innerDiameter: data.inspectionSetup.innerDiameter || 0,
-      fbhSizes: fbhSizes
+      fbhSizes: fbhSizesForDrawing
     }
   );
 
@@ -1322,7 +1399,7 @@ function drawCalibrationPage2(
     startY: yPos,
     head: [['Parameter', 'Value', 'Remarks']],
     body: [
-      ['Reference Reflector', data.calibration.fbhSizes?.split(',')[0]?.trim() || '3/64" FBH', 'Per MIL-STD-2154'],
+      ['Reference Reflector', getPrimaryFbhSizeString(data.calibration), 'Per MIL-STD-2154'],
       ['DAC Points', 'Minimum 3', 'At 30%, 60%, 90% of thickness'],
       ['Transfer Correction', 'Applied', 'Surface roughness compensation'],
       ['Evaluation Level', 'DAC', '100% DAC = recording level'],
@@ -1717,15 +1794,17 @@ function drawScanPlanPage(
   doc.text('Table 3: Scan Plan Matrix', margin, yPos);
   yPos += 8;
 
+  const primaryFbhSize = getPrimaryFbhSizeString(data.calibration);
+
   autoTable(doc, {
     startY: yPos,
     head: [['Seq.', 'Surface', 'Wave Mode', 'Direction', 'Sensitivity', 'Angle', 'Probe', 'Notes']],
     body: [
-      ['1', 'Face A', 'Longitudinal', 'Axial', data.calibration.fbhSizes?.split(',')[0]?.trim() || '3/64" FBH', '0°', data.equipment.transducerType || 'MSEB2', '100% coverage'],
-      ['2', 'Face B', 'Longitudinal', 'Axial', data.calibration.fbhSizes?.split(',')[0]?.trim() || '3/64" FBH', '0°', data.equipment.transducerType || 'MSEB2', '100% coverage'],
-      ['3', 'OD', 'Longitudinal', 'Radial', data.calibration.fbhSizes?.split(',')[0]?.trim() || '3/64" FBH', '0°', data.equipment.transducerType || 'MSEB2', '100% coverage'],
-      ['4', 'OD', 'Shear', 'CW', data.calibration.fbhSizes?.split(',')[0]?.trim() || '3/64" FBH', '45°', 'MWB45-2', 'If required'],
-      ['5', 'OD', 'Shear', 'CCW', data.calibration.fbhSizes?.split(',')[0]?.trim() || '3/64" FBH', '45°', 'MWB45-2', 'If required'],
+      ['1', 'Face A', 'Longitudinal', 'Axial', primaryFbhSize, '0°', data.equipment.transducerType || 'MSEB2', '100% coverage'],
+      ['2', 'Face B', 'Longitudinal', 'Axial', primaryFbhSize, '0°', data.equipment.transducerType || 'MSEB2', '100% coverage'],
+      ['3', 'OD', 'Longitudinal', 'Radial', primaryFbhSize, '0°', data.equipment.transducerType || 'MSEB2', '100% coverage'],
+      ['4', 'OD', 'Shear', 'CW', primaryFbhSize, '45°', 'MWB45-2', 'If required'],
+      ['5', 'OD', 'Shear', 'CCW', primaryFbhSize, '45°', 'MWB45-2', 'If required'],
     ],
     theme: 'striped',
     headStyles: { fillColor: [52, 152, 219], textColor: 255, fontSize: 8 },
@@ -2435,10 +2514,11 @@ function drawReferenceStandardsPage(
   const blockType = data.calibration.blockType || 'solid_cylinder_fbh';
   const partThickness = data.inspectionSetup.partThickness || 100;
   const blockDiameter = data.inspectionSetup.diameter || 50.8; // Default 2" per ASTM E127
-  
-  // Parse FBH hole diameter from calibration settings
-  const fbhSizeStr = data.calibration.fbhSizes?.split(',')[0]?.trim() || '3/64"';
-  const holeDiameter = parseFbhSize(fbhSizeStr); // Convert "3/64" to mm
+
+  // Parse FBH hole diameter from structured data or legacy string
+  const holeDiameter = data.calibration.fbhHoles && data.calibration.fbhHoles.length > 0
+    ? data.calibration.fbhHoles[0].diameterMm
+    : parseFbhSize(data.calibration.fbhSizes?.split(',')[0]?.trim() || '3/64"');
 
   // Generate calibration blocks based on part thickness (TÜV style - up to 12 blocks)
   const referenceBlocks = generateReferenceBlockSet(partThickness, holeDiameter, blockType);

@@ -25,6 +25,12 @@ interface ScanDetailsTabProps {
     thickness?: number;
     outerDiameter?: number;
     innerDiameter?: number;
+    // Cone-specific dimensions
+    coneTopDiameter?: number;
+    coneBottomDiameter?: number;
+    coneHeight?: number;
+    wallThickness?: number;
+    isHollow?: boolean;
   };
 }
 

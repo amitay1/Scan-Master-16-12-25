@@ -119,11 +119,6 @@ export const PartDiagramTab = ({
       'irregular': 'irregular',
       'rectangular': 'box',
       'rectangular_tube': 'rectangular_tube',
-      'l_profile': 'l_profile',
-      't_profile': 't_profile',
-      'i_profile': 'i_profile',
-      'u_profile': 'u_profile',
-      'z_profile': 'z_profile',
     };
     return typeMap[type] || 'cylinder';
   };

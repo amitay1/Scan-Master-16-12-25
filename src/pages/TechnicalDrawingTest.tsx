@@ -262,39 +262,6 @@ function buildCadSolidPayload(
       };
     }
 
-    case 'l_profile':
-    case 't_profile':
-    case 'i_profile':
-    case 'u_profile':
-    case 'z_profile': {
-      const length = ensurePositive(dimensions.length);
-      const width = ensurePositive(dimensions.width);
-      const thickness = ensurePositive(dimensions.thickness);
-      const wallThickness = dimensions.wallThickness ? ensurePositive(dimensions.wallThickness) : null;
-
-      if (!length || !width || !thickness) {
-        return null;
-      }
-
-      const params: Record<string, any> = {
-        length,
-        width,
-        thickness,
-      };
-
-      if (wallThickness) {
-        params.wall_thickness = wallThickness;
-      }
-
-      return {
-        shapeType: geometry,
-        parameters: {
-          ...baseParams,
-          ...params,
-        },
-      };
-    }
-
     default:
       return null;
   }
@@ -316,12 +283,7 @@ const geometryIcons: Record<string, React.ReactNode> = {
   'ellipse': <Circle className="w-4 h-4" />,
   'forging': <Pentagon className="w-4 h-4" />,
   'irregular': <Activity className="w-4 h-4" />,
-  'hexagon': <Hexagon className="w-4 h-4" />,
-  'l_profile': <Square className="w-4 h-4" />,
-  't_profile': <Square className="w-4 h-4" />,
-  'i_profile': <Square className="w-4 h-4" />,
-  'u_profile': <Square className="w-4 h-4" />,
-  'z_profile': <Square className="w-4 h-4" />
+  'hexagon': <Hexagon className="w-4 h-4" />
 };
 
 // Preset dimensions for each geometry type
@@ -460,51 +422,6 @@ const presetDimensions: Record<string, any> = {
     innerDiameter: undefined,
     outerDiameter: 200, // outer length
     wallThickness: 10
-  },
-  'l_profile': {
-    length: 250,
-    width: 100,
-    thickness: 15,
-    diameter: undefined,
-    innerDiameter: undefined,
-    outerDiameter: undefined,
-    wallThickness: 15
-  },
-  't_profile': {
-    length: 280,
-    width: 120,
-    thickness: 20,
-    diameter: undefined,
-    innerDiameter: undefined,
-    outerDiameter: undefined,
-    wallThickness: 20
-  },
-  'i_profile': {
-    length: 300,
-    width: 150,
-    thickness: 25,
-    diameter: undefined,
-    innerDiameter: undefined,
-    outerDiameter: undefined,
-    wallThickness: 12
-  },
-  'u_profile': {
-    length: 260,
-    width: 110,
-    thickness: 18,
-    diameter: undefined,
-    innerDiameter: undefined,
-    outerDiameter: undefined,
-    wallThickness: 18
-  },
-  'z_profile': {
-    length: 240,
-    width: 130,
-    thickness: 16,
-    diameter: undefined,
-    innerDiameter: undefined,
-    outerDiameter: undefined,
-    wallThickness: 16
   }
 };
 
@@ -513,7 +430,6 @@ const geometryCategories = {
   'Basic Shapes': ['box', 'cylinder', 'sphere', 'cone', 'pyramid'],
   'Plates & Bars': ['plate', 'bar', 'disk'],
   'Hollow Sections': ['tube', 'ring', 'rectangular_tube'],
-  'Profiles': ['l_profile', 't_profile', 'i_profile', 'u_profile', 'z_profile'],
   'Special Shapes': ['hexagon', 'ellipse', 'forging', 'irregular']
 };
 
@@ -726,7 +642,7 @@ export default function TechnicalDrawingTest() {
     const fields = [];
     
     // Common dimensions by geometry type
-    if (['box', 'plate', 'bar', 'pyramid', 'irregular', 'forging', 'l_profile', 't_profile', 'i_profile', 'u_profile', 'z_profile'].includes(selectedGeometry)) {
+    if (['box', 'plate', 'bar', 'pyramid', 'irregular', 'forging'].includes(selectedGeometry)) {
       fields.push({ key: 'length', label: 'Length (mm)', value: dimensions.length });
       fields.push({ key: 'width', label: 'Width (mm)', value: dimensions.width });
       fields.push({ key: 'thickness', label: 'Thickness (mm)', value: dimensions.thickness });

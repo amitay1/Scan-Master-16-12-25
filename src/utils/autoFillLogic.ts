@@ -103,6 +103,28 @@ export const standardRules: Record<StandardType, StandardRules> = {
       vertical: { min: 10, max: 95 },
       horizontal: { min: 85 }
     }
+  },
+  "BS-EN-10228-3": {
+    defaultAcceptanceClass: "A", // Maps to Class 3 (standard quality)
+    minThickness: 10,
+    typicalFrequencies: ["1.0", "2.0", "4.0"],
+    couplantRecommendations: ["Oil (mineral)", "Water with wetting agent", "Glycerin", "Cellulose paste", "Commercial couplants"],
+    scanCoverageDefault: 100,
+    linearityRequirements: {
+      vertical: { min: 80, max: 100 },
+      horizontal: { min: 0 } // Not specified in standard
+    }
+  },
+  "BS-EN-10228-4": {
+    defaultAcceptanceClass: "A", // Maps to Class 3 (standard quality)
+    minThickness: 20,
+    typicalFrequencies: ["0.5", "1.0", "2.0"],
+    couplantRecommendations: ["Oil (mineral)", "Water with wetting agent", "Glycerin", "Commercial couplants"],
+    scanCoverageDefault: 100,
+    linearityRequirements: {
+      vertical: { min: 80, max: 100 },
+      horizontal: { min: 0 } // Not specified in standard
+    }
   }
 };
 
@@ -158,39 +180,7 @@ export const geometryRecommendations: Record<PartGeometry, GeometryRecommendatio
     transducerType: "immersion",
     specialConsiderations: "Conical shape requires angle-compensated scanning"
   },
-  
-  // ============= STRUCTURAL PROFILES =============
-  l_profile: {
-    calibrationBlockType: ["flat_block"],
-    scanPattern: "Axial along legs, radial from edges",
-    transducerType: "contact",
-    specialConsiderations: "Scan flanges and web separately. Check corners/fillets"
-  },
-  t_profile: {
-    calibrationBlockType: ["flat_block"],
-    scanPattern: "Axial and indexed transverse scans per feature",
-    transducerType: "contact",
-    specialConsiderations: "T-section requires multi-orientation scans"
-  },
-  i_profile: {
-    calibrationBlockType: ["flat_block"],
-    scanPattern: "Axial with indexed scans on flanges and web",
-    transducerType: "contact",
-    specialConsiderations: "I-beam geometry, scan from multiple surfaces"
-  },
-  u_profile: {
-    calibrationBlockType: ["flat_block"],
-    scanPattern: "Axial and transverse indexed scans",
-    transducerType: "contact",
-    specialConsiderations: "U-channel requires coverage of all faces"
-  },
-  z_profile: {
-    calibrationBlockType: ["flat_block"],
-    scanPattern: "Axial along profile",
-    transducerType: "contact",
-    specialConsiderations: "Z-section requires coverage of all faces"
-  },
-  
+
   // ============= LEGACY MAPPINGS =============
   plate: {
     calibrationBlockType: ["flat_block"],
@@ -378,18 +368,6 @@ export const geometryRecommendations: Record<PartGeometry, GeometryRecommendatio
     transducerType: "immersion",
     specialConsiderations: "Near-net shape requires adaptive scanning."
   },
-  z_section: {
-    calibrationBlockType: ["flat_block"],
-    scanPattern: "Axial along profile",
-    transducerType: "contact",
-    specialConsiderations: "Z-section requires coverage of all faces."
-  },
-  custom_profile: {
-    calibrationBlockType: ["flat_block"],
-    scanPattern: "Drawing-specific",
-    transducerType: "contact",
-    specialConsiderations: "Refer to engineering drawing for specific requirements."
-  },
   machined_component: {
     calibrationBlockType: ["flat_block"],
     scanPattern: "Drawing-specific",
@@ -453,7 +431,12 @@ export function calculateScanIndex(transducerDiameter: number, coveragePercent: 
   return Math.round(indexInches * 25.4 * 10) / 10;
 }
 
-// Acceptance criteria based on class
+// ============================================================================
+// DEPRECATED - DO NOT USE
+// The correct acceptance criteria are in src/data/standardsDifferences.ts
+// (acceptanceCriteriaByStandard) which uses proper AMS-STD-2154E Table 6 values
+// ============================================================================
+// @deprecated Use acceptanceCriteriaByStandard from standardsDifferences.ts instead
 interface AcceptanceLimits {
   singleDiscontinuity: string;
   multipleDiscontinuities: string;
@@ -462,41 +445,53 @@ interface AcceptanceLimits {
   noiseLevel: string;
 }
 
+/**
+ * @deprecated This data uses incorrect DAC% format.
+ * Use acceptanceCriteriaByStandard from '@/data/standardsDifferences' instead,
+ * which has the correct AMS-STD-2154E Table 6 FBH-based criteria.
+ */
 export const acceptanceLimits: Record<AcceptanceClass, AcceptanceLimits> = {
+  // WARNING: These values are INCORRECT and kept only for backwards compatibility
+  // Correct values per AMS-STD-2154E Table 6:
+  // AAA: Single=1/64", Multiple=10% of 3/64", Linear=1/8" max
+  // AA:  Single=3/64", Multiple=3/64", Linear=1/2" max
+  // A:   Single=5/64", Multiple=2/64", Linear=1" max
+  // B:   Single=8/64", Multiple=3/64", Linear=1" max
+  // C:   Single=8/64", Multiple=5/64", Linear=N/A
   "AAA": {
-    singleDiscontinuity: "No indications >2% DAC",
-    multipleDiscontinuities: "No indications >1% DAC",
-    linearDiscontinuity: "Not permitted",
-    backReflectionLoss: 2,
-    noiseLevel: "Grass height <5% FSH"
+    singleDiscontinuity: "1/64\" (0.4mm) FBH - see standardsDifferences.ts",
+    multipleDiscontinuities: "10% of 3/64\" FBH - see standardsDifferences.ts",
+    linearDiscontinuity: "1/8\" max - 10% of 3/64\"",
+    backReflectionLoss: 50,
+    noiseLevel: "Alarm level"
   },
   "AA": {
-    singleDiscontinuity: "No indications >5% DAC",
-    multipleDiscontinuities: "No indications >2% DAC",
-    linearDiscontinuity: "Not permitted",
-    backReflectionLoss: 4,
-    noiseLevel: "Grass height <10% FSH"
+    singleDiscontinuity: "3/64\" (1.2mm) FBH",
+    multipleDiscontinuities: "3/64\" FBH (centers <1\" apart)",
+    linearDiscontinuity: "1/2\" max - 2/64\" response",
+    backReflectionLoss: 50,
+    noiseLevel: "Alarm level"
   },
   "A": {
-    singleDiscontinuity: "No indications >8% DAC",
-    multipleDiscontinuities: "No indications >5% DAC",
-    linearDiscontinuity: "Linear indications >1/4\" not permitted",
-    backReflectionLoss: 6,
-    noiseLevel: "Grass height <15% FSH"
+    singleDiscontinuity: "5/64\" (2.0mm) FBH",
+    multipleDiscontinuities: "2/64\" FBH (centers <1\" apart)",
+    linearDiscontinuity: "1\" max - 3/64\" response",
+    backReflectionLoss: 50,
+    noiseLevel: "Alarm level"
   },
   "B": {
-    singleDiscontinuity: "No indications >15% DAC",
-    multipleDiscontinuities: "No indications >8% DAC",
-    linearDiscontinuity: "Linear indications >1/2\" not permitted",
-    backReflectionLoss: 10,
-    noiseLevel: "Grass height <20% FSH"
+    singleDiscontinuity: "8/64\" (3.2mm) FBH",
+    multipleDiscontinuities: "3/64\" FBH (centers <1\" apart)",
+    linearDiscontinuity: "1\" max - 5/64\" response",
+    backReflectionLoss: 50,
+    noiseLevel: "Alarm level"
   },
   "C": {
-    singleDiscontinuity: "No indications >25% DAC",
-    multipleDiscontinuities: "No indications >15% DAC",
-    linearDiscontinuity: "Linear indications >1\" not permitted",
-    backReflectionLoss: 15,
-    noiseLevel: "Grass height <25% FSH"
+    singleDiscontinuity: "8/64\" (3.2mm) FBH",
+    multipleDiscontinuities: "5/64\" FBH",
+    linearDiscontinuity: "Not applicable",
+    backReflectionLoss: 50,
+    noiseLevel: "Alarm level"
   }
 };
 

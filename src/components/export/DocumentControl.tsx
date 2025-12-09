@@ -11,6 +11,7 @@ import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FileText, Calendar, Hash } from 'lucide-react';
+import { useSettingsApply } from '@/hooks/useSettingsApply';
 
 export interface DocumentControlData {
   documentNumber: string;
@@ -30,6 +31,8 @@ export const DocumentControl: React.FC<DocumentControlProps> = ({
   data,
   onChange
 }) => {
+  const { formatDate, getCurrentDate } = useSettingsApply();
+  
   const handleChange = (field: keyof DocumentControlData, value: string | boolean) => {
     onChange({
       ...data,
@@ -46,7 +49,8 @@ export const DocumentControl: React.FC<DocumentControlProps> = ({
   };
 
   const setCurrentDate = () => {
-    const today = new Date().toLocaleDateString('en-GB'); // DD/MM/YYYY format
+    // Use date format from settings
+    const today = getCurrentDate();
     handleChange('revisionDate', today);
   };
 

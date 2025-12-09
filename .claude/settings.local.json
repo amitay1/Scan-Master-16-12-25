@@ -11,7 +11,16 @@
       "Bash(tee:*)",
       "Bash(findstr:*)",
       "Bash(npm run build:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(find:*)",
+      "Bash(npm run lint)",
+      "Bash(npm run lint:*)",
+      "Bash(npx tsc:*)",
+      "Bash(python3:*)",
+      "Bash(powershell -Command \"\n$content = Get-Content -Path ''src/components/InspectionPlanViewer.tsx'' -Raw\n\n# Define the old text pattern (unique enough to match)\n$oldPattern = @''\n/\\*\\*\n \\* ASTM E2375 Scan Direction Symbol \\(.\\)\n \\* Small outlined square indicating scan/index direction\n \\* Can have an optional diagonal line showing scan path\n \\*/\nfunction drawScanDirectionSymbol\\(\n  ctx: CanvasRenderingContext2D,\n  x: number,\n  y: number,\n  hasDiagonal: boolean = false,\n  diagonalAngle: number = 45 // degrees\n\\) \\{\n  ctx\\.save\\(\\);\n  ctx\\.strokeStyle = ''#000000'';\n  ctx\\.fillStyle = ''#000000'';\n  ctx\\.lineWidth = 1\\.5;\n\n  const size = 8;\n\n  // Draw outlined square \\(not filled\\)\n  ctx\\.strokeRect\\(x - size/2, y - size/2, size, size\\);\n''@\n\nWrite-Output ''Checking if pattern exists in file...''\nif ($content -match ''ASTM E2375 Scan Direction Symbol'') {\n    Write-Output ''Found pattern!''\n} else {\n    Write-Output ''Pattern not found''\n}\n\")",
+      "Bash(node fix-symbols.mjs:*)",
+      "Bash(git -C \"d:/Scan-Master-Replit_NEW/Scan-Master\" checkout -- \"src/components/InspectionPlanViewer.tsx\")",
+      "Bash(npx eslint:*)"
     ],
     "deny": [],
     "ask": []

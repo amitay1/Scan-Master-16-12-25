@@ -255,18 +255,11 @@ export interface GeometryBlockMapping {
 export const GEOMETRY_GROUPS = {
   // Group 1: Flat/Plate geometries - Use Flat FBH Block
   FLAT_PLATE: [
-    'plate', 'sheet', 'slab', 'flat_bar', 'rectangular_bar', 
+    'plate', 'sheet', 'slab', 'flat_bar', 'rectangular_bar',
     'square_bar', 'bar', 'billet', 'block', 'box'
   ] as PartGeometry[],
-  
-  // Group 2: Structural profiles - Use Flat FBH Block (treat each surface as flat)
-  STRUCTURAL_PROFILES: [
-    'l_profile', 't_profile', 'i_profile', 'u_profile', 'z_profile',
-    'extrusion_l', 'extrusion_t', 'extrusion_i', 'extrusion_u', 
-    'extrusion_channel', 'extrusion_angle', 'z_section'
-  ] as PartGeometry[],
-  
-  // Group 3: Solid rounds - Use Flat FBH Block (radial inspection)
+
+  // Group 2: Solid rounds - Use Flat FBH Block (radial inspection)
   SOLID_ROUNDS: [
     'round_bar', 'shaft', 'round_forging_stock', 'cylinder'
   ] as PartGeometry[],
@@ -299,7 +292,7 @@ export const GEOMETRY_GROUPS = {
   // Group 9: Complex/Custom - Requires special evaluation
   COMPLEX: [
     'sphere', 'cone', 'pyramid', 'ellipse', 'irregular',
-    'machined_component', 'custom_profile', 'custom'
+    'machined_component', 'custom'
   ] as PartGeometry[]
 } as const;
 

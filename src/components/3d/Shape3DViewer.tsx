@@ -1,9 +1,87 @@
-import { useRef, useEffect, useState, Suspense } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
+import { useRef, useEffect, useState, Suspense, useMemo } from 'react';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, PerspectiveCamera } from '@react-three/drei';
 import * as THREE from 'three';
 import { getGeometryByType } from './ShapeGeometries';
 import { getMaterialByMaterialType } from './ShapeMaterials';
+
+/**
+ * Generate a procedural environment map for metallic reflections
+ * This creates a studio-like lighting environment without external HDRIs
+ */
+function useStudioEnvironment() {
+  const envMap = useMemo(() => {
+    const cubeRenderTarget = new THREE.WebGLCubeRenderTarget(256, {
+      format: THREE.RGBAFormat,
+      generateMipmaps: true,
+      minFilter: THREE.LinearMipmapLinearFilter,
+    });
+    return cubeRenderTarget.texture;
+  }, []);
+  return envMap;
+}
+
+/**
+ * Enhanced lighting setup for metallic materials
+ */
+function StudioLighting({ isActive, isHovered, accentColor }: {
+  isActive: boolean;
+  isHovered: boolean;
+  accentColor: string;
+}) {
+  const intensity = isActive || isHovered ? 1.0 : 0.7;
+
+  return (
+    <>
+      {/* Key light - main illumination from top-right */}
+      <directionalLight
+        position={[5, 8, 5]}
+        intensity={intensity * 1.2}
+        color="#ffffff"
+        castShadow={isActive || isHovered}
+      />
+
+      {/* Fill light - softer from left side */}
+      <directionalLight
+        position={[-5, 3, -3]}
+        intensity={intensity * 0.6}
+        color="#e8e8ff"
+      />
+
+      {/* Rim light - highlights edges from behind */}
+      <directionalLight
+        position={[0, 2, -8]}
+        intensity={intensity * 0.4}
+        color="#ffffff"
+      />
+
+      {/* Bottom fill - reduces harsh shadows */}
+      <directionalLight
+        position={[0, -5, 0]}
+        intensity={0.2}
+        color="#4488cc"
+      />
+
+      {/* Ambient for overall fill */}
+      <ambientLight intensity={isActive || isHovered ? 0.35 : 0.5} color="#f0f0f8" />
+
+      {/* Hemisphere light for natural sky/ground gradient */}
+      <hemisphereLight
+        args={['#b1e1ff', '#b97a20', isActive || isHovered ? 0.4 : 0.3]}
+      />
+
+      {/* Accent point light with material color */}
+      {(isActive || isHovered) && (
+        <pointLight
+          position={[3, 0, 5]}
+          intensity={0.5}
+          color={accentColor}
+          distance={15}
+        />
+      )}
+    </>
+  );
+}
 
 interface Shape3DMeshProps {
   partType: string;
@@ -220,27 +298,12 @@ export default function Shape3DViewer({
               />
             )}
             
-            <ambientLight intensity={isActive || isHovered ? 0.4 : 0.6} />
-            <directionalLight 
-              position={[5, 5, 5]} 
-              intensity={isActive || isHovered ? 1 : 0.8} 
-              castShadow={isActive || isHovered}
+            {/* Enhanced studio lighting for realistic metallic appearance */}
+            <StudioLighting
+              isActive={isActive}
+              isHovered={isHovered}
+              accentColor={color}
             />
-            <directionalLight 
-              position={[-5, 3, -5]} 
-              intensity={isActive || isHovered ? 0.4 : 0.3} 
-            />
-            
-            {(isActive || isHovered) && (
-              <>
-                <directionalLight position={[0, -5, 0]} intensity={0.3} color="#4488ff" />
-                <pointLight position={[0, 0, 10]} intensity={0.8} color={color} />
-                {/* Removed Environment preset that loaded remote HDRI (venice_sunset_1k.hdr)
-                    because the external URL started returning 404 and crashed the 3D view.
-                    The existing custom lights above provide sufficient lighting without
-                    relying on an external asset. */}
-              </>
-            )}
             
             <Shape3DMesh 
               partType={currentPartType} 

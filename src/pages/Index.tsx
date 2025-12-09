@@ -28,7 +28,9 @@ import { RemarksTab } from "@/components/tabs/RemarksTab";
 import { ScanDetailsTab } from "@/components/tabs/ScanDetailsTab";
 import type { ScanDetailsData } from "@/types/scanDetails";
 import { TechnicalDrawingTab } from "@/components/tabs/TechnicalDrawingTab";
-import { LiquidProgressGauge } from "@/components/ui/liquid-progress-gauge";
+import { ProbeProgressGauge } from "@/components/ui/ProbeProgressGauge";
+import { Collapsible3DPanel } from "@/components/ui/ResizablePanel";
+import type { SavedCard } from "@/contexts/SavedCardsContext";
 import {
   StandardType, 
   InspectionSetupData, 
@@ -41,8 +43,7 @@ import {
 } from "@/types/techniqueSheet";
 import { InspectionReportData } from "@/types/inspectionReport";
 import { standardRules, getRecommendedFrequency, getCouplantRecommendation, calculateMetalTravel } from "@/utils/autoFillLogic";
-import { exportTechniqueSheetToPDF } from "@/utils/techniqueSheetExport";
-import { exportInspectionReportToPDF } from "@/utils/inspectionReportExport";
+import { exportComprehensiveTechniqueSheet } from "@/utils/comprehensiveTechniqueSheetExport";
 import { useAuth } from "@/hooks/useAuth";
 import { logError, logInfo } from "@/lib/logger";
 import { Button } from "@/components/ui/button";
@@ -63,7 +64,8 @@ const Index = () => {
   const [unifiedExportDialogOpen, setUnifiedExportDialogOpen] = useState(false);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [capturedDrawing, setCapturedDrawing] = useState<string | undefined>();
-  
+  const [viewer3DOpen, setViewer3DOpen] = useState(true);
+
   const [inspectionSetup, setInspectionSetup] = useState<InspectionSetupData>({
     partNumber: "",
     partName: "",
@@ -476,6 +478,45 @@ const Index = () => {
     setSheetNameInput(record.sheetName);
   };
 
+  // Handle loading a local saved card (from localStorage)
+  const handleLoadLocalCard = (card: SavedCard) => {
+    const data = card.data;
+    if (!data) {
+      toast.error('Saved card is missing data.');
+      return;
+    }
+
+    // Apply the card data to the form
+    if (data.standard) setStandard(data.standard as StandardType);
+    if (data.activeTab) setActiveTab(data.activeTab);
+    if (data.reportMode) setReportMode(data.reportMode);
+    setIsSplitMode(Boolean(data.isSplitMode));
+    if (data.activePart) setActivePart(data.activePart);
+
+    // Apply Part A data
+    if (data.partA?.inspectionSetup) setInspectionSetup(data.partA.inspectionSetup);
+    if (data.partA?.equipment) setEquipment(data.partA.equipment);
+    if (data.partA?.calibration) setCalibration(data.partA.calibration);
+    if (data.partA?.scanParameters) setScanParameters(data.partA.scanParameters);
+    if (data.partA?.acceptanceCriteria) setAcceptanceCriteria(data.partA.acceptanceCriteria);
+    if (data.partA?.documentation) setDocumentation(data.partA.documentation);
+    if (data.partA?.scanDetails) setScanDetails(data.partA.scanDetails);
+
+    // Apply Part B data
+    if (data.partB?.inspectionSetup) setInspectionSetupB(data.partB.inspectionSetup);
+    if (data.partB?.equipment) setEquipmentB(data.partB.equipment);
+    if (data.partB?.calibration) setCalibrationB(data.partB.calibration);
+    if (data.partB?.scanParameters) setScanParametersB(data.partB.scanParameters);
+    if (data.partB?.acceptanceCriteria) setAcceptanceCriteriaB(data.partB.acceptanceCriteria);
+    if (data.partB?.documentation) setDocumentationB(data.partB.documentation);
+    if (data.partB?.scanDetails) setScanDetailsB(data.partB.scanDetails);
+
+    // Apply inspection report if available
+    if (data.inspectionReport) setInspectionReport(data.inspectionReport);
+
+    toast.success(`Loaded local card: ${card.name}`);
+  };
+
   const refreshSavedSheets = async () => {
     if (!user || !organizationId) return;
     setIsLoadingSheets(true);
@@ -699,53 +740,64 @@ const Index = () => {
     return () => window.removeEventListener('keydown', handleKeyboard);
   }, [inspectionSetup, equipment, calibration, scanParameters, acceptanceCriteria, documentation, inspectionReport, reportMode]);
 
-  // Calculate completion
+  // Calculate completion with weighted fields based on standard requirements
+  // Weights: CRITICAL=5, HIGH=3, MEDIUM=2, LOW=1 (per MIL-STD-2154E / AMS-STD-2154E)
   const calculateCompletion = () => {
-    let completed = 0;
-    let total = 35;
+    let score = 0;
+    const maxScore = 85; // Total possible points
 
-    if (currentData.inspectionSetup.partNumber) completed++;
-    if (currentData.inspectionSetup.partName) completed++;
-    if (currentData.inspectionSetup.material) completed++;
-    if (currentData.inspectionSetup.materialSpec) completed++;
-    if (currentData.inspectionSetup.partType) completed++;
-    if (currentData.inspectionSetup.partThickness >= 6.35) completed++;
-    
-    if (currentData.equipment.manufacturer) completed++;
-    if (currentData.equipment.model) completed++;
-    if (currentData.equipment.frequency) completed++;
-    if (currentData.equipment.transducerType) completed++;
-    if (currentData.equipment.couplant) completed++;
-    if (currentData.equipment.verticalLinearity) completed++;
-    if (currentData.equipment.horizontalLinearity) completed++;
-    if (currentData.equipment.transducerDiameter) completed++;
+    // ═══════════════════════════════════════════════════════════════
+    // CRITICAL FIELDS (5 points each) - Required per standard sections 3.2-3.5, 4.2, Table VI
+    // ═══════════════════════════════════════════════════════════════
+    if (currentData.inspectionSetup.partNumber) score += 5;      // Section 3.2 - Part identification
+    if (currentData.inspectionSetup.material) score += 5;        // Section 3.3 - Material (affects all params)
+    if (currentData.inspectionSetup.partType) score += 5;        // Section 3.4 - Geometry selection
+    if (currentData.inspectionSetup.partThickness >= 6.35) score += 5; // Section 3.5 - Drives calculations
+    if (currentData.acceptanceCriteria.acceptanceClass) score += 5;    // Table VI - Acceptance criteria
+    if (currentData.equipment.frequency) score += 5;             // Section 4.2 - Primary inspection param
 
-    if (currentData.calibration.standardType) completed++;
-    if (currentData.calibration.referenceMaterial) completed++;
-    if (currentData.calibration.fbhSizes) completed++;
-    if (currentData.calibration.metalTravelDistance) completed++;
+    // ═══════════════════════════════════════════════════════════════
+    // HIGH PRIORITY FIELDS (3 points each) - Equipment & Calibration per sections 4.3-4.5, 8.3
+    // ═══════════════════════════════════════════════════════════════
+    if (currentData.equipment.transducerType) score += 3;        // Section 4.3 - Transducer selection
+    if (currentData.equipment.transducerDiameter) score += 3;    // Section 4.3 - Beam coverage
+    if (currentData.equipment.verticalLinearity) score += 3;     // Section 4.4 - Equipment validation
+    if (currentData.equipment.horizontalLinearity) score += 3;   // Section 4.5 - Equipment validation
+    if (currentData.calibration.standardType) score += 3;        // Calibration block type
+    if (currentData.calibration.fbhSizes) score += 3;            // Table I - FBH reference
+    if (currentData.calibration.metalTravelDistance) score += 3; // Section 8.3.1 - 3T rule
+    if (currentData.scanParameters.coverage) score += 3;         // Section 8.1.2 - 100% volumetric
 
-    if (currentData.scanParameters.scanMethod) completed++;
-    if (currentData.scanParameters.scanType) completed++;
-    if (currentData.scanParameters.scanSpeed) completed++;
-    if (currentData.scanParameters.scanIndex) completed++;
-    if (currentData.scanParameters.coverage) completed++;
-    if (currentData.scanParameters.scanPattern) completed++;
+    // ═══════════════════════════════════════════════════════════════
+    // MEDIUM PRIORITY FIELDS (2 points each) - Scan parameters & Acceptance details
+    // ═══════════════════════════════════════════════════════════════
+    if (currentData.scanParameters.scanMethod) score += 2;       // Immersion/Contact/Squirter
+    if (currentData.scanParameters.scanType) score += 2;         // Manual/Semi-Auto/Fully Auto
+    if (currentData.scanParameters.scanSpeed) score += 2;        // Section 8.2.4 - Max 150mm/s
+    if (currentData.scanParameters.scanIndex) score += 2;        // Section 8.2.2 - 30% overlap min
+    if (currentData.scanParameters.scanPattern) score += 2;      // Raster/Linear pattern
+    if (currentData.equipment.couplant) score += 2;              // Section 4.8 - Coupling medium
+    if (currentData.calibration.referenceMaterial) score += 2;   // Reference block material
+    if (currentData.acceptanceCriteria.singleDiscontinuity) score += 2;     // Table VI limits
+    if (currentData.acceptanceCriteria.multipleDiscontinuities) score += 2; // Table VI limits
+    if (currentData.acceptanceCriteria.linearDiscontinuity) score += 2;     // Table VI limits
 
-    if (currentData.acceptanceCriteria.acceptanceClass) completed++;
-    if (currentData.acceptanceCriteria.singleDiscontinuity) completed++;
-    if (currentData.acceptanceCriteria.multipleDiscontinuities) completed++;
-    if (currentData.acceptanceCriteria.linearDiscontinuity) completed++;
-    if (currentData.acceptanceCriteria.backReflectionLoss) completed++;
-    if (currentData.acceptanceCriteria.noiseLevel) completed++;
+    // ═══════════════════════════════════════════════════════════════
+    // LOW PRIORITY FIELDS (1 point each) - Documentation & Optional info
+    // ═══════════════════════════════════════════════════════════════
+    if (currentData.inspectionSetup.partName) score += 1;        // Descriptive - Section 3.2
+    if (currentData.inspectionSetup.materialSpec) score += 1;    // Material specification
+    if (currentData.equipment.manufacturer) score += 1;          // Equipment ID - Section 4.1
+    if (currentData.equipment.model) score += 1;                 // Equipment ID - Section 4.1
+    if (currentData.acceptanceCriteria.backReflectionLoss) score += 1;  // Additional criteria
+    if (currentData.acceptanceCriteria.noiseLevel) score += 1;          // Additional criteria
+    if (currentData.documentation.inspectorName) score += 1;            // Section 6.2
+    if (currentData.documentation.inspectorCertification) score += 1;   // Section 6.2
+    if (currentData.documentation.inspectorLevel) score += 1;           // Section 6.2
+    if (currentData.documentation.inspectionDate) score += 1;           // Section 6.2
+    if (currentData.documentation.revision) score += 1;                 // Document control
 
-    if (currentData.documentation.inspectorName) completed++;
-    if (currentData.documentation.inspectorCertification) completed++;
-    if (documentation.inspectorLevel) completed++;
-    if (documentation.inspectionDate) completed++;
-    if (documentation.revision) completed++;
-
-    return (completed / total) * 100;
+    return (score / maxScore) * 100;
   };
 
   const handleNewProject = () => {
@@ -847,17 +899,17 @@ const Index = () => {
         captureAndExport();
       }
     } else {
-      // For inspection reports, use the existing export function
+      // For inspection reports, use the same comprehensive export
       try {
-        exportInspectionReportToPDF(
-          inspectionReport,
-          inspectionSetup.partNumber || '',
-          documentation.drawingReference || '',
-          documentation.inspectionDate || new Date().toISOString().split('T')[0],
-          documentation.inspectorName || '',
-          documentation.procedureNumber || '',
-          `Class: ${acceptanceCriteria.acceptanceClass}, Single: ${acceptanceCriteria.singleDiscontinuity}, Multiple: ${acceptanceCriteria.multipleDiscontinuities}`
-        );
+        exportComprehensiveTechniqueSheet({
+          standard,
+          inspectionSetup,
+          equipment,
+          calibration,
+          scanParameters,
+          acceptanceCriteria,
+          documentation,
+        });
         toast.success("Inspection Report PDF exported successfully!");
       } catch (error) {
         console.error("Failed to export PDF:", error);
@@ -939,6 +991,8 @@ const Index = () => {
         activePart={activePart}
         onActivePartChange={setActivePart}
         onCopyAToB={copyPartAToB}
+        onOpenSavedCards={handleOpenSavedCards}
+        onLoadLocalCard={handleLoadLocalCard}
       />
 
       {/* Main Content Area - Responsive Layout */}
@@ -954,7 +1008,7 @@ const Index = () => {
               />
             </div>
             <div className="flex flex-col items-center">
-              <LiquidProgressGauge value={calculateCompletion()} />
+              <ProbeProgressGauge value={calculateCompletion()} />
               <div className="text-xs text-muted-foreground mt-1">Complete</div>
             </div>
           </div>
@@ -977,7 +1031,7 @@ const Index = () => {
                     <div>
                       <h4 className="text-xs font-semibold text-muted-foreground mb-2">COMPLETION</h4>
                       <div className="flex flex-col items-center">
-                        <LiquidProgressGauge value={calculateCompletion()} />
+                        <ProbeProgressGauge value={calculateCompletion()} />
                         <div className="text-xs text-muted-foreground mt-2">
                           {(() => {
                             const completion = calculateCompletion();
@@ -1037,6 +1091,12 @@ const Index = () => {
                             thickness: currentData.inspectionSetup.partThickness,
                             outerDiameter: currentData.inspectionSetup.diameter,
                             innerDiameter: currentData.inspectionSetup.innerDiameter,
+                            // Cone-specific dimensions
+                            coneTopDiameter: currentData.inspectionSetup.coneTopDiameter,
+                            coneBottomDiameter: currentData.inspectionSetup.coneBottomDiameter,
+                            coneHeight: currentData.inspectionSetup.coneHeight,
+                            wallThickness: currentData.inspectionSetup.wallThickness,
+                            isHollow: currentData.inspectionSetup.isHollow,
                           }}
                         />
                       </TabsContent>
@@ -1068,10 +1128,11 @@ const Index = () => {
                       </TabsContent>
 
                       <TabsContent value="equipment" className="m-0">
-                        <EquipmentTab 
+                        <EquipmentTab
                           data={currentData.equipment}
                           onChange={currentData.setEquipment}
                           partThickness={currentData.inspectionSetup.partThickness}
+                          standard={standard}
                         />
                       </TabsContent>
 
@@ -1088,6 +1149,7 @@ const Index = () => {
                           }}
                           userId="current-user" // Replace with actual user ID
                           projectId="current-project" // Replace with actual project ID
+                          standard={standard}
                         />
                       </TabsContent>
 
@@ -1175,38 +1237,38 @@ const Index = () => {
           </div>
         </div>
 
-        {/* Desktop: Right Panel - 3D Viewer */}
-        <div className="hidden lg:block lg:w-[30%] lg:min-w-[300px] lg:max-w-[450px]">
-          <ResizablePanelGroup direction="horizontal" className="h-full">
-            <ResizableHandle withHandle />
-            <ResizablePanel defaultSize={100}>
-              <div className="h-full app-panel">
-                <div className="p-3 border-b border-border">
-                  <h3 className="font-semibold text-sm">3D Part Viewer</h3>
-                </div>
-                <ThreeDViewer
-                  partType={currentData.inspectionSetup.partType || ""}
-                  material={currentData.inspectionSetup.material as MaterialType || ""}
-                  dimensions={{
-                    length: currentData.inspectionSetup.partLength || 100,
-                    width: currentData.inspectionSetup.partWidth || 50,
-                    thickness: currentData.inspectionSetup.partThickness || 10,
-                    diameter: currentData.inspectionSetup.diameter || 50,
-                    isHollow: currentData.inspectionSetup.isHollow,
-                    innerDiameter: currentData.inspectionSetup.innerDiameter,
-                    innerLength: currentData.inspectionSetup.innerLength,
-                    innerWidth: currentData.inspectionSetup.innerWidth,
-                    wallThickness: currentData.inspectionSetup.wallThickness,
-                  }}
-                  scanDirections={currentData.scanDetails.scanDetails.map(detail => ({
-                    direction: detail.scanningDirection,
-                    waveMode: detail.waveMode,
-                    isVisible: detail.isVisible || false
-                  }))}
-                />
-              </div>
-            </ResizablePanel>
-          </ResizablePanelGroup>
+        {/* Desktop: Right Panel - 3D Viewer (Collapsible & Resizable) */}
+        <div className="hidden lg:flex lg:items-start lg:justify-end lg:p-4">
+          <Collapsible3DPanel
+            title="3D Part Viewer"
+            isOpen={viewer3DOpen}
+            onToggle={() => setViewer3DOpen(!viewer3DOpen)}
+          >
+            <ThreeDViewer
+              partType={currentData.inspectionSetup.partType || ""}
+              material={currentData.inspectionSetup.material as MaterialType || ""}
+              dimensions={{
+                length: currentData.inspectionSetup.partLength || 100,
+                width: currentData.inspectionSetup.partWidth || 50,
+                thickness: currentData.inspectionSetup.partThickness || 10,
+                diameter: currentData.inspectionSetup.diameter || 50,
+                isHollow: currentData.inspectionSetup.isHollow,
+                innerDiameter: currentData.inspectionSetup.innerDiameter,
+                innerLength: currentData.inspectionSetup.innerLength,
+                innerWidth: currentData.inspectionSetup.innerWidth,
+                wallThickness: currentData.inspectionSetup.wallThickness,
+                // Cone-specific dimensions
+                coneTopDiameter: currentData.inspectionSetup.coneTopDiameter,
+                coneBottomDiameter: currentData.inspectionSetup.coneBottomDiameter,
+                coneHeight: currentData.inspectionSetup.coneHeight,
+              }}
+              scanDirections={currentData.scanDetails.scanDetails.map(detail => ({
+                direction: detail.scanningDirection,
+                waveMode: detail.waveMode,
+                isVisible: detail.isVisible || false
+              }))}
+            />
+          </Collapsible3DPanel>
         </div>
       </div>
 

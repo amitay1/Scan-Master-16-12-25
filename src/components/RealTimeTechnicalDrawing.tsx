@@ -17,13 +17,6 @@ import { drawForgingTechnicalDrawing } from '@/utils/technicalDrawings/forgingDr
 import { drawIrregularTechnicalDrawing } from '@/utils/technicalDrawings/irregularDrawing';
 import { drawRectangularTubeTechnicalDrawing } from '@/utils/technicalDrawings/rectangularTubeDrawing';
 import {
-  drawLProfileTechnicalDrawing,
-  drawTProfileTechnicalDrawing,
-  drawIProfileTechnicalDrawing,
-  drawUProfileTechnicalDrawing,
-  drawZProfileTechnicalDrawing,
-} from '@/utils/technicalDrawings/profileDrawings';
-import {
   ScanType,
   calculateScanZones,
   renderScanZone,
@@ -90,12 +83,13 @@ export const RealTimeTechnicalDrawing = ({
   // Debounce to prevent flickering during rapid input changes (400ms for stability)
   const debouncedDimensions = useDebounce(dimensions, 400);
 
-  // Standard layout configuration
+  // Standard layout configuration - 2 views only (Front and Side)
   const layout: LayoutConfig = useMemo(() => ({
-    frontView: { x: 50, y: 50, width: 350, height: 250 },
-    topView: { x: 450, y: 50, width: 350, height: 250 },
-    sideView: { x: 50, y: 350, width: 350, height: 250 },
-    isometric: { x: 450, y: 350, width: 350, height: 250 }
+    frontView: { x: 50, y: 80, width: 380, height: 450 },
+    sideView: { x: 460, y: 80, width: 380, height: 450 },
+    // Keep these for compatibility but won't be used
+    topView: { x: 0, y: 0, width: 0, height: 0 },
+    isometric: { x: 0, y: 0, width: 0, height: 0 }
   }), []);
 
   // Prepare dimensions with deep comparison to ensure updates
@@ -235,26 +229,6 @@ export const RealTimeTechnicalDrawing = ({
             
           case 'irregular':
             drawIrregularTechnicalDrawing(generator, drawingDimensions, layout);
-            break;
-
-          case 'l_profile':
-            drawLProfileTechnicalDrawing(generator, drawingDimensions, layout);
-            break;
-
-          case 't_profile':
-            drawTProfileTechnicalDrawing(generator, drawingDimensions, layout);
-            break;
-
-          case 'i_profile':
-            drawIProfileTechnicalDrawing(generator, drawingDimensions, layout);
-            break;
-
-          case 'u_profile':
-            drawUProfileTechnicalDrawing(generator, drawingDimensions, layout);
-            break;
-
-          case 'z_profile':
-            drawZProfileTechnicalDrawing(generator, drawingDimensions, layout);
             break;
 
           default:

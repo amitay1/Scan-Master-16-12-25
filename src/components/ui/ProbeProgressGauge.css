@@ -1,0 +1,191 @@
+/* Probe Progress Gauge Styles */
+
+.probe-gauge-container {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 280px;
+}
+
+.probe-gauge-svg {
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3));
+}
+
+.probe-gauge-label {
+  margin-top: 8px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Scanned area animation */
+.scanned-area {
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: width;
+}
+
+/* Scan edge pulse */
+.scan-edge {
+  animation: scanPulse 1s ease-in-out infinite;
+}
+
+@keyframes scanPulse {
+  0%, 100% {
+    opacity: 0.5;
+    stroke-width: 2;
+  }
+  50% {
+    opacity: 1;
+    stroke-width: 4;
+  }
+}
+
+/* Probe assembly animation */
+.probe-assembly {
+  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
+}
+
+/* Probe tip glow */
+.probe-tip {
+  animation: tipGlow 1.5s ease-in-out infinite;
+}
+
+@keyframes tipGlow {
+  0%, 100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.3) drop-shadow(0 0 4px #fbbf24);
+  }
+}
+
+/* Ultrasonic wave animations */
+.ultrasonic-waves .wave {
+  animation: waveExpand 1.5s ease-out infinite;
+}
+
+.ultrasonic-waves .wave-1 {
+  animation-delay: 0s;
+}
+
+.ultrasonic-waves .wave-2 {
+  animation-delay: 0.3s;
+}
+
+.ultrasonic-waves .wave-3 {
+  animation-delay: 0.6s;
+}
+
+@keyframes waveExpand {
+  0% {
+    opacity: 0.8;
+    transform: scaleY(0.5);
+  }
+  100% {
+    opacity: 0;
+    transform: scaleY(1.5);
+  }
+}
+
+/* LED indicator blink */
+.led-active {
+  animation: ledBlink 0.8s ease-in-out infinite;
+}
+
+@keyframes ledBlink {
+  0%, 100% {
+    fill: #22c55e;
+    filter: drop-shadow(0 0 3px #22c55e);
+  }
+  50% {
+    fill: #4ade80;
+    filter: drop-shadow(0 0 6px #4ade80);
+  }
+}
+
+/* Status scanning indicator */
+.status-scanning {
+  animation: statusPulse 1.2s ease-in-out infinite;
+}
+
+@keyframes statusPulse {
+  0%, 100% {
+    filter: drop-shadow(0 0 2px #3b82f6);
+  }
+  50% {
+    filter: drop-shadow(0 0 8px #3b82f6);
+  }
+}
+
+/* Probe cable sway */
+.probe-cable {
+  animation: cableSway 2s ease-in-out infinite;
+  transform-origin: 10px 30px;
+}
+
+@keyframes cableSway {
+  0%, 100% {
+    transform: rotate(-2deg);
+  }
+  50% {
+    transform: rotate(2deg);
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .scanned-area {
+    transition: width 1s ease;
+  }
+
+  .probe-assembly {
+    transition: transform 1s ease;
+  }
+
+  .scan-edge {
+    animation: none;
+    opacity: 0.8;
+  }
+
+  .probe-tip {
+    animation: none;
+  }
+
+  .ultrasonic-waves .wave {
+    animation-duration: 3s;
+  }
+
+  .led-active {
+    animation-duration: 2s;
+  }
+
+  .status-scanning {
+    animation-duration: 3s;
+  }
+
+  .probe-cable {
+    animation: none;
+  }
+}
+
+/* Responsive sizing */
+@media (max-width: 640px) {
+  .probe-gauge-container {
+    max-width: 220px;
+  }
+
+  .probe-gauge-label {
+    font-size: 10px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .probe-gauge-container {
+    max-width: 320px;
+  }
+}

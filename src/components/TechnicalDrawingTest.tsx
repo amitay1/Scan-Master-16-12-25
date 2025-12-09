@@ -21,12 +21,7 @@ const geometryTypes = [
   'pyramid',
   'ellipse',
   'forging',
-  'irregular',
-  'l_profile',
-  't_profile',
-  'i_profile',
-  'u_profile',
-  'z_profile'
+  'irregular'
 ];
 
 export function TechnicalDrawingTest() {

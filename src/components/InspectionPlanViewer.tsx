@@ -107,12 +107,24 @@ export const InspectionPlanViewer: React.FC<InspectionPlanViewerProps> = ({
 
     drawPremiumCrossSection(ctx, partType, crossSectionBounds, dimensions);
 
-    // NOTE: Dynamic animated arrows disabled - using Rafael-style static arrows instead
-    // The static arrows (LEFT/TOP probes with squares) are drawn inside each shape function
-    // drawPremiumAnimatedScanArrows(ctx, partType, scanDetails, crossSectionBounds, highlightedDirection, animationFrame, dimensions);
-
     // Draw ISO standard dimension lines
     drawISODimensionLines(ctx, partType, crossSectionBounds, dimensions);
+
+    // RAFAEL 5036 style: Draw arrows for ALL ENABLED scan directions (checkbox checked)
+    // Plus highlight the hovered one with extra emphasis
+    scanDetails.forEach((detail) => {
+      if (detail.enabled) {
+        const isHighlighted = detail.scanningDirection === highlightedDirection;
+        drawSelectedScanDirectionArrow(
+          ctx,
+          partType,
+          detail.scanningDirection,
+          crossSectionBounds,
+          dimensions,
+          isHighlighted
+        );
+      }
+    });
 
     // LEVEL 9: Professional title block with all metadata
     drawProfessionalTitleBlock(ctx, width, height, partType);
@@ -372,13 +384,14 @@ function drawProfessionalCrossSection(
 }
 
 /**
- * Draw RAFAEL-STYLE TILTED 3D SEAMLESS TUBE (Hollow Bar)
- * EXACTLY like the Rafael 5036 spec image:
- * - Tube tilted at ~45 degrees (diagonal view)
- * - Hollow circle at front end (cross-section with inner hole)
- * - Dashed centerlines through length and diameter
- * - Scan direction arrows from top-right diagonal
- * - "Seamless Tube (Hollow Bar)" label underlined
+ * Draw PROFESSIONAL CAD-GRADE 3D TUBE / PIPE (Hollow Cylinder)
+ * Features:
+ * - Dramatic cutaway view showing wall thickness
+ * - Inner bore (ID) clearly visible with hatching
+ * - Metallic gradient shading for 3D form
+ * - ISO hatching on cut section showing material
+ * - Chain-dash centerlines per ISO 128
+ * - Uses 70% of available canvas space
  */
 function drawTubeCrossSection(
   ctx: CanvasRenderingContext2D,
@@ -387,235 +400,893 @@ function drawTubeCrossSection(
   bounds: DrawBounds,
   dimensions: DrawDimensions
 ) {
+  ctx.save();
+
   // Get REAL dimensions
   const outerDiam = dimensions.outerDiameter || dimensions.diameter || 100;
   const innerDiam = dimensions.innerDiameter || (outerDiam * 0.6);
   const tubeLength = dimensions.length || dimensions.height || 200;
 
-  // Available space (leave room for arrows and label)
-  const availableSize = Math.min(bounds.width, bounds.height) - 120;
-  
-  // Calculate scale to fit tilted tube
-  const diagonalLength = tubeLength * 0.7;
-  const totalDiagonal = Math.sqrt(diagonalLength * diagonalLength + (outerDiam * 0.5) * (outerDiam * 0.5));
-  const scale = Math.min(availableSize / Math.max(totalDiagonal, outerDiam), 1.2);
+  // Calculate wall thickness for UT: wall = (OD - ID) / 2
+  const wallThickness = (outerDiam - innerDiam) / 2;
+
+  // Scale to fill canvas (70% of available space)
+  const maxSize = Math.min(bounds.width, bounds.height) * 0.7;
+  const scale = maxSize / Math.max(outerDiam, tubeLength * 0.7);
 
   const outerRadius = (outerDiam / 2) * scale;
   const innerRadius = (innerDiam / 2) * scale;
-  const length = tubeLength * scale * 0.6;
+  const length = tubeLength * scale * 0.55;
 
-  // Tilt angle (45 degrees like Rafael image)
+  // Tilt angle (45 degrees)
   const angle = Math.PI / 4;
   const cos45 = Math.cos(angle);
   const sin45 = Math.sin(angle);
 
   // Center position
   const cx = centerX;
-  const cy = centerY + 20;
+  const cy = centerY + 10;
 
-  ctx.save();
-
-  // ═══════════════════════════════════════════════════════════════════
-  // BACK ELLIPSE (far end of tube) - outer, partially hidden
-  // ═══════════════════════════════════════════════════════════════════
+  // Back ellipse position
   const backX = cx - length * cos45;
   const backY = cy - length * sin45;
-  
-  // Back outer ellipse (dashed - hidden)
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 1.5;
+
+  // ═══════════════════════════════════════════════════════════════════
+  // BACK ELLIPSES (far end) - dashed hidden lines
+  // ═══════════════════════════════════════════════════════════════════
+  ctx.strokeStyle = '#64748b';
+  ctx.lineWidth = 1;
   ctx.setLineDash([4, 4]);
+
+  // Back outer ellipse
   ctx.beginPath();
-  ctx.ellipse(backX, backY, outerRadius * 0.4, outerRadius, 0, 0, Math.PI * 2);
+  ctx.ellipse(backX, backY, outerRadius * 0.45, outerRadius, 0, 0, Math.PI * 2);
   ctx.stroke();
-  
-  // Back inner ellipse (dashed - hidden)
+
+  // Back inner ellipse (the hole)
   ctx.beginPath();
-  ctx.ellipse(backX, backY, innerRadius * 0.4, innerRadius, 0, 0, Math.PI * 2);
+  ctx.ellipse(backX, backY, innerRadius * 0.45, innerRadius, 0, 0, Math.PI * 2);
   ctx.stroke();
   ctx.setLineDash([]);
 
   // ═══════════════════════════════════════════════════════════════════
-  // SIDE WALLS - lines connecting front and back (outer edges)
+  // OUTER CYLINDER BODY with metallic gradient
   // ═══════════════════════════════════════════════════════════════════
-  ctx.lineWidth = 2;
-  ctx.strokeStyle = '#1e293b';
-  
-  // Top outer edge
+  const bodyGradient = ctx.createLinearGradient(cx, cy - outerRadius, cx, cy + outerRadius);
+  bodyGradient.addColorStop(0, '#e2e8f0');
+  bodyGradient.addColorStop(0.3, '#f8fafc');
+  bodyGradient.addColorStop(0.5, '#e2e8f0');
+  bodyGradient.addColorStop(0.7, '#cbd5e1');
+  bodyGradient.addColorStop(1, '#94a3b8');
+
+  // Draw outer cylinder body
+  ctx.fillStyle = bodyGradient;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - outerRadius);
+  ctx.lineTo(backX, backY - outerRadius);
+  ctx.ellipse(backX, backY, outerRadius * 0.45, outerRadius, 0, -Math.PI/2, Math.PI/2, true);
+  ctx.lineTo(cx, cy + outerRadius);
+  ctx.arc(cx, cy, outerRadius, Math.PI/2, -Math.PI/2, true);
+  ctx.closePath();
+  ctx.fill();
+
+  // Outer side edges - thick line weight
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 2.5;
+
   ctx.beginPath();
   ctx.moveTo(cx, cy - outerRadius);
   ctx.lineTo(backX, backY - outerRadius);
   ctx.stroke();
-  
-  // Bottom outer edge
+
   ctx.beginPath();
   ctx.moveTo(cx, cy + outerRadius);
   ctx.lineTo(backX, backY + outerRadius);
   ctx.stroke();
 
   // ═══════════════════════════════════════════════════════════════════
-  // FRONT CIRCLES (cross-section view) - outer and inner
+  // FRONT FACE with annular ring (showing wall thickness)
   // ═══════════════════════════════════════════════════════════════════
-  
-  // Outer circle
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 2.5;
+
+  // Create radial gradient for 3D front face
+  const frontGradient = ctx.createRadialGradient(
+    cx - outerRadius * 0.3, cy - outerRadius * 0.3, innerRadius,
+    cx, cy, outerRadius
+  );
+  frontGradient.addColorStop(0, '#e2e8f0');
+  frontGradient.addColorStop(0.5, '#cbd5e1');
+  frontGradient.addColorStop(1, '#94a3b8');
+
+  // Draw the annular ring (wall material)
+  ctx.fillStyle = frontGradient;
+  ctx.beginPath();
+  ctx.arc(cx, cy, outerRadius, 0, Math.PI * 2);
+  ctx.arc(cx, cy, innerRadius, 0, Math.PI * 2, true);
+  ctx.fill();
+
+  // Outer circle outline - thick
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 3;
   ctx.beginPath();
   ctx.arc(cx, cy, outerRadius, 0, Math.PI * 2);
   ctx.stroke();
-  
-  // Inner circle (the hole)
-  ctx.lineWidth = 2;
+
+  // Inner circle outline (the bore)
+  ctx.lineWidth = 2.5;
   ctx.beginPath();
   ctx.arc(cx, cy, innerRadius, 0, Math.PI * 2);
   ctx.stroke();
 
   // ═══════════════════════════════════════════════════════════════════
-  // CENTERLINES (dashed) - Rafael style
+  // ISO HATCHING on wall section (45 degree diagonal lines)
   // ═══════════════════════════════════════════════════════════════════
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 1;
-  ctx.setLineDash([12, 4, 3, 4]);
-  
-  // Centerline through front circle - horizontal
+  ctx.save();
   ctx.beginPath();
-  ctx.moveTo(cx - outerRadius - 30, cy);
-  ctx.lineTo(cx + outerRadius + 30, cy);
+  ctx.arc(cx, cy, outerRadius - 1, 0, Math.PI * 2);
+  ctx.arc(cx, cy, innerRadius + 1, 0, Math.PI * 2, true);
+  ctx.clip();
+
+  ctx.strokeStyle = '#64748b';
+  ctx.lineWidth = 0.6;
+  const spacing = 5;
+  for (let i = -outerRadius * 2; i < outerRadius * 2; i += spacing) {
+    ctx.beginPath();
+    ctx.moveTo(cx + i - outerRadius, cy + outerRadius);
+    ctx.lineTo(cx + i + outerRadius, cy - outerRadius);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // ═══════════════════════════════════════════════════════════════════
+  // INNER BORE (white/light to show hollow)
+  // ═══════════════════════════════════════════════════════════════════
+  const boreGradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, innerRadius);
+  boreGradient.addColorStop(0, '#f8fafc');
+  boreGradient.addColorStop(1, '#e2e8f0');
+
+  ctx.fillStyle = boreGradient;
+  ctx.beginPath();
+  ctx.arc(cx, cy, innerRadius - 1, 0, Math.PI * 2);
+  ctx.fill();
+
+  // ═══════════════════════════════════════════════════════════════════
+  // CENTERLINES (chain dash per ISO 128)
+  // ═══════════════════════════════════════════════════════════════════
+  ctx.strokeStyle = '#64748b';
+  ctx.lineWidth = 0.8;
+  ctx.setLineDash([15, 3, 3, 3]);
+
+  // Horizontal through front
+  ctx.beginPath();
+  ctx.moveTo(cx - outerRadius - 40, cy);
+  ctx.lineTo(cx + outerRadius + 40, cy);
   ctx.stroke();
-  
-  // Centerline through front circle - vertical
+
+  // Vertical through front
   ctx.beginPath();
-  ctx.moveTo(cx, cy - outerRadius - 30);
-  ctx.lineTo(cx, cy + outerRadius + 30);
+  ctx.moveTo(cx, cy - outerRadius - 40);
+  ctx.lineTo(cx, cy + outerRadius + 40);
   ctx.stroke();
-  
-  // Centerline through length (diagonal) - extends beyond tube
+
+  // Axial centerline through length
   ctx.beginPath();
-  ctx.moveTo(cx + 40 * cos45, cy + 40 * sin45);
-  ctx.lineTo(backX - 50 * cos45, backY - 50 * sin45);
+  ctx.moveTo(cx + 50 * cos45, cy + 50 * sin45);
+  ctx.lineTo(backX - 60 * cos45, backY - 60 * sin45);
   ctx.stroke();
   ctx.setLineDash([]);
 
   // ═══════════════════════════════════════════════════════════════════
-  // RAFAEL-STYLE ARROWS - from LEFT and TOP with PROBES
+  // LABEL with professional styling
   // ═══════════════════════════════════════════════════════════════════
-  const probeSize = 10;
-  
-  // Arrow from LEFT with probe square
-  const probeLeftX = cx - outerRadius - 55;
-  const probeLeftY = cy;
-  drawRafaelScanArrow(ctx, probeLeftX, probeLeftY, 'right');
-  ctx.fillStyle = '#ffffff';
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 1.5;
-  ctx.fillRect(probeLeftX - probeSize/2, probeLeftY - probeSize/2, probeSize, probeSize);
-  ctx.strokeRect(probeLeftX - probeSize/2, probeLeftY - probeSize/2, probeSize, probeSize);
-  
-  // Arrow from TOP with probe square
-  const probeTopX = cx;
-  const probeTopY = cy - outerRadius - 55;
-  drawRafaelScanArrow(ctx, probeTopX, probeTopY, 'down');
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(probeTopX - probeSize/2, probeTopY - probeSize/2, probeSize, probeSize);
-  ctx.strokeRect(probeTopX - probeSize/2, probeTopY - probeSize/2, probeSize, probeSize);
-  
-  // Angle beam triangle marker
-  drawRafaelAngleBeamArrow(ctx, cx + outerRadius * 0.7, cy - outerRadius - 45);
-
-  // ═══════════════════════════════════════════════════════════════════
-  // "Seamless Tube (Hollow Bar)" LABEL - underlined, bottom
-  // ═══════════════════════════════════════════════════════════════════
-  ctx.fillStyle = '#1e293b';
-  ctx.font = 'bold 13px Arial';
+  ctx.fillStyle = '#1a1a2e';
+  ctx.font = 'bold 16px Arial';
   ctx.textAlign = 'center';
-  const labelX = cx;
-  const labelY = cy + outerRadius + 50;
-  ctx.fillText('Seamless Tube (Hollow Bar)', labelX, labelY);
-  
+  const labelY = cy + outerRadius + 55;
+  ctx.fillText('TUBE / PIPE', cx, labelY);
+
   // Underline
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 1.5;
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(labelX - 100, labelY + 3);
-  ctx.lineTo(labelX + 100, labelY + 3);
+  ctx.moveTo(cx - 60, labelY + 5);
+  ctx.lineTo(cx + 60, labelY + 5);
   ctx.stroke();
 
   ctx.restore();
 }
 
+// =============================================================================
+// RAFAEL SPEC 5036 FIGURE 1 - INSPECTION SYMBOLS
+// =============================================================================
+
 /**
- * Draw Rafael-style scan arrow (unified version)
- * Supports both hollow and filled styles, and all directions
+ * RAFAEL 5036 - Scan Direction Symbol (outlined square)
+ * Small outlined square indicating scan position
+ * Per Figure 1 legend item 1
  */
+function drawRAFAEL_ScanDirectionSymbol(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  size: number = 12
+) {
+  ctx.save();
+  ctx.strokeStyle = '#1e293b';
+  ctx.lineWidth = 2.5;
+  // Outlined square only - NOT filled per RAFAEL 5036
+  ctx.strokeRect(x - size/2, y - size/2, size, size);
+  ctx.restore();
+}
+
+/**
+ * RAFAEL 5036 - Straight Beam Inspection Symbol
+ * Arrow with perpendicular line at tail, pointing INTO material
+ * Per Figure 1 legend item 2: arrow pointing in with perpendicular bar at tail
+ */
+function drawRAFAEL_StraightBeamSymbol(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  direction: 'down' | 'up' | 'left' | 'right',
+  length: number = 40
+) {
+  ctx.save();
+  ctx.strokeStyle = '#1e293b';
+  ctx.fillStyle = '#1e293b';
+  ctx.lineWidth = 2.5;
+
+  const headSize = 10;
+  const tailWidth = 14;
+
+  // Calculate end point based on direction
+  let endX = x, endY = y;
+  let tailX1 = x, tailY1 = y, tailX2 = x, tailY2 = y;
+
+  switch (direction) {
+    case 'down':
+      endY = y + length;
+      tailX1 = x - tailWidth/2; tailY1 = y;
+      tailX2 = x + tailWidth/2; tailY2 = y;
+      break;
+    case 'up':
+      endY = y - length;
+      tailX1 = x - tailWidth/2; tailY1 = y;
+      tailX2 = x + tailWidth/2; tailY2 = y;
+      break;
+    case 'right':
+      endX = x + length;
+      tailX1 = x; tailY1 = y - tailWidth/2;
+      tailX2 = x; tailY2 = y + tailWidth/2;
+      break;
+    case 'left':
+      endX = x - length;
+      tailX1 = x; tailY1 = y - tailWidth/2;
+      tailX2 = x; tailY2 = y + tailWidth/2;
+      break;
+  }
+
+  // Draw perpendicular tail line (the bar at the arrow tail)
+  ctx.beginPath();
+  ctx.moveTo(tailX1, tailY1);
+  ctx.lineTo(tailX2, tailY2);
+  ctx.stroke();
+
+  // Draw arrow shaft
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.lineTo(endX, endY);
+  ctx.stroke();
+
+  // Draw filled arrowhead
+  ctx.beginPath();
+  if (direction === 'down') {
+    ctx.moveTo(endX, endY);
+    ctx.lineTo(endX - headSize/2, endY - headSize);
+    ctx.lineTo(endX + headSize/2, endY - headSize);
+  } else if (direction === 'up') {
+    ctx.moveTo(endX, endY);
+    ctx.lineTo(endX - headSize/2, endY + headSize);
+    ctx.lineTo(endX + headSize/2, endY + headSize);
+  } else if (direction === 'right') {
+    ctx.moveTo(endX, endY);
+    ctx.lineTo(endX - headSize, endY - headSize/2);
+    ctx.lineTo(endX - headSize, endY + headSize/2);
+  } else if (direction === 'left') {
+    ctx.moveTo(endX, endY);
+    ctx.lineTo(endX + headSize, endY - headSize/2);
+    ctx.lineTo(endX + headSize, endY + headSize/2);
+  }
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.restore();
+}
+
+/**
+ * RAFAEL 5036 - Angle Beam Inspection Symbol (outlined triangle)
+ * Open/outlined triangle pointing into material
+ * Per Figure 1 legend item 3
+ */
+function drawRAFAEL_AngleBeamSymbol(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  direction: 'down' | 'up' | 'left' | 'right' | 'down-left' | 'down-right' = 'down',
+  size: number = 16
+) {
+  ctx.save();
+  ctx.strokeStyle = '#1e293b';
+  ctx.lineWidth = 2.5;
+
+  ctx.beginPath();
+  switch (direction) {
+    case 'down':
+      ctx.moveTo(x, y + size);
+      ctx.lineTo(x - size/2, y);
+      ctx.lineTo(x + size/2, y);
+      break;
+    case 'up':
+      ctx.moveTo(x, y - size);
+      ctx.lineTo(x - size/2, y);
+      ctx.lineTo(x + size/2, y);
+      break;
+    case 'left':
+      ctx.moveTo(x - size, y);
+      ctx.lineTo(x, y - size/2);
+      ctx.lineTo(x, y + size/2);
+      break;
+    case 'right':
+      ctx.moveTo(x + size, y);
+      ctx.lineTo(x, y - size/2);
+      ctx.lineTo(x, y + size/2);
+      break;
+    case 'down-left':
+    case 'down-right': {
+      // Rotated triangle for angle beam at 45 degrees
+      const angle = direction === 'down-left' ? -45 : 45;
+      const rad = angle * Math.PI / 180;
+      ctx.translate(x, y);
+      ctx.rotate(rad);
+      ctx.moveTo(0, size);
+      ctx.lineTo(-size/2, 0);
+      ctx.lineTo(size/2, 0);
+      break;
+    }
+    default:
+      ctx.moveTo(x, y + size);
+      ctx.lineTo(x - size/2, y);
+      ctx.lineTo(x + size/2, y);
+  }
+  ctx.closePath();
+  // Outlined only - NOT filled per RAFAEL 5036
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+// Legacy wrapper functions for backward compatibility during transition
 function drawRafaelScanArrow(
   ctx: CanvasRenderingContext2D,
   x: number,
   y: number,
   direction: 'up' | 'down' | 'left' | 'right' | 'right-up',
-  type: 'hollow' | 'filled' = 'filled'
+  _type: 'hollow' | 'filled' = 'filled'
 ) {
-  ctx.save();
-  ctx.strokeStyle = '#1e293b';
-  ctx.fillStyle = type === 'filled' ? '#1e293b' : '#ffffff';
-  ctx.lineWidth = 1.5;
-
-  const len = 25;
-  const headSize = 8;
-
-  ctx.translate(x, y);
-  
-  // Rotate based on direction
-  if (direction === 'down') ctx.rotate(Math.PI / 2);
-  else if (direction === 'up') ctx.rotate(-Math.PI / 2);
-  else if (direction === 'left') ctx.rotate(Math.PI);
-  else if (direction === 'right-up') ctx.rotate(-Math.PI / 6);
-  // 'right' = no rotation
-
-  // Draw arrow line
-  ctx.beginPath();
-  ctx.moveTo(0, 0);
-  ctx.lineTo(len, 0);
-  ctx.stroke();
-
-  // Draw arrowhead (filled triangle)
-  ctx.beginPath();
-  ctx.moveTo(len, 0);
-  ctx.lineTo(len - headSize, -headSize / 2);
-  ctx.lineTo(len - headSize, headSize / 2);
-  ctx.closePath();
-  ctx.fill();
-  ctx.stroke();
-
-  ctx.restore();
+  // Map to new RAFAEL 5036 straight beam symbol
+  const mappedDir = direction === 'right-up' ? 'right' : direction;
+  drawRAFAEL_StraightBeamSymbol(ctx, x, y, mappedDir as 'up' | 'down' | 'left' | 'right');
 }
 
-/**
- * Draw Rafael-style angle beam arrow (triangle ▽)
- */
 function drawRafaelAngleBeamArrow(
   ctx: CanvasRenderingContext2D,
   x: number,
   y: number
 ) {
-  ctx.save();
-  
-  const size = 12;
-  
-  ctx.strokeStyle = '#1e293b';
-  ctx.fillStyle = '#ffffff';
-  ctx.lineWidth = 1.5;
+  // Map to new RAFAEL 5036 angle beam symbol
+  drawRAFAEL_AngleBeamSymbol(ctx, x, y, 'down');
+}
 
-  // Draw triangle pointing down
-  ctx.beginPath();
-  ctx.moveTo(x, y + size);
-  ctx.lineTo(x - size / 2, y);
-  ctx.lineTo(x + size / 2, y);
-  ctx.closePath();
-  
-  ctx.fill();
-  ctx.stroke();
+// =============================================================================
+// RAFAEL 5036 FIGURE 1 - SELECTED SCAN DIRECTION ARROW SYSTEM
+// =============================================================================
+
+interface ScanDirectionPosition {
+  x: number;
+  y: number;
+  symbolX: number;
+  symbolY: number;
+  labelX: number;
+  labelY: number;
+  arrowDirection: 'down' | 'up' | 'left' | 'right';
+  isAngleBeam: boolean;
+}
+
+/**
+ * Draw RAFAEL 5036 scan direction symbol at the correct position
+ * Called for ALL enabled directions, with optional highlight for hovered direction
+ */
+function drawSelectedScanDirectionArrow(
+  ctx: CanvasRenderingContext2D,
+  partType: PartGeometry,
+  direction: string,
+  bounds: DrawBounds,
+  dimensions?: DrawDimensions,
+  isHighlighted: boolean = false
+) {
+  const centerX = bounds.x + bounds.width / 2;
+  const centerY = bounds.y + bounds.height / 2;
+
+  // Get the correct position for this direction on this shape
+  const position = getScanDirectionPosition(partType, direction, centerX, centerY, bounds, dimensions);
+
+  if (!position) return;
+
+  ctx.save();
+
+  // Add glow effect for highlighted direction
+  if (isHighlighted) {
+    ctx.shadowColor = '#3b82f6';
+    ctx.shadowBlur = 8;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+  }
+
+  if (position.isAngleBeam) {
+    // Angle beam - draw outlined triangle (bigger size: 18 instead of 14)
+    drawRAFAEL_AngleBeamSymbol(ctx, position.x, position.y, position.arrowDirection, 18);
+  } else {
+    // Straight beam - draw square + arrow with bar (bigger sizes: 14 and 45)
+    drawRAFAEL_ScanDirectionSymbol(ctx, position.symbolX, position.symbolY, 14);
+    drawRAFAEL_StraightBeamSymbol(ctx, position.x, position.y, position.arrowDirection, 45);
+  }
+
+  // Draw the direction label (A, B, C, D...) - bigger font: 16px bold
+  ctx.fillStyle = isHighlighted ? '#2563eb' : '#1e293b';
+  ctx.font = 'bold 16px Arial';
+  ctx.textAlign = 'center';
+  ctx.fillText(direction.toUpperCase(), position.labelX, position.labelY);
 
   ctx.restore();
+}
+
+/**
+ * Get the exact position for a scan direction based on shape type
+ * Each shape has specific positions for each direction (A, B, C, D...)
+ * Based on RAFAEL 5036 Figure 1
+ */
+function getScanDirectionPosition(
+  partType: PartGeometry,
+  direction: string,
+  centerX: number,
+  centerY: number,
+  bounds: DrawBounds,
+  dimensions?: DrawDimensions
+): ScanDirectionPosition | null {
+
+  const scale = Math.min(bounds.width, bounds.height) * 0.003;
+  const shapeRadius = 60 * scale;
+
+  // Normalize part type for matching
+  const normalizedType = partType.toLowerCase();
+
+  // Define positions for each shape type and direction
+  switch (normalizedType) {
+    case 'plate':
+    case 'box':
+    case 'sheet':
+    case 'slab':
+    case 'flat_bar':
+    case 'rectangular_bar':
+    case 'square_bar':
+    case 'billet':
+    case 'block':
+    case 'rectangular_forging_stock':
+    case 'bar': {
+      // Plate: A=top, B=bottom, C=side
+      const plateW = 100 * scale;
+      const plateH = 50 * scale;
+      switch (direction.toUpperCase()) {
+        case 'A': // From top - straight beam down
+          return {
+            x: centerX, y: centerY - plateH - 30,
+            symbolX: centerX, symbolY: centerY - plateH - 50,
+            labelX: centerX + 25, labelY: centerY - plateH - 35,
+            arrowDirection: 'down', isAngleBeam: false
+          };
+        case 'B': // From bottom - straight beam up
+          return {
+            x: centerX, y: centerY + plateH + 30,
+            symbolX: centerX, symbolY: centerY + plateH + 50,
+            labelX: centerX + 25, labelY: centerY + plateH + 45,
+            arrowDirection: 'up', isAngleBeam: false
+          };
+        case 'C': // From left side
+          return {
+            x: centerX - plateW - 30, y: centerY,
+            symbolX: centerX - plateW - 50, symbolY: centerY,
+            labelX: centerX - plateW - 45, labelY: centerY - 20,
+            arrowDirection: 'right', isAngleBeam: false
+          };
+        case 'D': // Angle beam 45 CW
+          return {
+            x: centerX + plateW * 0.5, y: centerY - plateH - 25,
+            symbolX: centerX + plateW * 0.5, symbolY: centerY - plateH - 25,
+            labelX: centerX + plateW * 0.5 + 20, labelY: centerY - plateH - 40,
+            arrowDirection: 'down', isAngleBeam: true
+          };
+        case 'E': // Angle beam 45 CCW
+          return {
+            x: centerX - plateW * 0.5, y: centerY - plateH - 25,
+            symbolX: centerX - plateW * 0.5, symbolY: centerY - plateH - 25,
+            labelX: centerX - plateW * 0.5 - 20, labelY: centerY - plateH - 40,
+            arrowDirection: 'down', isAngleBeam: true
+          };
+        default: return null;
+      }
+    }
+
+    case 'cylinder':
+    case 'round_bar':
+    case 'shaft':
+    case 'hub':
+    case 'round_forging_stock': {
+      // Round Bar: A=radial from top, B=radial from side, C=axial, angle beams at 45
+      const barRadius = 55 * scale;
+      switch (direction.toUpperCase()) {
+        case 'A': // Radial from top
+          return {
+            x: centerX, y: centerY - barRadius - 35,
+            symbolX: centerX, symbolY: centerY - barRadius - 55,
+            labelX: centerX + 25, labelY: centerY - barRadius - 40,
+            arrowDirection: 'down', isAngleBeam: false
+          };
+        case 'B': // Radial from side
+          return {
+            x: centerX - barRadius - 35, y: centerY,
+            symbolX: centerX - barRadius - 55, symbolY: centerY,
+            labelX: centerX - barRadius - 50, labelY: centerY - 20,
+            arrowDirection: 'right', isAngleBeam: false
+          };
+        case 'C': // Axial from end
+          return {
+            x: centerX + barRadius + 45, y: centerY - barRadius * 0.5,
+            symbolX: centerX + barRadius + 65, symbolY: centerY - barRadius * 0.5,
+            labelX: centerX + barRadius + 70, labelY: centerY - barRadius * 0.5 - 20,
+            arrowDirection: 'left', isAngleBeam: false
+          };
+        case 'D': // Angle beam 45 CW
+          return {
+            x: centerX + barRadius * 0.6, y: centerY - barRadius - 30,
+            symbolX: centerX + barRadius * 0.6, symbolY: centerY - barRadius - 30,
+            labelX: centerX + barRadius * 0.6 + 20, labelY: centerY - barRadius - 45,
+            arrowDirection: 'down', isAngleBeam: true
+          };
+        case 'E': // Angle beam 45 CCW
+          return {
+            x: centerX - barRadius * 0.6, y: centerY - barRadius - 30,
+            symbolX: centerX - barRadius * 0.6, symbolY: centerY - barRadius - 30,
+            labelX: centerX - barRadius * 0.6 - 20, labelY: centerY - barRadius - 45,
+            arrowDirection: 'down', isAngleBeam: true
+          };
+        default: return null;
+      }
+    }
+
+    case 'tube':
+    case 'pipe':
+    case 'sleeve':
+    case 'bushing': {
+      // Tube: A=from OD radial top, B=from OD side, C=axial, D/E=angle beams
+      const tubeRadius = 55 * scale;
+      switch (direction.toUpperCase()) {
+        case 'A': // From OD radial top
+          return {
+            x: centerX, y: centerY - tubeRadius - 35,
+            symbolX: centerX, symbolY: centerY - tubeRadius - 55,
+            labelX: centerX + 25, labelY: centerY - tubeRadius - 40,
+            arrowDirection: 'down', isAngleBeam: false
+          };
+        case 'B': // From OD side
+          return {
+            x: centerX - tubeRadius - 35, y: centerY,
+            symbolX: centerX - tubeRadius - 55, symbolY: centerY,
+            labelX: centerX - tubeRadius - 50, labelY: centerY - 20,
+            arrowDirection: 'right', isAngleBeam: false
+          };
+        case 'C': // Axial from end
+          return {
+            x: centerX + tubeRadius + 50, y: centerY - tubeRadius * 0.5,
+            symbolX: centerX + tubeRadius + 70, symbolY: centerY - tubeRadius * 0.5,
+            labelX: centerX + tubeRadius + 75, labelY: centerY - tubeRadius * 0.5 - 20,
+            arrowDirection: 'left', isAngleBeam: false
+          };
+        case 'D': // Angle beam CW
+          return {
+            x: centerX + tubeRadius * 0.6, y: centerY - tubeRadius - 30,
+            symbolX: centerX + tubeRadius * 0.6, symbolY: centerY - tubeRadius - 30,
+            labelX: centerX + tubeRadius * 0.6 + 20, labelY: centerY - tubeRadius - 45,
+            arrowDirection: 'down', isAngleBeam: true
+          };
+        case 'E': // Angle beam CCW
+          return {
+            x: centerX - tubeRadius * 0.6, y: centerY - tubeRadius - 30,
+            symbolX: centerX - tubeRadius * 0.6, symbolY: centerY - tubeRadius - 30,
+            labelX: centerX - tubeRadius * 0.6 - 20, labelY: centerY - tubeRadius - 45,
+            arrowDirection: 'down', isAngleBeam: true
+          };
+        case 'H': // From ID
+          return {
+            x: centerX + tubeRadius * 0.4, y: centerY + tubeRadius + 35,
+            symbolX: centerX + tubeRadius * 0.4, symbolY: centerY + tubeRadius + 55,
+            labelX: centerX + tubeRadius * 0.4 + 25, labelY: centerY + tubeRadius + 50,
+            arrowDirection: 'up', isAngleBeam: false
+          };
+        default: return null;
+      }
+    }
+
+    case 'ring':
+    case 'ring_forging':
+    case 'disk':
+    case 'disk_forging': {
+      // Ring/Disk per RAFAEL 5036 Figure 1
+      const ringRadius = 55 * scale;
+      switch (direction.toUpperCase()) {
+        case 'A': // From top face
+          return {
+            x: centerX, y: centerY - ringRadius - 35,
+            symbolX: centerX, symbolY: centerY - ringRadius - 55,
+            labelX: centerX + 25, labelY: centerY - ringRadius - 40,
+            arrowDirection: 'down', isAngleBeam: false
+          };
+        case 'B': // From OD radial
+          return {
+            x: centerX - ringRadius - 35, y: centerY,
+            symbolX: centerX - ringRadius - 55, symbolY: centerY,
+            labelX: centerX - ringRadius - 50, labelY: centerY - 20,
+            arrowDirection: 'right', isAngleBeam: false
+          };
+        case 'C': // Angle beam
+          return {
+            x: centerX + ringRadius * 0.7, y: centerY - ringRadius - 25,
+            symbolX: centerX + ringRadius * 0.7, symbolY: centerY - ringRadius - 25,
+            labelX: centerX + ringRadius * 0.7 + 20, labelY: centerY - ringRadius - 40,
+            arrowDirection: 'down', isAngleBeam: true
+          };
+        case 'D': // From bottom face
+          return {
+            x: centerX, y: centerY + ringRadius + 35,
+            symbolX: centerX, symbolY: centerY + ringRadius + 55,
+            labelX: centerX + 25, labelY: centerY + ringRadius + 50,
+            arrowDirection: 'up', isAngleBeam: false
+          };
+        default: return null;
+      }
+    }
+
+    case 'rectangular_tube':
+    case 'square_tube': {
+      const rectW = 60 * scale;
+      const rectH = 45 * scale;
+      switch (direction.toUpperCase()) {
+        case 'A': // From top
+          return {
+            x: centerX, y: centerY - rectH - 35,
+            symbolX: centerX, symbolY: centerY - rectH - 55,
+            labelX: centerX + 25, labelY: centerY - rectH - 40,
+            arrowDirection: 'down', isAngleBeam: false
+          };
+        case 'B': // From left side
+          return {
+            x: centerX - rectW - 35, y: centerY,
+            symbolX: centerX - rectW - 55, symbolY: centerY,
+            labelX: centerX - rectW - 50, labelY: centerY - 20,
+            arrowDirection: 'right', isAngleBeam: false
+          };
+        case 'C': // Angle beam
+          return {
+            x: centerX + rectW * 0.5, y: centerY - rectH - 30,
+            symbolX: centerX + rectW * 0.5, symbolY: centerY - rectH - 30,
+            labelX: centerX + rectW * 0.5 + 20, labelY: centerY - rectH - 45,
+            arrowDirection: 'down', isAngleBeam: true
+          };
+        default: return null;
+      }
+    }
+
+    case 'i_profile':
+    case 'extrusion_i':
+    case 'u_profile':
+    case 'extrusion_u':
+    case 'extrusion_channel':
+    case 'l_profile':
+    case 'extrusion_l':
+    case 'extrusion_angle':
+    case 't_profile':
+    case 'extrusion_t':
+    case 'z_profile':
+    case 'z_section': {
+      // Structural profiles
+      const profH = 55 * scale;
+      const profW = 45 * scale;
+      switch (direction.toUpperCase()) {
+        case 'A': // From top
+          return {
+            x: centerX, y: centerY - profH - 35,
+            symbolX: centerX, symbolY: centerY - profH - 55,
+            labelX: centerX + 25, labelY: centerY - profH - 40,
+            arrowDirection: 'down', isAngleBeam: false
+          };
+        case 'B': // From left side
+          return {
+            x: centerX - profW - 35, y: centerY,
+            symbolX: centerX - profW - 55, symbolY: centerY,
+            labelX: centerX - profW - 50, labelY: centerY - 20,
+            arrowDirection: 'right', isAngleBeam: false
+          };
+        case 'C': // Angle beam
+          return {
+            x: centerX + profW * 0.5, y: centerY - profH - 30,
+            symbolX: centerX + profW * 0.5, symbolY: centerY - profH - 30,
+            labelX: centerX + profW * 0.5 + 20, labelY: centerY - profH - 45,
+            arrowDirection: 'down', isAngleBeam: true
+          };
+        default: return null;
+      }
+    }
+
+    case 'sphere': {
+      const sphereR = 55 * scale;
+      switch (direction.toUpperCase()) {
+        case 'A': // From top
+          return {
+            x: centerX, y: centerY - sphereR - 35,
+            symbolX: centerX, symbolY: centerY - sphereR - 55,
+            labelX: centerX + 25, labelY: centerY - sphereR - 40,
+            arrowDirection: 'down', isAngleBeam: false
+          };
+        case 'B': // From left side
+          return {
+            x: centerX - sphereR - 35, y: centerY,
+            symbolX: centerX - sphereR - 55, symbolY: centerY,
+            labelX: centerX - sphereR - 50, labelY: centerY - 20,
+            arrowDirection: 'right', isAngleBeam: false
+          };
+        case 'C': // Angle beam
+          return {
+            x: centerX + sphereR * 0.7, y: centerY - sphereR - 25,
+            symbolX: centerX + sphereR * 0.7, symbolY: centerY - sphereR - 25,
+            labelX: centerX + sphereR * 0.7 + 20, labelY: centerY - sphereR - 40,
+            arrowDirection: 'down', isAngleBeam: true
+          };
+        default: return null;
+      }
+    }
+
+    case 'hexagon':
+    case 'hex_bar': {
+      const hexR = 50 * scale;
+      switch (direction.toUpperCase()) {
+        case 'A': // From top
+          return {
+            x: centerX, y: centerY - hexR - 35,
+            symbolX: centerX, symbolY: centerY - hexR - 55,
+            labelX: centerX + 25, labelY: centerY - hexR - 40,
+            arrowDirection: 'down', isAngleBeam: false
+          };
+        case 'B': // From left side
+          return {
+            x: centerX - hexR - 35, y: centerY,
+            symbolX: centerX - hexR - 55, symbolY: centerY,
+            labelX: centerX - hexR - 50, labelY: centerY - 20,
+            arrowDirection: 'right', isAngleBeam: false
+          };
+        case 'C': // Angle beam
+          return {
+            x: centerX + hexR * 0.6, y: centerY - hexR - 30,
+            symbolX: centerX + hexR * 0.6, symbolY: centerY - hexR - 30,
+            labelX: centerX + hexR * 0.6 + 20, labelY: centerY - hexR - 45,
+            arrowDirection: 'down', isAngleBeam: true
+          };
+        default: return null;
+      }
+    }
+
+    case 'cone':
+    case 'pyramid': {
+      const coneH = 65 * scale;
+      const coneW = 50 * scale;
+      switch (direction.toUpperCase()) {
+        case 'A': // From top/apex
+          return {
+            x: centerX, y: centerY - coneH - 35,
+            symbolX: centerX, symbolY: centerY - coneH - 55,
+            labelX: centerX + 25, labelY: centerY - coneH - 40,
+            arrowDirection: 'down', isAngleBeam: false
+          };
+        case 'B': // From left side
+          return {
+            x: centerX - coneW - 35, y: centerY,
+            symbolX: centerX - coneW - 55, symbolY: centerY,
+            labelX: centerX - coneW - 50, labelY: centerY - 20,
+            arrowDirection: 'right', isAngleBeam: false
+          };
+        case 'C': // Angle beam
+          return {
+            x: centerX + coneW * 0.5, y: centerY - coneH - 30,
+            symbolX: centerX + coneW * 0.5, symbolY: centerY - coneH - 30,
+            labelX: centerX + coneW * 0.5 + 20, labelY: centerY - coneH - 45,
+            arrowDirection: 'down', isAngleBeam: true
+          };
+        default: return null;
+      }
+    }
+
+    case 'ellipse': {
+      const ellMajor = 60 * scale;
+      const ellMinor = 40 * scale;
+      switch (direction.toUpperCase()) {
+        case 'A': // From top
+          return {
+            x: centerX, y: centerY - ellMinor - 35,
+            symbolX: centerX, symbolY: centerY - ellMinor - 55,
+            labelX: centerX + 25, labelY: centerY - ellMinor - 40,
+            arrowDirection: 'down', isAngleBeam: false
+          };
+        case 'B': // From left side
+          return {
+            x: centerX - ellMajor - 35, y: centerY,
+            symbolX: centerX - ellMajor - 55, symbolY: centerY,
+            labelX: centerX - ellMajor - 50, labelY: centerY - 20,
+            arrowDirection: 'right', isAngleBeam: false
+          };
+        case 'C': // Angle beam
+          return {
+            x: centerX + ellMajor * 0.5, y: centerY - ellMinor - 30,
+            symbolX: centerX + ellMajor * 0.5, symbolY: centerY - ellMinor - 30,
+            labelX: centerX + ellMajor * 0.5 + 20, labelY: centerY - ellMinor - 45,
+            arrowDirection: 'down', isAngleBeam: true
+          };
+        default: return null;
+      }
+    }
+
+    default: {
+      // Default positions for other shapes (forging, custom, etc.)
+      const defaultR = 60 * scale;
+      switch (direction.toUpperCase()) {
+        case 'A':
+          return {
+            x: centerX, y: centerY - defaultR - 30,
+            symbolX: centerX, symbolY: centerY - defaultR - 50,
+            labelX: centerX + 25, labelY: centerY - defaultR - 35,
+            arrowDirection: 'down', isAngleBeam: false
+          };
+        case 'B':
+          return {
+            x: centerX - defaultR - 30, y: centerY,
+            symbolX: centerX - defaultR - 50, symbolY: centerY,
+            labelX: centerX - defaultR - 45, labelY: centerY - 20,
+            arrowDirection: 'right', isAngleBeam: false
+          };
+        case 'C':
+          return {
+            x: centerX, y: centerY + defaultR + 30,
+            symbolX: centerX, symbolY: centerY + defaultR + 50,
+            labelX: centerX + 25, labelY: centerY + defaultR + 45,
+            arrowDirection: 'up', isAngleBeam: false
+          };
+        case 'D':
+          return {
+            x: centerX + defaultR * 0.5, y: centerY - defaultR - 25,
+            symbolX: centerX + defaultR * 0.5, symbolY: centerY - defaultR - 25,
+            labelX: centerX + defaultR * 0.5 + 20, labelY: centerY - defaultR - 40,
+            arrowDirection: 'down', isAngleBeam: true
+          };
+        default: return null;
+      }
+    }
+  }
 }
 
 /**
@@ -625,13 +1296,14 @@ function drawRafaelAngleBeamArrow(
  * Includes scan direction arrows
  */
 /**
- * Draw RAFAEL-STYLE TILTED 3D ROUND BAR (Cylinder)
- * EXACTLY like the Rafael 5036 spec image:
- * - Cylinder tilted at ~45 degrees (diagonal view)
- * - Solid circle at front end (cross-section)
- * - Dashed centerlines through length and diameter
- * - Scan direction arrows from top-right diagonal
- * - "Round Bar" label underlined
+ * Draw PROFESSIONAL CAD-GRADE 3D CYLINDER / ROUND BAR
+ * Features:
+ * - Tilted 3D cylinder at 45 degrees showing depth
+ * - Metallic gradient shading for 3D form
+ * - Elliptical front face with ISO hatching
+ * - Dashed hidden lines for back ellipse
+ * - Chain-dash centerlines per ISO 128
+ * - Uses 70% of available canvas space
  */
 function drawCylinderCrossSection(
   ctx: CanvasRenderingContext2D,
@@ -640,60 +1312,78 @@ function drawCylinderCrossSection(
   bounds: DrawBounds,
   dimensions: DrawDimensions
 ) {
+  ctx.save();
+
   // Get REAL dimensions
-  const diameter = dimensions.diameter || 100;
+  const diameter = dimensions.diameter || dimensions.outerDiameter || 100;
   const cylinderLength = dimensions.length || dimensions.height || 200;
 
-  // Available space (leave room for arrows and label)
-  const availableSize = Math.min(bounds.width, bounds.height) - 120;
-  
-  // Calculate scale to fit tilted cylinder
-  // When tilted 45°, the diagonal footprint is larger
-  const diagonalLength = cylinderLength * 0.7; // Projected length at 45°
-  const totalDiagonal = Math.sqrt(diagonalLength * diagonalLength + (diameter * 0.5) * (diameter * 0.5));
-  const scale = Math.min(availableSize / Math.max(totalDiagonal, diameter), 1.2);
+  // Scale to fill canvas (70% of available space)
+  const maxSize = Math.min(bounds.width, bounds.height) * 0.7;
+  const scale = maxSize / Math.max(diameter, cylinderLength * 0.7);
 
   const radius = (diameter / 2) * scale;
-  const length = cylinderLength * scale * 0.6; // Shortened for diagonal view
+  const length = cylinderLength * scale * 0.6;
 
-  // Tilt angle (45 degrees like Rafael image)
-  const angle = Math.PI / 4; // 45 degrees
+  // Tilt angle (45 degrees)
+  const angle = Math.PI / 4;
   const cos45 = Math.cos(angle);
   const sin45 = Math.sin(angle);
 
   // Center position
   const cx = centerX;
-  const cy = centerY + 20;
+  const cy = centerY + 10;
 
-  ctx.save();
-
-  // ═══════════════════════════════════════════════════════════════════
-  // BACK ELLIPSE (far end of cylinder) - partially hidden
-  // ═══════════════════════════════════════════════════════════════════
+  // Back ellipse position
   const backX = cx - length * cos45;
   const backY = cy - length * sin45;
-  
-  // Hidden part (dashed)
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 1.5;
+
+  // ═══════════════════════════════════════════════════════════════════
+  // BACK ELLIPSE (far end) - dashed hidden lines
+  // ═══════════════════════════════════════════════════════════════════
+  ctx.strokeStyle = '#64748b';
+  ctx.lineWidth = 1;
   ctx.setLineDash([4, 4]);
   ctx.beginPath();
-  ctx.ellipse(backX, backY, radius * 0.4, radius, 0, 0, Math.PI * 2);
+  ctx.ellipse(backX, backY, radius * 0.45, radius, 0, 0, Math.PI * 2);
   ctx.stroke();
   ctx.setLineDash([]);
 
   // ═══════════════════════════════════════════════════════════════════
-  // SIDE WALLS - lines connecting front and back ellipses
+  // CYLINDRICAL BODY with metallic gradient
   // ═══════════════════════════════════════════════════════════════════
-  ctx.lineWidth = 2;
-  ctx.strokeStyle = '#1e293b';
-  
+
+  // Create gradient for metallic look on cylinder body
+  const bodyGradient = ctx.createLinearGradient(cx, cy - radius, cx, cy + radius);
+  bodyGradient.addColorStop(0, '#e2e8f0');
+  bodyGradient.addColorStop(0.3, '#f8fafc');
+  bodyGradient.addColorStop(0.5, '#e2e8f0');
+  bodyGradient.addColorStop(0.7, '#cbd5e1');
+  bodyGradient.addColorStop(1, '#94a3b8');
+
+  // Draw cylinder body (connect front and back with filled area)
+  ctx.fillStyle = bodyGradient;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - radius);
+  ctx.lineTo(backX, backY - radius);
+  // Back arc (top half)
+  ctx.ellipse(backX, backY, radius * 0.45, radius, 0, -Math.PI/2, Math.PI/2, true);
+  ctx.lineTo(cx, cy + radius);
+  // Front arc (bottom half going back)
+  ctx.arc(cx, cy, radius, Math.PI/2, -Math.PI/2, true);
+  ctx.closePath();
+  ctx.fill();
+
+  // Side edges - thick line weight
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 2.5;
+
   // Top edge
   ctx.beginPath();
   ctx.moveTo(cx, cy - radius);
   ctx.lineTo(backX, backY - radius);
   ctx.stroke();
-  
+
   // Bottom edge
   ctx.beginPath();
   ctx.moveTo(cx, cy + radius);
@@ -701,82 +1391,88 @@ function drawCylinderCrossSection(
   ctx.stroke();
 
   // ═══════════════════════════════════════════════════════════════════
-  // FRONT CIRCLE (cross-section view) - solid circle at front
+  // FRONT CIRCLE (cross-section) with gradient and hatching
   // ═══════════════════════════════════════════════════════════════════
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 2.5;
+
+  // Create radial gradient for 3D circle
+  const frontGradient = ctx.createRadialGradient(
+    cx - radius * 0.3, cy - radius * 0.3, 0,
+    cx, cy, radius
+  );
+  frontGradient.addColorStop(0, '#f8fafc');
+  frontGradient.addColorStop(0.5, '#e2e8f0');
+  frontGradient.addColorStop(1, '#cbd5e1');
+
+  ctx.fillStyle = frontGradient;
   ctx.beginPath();
   ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Thick outline
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 3;
   ctx.stroke();
 
   // ═══════════════════════════════════════════════════════════════════
-  // CENTERLINES (dashed) - Rafael style
+  // ISO HATCHING on front face (45 degree diagonal lines)
   // ═══════════════════════════════════════════════════════════════════
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 1;
-  ctx.setLineDash([12, 4, 3, 4]);
-  
-  // Centerline through front circle - horizontal
+  ctx.save();
   ctx.beginPath();
-  ctx.moveTo(cx - radius - 30, cy);
-  ctx.lineTo(cx + radius + 30, cy);
+  ctx.arc(cx, cy, radius - 2, 0, Math.PI * 2);
+  ctx.clip();
+
+  ctx.strokeStyle = '#64748b';
+  ctx.lineWidth = 0.6;
+  const spacing = 6;
+  for (let i = -radius * 2; i < radius * 2; i += spacing) {
+    ctx.beginPath();
+    ctx.moveTo(cx + i - radius, cy + radius);
+    ctx.lineTo(cx + i + radius, cy - radius);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // ═══════════════════════════════════════════════════════════════════
+  // CENTERLINES (chain dash per ISO 128)
+  // ═══════════════════════════════════════════════════════════════════
+  ctx.strokeStyle = '#64748b';
+  ctx.lineWidth = 0.8;
+  ctx.setLineDash([15, 3, 3, 3]);
+
+  // Horizontal through front circle
+  ctx.beginPath();
+  ctx.moveTo(cx - radius - 40, cy);
+  ctx.lineTo(cx + radius + 40, cy);
   ctx.stroke();
-  
-  // Centerline through front circle - vertical
+
+  // Vertical through front circle
   ctx.beginPath();
-  ctx.moveTo(cx, cy - radius - 30);
-  ctx.lineTo(cx, cy + radius + 30);
+  ctx.moveTo(cx, cy - radius - 40);
+  ctx.lineTo(cx, cy + radius + 40);
   ctx.stroke();
-  
-  // Centerline through length (diagonal) - extends beyond cylinder
+
+  // Axial centerline through length
   ctx.beginPath();
-  ctx.moveTo(cx + 40 * cos45, cy + 40 * sin45);
-  ctx.lineTo(backX - 50 * cos45, backY - 50 * sin45);
+  ctx.moveTo(cx + 50 * cos45, cy + 50 * sin45);
+  ctx.lineTo(backX - 60 * cos45, backY - 60 * sin45);
   ctx.stroke();
   ctx.setLineDash([]);
 
   // ═══════════════════════════════════════════════════════════════════
-  // RAFAEL-STYLE ARROWS - from LEFT and TOP with PROBES
+  // LABEL with professional styling
   // ═══════════════════════════════════════════════════════════════════
-  const probeSize = 10;
-  
-  // Arrow from LEFT with probe square
-  const probeLeftX = cx - radius - 55;
-  const probeLeftY = cy;
-  drawRafaelScanArrow(ctx, probeLeftX, probeLeftY, 'right');
-  ctx.fillStyle = '#ffffff';
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 1.5;
-  ctx.fillRect(probeLeftX - probeSize/2, probeLeftY - probeSize/2, probeSize, probeSize);
-  ctx.strokeRect(probeLeftX - probeSize/2, probeLeftY - probeSize/2, probeSize, probeSize);
-  
-  // Arrow from TOP with probe square
-  const probeTopX = cx;
-  const probeTopY = cy - radius - 55;
-  drawRafaelScanArrow(ctx, probeTopX, probeTopY, 'down');
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(probeTopX - probeSize/2, probeTopY - probeSize/2, probeSize, probeSize);
-  ctx.strokeRect(probeTopX - probeSize/2, probeTopY - probeSize/2, probeSize, probeSize);
-  
-  // Angle beam triangle marker
-  drawRafaelAngleBeamArrow(ctx, cx + radius * 0.7, cy - radius - 45);
-
-  // ═══════════════════════════════════════════════════════════════════
-  // "Round Bar" LABEL - underlined, bottom
-  // ═══════════════════════════════════════════════════════════════════
-  ctx.fillStyle = '#1e293b';
-  ctx.font = 'bold 14px Arial';
+  ctx.fillStyle = '#1a1a2e';
+  ctx.font = 'bold 16px Arial';
   ctx.textAlign = 'center';
-  const labelX = cx;
-  const labelY = cy + radius + 50;
-  ctx.fillText('Round Bar', labelX, labelY);
-  
+  const labelY = cy + radius + 55;
+  ctx.fillText('ROUND BAR', cx, labelY);
+
   // Underline
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 1.5;
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(labelX - 40, labelY + 3);
-  ctx.lineTo(labelX + 40, labelY + 3);
+  ctx.moveTo(cx - 55, labelY + 5);
+  ctx.lineTo(cx + 55, labelY + 5);
   ctx.stroke();
 
   ctx.restore();
@@ -814,19 +1510,14 @@ function drawRafaelDiagonalArrow(
 }
 
 /**
- * Draw RAFAEL-STYLE ISOMETRIC 3D RING
- * EXACTLY like the Rafael 5036 spec image:
- * - 3D isometric ring (hollow cylinder)
- * - Dashed centerlines through the center
- * - Scan direction arrows (⇨ ⇩ ▽)
- * - "Ring" label on the right
- * 
- * SMART SCALING: Always fits inside bounds, no matter the dimensions
- */
-/**
- * Draw RAFAEL-STYLE TILTED 3D RING
- * Like Rafael 5036 - tilted at 45° to the right
- * With probe squares and arrows from side/top
+ * Draw PROFESSIONAL CAD-GRADE 3D RING (Hollow Short Cylinder)
+ * Features:
+ * - Torus-like 3D view showing circular cross-section
+ * - Visible wall thickness with ISO hatching
+ * - Metallic gradient shading for 3D form
+ * - Clear OD, ID indication
+ * - Chain-dash centerlines per ISO 128
+ * - Uses 70% of available canvas space
  */
 function drawIsometricRing(
   ctx: CanvasRenderingContext2D,
@@ -835,209 +1526,200 @@ function drawIsometricRing(
   bounds: DrawBounds,
   dimensions: DrawDimensions
 ) {
+  ctx.save();
+
   // Get REAL dimensions
   const outerDiam = dimensions.outerDiameter || dimensions.diameter || 200;
   const innerDiam = dimensions.innerDiameter || (outerDiam * 0.6);
   const ringHeight = dimensions.thickness || dimensions.height || 40;
 
-  // Available space
-  const availableSize = Math.min(bounds.width, bounds.height) - 100;
-  const scale = Math.min(availableSize / outerDiam, 1.2) * 0.45;
+  // Scale to fill canvas (70% of available space)
+  const maxSize = Math.min(bounds.width, bounds.height) * 0.7;
+  const scale = maxSize / Math.max(outerDiam, ringHeight * 2);
 
   const outerR = (outerDiam / 2) * scale;
   const innerR = (innerDiam / 2) * scale;
   const h = ringHeight * scale;
-  
-  // Tilt parameters (ring tilted 45° to the right like Rafael)
-  const tiltAngle = Math.PI / 6; // 30 degrees tilt
   const ellipseRatio = 0.4;
 
   // Position
   const cx = centerX;
   const cy = centerY;
 
-  ctx.save();
-
   // ═══════════════════════════════════════════════════════════════════
-  // BACK ELLIPSE (far side) - TOP of ring, dashed (hidden lines)
+  // BACK ELLIPSES (top surface) - dashed hidden lines
   // ═══════════════════════════════════════════════════════════════════
   ctx.strokeStyle = '#64748b';
   ctx.lineWidth = 1;
-  ctx.setLineDash([4, 3]);
-  
-  // Back outer ellipse - full ellipse at top
+  ctx.setLineDash([4, 4]);
+
+  // Back outer ellipse
   ctx.beginPath();
   ctx.ellipse(cx, cy - h, outerR, outerR * ellipseRatio, 0, 0, Math.PI * 2);
   ctx.stroke();
-  
-  // Back inner ellipse - full ellipse at top (hole at top)
+
+  // Back inner ellipse (hole at top)
   ctx.beginPath();
   ctx.ellipse(cx, cy - h, innerR, innerR * ellipseRatio, 0, 0, Math.PI * 2);
   ctx.stroke();
   ctx.setLineDash([]);
 
   // ═══════════════════════════════════════════════════════════════════
-  // SIDE WALLS - connecting front and back ellipses
+  // OUTER CYLINDER WALL with metallic gradient
   // ═══════════════════════════════════════════════════════════════════
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 2;
-  
-  // Left outer edge
+  const outerGradient = ctx.createLinearGradient(cx - outerR, cy, cx + outerR, cy);
+  outerGradient.addColorStop(0, '#94a3b8');
+  outerGradient.addColorStop(0.3, '#cbd5e1');
+  outerGradient.addColorStop(0.5, '#f8fafc');
+  outerGradient.addColorStop(0.7, '#e2e8f0');
+  outerGradient.addColorStop(1, '#94a3b8');
+
+  // Draw outer cylinder wall (visible portion)
+  ctx.fillStyle = outerGradient;
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, outerR, outerR * ellipseRatio, 0, 0, Math.PI); // Bottom half
+  ctx.lineTo(cx - outerR, cy - h);
+  ctx.ellipse(cx, cy - h, outerR, outerR * ellipseRatio, 0, Math.PI, 0, true); // Top back half
+  ctx.lineTo(cx + outerR, cy);
+  ctx.closePath();
+  ctx.fill();
+
+  // Outer side edges - thick
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 2.5;
   ctx.beginPath();
   ctx.moveTo(cx - outerR, cy);
   ctx.lineTo(cx - outerR, cy - h);
   ctx.stroke();
-  
-  // Right outer edge
   ctx.beginPath();
   ctx.moveTo(cx + outerR, cy);
   ctx.lineTo(cx + outerR, cy - h);
   ctx.stroke();
 
-  // Left inner edge
+  // ═══════════════════════════════════════════════════════════════════
+  // INNER CYLINDER WALL (the hole)
+  // ═══════════════════════════════════════════════════════════════════
+  const innerGradient = ctx.createLinearGradient(cx - innerR, cy, cx + innerR, cy);
+  innerGradient.addColorStop(0, '#e2e8f0');
+  innerGradient.addColorStop(0.5, '#f8fafc');
+  innerGradient.addColorStop(1, '#e2e8f0');
+
+  ctx.fillStyle = innerGradient;
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, innerR, innerR * ellipseRatio, 0, 0, Math.PI);
+  ctx.lineTo(cx - innerR, cy - h);
+  ctx.ellipse(cx, cy - h, innerR, innerR * ellipseRatio, 0, Math.PI, 0, true);
+  ctx.lineTo(cx + innerR, cy);
+  ctx.closePath();
+  ctx.fill();
+
+  // Inner side edges
+  ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.moveTo(cx - innerR, cy);
   ctx.lineTo(cx - innerR, cy - h);
   ctx.stroke();
-
-  // Right inner edge
   ctx.beginPath();
   ctx.moveTo(cx + innerR, cy);
   ctx.lineTo(cx + innerR, cy - h);
   ctx.stroke();
 
   // ═══════════════════════════════════════════════════════════════════
-  // FRONT ELLIPSE (visible - solid)
+  // FRONT ELLIPSES (bottom surface) with hatching on annular face
   // ═══════════════════════════════════════════════════════════════════
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 2;
-  
-  // Front outer ellipse
+
+  // Draw annular ring face with gradient
+  const frontGradient = ctx.createLinearGradient(cx - outerR, cy, cx + outerR, cy);
+  frontGradient.addColorStop(0, '#cbd5e1');
+  frontGradient.addColorStop(0.5, '#e2e8f0');
+  frontGradient.addColorStop(1, '#94a3b8');
+
+  ctx.fillStyle = frontGradient;
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, outerR, outerR * ellipseRatio, 0, 0, Math.PI * 2);
+  ctx.ellipse(cx, cy, innerR, innerR * ellipseRatio, 0, 0, Math.PI * 2, true);
+  ctx.fill();
+
+  // ISO Hatching on annular face
+  ctx.save();
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, outerR - 1, (outerR - 1) * ellipseRatio, 0, 0, Math.PI * 2);
+  ctx.ellipse(cx, cy, innerR + 1, (innerR + 1) * ellipseRatio, 0, 0, Math.PI * 2, true);
+  ctx.clip();
+
+  ctx.strokeStyle = '#64748b';
+  ctx.lineWidth = 0.6;
+  const spacing = 5;
+  for (let i = -outerR * 2; i < outerR * 2; i += spacing) {
+    ctx.beginPath();
+    ctx.moveTo(cx + i - outerR, cy + outerR * ellipseRatio);
+    ctx.lineTo(cx + i + outerR, cy - outerR * ellipseRatio);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // Front outer ellipse outline - thick
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 3;
   ctx.beginPath();
   ctx.ellipse(cx, cy, outerR, outerR * ellipseRatio, 0, 0, Math.PI * 2);
   ctx.stroke();
-  
-  // Front inner ellipse (hole)
+
+  // Front inner ellipse outline (the hole)
+  ctx.lineWidth = 2.5;
   ctx.beginPath();
   ctx.ellipse(cx, cy, innerR, innerR * ellipseRatio, 0, 0, Math.PI * 2);
   ctx.stroke();
 
   // ═══════════════════════════════════════════════════════════════════
-  // CENTERLINES (dashed) - Rafael style
+  // CENTERLINES (chain dash per ISO 128)
   // ═══════════════════════════════════════════════════════════════════
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 1;
-  ctx.setLineDash([12, 4, 3, 4]);
-  
-  // Horizontal centerline through front
+  ctx.strokeStyle = '#64748b';
+  ctx.lineWidth = 0.8;
+  ctx.setLineDash([15, 3, 3, 3]);
+
+  // Horizontal centerline
   ctx.beginPath();
   ctx.moveTo(cx - outerR - 40, cy);
-  ctx.lineTo(cx + outerR + 80, cy);
+  ctx.lineTo(cx + outerR + 40, cy);
   ctx.stroke();
-  
+
   // Vertical centerline
   ctx.beginPath();
   ctx.moveTo(cx, cy - h - outerR * ellipseRatio - 30);
-  ctx.lineTo(cx, cy + outerR * ellipseRatio + 25);
+  ctx.lineTo(cx, cy + outerR * ellipseRatio + 30);
   ctx.stroke();
   ctx.setLineDash([]);
 
   // ═══════════════════════════════════════════════════════════════════
-  // RAFAEL-STYLE ARROWS with PROBE SQUARES
+  // LABEL with professional styling
   // ═══════════════════════════════════════════════════════════════════
-  
-  // Left probe square
-  const leftProbeX = cx - outerR - 55;
-  const leftProbeY = cy;
-  ctx.fillStyle = '#ffffff';
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 1.5;
-  ctx.fillRect(leftProbeX - 5, leftProbeY - 5, 10, 10);
-  ctx.strokeRect(leftProbeX - 5, leftProbeY - 5, 10, 10);
-  
-  // Arrow from left probe to ring (horizontal)
-  ctx.beginPath();
-  ctx.moveTo(leftProbeX + 5, leftProbeY);
-  ctx.lineTo(cx - outerR - 5, cy);
-  ctx.stroke();
-  // Arrow head
-  ctx.beginPath();
-  ctx.moveTo(cx - outerR - 5, cy);
-  ctx.lineTo(cx - outerR - 12, cy - 4);
-  ctx.lineTo(cx - outerR - 12, cy + 4);
-  ctx.closePath();
-  ctx.fillStyle = '#1e293b';
-  ctx.fill();
+  ctx.fillStyle = '#1a1a2e';
+  ctx.font = 'bold 16px Arial';
+  ctx.textAlign = 'center';
+  const labelY = cy + outerR * ellipseRatio + 55;
+  ctx.fillText('RING', cx, labelY);
 
-  // Top probe square
-  const topProbeX = cx;
-  const topProbeY = cy - h - outerR * ellipseRatio - 45;
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(topProbeX - 5, topProbeY - 5, 10, 10);
-  ctx.strokeRect(topProbeX - 5, topProbeY - 5, 10, 10);
-  
-  // Arrow from top probe to ring (vertical) - with double head
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 1.5;
-  ctx.beginPath();
-  ctx.moveTo(topProbeX, topProbeY + 5);
-  ctx.lineTo(topProbeX, cy - h - outerR * ellipseRatio - 5);
-  ctx.stroke();
-  // Arrow head
-  ctx.beginPath();
-  ctx.moveTo(topProbeX, cy - h - outerR * ellipseRatio - 5);
-  ctx.lineTo(topProbeX - 4, cy - h - outerR * ellipseRatio - 12);
-  ctx.lineTo(topProbeX + 4, cy - h - outerR * ellipseRatio - 12);
-  ctx.closePath();
-  ctx.fillStyle = '#1e293b';
-  ctx.fill();
-
-  // Angle beam triangle marker (hollow)
-  const triX = cx + 30;
-  const triY = cy - h - outerR * ellipseRatio - 40;
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 1.5;
-  ctx.beginPath();
-  ctx.moveTo(triX, triY + 10);
-  ctx.lineTo(triX - 7, triY - 5);
-  ctx.lineTo(triX + 7, triY - 5);
-  ctx.closePath();
-  ctx.stroke();
-
-  // ═══════════════════════════════════════════════════════════════════
-  // "Ring" LABEL - underlined, on the right
-  // ═══════════════════════════════════════════════════════════════════
-  ctx.fillStyle = '#1e293b';
-  ctx.font = 'bold 15px Arial';
-  ctx.textAlign = 'left';
-  const labelX = cx + outerR + 30;
-  const labelY = cy;
-  ctx.fillText('Ring', labelX, labelY);
-  
   // Underline
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 1.5;
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(labelX, labelY + 3);
-  ctx.lineTo(labelX + 35, labelY + 3);
+  ctx.moveTo(cx - 30, labelY + 5);
+  ctx.lineTo(cx + 30, labelY + 5);
   ctx.stroke();
 
   ctx.restore();
 }
 
 /**
- * Draw RAFAEL-STYLE ISOMETRIC 3D DISK
- * EXACTLY like the Rafael 5036 spec:
- * - 3D isometric disk (solid short cylinder)
- * - Dashed centerlines
- * - Scan direction arrows
- * - "Disk" label on the right
- * 
- * SMART SCALING: Always fits inside bounds, no matter the dimensions
- */
-/**
- * Draw RAFAEL-STYLE TILTED 3D DISK
- * Like Rafael 5036 - tilted view with probe squares and arrows from side/top
+ * Draw PROFESSIONAL CAD-GRADE 3D DISK (Short Solid Cylinder)
+ * Features:
+ * - Tilted coin-like 3D view
+ * - Top ellipse with subtle hatching showing solid material
+ * - Metallic gradient shading on cylindrical surface
+ * - Clear thickness indication
+ * - Chain-dash centerlines per ISO 128
+ * - Uses 70% of available canvas space
  */
 function drawIsometricDisk(
   ctx: CanvasRenderingContext2D,
@@ -1046,13 +1728,15 @@ function drawIsometricDisk(
   bounds: DrawBounds,
   dimensions: DrawDimensions
 ) {
+  ctx.save();
+
   // Get REAL dimensions
-  const diameter = dimensions.diameter || 200;
+  const diameter = dimensions.diameter || dimensions.outerDiameter || 200;
   const diskHeight = dimensions.thickness || dimensions.height || 40;
 
-  // Available space
-  const availableSize = Math.min(bounds.width, bounds.height) - 100;
-  const scale = Math.min(availableSize / diameter, 1.2) * 0.5;
+  // Scale to fill canvas (70% of available space)
+  const maxSize = Math.min(bounds.width, bounds.height) * 0.7;
+  const scale = maxSize / Math.max(diameter, diskHeight * 2);
 
   const r = (diameter / 2) * scale;
   const h = diskHeight * scale;
@@ -1062,144 +1746,125 @@ function drawIsometricDisk(
   const cx = centerX;
   const cy = centerY;
 
-  ctx.save();
-
   // ═══════════════════════════════════════════════════════════════════
-  // BACK ELLIPSE (far side - dashed) - TOP surface
+  // BACK ELLIPSE (top surface) - dashed hidden lines
   // ═══════════════════════════════════════════════════════════════════
   ctx.strokeStyle = '#64748b';
   ctx.lineWidth = 1;
-  ctx.setLineDash([4, 3]);
+  ctx.setLineDash([4, 4]);
   ctx.beginPath();
   ctx.ellipse(cx, cy - h, r, r * ellipseRatio, 0, 0, Math.PI * 2);
   ctx.stroke();
   ctx.setLineDash([]);
 
   // ═══════════════════════════════════════════════════════════════════
-  // SIDE WALLS - connecting front and back
+  // CYLINDRICAL SIDE WALL with metallic gradient
   // ═══════════════════════════════════════════════════════════════════
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 2;
-  
-  // Left edge
+  const sideGradient = ctx.createLinearGradient(cx - r, cy, cx + r, cy);
+  sideGradient.addColorStop(0, '#94a3b8');
+  sideGradient.addColorStop(0.2, '#cbd5e1');
+  sideGradient.addColorStop(0.4, '#f8fafc');
+  sideGradient.addColorStop(0.6, '#e2e8f0');
+  sideGradient.addColorStop(0.8, '#cbd5e1');
+  sideGradient.addColorStop(1, '#94a3b8');
+
+  // Draw side wall
+  ctx.fillStyle = sideGradient;
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, r, r * ellipseRatio, 0, 0, Math.PI); // Bottom half
+  ctx.lineTo(cx - r, cy - h);
+  ctx.ellipse(cx, cy - h, r, r * ellipseRatio, 0, Math.PI, 0, true); // Top back half
+  ctx.lineTo(cx + r, cy);
+  ctx.closePath();
+  ctx.fill();
+
+  // Side edges - thick line weight
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 2.5;
   ctx.beginPath();
   ctx.moveTo(cx - r, cy);
   ctx.lineTo(cx - r, cy - h);
   ctx.stroke();
-  
-  // Right edge
   ctx.beginPath();
   ctx.moveTo(cx + r, cy);
   ctx.lineTo(cx + r, cy - h);
   ctx.stroke();
 
   // ═══════════════════════════════════════════════════════════════════
-  // FRONT ELLIPSE (solid)
+  // FRONT ELLIPSE (bottom face) with gradient and hatching
   // ═══════════════════════════════════════════════════════════════════
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 2;
+  const frontGradient = ctx.createRadialGradient(
+    cx - r * 0.3, cy - r * ellipseRatio * 0.3, 0,
+    cx, cy, r
+  );
+  frontGradient.addColorStop(0, '#f8fafc');
+  frontGradient.addColorStop(0.5, '#e2e8f0');
+  frontGradient.addColorStop(1, '#cbd5e1');
+
+  ctx.fillStyle = frontGradient;
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, r, r * ellipseRatio, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // ISO Hatching on front ellipse
+  ctx.save();
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, r - 2, (r - 2) * ellipseRatio, 0, 0, Math.PI * 2);
+  ctx.clip();
+
+  ctx.strokeStyle = '#64748b';
+  ctx.lineWidth = 0.6;
+  const spacing = 6;
+  for (let i = -r * 2; i < r * 2; i += spacing) {
+    ctx.beginPath();
+    ctx.moveTo(cx + i - r, cy + r * ellipseRatio);
+    ctx.lineTo(cx + i + r, cy - r * ellipseRatio);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // Front ellipse outline - thick
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 3;
   ctx.beginPath();
   ctx.ellipse(cx, cy, r, r * ellipseRatio, 0, 0, Math.PI * 2);
   ctx.stroke();
 
   // ═══════════════════════════════════════════════════════════════════
-  // CENTERLINES (dashed) - Rafael style
+  // CENTERLINES (chain dash per ISO 128)
   // ═══════════════════════════════════════════════════════════════════
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 1;
-  ctx.setLineDash([12, 4, 3, 4]);
-  
+  ctx.strokeStyle = '#64748b';
+  ctx.lineWidth = 0.8;
+  ctx.setLineDash([15, 3, 3, 3]);
+
   // Horizontal centerline
   ctx.beginPath();
   ctx.moveTo(cx - r - 40, cy);
-  ctx.lineTo(cx + r + 80, cy);
+  ctx.lineTo(cx + r + 40, cy);
   ctx.stroke();
-  
+
   // Vertical centerline
   ctx.beginPath();
   ctx.moveTo(cx, cy - h - r * ellipseRatio - 30);
-  ctx.lineTo(cx, cy + r * ellipseRatio + 25);
+  ctx.lineTo(cx, cy + r * ellipseRatio + 30);
   ctx.stroke();
   ctx.setLineDash([]);
 
   // ═══════════════════════════════════════════════════════════════════
-  // RAFAEL-STYLE ARROWS with PROBE SQUARES
+  // LABEL with professional styling
   // ═══════════════════════════════════════════════════════════════════
-  
-  // Left probe square
-  const leftProbeX = cx - r - 55;
-  const leftProbeY = cy;
-  ctx.fillStyle = '#ffffff';
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 1.5;
-  ctx.fillRect(leftProbeX - 5, leftProbeY - 5, 10, 10);
-  ctx.strokeRect(leftProbeX - 5, leftProbeY - 5, 10, 10);
-  
-  // Arrow from left probe (horizontal)
-  ctx.beginPath();
-  ctx.moveTo(leftProbeX + 5, leftProbeY);
-  ctx.lineTo(cx - r - 5, cy);
-  ctx.stroke();
-  // Arrow head
-  ctx.beginPath();
-  ctx.moveTo(cx - r - 5, cy);
-  ctx.lineTo(cx - r - 12, cy - 4);
-  ctx.lineTo(cx - r - 12, cy + 4);
-  ctx.closePath();
-  ctx.fillStyle = '#1e293b';
-  ctx.fill();
+  ctx.fillStyle = '#1a1a2e';
+  ctx.font = 'bold 16px Arial';
+  ctx.textAlign = 'center';
+  const labelY = cy + r * ellipseRatio + 55;
+  ctx.fillText('DISK', cx, labelY);
 
-  // Top probe square
-  const topProbeX = cx;
-  const topProbeY = cy - h - r * ellipseRatio - 45;
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(topProbeX - 5, topProbeY - 5, 10, 10);
-  ctx.strokeRect(topProbeX - 5, topProbeY - 5, 10, 10);
-  
-  // Arrow from top probe (vertical)
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 1.5;
-  ctx.beginPath();
-  ctx.moveTo(topProbeX, topProbeY + 5);
-  ctx.lineTo(topProbeX, cy - h - r * ellipseRatio - 5);
-  ctx.stroke();
-  // Arrow head
-  ctx.beginPath();
-  ctx.moveTo(topProbeX, cy - h - r * ellipseRatio - 5);
-  ctx.lineTo(topProbeX - 4, cy - h - r * ellipseRatio - 12);
-  ctx.lineTo(topProbeX + 4, cy - h - r * ellipseRatio - 12);
-  ctx.closePath();
-  ctx.fillStyle = '#1e293b';
-  ctx.fill();
-
-  // Angle beam triangle marker (hollow)
-  const triX = cx + 30;
-  const triY = cy - h - r * ellipseRatio - 40;
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 1.5;
-  ctx.beginPath();
-  ctx.moveTo(triX, triY + 10);
-  ctx.lineTo(triX - 7, triY - 5);
-  ctx.lineTo(triX + 7, triY - 5);
-  ctx.closePath();
-  ctx.stroke();
-
-  // ═══════════════════════════════════════════════════════════════════
-  // "Disk" LABEL - underlined, on the right
-  // ═══════════════════════════════════════════════════════════════════
-  ctx.fillStyle = '#1e293b';
-  ctx.font = 'bold 15px Arial';
-  ctx.textAlign = 'left';
-  const labelX = cx + r + 30;
-  const labelY = cy;
-  ctx.fillText('Disk', labelX, labelY);
-  
   // Underline
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 1.5;
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(labelX, labelY + 3);
-  ctx.lineTo(labelX + 30, labelY + 3);
+  ctx.moveTo(cx - 28, labelY + 5);
+  ctx.lineTo(cx + 28, labelY + 5);
   ctx.stroke();
 
   ctx.restore();
@@ -1209,9 +1874,14 @@ function drawIsometricDisk(
  * Draw plate cross-section with hatching
  */
 /**
- * Draw RAFAEL-STYLE 3D ISOMETRIC PLATE
- * Like Rafael 5036 spec - 3D box with scan direction arrows
- * SMART SCALING: Always fits inside bounds
+ * Draw PROFESSIONAL CAD-GRADE 3D ISOMETRIC PLATE
+ * Features:
+ * - True isometric projection (30 degrees from horizontal)
+ * - ISO standard line weights (thick 2.5-3px, medium 1.5px, thin 0.8px)
+ * - Gradient fills for 3D depth perception
+ * - 45-degree ISO hatching on front face showing material section
+ * - Chain-dash centerlines per ISO 128
+ * - Uses 70% of available canvas space
  */
 function drawPlateCrossSection(
   ctx: CanvasRenderingContext2D,
@@ -1220,207 +1890,142 @@ function drawPlateCrossSection(
   bounds: DrawBounds,
   dimensions: DrawDimensions
 ) {
-  // Get real dimensions
-  const plateLength = dimensions.length || dimensions.width || 200;
-  const plateWidth = dimensions.width || 100;
-  const plateThickness = dimensions.thickness || dimensions.height || 25;
-
-  // Isometric angles
-  const isoAngle = Math.PI / 6; // 30 degrees
-  const cosA = Math.cos(isoAngle);
-  const sinA = Math.sin(isoAngle);
-
-  // Calculate visual footprint for isometric view
-  const arrowSpaceX = 120;
-  const arrowSpaceY = 100;
-  const availableWidth = bounds.width - arrowSpaceX;
-  const availableHeight = bounds.height - arrowSpaceY;
-
-  // Isometric projection dimensions
-  const visualWidth = plateLength * cosA + plateWidth * cosA;
-  const visualHeight = plateLength * sinA + plateWidth * sinA + plateThickness;
-
-  // Smart scaling
-  const scaleX = availableWidth / visualWidth;
-  const scaleY = availableHeight / visualHeight;
-  const scale = Math.min(scaleX, scaleY, 1.2) * 0.7;
-
-  const len = plateLength * scale;
-  const wid = plateWidth * scale;
-  const thick = plateThickness * scale;
-
-  // Center position (shifted left for label)
-  const cx = centerX - 20;
-  const cy = centerY + 10;
-
   ctx.save();
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 2;
+
+  // Get dimensions - make it BIG
+  const thickness = dimensions.thickness || dimensions.height || 30;
+  const width = dimensions.width || dimensions.length || 200;
+  const depth = dimensions.depth || width * 0.4;
+
+  // Scale to fill canvas (70% of available space)
+  const maxSize = Math.min(bounds.width, bounds.height) * 0.7;
+  const scale = maxSize / Math.max(width, depth, thickness * 3);
+
+  const w = width * scale;
+  const h = thickness * scale;
+  const d = depth * scale * 0.5; // Isometric depth
+
+  // Isometric offsets (30 degrees)
+  const isoX = d * Math.cos(Math.PI / 6);
+  const isoY = d * Math.sin(Math.PI / 6);
+
+  // Position
+  const x = centerX - w / 2;
+  const y = centerY - h / 2 + isoY / 2;
 
   // ═══════════════════════════════════════════════════════════════════
-  // Draw 3D ISOMETRIC BOX (Plate)
+  // TOP FACE (lightest - receives most light)
   // ═══════════════════════════════════════════════════════════════════
-  
-  // Calculate vertices
-  // Front-bottom-left corner
-  const frontBottomLeft = { x: cx - len * cosA / 2, y: cy + len * sinA / 2 };
-  
-  // Front face (visible)
-  const frontTopLeft = { x: frontBottomLeft.x, y: frontBottomLeft.y - thick };
-  const frontBottomRight = { x: frontBottomLeft.x + len * cosA, y: frontBottomLeft.y - len * sinA };
-  const frontTopRight = { x: frontBottomRight.x, y: frontBottomRight.y - thick };
-  
-  // Back face (going to back-right)
-  const backBottomRight = { x: frontBottomRight.x + wid * cosA, y: frontBottomRight.y + wid * sinA };
-  const backTopRight = { x: backBottomRight.x, y: backBottomRight.y - thick };
-  const backBottomLeft = { x: frontBottomLeft.x + wid * cosA, y: frontBottomLeft.y + wid * sinA };
-  const backTopLeft = { x: backBottomLeft.x, y: backBottomLeft.y - thick };
+  const topGradient = ctx.createLinearGradient(x, y - isoY, x + w, y);
+  topGradient.addColorStop(0, '#f8fafc');
+  topGradient.addColorStop(1, '#e2e8f0');
 
-  // BOTTOM FACE (partial - hidden lines could be dashed)
-  ctx.lineWidth = 1;
-  ctx.setLineDash([5, 3]);
+  ctx.fillStyle = topGradient;
   ctx.beginPath();
-  ctx.moveTo(frontBottomLeft.x, frontBottomLeft.y);
-  ctx.lineTo(backBottomLeft.x, backBottomLeft.y);
-  ctx.stroke();
-  ctx.setLineDash([]);
-
-  // FRONT FACE
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(frontBottomLeft.x, frontBottomLeft.y);
-  ctx.lineTo(frontBottomRight.x, frontBottomRight.y);
-  ctx.lineTo(frontTopRight.x, frontTopRight.y);
-  ctx.lineTo(frontTopLeft.x, frontTopLeft.y);
-  ctx.closePath();
-  ctx.stroke();
-
-  // TOP FACE
-  ctx.beginPath();
-  ctx.moveTo(frontTopLeft.x, frontTopLeft.y);
-  ctx.lineTo(frontTopRight.x, frontTopRight.y);
-  ctx.lineTo(backTopRight.x, backTopRight.y);
-  ctx.lineTo(backTopLeft.x, backTopLeft.y);
-  ctx.closePath();
-  ctx.stroke();
-
-  // RIGHT FACE
-  ctx.beginPath();
-  ctx.moveTo(frontBottomRight.x, frontBottomRight.y);
-  ctx.lineTo(backBottomRight.x, backBottomRight.y);
-  ctx.lineTo(backTopRight.x, backTopRight.y);
-  ctx.lineTo(frontTopRight.x, frontTopRight.y);
-  ctx.stroke();
-
-  // ═══════════════════════════════════════════════════════════════════
-  // CENTERLINES (dashed) - Rafael style
-  // ═══════════════════════════════════════════════════════════════════
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 1;
-  ctx.setLineDash([12, 4, 3, 4]);
-  
-  // Horizontal centerline (through the top face center)
-  const topCenterY = (frontTopLeft.y + backTopRight.y) / 2;
-  const topCenterX = (frontTopLeft.x + backTopRight.x) / 2;
-  ctx.beginPath();
-  ctx.moveTo(frontTopLeft.x - 40, topCenterY);
-  ctx.lineTo(backTopRight.x + 40, topCenterY);
-  ctx.stroke();
-  ctx.setLineDash([]);
-
-  // ═══════════════════════════════════════════════════════════════════
-  // RAFAEL-STYLE ARROWS with PROBE SQUARES (from side and top)
-  // ═══════════════════════════════════════════════════════════════════
-  
-  // Left probe square (horizontal arrow)
-  const leftProbeX = frontBottomLeft.x - 50;
-  const leftProbeY = (frontBottomLeft.y + frontTopLeft.y) / 2;
-  ctx.fillStyle = '#ffffff';
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 1.5;
-  ctx.setLineDash([]);
-  ctx.fillRect(leftProbeX - 5, leftProbeY - 5, 10, 10);
-  ctx.strokeRect(leftProbeX - 5, leftProbeY - 5, 10, 10);
-  
-  // Arrow from left probe (horizontal)
-  ctx.beginPath();
-  ctx.moveTo(leftProbeX + 5, leftProbeY);
-  ctx.lineTo(frontBottomLeft.x - 5, leftProbeY);
-  ctx.stroke();
-  // Arrow head
-  ctx.beginPath();
-  ctx.moveTo(frontBottomLeft.x - 5, leftProbeY);
-  ctx.lineTo(frontBottomLeft.x - 12, leftProbeY - 4);
-  ctx.lineTo(frontBottomLeft.x - 12, leftProbeY + 4);
-  ctx.closePath();
-  ctx.fillStyle = '#1e293b';
-  ctx.fill();
-
-  // Top probe squares (vertical arrows - two of them for "straight beam")
-  const topProbe1X = (frontTopLeft.x + frontTopRight.x) / 2 - 15;
-  const topProbe1Y = Math.min(frontTopLeft.y, frontTopRight.y) - 50;
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(topProbe1X - 5, topProbe1Y - 5, 10, 10);
-  ctx.strokeRect(topProbe1X - 5, topProbe1Y - 5, 10, 10);
-  
-  const topProbe2X = topProbe1X + 30;
-  const topProbe2Y = topProbe1Y;
-  ctx.fillRect(topProbe2X - 5, topProbe2Y - 5, 10, 10);
-  ctx.strokeRect(topProbe2X - 5, topProbe2Y - 5, 10, 10);
-  
-  // Arrows from top probes (vertical - double headed for straight beam)
-  const topTargetY = Math.min(frontTopLeft.y, frontTopRight.y) - 5;
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 1.5;
-  
-  // Arrow 1
-  ctx.beginPath();
-  ctx.moveTo(topProbe1X, topProbe1Y + 5);
-  ctx.lineTo(topProbe1X, topTargetY);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(topProbe1X, topTargetY);
-  ctx.lineTo(topProbe1X - 4, topTargetY - 7);
-  ctx.lineTo(topProbe1X + 4, topTargetY - 7);
-  ctx.closePath();
-  ctx.fillStyle = '#1e293b';
-  ctx.fill();
-  
-  // Arrow 2
-  ctx.beginPath();
-  ctx.moveTo(topProbe2X, topProbe2Y + 5);
-  ctx.lineTo(topProbe2X, topTargetY);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(topProbe2X, topTargetY);
-  ctx.lineTo(topProbe2X - 4, topTargetY - 7);
-  ctx.lineTo(topProbe2X + 4, topTargetY - 7);
+  ctx.moveTo(x, y);
+  ctx.lineTo(x + isoX, y - isoY);
+  ctx.lineTo(x + w + isoX, y - isoY);
+  ctx.lineTo(x + w, y);
   ctx.closePath();
   ctx.fill();
 
-  // Note "(1)" for special case
-  ctx.font = '12px Arial';
-  ctx.fillStyle = '#1e293b';
-  ctx.textAlign = 'left';
-  ctx.fillText('(1)', topProbe1X - 20, topProbe1Y + 15);
+  // Top face outline - thick line weight
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
 
   // ═══════════════════════════════════════════════════════════════════
-  // "Plate" LABEL - underlined, on top
+  // FRONT FACE (medium shade - section cut view)
   // ═══════════════════════════════════════════════════════════════════
-  ctx.fillStyle = '#1e293b';
-  ctx.font = 'bold 14px Arial';
+  const frontGradient = ctx.createLinearGradient(x, y, x, y + h);
+  frontGradient.addColorStop(0, '#e2e8f0');
+  frontGradient.addColorStop(1, '#cbd5e1');
+
+  ctx.fillStyle = frontGradient;
+  ctx.fillRect(x, y, w, h);
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 2.5;
+  ctx.strokeRect(x, y, w, h);
+
+  // ═══════════════════════════════════════════════════════════════════
+  // RIGHT FACE (darkest - shadow side)
+  // ═══════════════════════════════════════════════════════════════════
+  const rightGradient = ctx.createLinearGradient(x + w, y, x + w + isoX, y + h);
+  rightGradient.addColorStop(0, '#cbd5e1');
+  rightGradient.addColorStop(1, '#94a3b8');
+
+  ctx.fillStyle = rightGradient;
+  ctx.beginPath();
+  ctx.moveTo(x + w, y);
+  ctx.lineTo(x + w + isoX, y - isoY);
+  ctx.lineTo(x + w + isoX, y + h - isoY);
+  ctx.lineTo(x + w, y + h);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+
+  // ═══════════════════════════════════════════════════════════════════
+  // ISO HATCHING on front face (45 degree diagonal lines - material indication)
+  // ═══════════════════════════════════════════════════════════════════
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(x, y, w, h);
+  ctx.clip();
+
+  ctx.strokeStyle = '#64748b';
+  ctx.lineWidth = 0.6;
+  const spacing = 6;
+  for (let i = -h; i < w + h; i += spacing) {
+    ctx.beginPath();
+    ctx.moveTo(x + i, y + h);
+    ctx.lineTo(x + i + h, y);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // ═══════════════════════════════════════════════════════════════════
+  // CENTERLINES (chain dash per ISO 128)
+  // ═══════════════════════════════════════════════════════════════════
+  ctx.strokeStyle = '#64748b';
+  ctx.lineWidth = 0.8;
+  ctx.setLineDash([15, 3, 3, 3]);
+
+  // Horizontal centerline through front face
+  ctx.beginPath();
+  ctx.moveTo(x - 30, y + h/2);
+  ctx.lineTo(x + w + 30, y + h/2);
+  ctx.stroke();
+
+  // Vertical centerline through front face
+  ctx.beginPath();
+  ctx.moveTo(x + w/2, y - 30);
+  ctx.lineTo(x + w/2, y + h + 30);
+  ctx.stroke();
+
+  // Diagonal centerline through top face
+  ctx.beginPath();
+  ctx.moveTo(x + w/2 - 20, y - isoY/2 + 20 * Math.tan(Math.PI/6));
+  ctx.lineTo(x + w/2 + isoX + 20, y - isoY - 20 * Math.tan(Math.PI/6));
+  ctx.stroke();
+
+  ctx.setLineDash([]);
+
+  // ═══════════════════════════════════════════════════════════════════
+  // LABEL with professional styling
+  // ═══════════════════════════════════════════════════════════════════
+  ctx.fillStyle = '#1a1a2e';
+  ctx.font = 'bold 16px Arial';
   ctx.textAlign = 'center';
-  const labelX = (frontTopLeft.x + backTopRight.x) / 2;
-  const labelY = Math.min(frontTopLeft.y, frontTopRight.y) - 70;
-  ctx.fillText('Plate', labelX, labelY);
-  
+  ctx.fillText('PLATE', centerX, y + h + 50);
+
   // Underline
-  const labelWidth = ctx.measureText('Plate').width;
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 1.5;
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(labelX - labelWidth/2, labelY + 3);
-  ctx.lineTo(labelX + labelWidth/2, labelY + 3);
+  ctx.moveTo(centerX - 35, y + h + 55);
+  ctx.lineTo(centerX + 35, y + h + 55);
   ctx.stroke();
 
   ctx.restore();
@@ -1431,6 +2036,16 @@ function drawPlateCrossSection(
  * Generic irregular forging with scan arrows
  * SMART SCALING: Always fits inside bounds
  */
+/**
+ * Draw PROFESSIONAL CAD-GRADE 3D FORGING BLOCK
+ * Features:
+ * - Rough-edged isometric block (slightly irregular to show forging)
+ * - Heavy hatching showing solid material
+ * - Bold outlines (3px)
+ * - Gradient fills for 3D metallic look
+ * - Chain-dash centerlines per ISO 128
+ * - Uses 70% of available canvas space
+ */
 function drawForgingCrossSection(
   ctx: CanvasRenderingContext2D,
   centerX: number,
@@ -1438,119 +2053,189 @@ function drawForgingCrossSection(
   bounds: DrawBounds,
   dimensions: DrawDimensions
 ) {
-  // Smart scaling
-  const arrowSpace = 100;
-  const availableWidth = bounds.width - arrowSpace;
-  const availableHeight = bounds.height - arrowSpace;
-  
-  const width = Math.min(availableWidth * 0.6, 250);
-  const height = Math.min(availableHeight * 0.55, 180);
-
-  // Shift left for label
-  const cx = centerX - 20;
-  const cy = centerY;
-
   ctx.save();
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 2;
-  ctx.fillStyle = '#f8fafc';
+
+  // Get dimensions
+  const width = dimensions.width || dimensions.length || 180;
+  const height = dimensions.height || dimensions.thickness || 100;
+  const depth = dimensions.depth || width * 0.4;
+
+  // Scale to fill canvas (70% of available space)
+  const maxSize = Math.min(bounds.width, bounds.height) * 0.7;
+  const scale = maxSize / Math.max(width, height, depth);
+
+  const w = width * scale;
+  const h = height * scale;
+  const d = depth * scale * 0.5;
+
+  // Isometric offsets (30 degrees)
+  const isoAngle = Math.PI / 6;
+  const isoX = d * Math.cos(isoAngle);
+  const isoY = d * Math.sin(isoAngle);
+
+  // Position
+  const cx = centerX;
+  const cy = centerY;
+  const x = cx - w / 2;
+  const y = cy - h / 2 + isoY / 2;
+
+  // Irregular edge offsets (to show forging character)
+  const irregularOffset = 3;
+  const irr = () => (Math.random() - 0.5) * irregularOffset;
 
   // ═══════════════════════════════════════════════════════════════════
-  // IRREGULAR FORGING SHAPE (rounded rectangle - 3D effect)
+  // TOP FACE (lightest - forging surface)
   // ═══════════════════════════════════════════════════════════════════
-  const cornerRadius = 20;
-  
-  // Main shape path
+  const topGradient = ctx.createLinearGradient(x, y - isoY, x + w, y);
+  topGradient.addColorStop(0, '#f8fafc');
+  topGradient.addColorStop(0.5, '#f1f5f9');
+  topGradient.addColorStop(1, '#e2e8f0');
+
+  ctx.fillStyle = topGradient;
   ctx.beginPath();
-  ctx.moveTo(cx - width/2 + cornerRadius, cy - height/2);
-  ctx.lineTo(cx + width/2 - cornerRadius, cy - height/2);
-  ctx.quadraticCurveTo(cx + width/2, cy - height/2, cx + width/2, cy - height/2 + cornerRadius);
-  ctx.lineTo(cx + width/2, cy + height/2 - cornerRadius);
-  ctx.quadraticCurveTo(cx + width/2, cy + height/2, cx + width/2 - cornerRadius, cy + height/2);
-  ctx.lineTo(cx - width/2 + cornerRadius, cy + height/2);
-  ctx.quadraticCurveTo(cx - width/2, cy + height/2, cx - width/2, cy + height/2 - cornerRadius);
-  ctx.lineTo(cx - width/2, cy - height/2 + cornerRadius);
-  ctx.quadraticCurveTo(cx - width/2, cy - height/2, cx - width/2 + cornerRadius, cy - height/2);
+  ctx.moveTo(x + irr(), y + irr());
+  ctx.lineTo(x + isoX + irr(), y - isoY + irr());
+  ctx.lineTo(x + w + isoX + irr(), y - isoY + irr());
+  ctx.lineTo(x + w + irr(), y + irr());
   ctx.closePath();
   ctx.fill();
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 3;
   ctx.stroke();
 
   // ═══════════════════════════════════════════════════════════════════
-  // CENTERLINES (dashed) - Rafael style
+  // FRONT FACE (medium - section view with heavy hatching)
   // ═══════════════════════════════════════════════════════════════════
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 1;
-  ctx.setLineDash([12, 4, 3, 4]);
-  
-  // Horizontal centerline
+  const frontGradient = ctx.createLinearGradient(x, y, x, y + h);
+  frontGradient.addColorStop(0, '#e2e8f0');
+  frontGradient.addColorStop(0.5, '#d1d5db');
+  frontGradient.addColorStop(1, '#9ca3af');
+
+  ctx.fillStyle = frontGradient;
   ctx.beginPath();
-  ctx.moveTo(cx - width/2 - 40, cy);
-  ctx.lineTo(cx + width/2 + 40, cy);
+  ctx.moveTo(x + irr(), y + irr());
+  ctx.lineTo(x + w + irr(), y + irr());
+  ctx.lineTo(x + w + irr(), y + h + irr());
+  ctx.lineTo(x + irr(), y + h + irr());
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 3;
   ctx.stroke();
-  
-  // Vertical centerline
+
+  // ═══════════════════════════════════════════════════════════════════
+  // RIGHT FACE (darkest - shadow side)
+  // ═══════════════════════════════════════════════════════════════════
+  const rightGradient = ctx.createLinearGradient(x + w, y, x + w + isoX, y + h);
+  rightGradient.addColorStop(0, '#94a3b8');
+  rightGradient.addColorStop(1, '#64748b');
+
+  ctx.fillStyle = rightGradient;
   ctx.beginPath();
-  ctx.moveTo(cx, cy - height/2 - 35);
-  ctx.lineTo(cx, cy + height/2 + 35);
+  ctx.moveTo(x + w + irr(), y + irr());
+  ctx.lineTo(x + w + isoX + irr(), y - isoY + irr());
+  ctx.lineTo(x + w + isoX + irr(), y + h - isoY + irr());
+  ctx.lineTo(x + w + irr(), y + h + irr());
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 3;
   ctx.stroke();
+
+  // ═══════════════════════════════════════════════════════════════════
+  // HEAVY ISO HATCHING on front face (45 degree, 5px spacing - dense for forging)
+  // ═══════════════════════════════════════════════════════════════════
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(x, y, w, h);
+  ctx.clip();
+
+  ctx.strokeStyle = '#475569';
+  ctx.lineWidth = 0.8;
+  const hatchSpacing = 5;
+  for (let i = -h; i < w + h; i += hatchSpacing) {
+    ctx.beginPath();
+    ctx.moveTo(x + i, y + h);
+    ctx.lineTo(x + i + h, y);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // ═══════════════════════════════════════════════════════════════════
+  // FORGING TEXTURE LINES (additional cross-hatching for forging character)
+  // ═══════════════════════════════════════════════════════════════════
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(x, y, w, h);
+  ctx.clip();
+
+  ctx.strokeStyle = '#64748b';
+  ctx.lineWidth = 0.4;
+  for (let i = -h; i < w + h; i += hatchSpacing * 2) {
+    ctx.beginPath();
+    ctx.moveTo(x + i + h, y + h);
+    ctx.lineTo(x + i, y);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // ═══════════════════════════════════════════════════════════════════
+  // CENTERLINES (chain-dash per ISO 128)
+  // ═══════════════════════════════════════════════════════════════════
+  ctx.strokeStyle = '#64748b';
+  ctx.lineWidth = 0.8;
+  ctx.setLineDash([15, 3, 3, 3]);
+
+  // Horizontal centerline through front face
+  ctx.beginPath();
+  ctx.moveTo(x - 40, y + h/2);
+  ctx.lineTo(x + w + 40, y + h/2);
+  ctx.stroke();
+
+  // Vertical centerline through front face
+  ctx.beginPath();
+  ctx.moveTo(x + w/2, y - 40);
+  ctx.lineTo(x + w/2, y + h + 40);
+  ctx.stroke();
+
+  // Diagonal centerline through top face
+  ctx.beginPath();
+  ctx.moveTo(x + w/2 - 20, y - isoY/2 + 10);
+  ctx.lineTo(x + w/2 + isoX + 20, y - isoY - 10);
+  ctx.stroke();
+
   ctx.setLineDash([]);
 
   // ═══════════════════════════════════════════════════════════════════
-  // RAFAEL-STYLE ARROWS - from LEFT and TOP with PROBES
+  // LABEL with professional styling
   // ═══════════════════════════════════════════════════════════════════
-  const probeSize = 10;
-  
-  // Arrow from LEFT with probe square
-  const probeLeftX = cx - width/2 - 55;
-  const probeLeftY = cy;
-  drawRafaelScanArrow(ctx, probeLeftX, probeLeftY, 'right');
-  ctx.fillStyle = '#ffffff';
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 1.5;
-  ctx.fillRect(probeLeftX - probeSize/2, probeLeftY - probeSize/2, probeSize, probeSize);
-  ctx.strokeRect(probeLeftX - probeSize/2, probeLeftY - probeSize/2, probeSize, probeSize);
-  
-  // Arrow from TOP with probe square
-  const probeTopX = cx;
-  const probeTopY = cy - height/2 - 55;
-  drawRafaelScanArrow(ctx, probeTopX, probeTopY, 'down');
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(probeTopX - probeSize/2, probeTopY - probeSize/2, probeSize, probeSize);
-  ctx.strokeRect(probeTopX - probeSize/2, probeTopY - probeSize/2, probeSize, probeSize);
-  
-  // Angle beam triangle marker
-  drawRafaelAngleBeamArrow(ctx, cx + width/3, cy - height/2 - 45);
-
-  // ═══════════════════════════════════════════════════════════════════
-  // "Forging" LABEL - underlined, at bottom
-  // ═══════════════════════════════════════════════════════════════════
-  ctx.fillStyle = '#1e293b';
-  ctx.font = 'bold 15px Arial';
+  ctx.fillStyle = '#1a1a2e';
+  ctx.font = 'bold 16px Arial';
   ctx.textAlign = 'center';
-  const labelX = cx;
-  const labelY = cy + height/2 + 50;
-  ctx.fillText('Forging', labelX, labelY);
-  
+  const labelY = y + h + 55;
+  ctx.fillText('FORGING', cx, labelY);
+
   // Underline
-  const labelWidth = ctx.measureText('Forging').width;
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 1.5;
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(labelX - labelWidth/2, labelY + 3);
-  ctx.lineTo(labelX + labelWidth/2, labelY + 3);
+  ctx.moveTo(cx - 45, labelY + 5);
+  ctx.lineTo(cx + 45, labelY + 5);
   ctx.stroke();
 
   ctx.restore();
 }
 
 /**
- * Draw RAFAEL-STYLE I-BEAM PROFILE
- * 3D isometric I-beam with scan direction arrows
- * SMART SCALING: Always fits inside bounds
- */
-/**
- * Draw RAFAEL-STYLE TILTED 3D I-BEAM
- * Like Rafael 5036 - tilted at 45° with I cross-section at front
+ * Draw PROFESSIONAL CAD-GRADE 3D I-BEAM PROFILE
+ * Features:
+ * - True I-profile cross-section view
+ * - 3D extrusion showing depth
+ * - Hatching on the I-profile material
+ * - Web and flanges clearly distinguished
+ * - Gradient fills for metallic look
+ * - Chain-dash centerlines per ISO 128
+ * - Uses 70% of available canvas space
  */
 function drawIBeamCrossSection(
   ctx: CanvasRenderingContext2D,
@@ -1559,184 +2244,256 @@ function drawIBeamCrossSection(
   bounds: DrawBounds,
   dimensions: DrawDimensions
 ) {
+  ctx.save();
+
   // Get real dimensions
-  const flangeWidth = dimensions.flangeWidth || 100;
-  const flangeThickness = dimensions.flangeThickness || 12;
-  const webThickness = dimensions.webThickness || 8;
-  const profileHeight = dimensions.profileHeight || dimensions.height || 200;
+  const flangeWidth = dimensions.flangeWidth || 120;
+  const flangeThickness = dimensions.flangeThickness || 15;
+  const webThickness = dimensions.webThickness || 10;
+  const profileHeight = dimensions.profileHeight || dimensions.height || 180;
   const profileLength = dimensions.length || 150;
 
-  // Available space
-  const availableSize = Math.min(bounds.width, bounds.height) - 120;
-  const scale = Math.min(availableSize / Math.max(flangeWidth, profileHeight, profileLength * 0.7), 0.9);
+  // Scale to fill canvas (70% of available space)
+  const maxSize = Math.min(bounds.width, bounds.height) * 0.7;
+  const scale = maxSize / Math.max(flangeWidth, profileHeight, profileLength * 0.6);
 
-  const fw = flangeWidth * scale * 0.7;
-  const ft = flangeThickness * scale;
-  const wt = webThickness * scale;
-  const ph = profileHeight * scale * 0.7;
+  const fw = flangeWidth * scale;
+  const ft = Math.max(flangeThickness * scale, 8);
+  const wt = Math.max(webThickness * scale, 6);
+  const ph = profileHeight * scale;
   const length = profileLength * scale * 0.4;
 
-  // Tilt angle (45 degrees)
+  // Isometric angle (45 degrees)
   const angle = Math.PI / 4;
   const cos45 = Math.cos(angle);
   const sin45 = Math.sin(angle);
 
-  // Center position
+  // Position
   const cx = centerX;
-  const cy = centerY + 15;
+  const cy = centerY + 10;
 
-  ctx.save();
-
-  // ═══════════════════════════════════════════════════════════════════
-  // BACK I-PROFILE (far end) - dashed
-  // ═══════════════════════════════════════════════════════════════════
+  // Back face position
   const backX = cx - length * cos45;
   const backY = cy - length * sin45;
-  
-  ctx.strokeStyle = '#1e293b';
+
+  // ═══════════════════════════════════════════════════════════════════
+  // BACK I-PROFILE (hidden - dashed)
+  // ═══════════════════════════════════════════════════════════════════
+  ctx.strokeStyle = '#94a3b8';
   ctx.lineWidth = 1;
   ctx.setLineDash([4, 4]);
-  
-  // Back I-shape (simplified)
+
+  // Back I-shape outline
   ctx.beginPath();
-  ctx.moveTo(backX - fw/2 * 0.6, backY - ph/2);
-  ctx.lineTo(backX + fw/2 * 0.6, backY - ph/2);
-  ctx.moveTo(backX - fw/2 * 0.6, backY + ph/2);
-  ctx.lineTo(backX + fw/2 * 0.6, backY + ph/2);
-  ctx.moveTo(backX, backY - ph/2);
-  ctx.lineTo(backX, backY + ph/2);
+  // Top flange
+  ctx.moveTo(backX - fw/2, backY - ph/2);
+  ctx.lineTo(backX + fw/2, backY - ph/2);
+  ctx.lineTo(backX + fw/2, backY - ph/2 + ft);
+  ctx.lineTo(backX + wt/2, backY - ph/2 + ft);
+  // Web right
+  ctx.lineTo(backX + wt/2, backY + ph/2 - ft);
+  // Bottom flange
+  ctx.lineTo(backX + fw/2, backY + ph/2 - ft);
+  ctx.lineTo(backX + fw/2, backY + ph/2);
+  ctx.lineTo(backX - fw/2, backY + ph/2);
+  ctx.lineTo(backX - fw/2, backY + ph/2 - ft);
+  ctx.lineTo(backX - wt/2, backY + ph/2 - ft);
+  // Web left
+  ctx.lineTo(backX - wt/2, backY - ph/2 + ft);
+  ctx.lineTo(backX - fw/2, backY - ph/2 + ft);
+  ctx.closePath();
   ctx.stroke();
   ctx.setLineDash([]);
 
   // ═══════════════════════════════════════════════════════════════════
-  // CONNECTING EDGES (top and bottom flanges)
+  // TOP FLANGE SURFACE with gradient
   // ═══════════════════════════════════════════════════════════════════
-  ctx.lineWidth = 2;
-  ctx.strokeStyle = '#1e293b';
-  
-  // Top flange edges
+  const topGradient = ctx.createLinearGradient(backX, backY - ph/2, cx, cy - ph/2);
+  topGradient.addColorStop(0, '#cbd5e1');
+  topGradient.addColorStop(0.5, '#f1f5f9');
+  topGradient.addColorStop(1, '#e2e8f0');
+
+  ctx.fillStyle = topGradient;
   ctx.beginPath();
   ctx.moveTo(cx - fw/2, cy - ph/2);
-  ctx.lineTo(backX - fw/2 * 0.6, backY - ph/2);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(cx + fw/2, cy - ph/2);
-  ctx.lineTo(backX + fw/2 * 0.6, backY - ph/2);
-  ctx.stroke();
-  
-  // Bottom flange edges
-  ctx.beginPath();
-  ctx.moveTo(cx - fw/2, cy + ph/2);
-  ctx.lineTo(backX - fw/2 * 0.6, backY + ph/2);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(cx + fw/2, cy + ph/2);
-  ctx.lineTo(backX + fw/2 * 0.6, backY + ph/2);
+  ctx.lineTo(backX - fw/2, backY - ph/2);
+  ctx.lineTo(backX + fw/2, backY - ph/2);
+  ctx.lineTo(cx + fw/2, cy - ph/2);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 2;
   ctx.stroke();
 
   // ═══════════════════════════════════════════════════════════════════
-  // FRONT I-PROFILE (cross-section) - fully visible
+  // RIGHT SIDE SURFACE (web and flange) with gradient
   // ═══════════════════════════════════════════════════════════════════
-  ctx.fillStyle = '#f8fafc';
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 2.5;
-  
+  const sideGradient = ctx.createLinearGradient(cx + fw/2, cy - ph/2, cx + fw/2, cy + ph/2);
+  sideGradient.addColorStop(0, '#e2e8f0');
+  sideGradient.addColorStop(0.5, '#cbd5e1');
+  sideGradient.addColorStop(1, '#94a3b8');
+
+  // Right flange top
+  ctx.fillStyle = sideGradient;
+  ctx.beginPath();
+  ctx.moveTo(cx + fw/2, cy - ph/2);
+  ctx.lineTo(backX + fw/2, backY - ph/2);
+  ctx.lineTo(backX + fw/2, backY - ph/2 + ft);
+  ctx.lineTo(cx + fw/2, cy - ph/2 + ft);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  // Right flange bottom
+  ctx.beginPath();
+  ctx.moveTo(cx + fw/2, cy + ph/2 - ft);
+  ctx.lineTo(backX + fw/2, backY + ph/2 - ft);
+  ctx.lineTo(backX + fw/2, backY + ph/2);
+  ctx.lineTo(cx + fw/2, cy + ph/2);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  // ═══════════════════════════════════════════════════════════════════
+  // FRONT I-PROFILE FACE with gradient
+  // ═══════════════════════════════════════════════════════════════════
+  const faceGradient = ctx.createLinearGradient(cx - fw/2, cy - ph/2, cx + fw/2, cy + ph/2);
+  faceGradient.addColorStop(0, '#f8fafc');
+  faceGradient.addColorStop(0.3, '#f1f5f9');
+  faceGradient.addColorStop(0.7, '#e2e8f0');
+  faceGradient.addColorStop(1, '#cbd5e1');
+
+  ctx.fillStyle = faceGradient;
   ctx.beginPath();
   // Top flange
   ctx.moveTo(cx - fw/2, cy - ph/2);
   ctx.lineTo(cx + fw/2, cy - ph/2);
   ctx.lineTo(cx + fw/2, cy - ph/2 + ft);
   ctx.lineTo(cx + wt/2, cy - ph/2 + ft);
-  // Web right side
+  // Web right
   ctx.lineTo(cx + wt/2, cy + ph/2 - ft);
-  // Bottom flange right
+  // Bottom flange
   ctx.lineTo(cx + fw/2, cy + ph/2 - ft);
   ctx.lineTo(cx + fw/2, cy + ph/2);
   ctx.lineTo(cx - fw/2, cy + ph/2);
   ctx.lineTo(cx - fw/2, cy + ph/2 - ft);
   ctx.lineTo(cx - wt/2, cy + ph/2 - ft);
-  // Web left side
+  // Web left
   ctx.lineTo(cx - wt/2, cy - ph/2 + ft);
   ctx.lineTo(cx - fw/2, cy - ph/2 + ft);
   ctx.closePath();
   ctx.fill();
+
+  // ═══════════════════════════════════════════════════════════════════
+  // ISO HATCHING on front I-profile (45 degree, 6px spacing)
+  // ═══════════════════════════════════════════════════════════════════
+  ctx.save();
+  ctx.beginPath();
+  // Recreate I-shape for clipping
+  ctx.moveTo(cx - fw/2, cy - ph/2);
+  ctx.lineTo(cx + fw/2, cy - ph/2);
+  ctx.lineTo(cx + fw/2, cy - ph/2 + ft);
+  ctx.lineTo(cx + wt/2, cy - ph/2 + ft);
+  ctx.lineTo(cx + wt/2, cy + ph/2 - ft);
+  ctx.lineTo(cx + fw/2, cy + ph/2 - ft);
+  ctx.lineTo(cx + fw/2, cy + ph/2);
+  ctx.lineTo(cx - fw/2, cy + ph/2);
+  ctx.lineTo(cx - fw/2, cy + ph/2 - ft);
+  ctx.lineTo(cx - wt/2, cy + ph/2 - ft);
+  ctx.lineTo(cx - wt/2, cy - ph/2 + ft);
+  ctx.lineTo(cx - fw/2, cy - ph/2 + ft);
+  ctx.closePath();
+  ctx.clip();
+
+  ctx.strokeStyle = '#64748b';
+  ctx.lineWidth = 0.6;
+  const hatchSpacing = 6;
+  const hatchExtent = Math.max(fw, ph) * 1.5;
+
+  for (let i = -hatchExtent; i < hatchExtent; i += hatchSpacing) {
+    ctx.beginPath();
+    ctx.moveTo(cx + i - hatchExtent/2, cy + hatchExtent/2);
+    ctx.lineTo(cx + i + hatchExtent/2, cy - hatchExtent/2);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // Front I-profile outline - thick
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.moveTo(cx - fw/2, cy - ph/2);
+  ctx.lineTo(cx + fw/2, cy - ph/2);
+  ctx.lineTo(cx + fw/2, cy - ph/2 + ft);
+  ctx.lineTo(cx + wt/2, cy - ph/2 + ft);
+  ctx.lineTo(cx + wt/2, cy + ph/2 - ft);
+  ctx.lineTo(cx + fw/2, cy + ph/2 - ft);
+  ctx.lineTo(cx + fw/2, cy + ph/2);
+  ctx.lineTo(cx - fw/2, cy + ph/2);
+  ctx.lineTo(cx - fw/2, cy + ph/2 - ft);
+  ctx.lineTo(cx - wt/2, cy + ph/2 - ft);
+  ctx.lineTo(cx - wt/2, cy - ph/2 + ft);
+  ctx.lineTo(cx - fw/2, cy - ph/2 + ft);
+  ctx.closePath();
   ctx.stroke();
 
   // ═══════════════════════════════════════════════════════════════════
-  // CENTERLINES (dashed) - Rafael style
+  // CENTERLINES (chain-dash per ISO 128)
   // ═══════════════════════════════════════════════════════════════════
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 1;
-  ctx.setLineDash([12, 4, 3, 4]);
-  
+  ctx.strokeStyle = '#64748b';
+  ctx.lineWidth = 0.8;
+  ctx.setLineDash([15, 3, 3, 3]);
+
   // Horizontal through front
   ctx.beginPath();
-  ctx.moveTo(cx - fw/2 - 25, cy);
-  ctx.lineTo(cx + fw/2 + 25, cy);
+  ctx.moveTo(cx - fw/2 - 50, cy);
+  ctx.lineTo(cx + fw/2 + 50, cy);
   ctx.stroke();
-  
+
   // Vertical through front
   ctx.beginPath();
-  ctx.moveTo(cx, cy - ph/2 - 25);
-  ctx.lineTo(cx, cy + ph/2 + 25);
+  ctx.moveTo(cx, cy - ph/2 - 50);
+  ctx.lineTo(cx, cy + ph/2 + 50);
   ctx.stroke();
-  
-  // Diagonal centerline
+
+  // Axial centerline through length
   ctx.beginPath();
-  ctx.moveTo(cx + 25 * cos45, cy + 25 * sin45);
-  ctx.lineTo(backX - 35 * cos45, backY - 35 * sin45);
+  ctx.moveTo(cx + 40 * cos45, cy + 40 * sin45);
+  ctx.lineTo(backX - 50 * cos45, backY - 50 * sin45);
   ctx.stroke();
+
   ctx.setLineDash([]);
 
   // ═══════════════════════════════════════════════════════════════════
-  // RAFAEL-STYLE ARROWS - from LEFT and TOP with PROBES
+  // LABEL with professional styling
   // ═══════════════════════════════════════════════════════════════════
-  const probeSize = 10;
-  
-  // Arrow from LEFT with probe square
-  const probeLeftX = cx - fw/2 - 55;
-  const probeLeftY = cy;
-  drawRafaelScanArrow(ctx, probeLeftX, probeLeftY, 'right');
-  ctx.fillStyle = '#ffffff';
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 1.5;
-  ctx.fillRect(probeLeftX - probeSize/2, probeLeftY - probeSize/2, probeSize, probeSize);
-  ctx.strokeRect(probeLeftX - probeSize/2, probeLeftY - probeSize/2, probeSize, probeSize);
-  
-  // Arrow from TOP with probe square
-  const probeTopX = cx;
-  const probeTopY = cy - ph/2 - 55;
-  drawRafaelScanArrow(ctx, probeTopX, probeTopY, 'down');
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(probeTopX - probeSize/2, probeTopY - probeSize/2, probeSize, probeSize);
-  ctx.strokeRect(probeTopX - probeSize/2, probeTopY - probeSize/2, probeSize, probeSize);
-  
-  // Angle beam triangle marker
-  drawRafaelAngleBeamArrow(ctx, cx + fw/3, cy - ph/2 - 45);
-
-  // ═══════════════════════════════════════════════════════════════════
-  // "I-Profile" LABEL - underlined, bottom
-  // ═══════════════════════════════════════════════════════════════════
-  ctx.fillStyle = '#1e293b';
-  ctx.font = 'bold 14px Arial';
+  ctx.fillStyle = '#1a1a2e';
+  ctx.font = 'bold 16px Arial';
   ctx.textAlign = 'center';
-  const labelX = cx;
-  const labelY = cy + ph/2 + 40;
-  ctx.fillText('I-Profile', labelX, labelY);
-  
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 1.5;
+  const labelY = cy + ph/2 + 55;
+  ctx.fillText('I-BEAM', cx, labelY);
+
+  // Underline
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(labelX - 35, labelY + 3);
-  ctx.lineTo(labelX + 35, labelY + 3);
+  ctx.moveTo(cx - 40, labelY + 5);
+  ctx.lineTo(cx + 40, labelY + 5);
   ctx.stroke();
 
   ctx.restore();
 }
 
 /**
- * Draw RAFAEL-STYLE TILTED 3D U-CHANNEL
- * Like Rafael 5036 - tilted at 45° with U cross-section at front
+ * Draw PROFESSIONAL CAD-GRADE 3D U-CHANNEL PROFILE
+ * Features:
+ * - U-shape cross-section view
+ * - 3D depth showing the profile
+ * - Hatching on material areas
+ * - Clear wall thickness visualization
+ * - Gradient fills for metallic look
+ * - Chain-dash centerlines per ISO 128
+ * - Uses 70% of available canvas space
  */
 function drawUChannelCrossSection(
   ctx: CanvasRenderingContext2D,
@@ -1745,71 +2502,133 @@ function drawUChannelCrossSection(
   bounds: DrawBounds,
   dimensions: DrawDimensions
 ) {
+  ctx.save();
+
   // Get real dimensions
-  const profileHeight = dimensions.profileHeight || dimensions.height || 100;
-  const flangeWidth = dimensions.flangeWidth || 50;
-  const webThickness = dimensions.webThickness || 6;
-  const flangeThickness = dimensions.flangeThickness || 8;
-  const profileLength = dimensions.length || 120;
+  const profileHeight = dimensions.profileHeight || dimensions.height || 120;
+  const flangeWidth = dimensions.flangeWidth || 80;
+  const webThickness = dimensions.webThickness || 10;
+  const flangeThickness = dimensions.flangeThickness || 12;
+  const profileLength = dimensions.length || 140;
 
-  // Available space
-  const availableSize = Math.min(bounds.width, bounds.height) - 120;
-  const scale = Math.min(availableSize / Math.max(flangeWidth, profileHeight, profileLength * 0.7), 0.8);
+  // Scale to fill canvas (70% of available space)
+  const maxSize = Math.min(bounds.width, bounds.height) * 0.7;
+  const scale = maxSize / Math.max(flangeWidth, profileHeight, profileLength * 0.6);
 
-  const ph = profileHeight * scale * 0.6;
-  const fw = flangeWidth * scale * 0.6;
-  const wt = webThickness * scale;
-  const ft = flangeThickness * scale;
-  const length = profileLength * scale * 0.35;
+  const ph = profileHeight * scale;
+  const fw = flangeWidth * scale;
+  const wt = Math.max(webThickness * scale, 6);
+  const ft = Math.max(flangeThickness * scale, 8);
+  const length = profileLength * scale * 0.4;
 
-  // Tilt angle (45 degrees)
+  // Isometric angle (45 degrees)
   const angle = Math.PI / 4;
   const cos45 = Math.cos(angle);
   const sin45 = Math.sin(angle);
 
+  // Position
   const cx = centerX;
-  const cy = centerY + 15;
+  const cy = centerY + 10;
 
-  ctx.save();
-
-  // Back U-shape (dashed)
+  // Back face position
   const backX = cx - length * cos45;
   const backY = cy - length * sin45;
-  
-  ctx.strokeStyle = '#1e293b';
+
+  // ═══════════════════════════════════════════════════════════════════
+  // BACK U-PROFILE (hidden - dashed)
+  // ═══════════════════════════════════════════════════════════════════
+  ctx.strokeStyle = '#94a3b8';
   ctx.lineWidth = 1;
   ctx.setLineDash([4, 4]);
+
   ctx.beginPath();
-  ctx.moveTo(backX - fw/2 * 0.6, backY - ph/2);
-  ctx.lineTo(backX - fw/2 * 0.6, backY + ph/2);
-  ctx.lineTo(backX + fw/2 * 0.6, backY + ph/2);
-  ctx.lineTo(backX + fw/2 * 0.6, backY - ph/2);
+  ctx.moveTo(backX - fw/2, backY - ph/2);
+  ctx.lineTo(backX - fw/2, backY + ph/2);
+  ctx.lineTo(backX + fw/2, backY + ph/2);
+  ctx.lineTo(backX + fw/2, backY - ph/2);
+  ctx.lineTo(backX + fw/2 - ft, backY - ph/2);
+  ctx.lineTo(backX + fw/2 - ft, backY + ph/2 - wt);
+  ctx.lineTo(backX - fw/2 + ft, backY + ph/2 - wt);
+  ctx.lineTo(backX - fw/2 + ft, backY - ph/2);
+  ctx.closePath();
   ctx.stroke();
   ctx.setLineDash([]);
 
-  // Connecting edges
-  ctx.lineWidth = 2;
+  // ═══════════════════════════════════════════════════════════════════
+  // TOP SURFACES (left and right flanges) with gradient
+  // ═══════════════════════════════════════════════════════════════════
+  const topGradient = ctx.createLinearGradient(backX, backY - ph/2, cx, cy - ph/2);
+  topGradient.addColorStop(0, '#cbd5e1');
+  topGradient.addColorStop(0.5, '#f1f5f9');
+  topGradient.addColorStop(1, '#e2e8f0');
+
+  // Left flange top
+  ctx.fillStyle = topGradient;
   ctx.beginPath();
   ctx.moveTo(cx - fw/2, cy - ph/2);
-  ctx.lineTo(backX - fw/2 * 0.6, backY - ph/2);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(cx + fw/2, cy - ph/2);
-  ctx.lineTo(backX + fw/2 * 0.6, backY - ph/2);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(cx - fw/2, cy + ph/2);
-  ctx.lineTo(backX - fw/2 * 0.6, backY + ph/2);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(cx + fw/2, cy + ph/2);
-  ctx.lineTo(backX + fw/2 * 0.6, backY + ph/2);
+  ctx.lineTo(backX - fw/2, backY - ph/2);
+  ctx.lineTo(backX - fw/2 + ft, backY - ph/2);
+  ctx.lineTo(cx - fw/2 + ft, cy - ph/2);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 2;
   ctx.stroke();
 
-  // Front U-shape
-  ctx.fillStyle = '#f8fafc';
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 2.5;
+  // Right flange top
+  ctx.beginPath();
+  ctx.moveTo(cx + fw/2 - ft, cy - ph/2);
+  ctx.lineTo(backX + fw/2 - ft, backY - ph/2);
+  ctx.lineTo(backX + fw/2, backY - ph/2);
+  ctx.lineTo(cx + fw/2, cy - ph/2);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  // ═══════════════════════════════════════════════════════════════════
+  // OUTER SIDE SURFACES with gradient
+  // ═══════════════════════════════════════════════════════════════════
+  const sideGradient = ctx.createLinearGradient(cx + fw/2, cy - ph/2, cx + fw/2, cy + ph/2);
+  sideGradient.addColorStop(0, '#e2e8f0');
+  sideGradient.addColorStop(0.5, '#cbd5e1');
+  sideGradient.addColorStop(1, '#94a3b8');
+
+  // Right outer side
+  ctx.fillStyle = sideGradient;
+  ctx.beginPath();
+  ctx.moveTo(cx + fw/2, cy - ph/2);
+  ctx.lineTo(backX + fw/2, backY - ph/2);
+  ctx.lineTo(backX + fw/2, backY + ph/2);
+  ctx.lineTo(cx + fw/2, cy + ph/2);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  // Bottom (web) surface
+  const bottomGradient = ctx.createLinearGradient(cx, cy + ph/2 - wt, cx, cy + ph/2);
+  bottomGradient.addColorStop(0, '#cbd5e1');
+  bottomGradient.addColorStop(1, '#94a3b8');
+
+  ctx.fillStyle = bottomGradient;
+  ctx.beginPath();
+  ctx.moveTo(cx - fw/2, cy + ph/2);
+  ctx.lineTo(backX - fw/2, backY + ph/2);
+  ctx.lineTo(backX + fw/2, backY + ph/2);
+  ctx.lineTo(cx + fw/2, cy + ph/2);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  // ═══════════════════════════════════════════════════════════════════
+  // FRONT U-PROFILE FACE with gradient
+  // ═══════════════════════════════════════════════════════════════════
+  const faceGradient = ctx.createLinearGradient(cx - fw/2, cy - ph/2, cx + fw/2, cy + ph/2);
+  faceGradient.addColorStop(0, '#f8fafc');
+  faceGradient.addColorStop(0.3, '#f1f5f9');
+  faceGradient.addColorStop(0.7, '#e2e8f0');
+  faceGradient.addColorStop(1, '#cbd5e1');
+
+  ctx.fillStyle = faceGradient;
   ctx.beginPath();
   ctx.moveTo(cx - fw/2, cy - ph/2);
   ctx.lineTo(cx - fw/2, cy + ph/2);
@@ -1821,68 +2640,108 @@ function drawUChannelCrossSection(
   ctx.lineTo(cx - fw/2 + ft, cy - ph/2);
   ctx.closePath();
   ctx.fill();
+
+  // ═══════════════════════════════════════════════════════════════════
+  // ISO HATCHING on front U-profile (45 degree, 6px spacing)
+  // ═══════════════════════════════════════════════════════════════════
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(cx - fw/2, cy - ph/2);
+  ctx.lineTo(cx - fw/2, cy + ph/2);
+  ctx.lineTo(cx + fw/2, cy + ph/2);
+  ctx.lineTo(cx + fw/2, cy - ph/2);
+  ctx.lineTo(cx + fw/2 - ft, cy - ph/2);
+  ctx.lineTo(cx + fw/2 - ft, cy + ph/2 - wt);
+  ctx.lineTo(cx - fw/2 + ft, cy + ph/2 - wt);
+  ctx.lineTo(cx - fw/2 + ft, cy - ph/2);
+  ctx.closePath();
+  ctx.clip();
+
+  ctx.strokeStyle = '#64748b';
+  ctx.lineWidth = 0.6;
+  const hatchSpacing = 6;
+  const hatchExtent = Math.max(fw, ph) * 1.5;
+
+  for (let i = -hatchExtent; i < hatchExtent; i += hatchSpacing) {
+    ctx.beginPath();
+    ctx.moveTo(cx + i - hatchExtent/2, cy + hatchExtent/2);
+    ctx.lineTo(cx + i + hatchExtent/2, cy - hatchExtent/2);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // Front U-profile outline - thick
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.moveTo(cx - fw/2, cy - ph/2);
+  ctx.lineTo(cx - fw/2, cy + ph/2);
+  ctx.lineTo(cx + fw/2, cy + ph/2);
+  ctx.lineTo(cx + fw/2, cy - ph/2);
+  ctx.lineTo(cx + fw/2 - ft, cy - ph/2);
+  ctx.lineTo(cx + fw/2 - ft, cy + ph/2 - wt);
+  ctx.lineTo(cx - fw/2 + ft, cy + ph/2 - wt);
+  ctx.lineTo(cx - fw/2 + ft, cy - ph/2);
+  ctx.closePath();
   ctx.stroke();
 
-  // Centerlines
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 1;
-  ctx.setLineDash([12, 4, 3, 4]);
+  // ═══════════════════════════════════════════════════════════════════
+  // CENTERLINES (chain-dash per ISO 128)
+  // ═══════════════════════════════════════════════════════════════════
+  ctx.strokeStyle = '#64748b';
+  ctx.lineWidth = 0.8;
+  ctx.setLineDash([15, 3, 3, 3]);
+
+  // Horizontal through front
   ctx.beginPath();
-  ctx.moveTo(cx - fw/2 - 25, cy);
-  ctx.lineTo(cx + fw/2 + 25, cy);
+  ctx.moveTo(cx - fw/2 - 50, cy);
+  ctx.lineTo(cx + fw/2 + 50, cy);
   ctx.stroke();
+
+  // Vertical through front
   ctx.beginPath();
-  ctx.moveTo(cx, cy - ph/2 - 25);
-  ctx.lineTo(cx, cy + ph/2 + 25);
+  ctx.moveTo(cx, cy - ph/2 - 50);
+  ctx.lineTo(cx, cy + ph/2 + 50);
   ctx.stroke();
+
+  // Axial centerline through length
   ctx.beginPath();
-  ctx.moveTo(cx + 20 * cos45, cy + 20 * sin45);
-  ctx.lineTo(backX - 30 * cos45, backY - 30 * sin45);
+  ctx.moveTo(cx + 40 * cos45, cy + 40 * sin45);
+  ctx.lineTo(backX - 50 * cos45, backY - 50 * sin45);
   ctx.stroke();
+
   ctx.setLineDash([]);
 
-  // RAFAEL-STYLE ARROWS - from LEFT and TOP with PROBES
-  const probeSize = 10;
-  
-  // Arrow from LEFT with probe square
-  const probeLeftX = cx - fw/2 - 55;
-  const probeLeftY = cy;
-  drawRafaelScanArrow(ctx, probeLeftX, probeLeftY, 'right');
-  ctx.fillStyle = '#ffffff';
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 1.5;
-  ctx.fillRect(probeLeftX - probeSize/2, probeLeftY - probeSize/2, probeSize, probeSize);
-  ctx.strokeRect(probeLeftX - probeSize/2, probeLeftY - probeSize/2, probeSize, probeSize);
-  
-  // Arrow from TOP with probe square
-  const probeTopX = cx;
-  const probeTopY = cy - ph/2 - 55;
-  drawRafaelScanArrow(ctx, probeTopX, probeTopY, 'down');
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(probeTopX - probeSize/2, probeTopY - probeSize/2, probeSize, probeSize);
-  ctx.strokeRect(probeTopX - probeSize/2, probeTopY - probeSize/2, probeSize, probeSize);
-  
-  // Angle beam triangle marker
-  drawRafaelAngleBeamArrow(ctx, cx + fw/3, cy - ph/2 - 45);
-
-  // Label
-  ctx.fillStyle = '#1e293b';
-  ctx.font = 'bold 14px Arial';
+  // ═══════════════════════════════════════════════════════════════════
+  // LABEL with professional styling
+  // ═══════════════════════════════════════════════════════════════════
+  ctx.fillStyle = '#1a1a2e';
+  ctx.font = 'bold 16px Arial';
   ctx.textAlign = 'center';
-  ctx.fillText('U-Channel', cx, cy + ph/2 + 38);
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 1.5;
+  const labelY = cy + ph/2 + 55;
+  ctx.fillText('U-CHANNEL', cx, labelY);
+
+  // Underline
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(cx - 40, cy + ph/2 + 41);
-  ctx.lineTo(cx + 40, cy + ph/2 + 41);
+  ctx.moveTo(cx - 55, labelY + 5);
+  ctx.lineTo(cx + 55, labelY + 5);
   ctx.stroke();
 
   ctx.restore();
 }
 
 /**
- * Draw RAFAEL-STYLE TILTED 3D L-ANGLE
- * Like Rafael 5036 - tilted at 45° with L cross-section at front
+ * Draw PROFESSIONAL CAD-GRADE 3D L-ANGLE PROFILE
+ * Features:
+ * - L-shape cross-section view
+ * - 3D isometric view with depth
+ * - Hatching showing material
+ * - Equal or unequal legs clearly shown
+ * - Gradient fills for metallic look
+ * - Chain-dash centerlines per ISO 128
+ * - Uses 70% of available canvas space
  */
 function drawLAngleCrossSection(
   ctx: CanvasRenderingContext2D,
@@ -1891,61 +2750,119 @@ function drawLAngleCrossSection(
   bounds: DrawBounds,
   dimensions: DrawDimensions
 ) {
-  const leg1 = dimensions.leg1 || 60;
-  const leg2 = dimensions.leg2 || 50;
-  const thickness = dimensions.thickness || 6;
-  const profileLength = dimensions.length || 100;
+  ctx.save();
 
-  const availableSize = Math.min(bounds.width, bounds.height) - 120;
-  const scale = Math.min(availableSize / Math.max(leg1, leg2, profileLength * 0.7), 1.0);
+  // Get real dimensions
+  const leg1 = dimensions.leg1 || 100; // Horizontal leg
+  const leg2 = dimensions.leg2 || 80;  // Vertical leg
+  const thickness = dimensions.thickness || 12;
+  const profileLength = dimensions.length || 120;
 
-  const l1 = leg1 * scale * 0.6;
-  const l2 = leg2 * scale * 0.6;
-  const t = Math.max(thickness * scale, 4);
-  const length = profileLength * scale * 0.35;
+  // Scale to fill canvas (70% of available space)
+  const maxSize = Math.min(bounds.width, bounds.height) * 0.7;
+  const scale = maxSize / Math.max(leg1, leg2, profileLength * 0.6);
 
+  const l1 = leg1 * scale;
+  const l2 = leg2 * scale;
+  const t = Math.max(thickness * scale, 8);
+  const length = profileLength * scale * 0.4;
+
+  // Isometric angle (45 degrees)
   const angle = Math.PI / 4;
   const cos45 = Math.cos(angle);
   const sin45 = Math.sin(angle);
 
+  // Position
   const cx = centerX;
-  const cy = centerY + 15;
+  const cy = centerY + 10;
 
-  ctx.save();
-
-  // Back L-shape (dashed)
+  // Back face position
   const backX = cx - length * cos45;
   const backY = cy - length * sin45;
-  
-  ctx.strokeStyle = '#1e293b';
+
+  // ═══════════════════════════════════════════════════════════════════
+  // BACK L-PROFILE (hidden - dashed)
+  // ═══════════════════════════════════════════════════════════════════
+  ctx.strokeStyle = '#94a3b8';
   ctx.lineWidth = 1;
   ctx.setLineDash([4, 4]);
+
   ctx.beginPath();
-  ctx.moveTo(backX - t/2 * 0.6, backY + l2/2);
-  ctx.lineTo(backX - t/2 * 0.6, backY - l2/2);
-  ctx.lineTo(backX + l1/2 * 0.6, backY - l2/2);
+  ctx.moveTo(backX - t/2, backY + l2/2);
+  ctx.lineTo(backX - t/2, backY - l2/2);
+  ctx.lineTo(backX + l1/2, backY - l2/2);
+  ctx.lineTo(backX + l1/2, backY - l2/2 + t);
+  ctx.lineTo(backX + t/2, backY - l2/2 + t);
+  ctx.lineTo(backX + t/2, backY + l2/2);
+  ctx.closePath();
   ctx.stroke();
   ctx.setLineDash([]);
 
-  // Connecting edges
-  ctx.lineWidth = 2;
+  // ═══════════════════════════════════════════════════════════════════
+  // TOP SURFACE (horizontal leg) with gradient
+  // ═══════════════════════════════════════════════════════════════════
+  const topGradient = ctx.createLinearGradient(backX, backY - l2/2, cx, cy - l2/2);
+  topGradient.addColorStop(0, '#cbd5e1');
+  topGradient.addColorStop(0.5, '#f1f5f9');
+  topGradient.addColorStop(1, '#e2e8f0');
+
+  ctx.fillStyle = topGradient;
   ctx.beginPath();
   ctx.moveTo(cx - t/2, cy - l2/2);
-  ctx.lineTo(backX - t/2 * 0.6, backY - l2/2);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(cx + l1/2, cy - l2/2);
-  ctx.lineTo(backX + l1/2 * 0.6, backY - l2/2);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(cx - t/2, cy + l2/2);
-  ctx.lineTo(backX - t/2 * 0.6, backY + l2/2);
+  ctx.lineTo(backX - t/2, backY - l2/2);
+  ctx.lineTo(backX + l1/2, backY - l2/2);
+  ctx.lineTo(cx + l1/2, cy - l2/2);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 2;
   ctx.stroke();
 
-  // Front L-shape
-  ctx.fillStyle = '#f8fafc';
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 2.5;
+  // ═══════════════════════════════════════════════════════════════════
+  // RIGHT SIDE SURFACE (horizontal leg end) with gradient
+  // ═══════════════════════════════════════════════════════════════════
+  const sideGradient = ctx.createLinearGradient(cx + l1/2, cy - l2/2, cx + l1/2, cy - l2/2 + t);
+  sideGradient.addColorStop(0, '#e2e8f0');
+  sideGradient.addColorStop(1, '#94a3b8');
+
+  ctx.fillStyle = sideGradient;
+  ctx.beginPath();
+  ctx.moveTo(cx + l1/2, cy - l2/2);
+  ctx.lineTo(backX + l1/2, backY - l2/2);
+  ctx.lineTo(backX + l1/2, backY - l2/2 + t);
+  ctx.lineTo(cx + l1/2, cy - l2/2 + t);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  // ═══════════════════════════════════════════════════════════════════
+  // LEFT SIDE SURFACE (vertical leg) with gradient
+  // ═══════════════════════════════════════════════════════════════════
+  const leftGradient = ctx.createLinearGradient(cx - t/2, cy - l2/2, cx - t/2, cy + l2/2);
+  leftGradient.addColorStop(0, '#cbd5e1');
+  leftGradient.addColorStop(0.5, '#b3bcc9');
+  leftGradient.addColorStop(1, '#94a3b8');
+
+  ctx.fillStyle = leftGradient;
+  ctx.beginPath();
+  ctx.moveTo(cx - t/2, cy - l2/2);
+  ctx.lineTo(backX - t/2, backY - l2/2);
+  ctx.lineTo(backX - t/2, backY + l2/2);
+  ctx.lineTo(cx - t/2, cy + l2/2);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  // ═══════════════════════════════════════════════════════════════════
+  // FRONT L-PROFILE FACE with gradient
+  // ═══════════════════════════════════════════════════════════════════
+  const faceGradient = ctx.createLinearGradient(cx - t/2, cy - l2/2, cx + l1/2, cy + l2/2);
+  faceGradient.addColorStop(0, '#f8fafc');
+  faceGradient.addColorStop(0.3, '#f1f5f9');
+  faceGradient.addColorStop(0.7, '#e2e8f0');
+  faceGradient.addColorStop(1, '#cbd5e1');
+
+  ctx.fillStyle = faceGradient;
   ctx.beginPath();
   ctx.moveTo(cx - t/2, cy + l2/2);
   ctx.lineTo(cx - t/2, cy - l2/2);
@@ -1955,63 +2872,104 @@ function drawLAngleCrossSection(
   ctx.lineTo(cx + t/2, cy + l2/2);
   ctx.closePath();
   ctx.fill();
+
+  // ═══════════════════════════════════════════════════════════════════
+  // ISO HATCHING on front L-profile (45 degree, 6px spacing)
+  // ═══════════════════════════════════════════════════════════════════
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(cx - t/2, cy + l2/2);
+  ctx.lineTo(cx - t/2, cy - l2/2);
+  ctx.lineTo(cx + l1/2, cy - l2/2);
+  ctx.lineTo(cx + l1/2, cy - l2/2 + t);
+  ctx.lineTo(cx + t/2, cy - l2/2 + t);
+  ctx.lineTo(cx + t/2, cy + l2/2);
+  ctx.closePath();
+  ctx.clip();
+
+  ctx.strokeStyle = '#64748b';
+  ctx.lineWidth = 0.6;
+  const hatchSpacing = 6;
+  const hatchExtent = Math.max(l1, l2) * 1.5;
+
+  for (let i = -hatchExtent; i < hatchExtent; i += hatchSpacing) {
+    ctx.beginPath();
+    ctx.moveTo(cx + i - hatchExtent/2, cy + hatchExtent/2);
+    ctx.lineTo(cx + i + hatchExtent/2, cy - hatchExtent/2);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // Front L-profile outline - thick
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.moveTo(cx - t/2, cy + l2/2);
+  ctx.lineTo(cx - t/2, cy - l2/2);
+  ctx.lineTo(cx + l1/2, cy - l2/2);
+  ctx.lineTo(cx + l1/2, cy - l2/2 + t);
+  ctx.lineTo(cx + t/2, cy - l2/2 + t);
+  ctx.lineTo(cx + t/2, cy + l2/2);
+  ctx.closePath();
   ctx.stroke();
 
-  // Centerlines
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 1;
-  ctx.setLineDash([12, 4, 3, 4]);
+  // ═══════════════════════════════════════════════════════════════════
+  // CENTERLINES (chain-dash per ISO 128)
+  // ═══════════════════════════════════════════════════════════════════
+  ctx.strokeStyle = '#64748b';
+  ctx.lineWidth = 0.8;
+  ctx.setLineDash([15, 3, 3, 3]);
+
+  // Vertical centerline through vertical leg
   ctx.beginPath();
-  ctx.moveTo(cx, cy - l2/2 - 25);
-  ctx.lineTo(cx, cy + l2/2 + 25);
+  ctx.moveTo(cx, cy - l2/2 - 50);
+  ctx.lineTo(cx, cy + l2/2 + 50);
   ctx.stroke();
+
+  // Horizontal centerline through horizontal leg
   ctx.beginPath();
-  ctx.moveTo(cx + 20 * cos45, cy + 20 * sin45);
-  ctx.lineTo(backX - 30 * cos45, backY - 30 * sin45);
+  ctx.moveTo(cx - t/2 - 30, cy - l2/2 + t/2);
+  ctx.lineTo(cx + l1/2 + 30, cy - l2/2 + t/2);
   ctx.stroke();
+
+  // Axial centerline through length
+  ctx.beginPath();
+  ctx.moveTo(cx + 40 * cos45, cy + 40 * sin45);
+  ctx.lineTo(backX - 50 * cos45, backY - 50 * sin45);
+  ctx.stroke();
+
   ctx.setLineDash([]);
 
-  // RAFAEL-STYLE ARROWS - from LEFT and TOP with PROBES
-  const probeSize = 10;
-  
-  // Arrow from LEFT with probe square
-  const probeLeftX = cx - t/2 - 55;
-  const probeLeftY = cy;
-  drawRafaelScanArrow(ctx, probeLeftX, probeLeftY, 'right');
-  ctx.fillStyle = '#ffffff';
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 1.5;
-  ctx.fillRect(probeLeftX - probeSize/2, probeLeftY - probeSize/2, probeSize, probeSize);
-  ctx.strokeRect(probeLeftX - probeSize/2, probeLeftY - probeSize/2, probeSize, probeSize);
-  
-  // Arrow from TOP with probe square
-  const probeTopX = cx;
-  const probeTopY = cy - l2/2 - 55;
-  drawRafaelScanArrow(ctx, probeTopX, probeTopY, 'down');
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(probeTopX - probeSize/2, probeTopY - probeSize/2, probeSize, probeSize);
-  ctx.strokeRect(probeTopX - probeSize/2, probeTopY - probeSize/2, probeSize, probeSize);
-  
-  // Angle beam triangle marker
-  drawRafaelAngleBeamArrow(ctx, cx + l1/3, cy - l2/2 - 45);
-
-  ctx.fillStyle = '#1e293b';
-  ctx.font = 'bold 14px Arial';
+  // ═══════════════════════════════════════════════════════════════════
+  // LABEL with professional styling
+  // ═══════════════════════════════════════════════════════════════════
+  ctx.fillStyle = '#1a1a2e';
+  ctx.font = 'bold 16px Arial';
   ctx.textAlign = 'center';
-  ctx.fillText('L-Angle', cx, cy + l2/2 + 38);
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 1.5;
+  const labelY = cy + l2/2 + 55;
+  ctx.fillText('L-ANGLE', cx, labelY);
+
+  // Underline
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(cx - 32, cy + l2/2 + 41);
-  ctx.lineTo(cx + 32, cy + l2/2 + 41);
+  ctx.moveTo(cx - 45, labelY + 5);
+  ctx.lineTo(cx + 45, labelY + 5);
   ctx.stroke();
 
   ctx.restore();
 }
 
 /**
- * Draw RAFAEL-STYLE TILTED 3D T-SECTION
- * Like Rafael 5036 - tilted at 45° with T cross-section at front
+ * Draw PROFESSIONAL CAD-GRADE 3D T-SECTION PROFILE
+ * Features:
+ * - T-shape cross-section view
+ * - 3D depth showing the profile
+ * - Hatching on material areas
+ * - Stem and flange clearly distinguished
+ * - Gradient fills for metallic look
+ * - Chain-dash centerlines per ISO 128
+ * - Uses 70% of available canvas space
  */
 function drawTSectionCrossSection(
   ctx: CanvasRenderingContext2D,
@@ -2020,64 +2978,117 @@ function drawTSectionCrossSection(
   bounds: DrawBounds,
   dimensions: DrawDimensions
 ) {
-  const flangeWidth = dimensions.flangeWidth || 80;
-  const flangeThickness = dimensions.flangeThickness || 10;
-  const webThickness = dimensions.webThickness || 8;
-  const profileHeight = dimensions.profileHeight || dimensions.height || 100;
-  const profileLength = dimensions.length || 120;
+  ctx.save();
 
-  const availableSize = Math.min(bounds.width, bounds.height) - 120;
-  const scale = Math.min(availableSize / Math.max(flangeWidth, profileHeight, profileLength * 0.7), 0.8);
+  // Get real dimensions
+  const flangeWidth = dimensions.flangeWidth || 120;
+  const flangeThickness = dimensions.flangeThickness || 15;
+  const webThickness = dimensions.webThickness || 12;
+  const profileHeight = dimensions.profileHeight || dimensions.height || 140;
+  const profileLength = dimensions.length || 130;
 
-  const fw = flangeWidth * scale * 0.6;
-  const ft = Math.max(flangeThickness * scale, 4);
-  const wt = Math.max(webThickness * scale, 3);
-  const ph = profileHeight * scale * 0.6;
-  const length = profileLength * scale * 0.35;
+  // Scale to fill canvas (70% of available space)
+  const maxSize = Math.min(bounds.width, bounds.height) * 0.7;
+  const scale = maxSize / Math.max(flangeWidth, profileHeight, profileLength * 0.6);
 
+  const fw = flangeWidth * scale;
+  const ft = Math.max(flangeThickness * scale, 8);
+  const wt = Math.max(webThickness * scale, 6);
+  const ph = profileHeight * scale;
+  const length = profileLength * scale * 0.4;
+
+  // Isometric angle (45 degrees)
   const angle = Math.PI / 4;
   const cos45 = Math.cos(angle);
   const sin45 = Math.sin(angle);
 
+  // Position
   const cx = centerX;
-  const cy = centerY + 15;
+  const cy = centerY + 10;
 
-  ctx.save();
-
-  // Back T-shape (dashed)
+  // Back face position
   const backX = cx - length * cos45;
   const backY = cy - length * sin45;
-  
-  ctx.strokeStyle = '#1e293b';
+
+  // ═══════════════════════════════════════════════════════════════════
+  // BACK T-PROFILE (hidden - dashed)
+  // ═══════════════════════════════════════════════════════════════════
+  ctx.strokeStyle = '#94a3b8';
   ctx.lineWidth = 1;
   ctx.setLineDash([4, 4]);
+
   ctx.beginPath();
-  ctx.moveTo(backX - fw/2 * 0.6, backY - ph/2);
-  ctx.lineTo(backX + fw/2 * 0.6, backY - ph/2);
-  ctx.moveTo(backX, backY - ph/2);
-  ctx.lineTo(backX, backY + ph/2);
+  ctx.moveTo(backX - fw/2, backY - ph/2);
+  ctx.lineTo(backX + fw/2, backY - ph/2);
+  ctx.lineTo(backX + fw/2, backY - ph/2 + ft);
+  ctx.lineTo(backX + wt/2, backY - ph/2 + ft);
+  ctx.lineTo(backX + wt/2, backY + ph/2);
+  ctx.lineTo(backX - wt/2, backY + ph/2);
+  ctx.lineTo(backX - wt/2, backY - ph/2 + ft);
+  ctx.lineTo(backX - fw/2, backY - ph/2 + ft);
+  ctx.closePath();
   ctx.stroke();
   ctx.setLineDash([]);
 
-  // Connecting edges
-  ctx.lineWidth = 2;
+  // ═══════════════════════════════════════════════════════════════════
+  // TOP FLANGE SURFACE with gradient
+  // ═══════════════════════════════════════════════════════════════════
+  const topGradient = ctx.createLinearGradient(backX, backY - ph/2, cx, cy - ph/2);
+  topGradient.addColorStop(0, '#cbd5e1');
+  topGradient.addColorStop(0.5, '#f1f5f9');
+  topGradient.addColorStop(1, '#e2e8f0');
+
+  ctx.fillStyle = topGradient;
   ctx.beginPath();
   ctx.moveTo(cx - fw/2, cy - ph/2);
-  ctx.lineTo(backX - fw/2 * 0.6, backY - ph/2);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(cx + fw/2, cy - ph/2);
-  ctx.lineTo(backX + fw/2 * 0.6, backY - ph/2);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(cx, cy + ph/2);
-  ctx.lineTo(backX, backY + ph/2);
+  ctx.lineTo(backX - fw/2, backY - ph/2);
+  ctx.lineTo(backX + fw/2, backY - ph/2);
+  ctx.lineTo(cx + fw/2, cy - ph/2);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 2;
   ctx.stroke();
 
-  // Front T-shape
-  ctx.fillStyle = '#f8fafc';
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 2.5;
+  // ═══════════════════════════════════════════════════════════════════
+  // RIGHT SIDE SURFACES with gradient
+  // ═══════════════════════════════════════════════════════════════════
+  const sideGradient = ctx.createLinearGradient(cx + fw/2, cy - ph/2, cx + fw/2, cy + ph/2);
+  sideGradient.addColorStop(0, '#e2e8f0');
+  sideGradient.addColorStop(0.5, '#cbd5e1');
+  sideGradient.addColorStop(1, '#94a3b8');
+
+  // Right flange side
+  ctx.fillStyle = sideGradient;
+  ctx.beginPath();
+  ctx.moveTo(cx + fw/2, cy - ph/2);
+  ctx.lineTo(backX + fw/2, backY - ph/2);
+  ctx.lineTo(backX + fw/2, backY - ph/2 + ft);
+  ctx.lineTo(cx + fw/2, cy - ph/2 + ft);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  // Right web side
+  ctx.beginPath();
+  ctx.moveTo(cx + wt/2, cy - ph/2 + ft);
+  ctx.lineTo(backX + wt/2, backY - ph/2 + ft);
+  ctx.lineTo(backX + wt/2, backY + ph/2);
+  ctx.lineTo(cx + wt/2, cy + ph/2);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  // ═══════════════════════════════════════════════════════════════════
+  // FRONT T-PROFILE FACE with gradient
+  // ═══════════════════════════════════════════════════════════════════
+  const faceGradient = ctx.createLinearGradient(cx - fw/2, cy - ph/2, cx + fw/2, cy + ph/2);
+  faceGradient.addColorStop(0, '#f8fafc');
+  faceGradient.addColorStop(0.3, '#f1f5f9');
+  faceGradient.addColorStop(0.7, '#e2e8f0');
+  faceGradient.addColorStop(1, '#cbd5e1');
+
+  ctx.fillStyle = faceGradient;
   ctx.beginPath();
   ctx.moveTo(cx - fw/2, cy - ph/2);
   ctx.lineTo(cx + fw/2, cy - ph/2);
@@ -2089,73 +3100,107 @@ function drawTSectionCrossSection(
   ctx.lineTo(cx - fw/2, cy - ph/2 + ft);
   ctx.closePath();
   ctx.fill();
+
+  // ═══════════════════════════════════════════════════════════════════
+  // ISO HATCHING on front T-profile (45 degree, 6px spacing)
+  // ═══════════════════════════════════════════════════════════════════
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(cx - fw/2, cy - ph/2);
+  ctx.lineTo(cx + fw/2, cy - ph/2);
+  ctx.lineTo(cx + fw/2, cy - ph/2 + ft);
+  ctx.lineTo(cx + wt/2, cy - ph/2 + ft);
+  ctx.lineTo(cx + wt/2, cy + ph/2);
+  ctx.lineTo(cx - wt/2, cy + ph/2);
+  ctx.lineTo(cx - wt/2, cy - ph/2 + ft);
+  ctx.lineTo(cx - fw/2, cy - ph/2 + ft);
+  ctx.closePath();
+  ctx.clip();
+
+  ctx.strokeStyle = '#64748b';
+  ctx.lineWidth = 0.6;
+  const hatchSpacing = 6;
+  const hatchExtent = Math.max(fw, ph) * 1.5;
+
+  for (let i = -hatchExtent; i < hatchExtent; i += hatchSpacing) {
+    ctx.beginPath();
+    ctx.moveTo(cx + i - hatchExtent/2, cy + hatchExtent/2);
+    ctx.lineTo(cx + i + hatchExtent/2, cy - hatchExtent/2);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // Front T-profile outline - thick
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.moveTo(cx - fw/2, cy - ph/2);
+  ctx.lineTo(cx + fw/2, cy - ph/2);
+  ctx.lineTo(cx + fw/2, cy - ph/2 + ft);
+  ctx.lineTo(cx + wt/2, cy - ph/2 + ft);
+  ctx.lineTo(cx + wt/2, cy + ph/2);
+  ctx.lineTo(cx - wt/2, cy + ph/2);
+  ctx.lineTo(cx - wt/2, cy - ph/2 + ft);
+  ctx.lineTo(cx - fw/2, cy - ph/2 + ft);
+  ctx.closePath();
   ctx.stroke();
 
-  // Centerlines
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 1;
-  ctx.setLineDash([12, 4, 3, 4]);
+  // ═══════════════════════════════════════════════════════════════════
+  // CENTERLINES (chain-dash per ISO 128)
+  // ═══════════════════════════════════════════════════════════════════
+  ctx.strokeStyle = '#64748b';
+  ctx.lineWidth = 0.8;
+  ctx.setLineDash([15, 3, 3, 3]);
+
+  // Vertical centerline through stem
   ctx.beginPath();
-  ctx.moveTo(cx, cy - ph/2 - 25);
-  ctx.lineTo(cx, cy + ph/2 + 25);
+  ctx.moveTo(cx, cy - ph/2 - 50);
+  ctx.lineTo(cx, cy + ph/2 + 50);
   ctx.stroke();
+
+  // Horizontal centerline through flange
   ctx.beginPath();
-  ctx.moveTo(cx - fw/2 - 20, cy - ph/2 + ft/2);
-  ctx.lineTo(cx + fw/2 + 20, cy - ph/2 + ft/2);
+  ctx.moveTo(cx - fw/2 - 50, cy - ph/2 + ft/2);
+  ctx.lineTo(cx + fw/2 + 50, cy - ph/2 + ft/2);
   ctx.stroke();
+
+  // Axial centerline through length
   ctx.beginPath();
-  ctx.moveTo(cx + 20 * cos45, cy + 20 * sin45);
-  ctx.lineTo(backX - 30 * cos45, backY - 30 * sin45);
+  ctx.moveTo(cx + 40 * cos45, cy + 40 * sin45);
+  ctx.lineTo(backX - 50 * cos45, backY - 50 * sin45);
   ctx.stroke();
+
   ctx.setLineDash([]);
 
-  // RAFAEL-STYLE ARROWS - from LEFT and TOP with PROBES
-  const probeSize = 10;
-  
-  // Arrow from LEFT with probe square
-  const probeLeftX = cx - fw/2 - 55;
-  const probeLeftY = cy;
-  drawRafaelScanArrow(ctx, probeLeftX, probeLeftY, 'right');
-  ctx.fillStyle = '#ffffff';
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 1.5;
-  ctx.fillRect(probeLeftX - probeSize/2, probeLeftY - probeSize/2, probeSize, probeSize);
-  ctx.strokeRect(probeLeftX - probeSize/2, probeLeftY - probeSize/2, probeSize, probeSize);
-  
-  // Arrow from TOP with probe square
-  const probeTopX = cx;
-  const probeTopY = cy - ph/2 - 55;
-  drawRafaelScanArrow(ctx, probeTopX, probeTopY, 'down');
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(probeTopX - probeSize/2, probeTopY - probeSize/2, probeSize, probeSize);
-  ctx.strokeRect(probeTopX - probeSize/2, probeTopY - probeSize/2, probeSize, probeSize);
-  
-  // Angle beam triangle marker
-  drawRafaelAngleBeamArrow(ctx, cx + fw/3, cy - ph/2 - 45);
-
-  ctx.fillStyle = '#1e293b';
-  ctx.font = 'bold 14px Arial';
+  // ═══════════════════════════════════════════════════════════════════
+  // LABEL with professional styling
+  // ═══════════════════════════════════════════════════════════════════
+  ctx.fillStyle = '#1a1a2e';
+  ctx.font = 'bold 16px Arial';
   ctx.textAlign = 'center';
-  ctx.fillText('T-Section', cx, cy + ph/2 + 38);
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 1.5;
+  const labelY = cy + ph/2 + 55;
+  ctx.fillText('T-SECTION', cx, labelY);
+
+  // Underline
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(cx - 38, cy + ph/2 + 41);
-  ctx.lineTo(cx + 38, cy + ph/2 + 41);
+  ctx.moveTo(cx - 50, labelY + 5);
+  ctx.lineTo(cx + 50, labelY + 5);
   ctx.stroke();
 
   ctx.restore();
 }
 
 /**
- * Draw RAFAEL-STYLE 3D SPHERE
- * 3D shaded sphere with scan direction arrows
- * SMART SCALING: Always fits inside bounds
- */
-/**
- * Draw RAFAEL-STYLE 3D SPHERE
- * Sphere with gradient shading and diagonal scan arrows
- * SMART SCALING: Always fits inside bounds
+ * Draw PROFESSIONAL CAD-GRADE 3D SPHERE
+ * Features:
+ * - Photorealistic 3D sphere with specular highlight
+ * - Multiple gradient layers for depth
+ * - Equator and meridian lines for orientation
+ * - Half-section cutaway option with hatching
+ * - Chain-dash centerlines per ISO 128
+ * - Uses 70% of available canvas space
  */
 function drawSphereCrossSection(
   ctx: CanvasRenderingContext2D,
@@ -2164,122 +3209,164 @@ function drawSphereCrossSection(
   bounds: DrawBounds,
   dimensions: DrawDimensions
 ) {
-  // Smart scaling - use available space directly
-  const availableSize = Math.min(bounds.width, bounds.height);
-  
-  // Sphere fills 50% of available space
-  const radius = availableSize * 0.22;
-
-  // Position (shifted for arrows)
-  const cx = centerX - 20;
-  const cy = centerY + 10;
-
   ctx.save();
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 2;
+
+  // Get dimensions
+  const diameter = dimensions.diameter || 150;
+
+  // Scale to fill canvas (70% of available space)
+  const maxSize = Math.min(bounds.width, bounds.height) * 0.7;
+  const scale = maxSize / diameter;
+  const radius = (diameter / 2) * scale;
+
+  // Position
+  const cx = centerX;
+  const cy = centerY;
 
   // ═══════════════════════════════════════════════════════════════════
-  // 3D SPHERE with gradient shading
+  // SHADOW (subtle drop shadow for depth)
   // ═══════════════════════════════════════════════════════════════════
-  
-  // Create 3D-looking gradient
-  const gradient = ctx.createRadialGradient(
-    cx - radius * 0.3, cy - radius * 0.3, 0, 
+  const shadowGradient = ctx.createRadialGradient(
+    cx + 5, cy + 8, radius * 0.8,
+    cx + 5, cy + 8, radius * 1.2
+  );
+  shadowGradient.addColorStop(0, 'rgba(0,0,0,0.1)');
+  shadowGradient.addColorStop(1, 'rgba(0,0,0,0)');
+
+  ctx.fillStyle = shadowGradient;
+  ctx.beginPath();
+  ctx.ellipse(cx + 5, cy + 8, radius * 1.1, radius * 0.3, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // ═══════════════════════════════════════════════════════════════════
+  // MAIN SPHERE with photorealistic gradient
+  // ═══════════════════════════════════════════════════════════════════
+
+  // Base gradient (ambient light)
+  const baseGradient = ctx.createRadialGradient(
+    cx - radius * 0.4, cy - radius * 0.4, 0,
     cx, cy, radius
   );
-  gradient.addColorStop(0, '#ffffff');
-  gradient.addColorStop(0.5, '#e2e8f0');
-  gradient.addColorStop(1, '#cbd5e1');
+  baseGradient.addColorStop(0, '#ffffff');
+  baseGradient.addColorStop(0.2, '#f8fafc');
+  baseGradient.addColorStop(0.5, '#e2e8f0');
+  baseGradient.addColorStop(0.8, '#94a3b8');
+  baseGradient.addColorStop(1, '#64748b');
 
-  ctx.fillStyle = gradient;
+  ctx.fillStyle = baseGradient;
   ctx.beginPath();
   ctx.arc(cx, cy, radius, 0, Math.PI * 2);
   ctx.fill();
+
+  // Specular highlight (glossy reflection)
+  const specularGradient = ctx.createRadialGradient(
+    cx - radius * 0.35, cy - radius * 0.35, 0,
+    cx - radius * 0.35, cy - radius * 0.35, radius * 0.4
+  );
+  specularGradient.addColorStop(0, 'rgba(255,255,255,0.9)');
+  specularGradient.addColorStop(0.5, 'rgba(255,255,255,0.3)');
+  specularGradient.addColorStop(1, 'rgba(255,255,255,0)');
+
+  ctx.fillStyle = specularGradient;
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Thick outline
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius, 0, Math.PI * 2);
   ctx.stroke();
 
-  // Inner ring (equator line - gives 3D effect)
-  ctx.strokeStyle = '#94a3b8';
-  ctx.lineWidth = 1;
+  // ═══════════════════════════════════════════════════════════════════
+  // EQUATOR LINE (horizontal great circle)
+  // ═══════════════════════════════════════════════════════════════════
+  ctx.strokeStyle = '#64748b';
+  ctx.lineWidth = 1.5;
   ctx.beginPath();
   ctx.ellipse(cx, cy, radius, radius * 0.35, 0, 0, Math.PI * 2);
   ctx.stroke();
 
   // ═══════════════════════════════════════════════════════════════════
-  // CENTERLINES (dashed) - Rafael style
+  // MERIDIAN LINE (vertical great circle - partial)
   // ═══════════════════════════════════════════════════════════════════
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 1;
-  ctx.setLineDash([12, 4, 3, 4]);
-  
+  ctx.strokeStyle = '#64748b';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, radius * 0.35, radius, 0, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // ═══════════════════════════════════════════════════════════════════
+  // SECTION CUT HATCHING (on visible hemisphere)
+  // ═══════════════════════════════════════════════════════════════════
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius - 3, Math.PI * 0.75, Math.PI * 1.25);
+  ctx.arc(cx, cy, radius * 0.3, Math.PI * 1.25, Math.PI * 0.75, true);
+  ctx.closePath();
+  ctx.clip();
+
+  ctx.strokeStyle = '#64748b';
+  ctx.lineWidth = 0.5;
+  const spacing = 5;
+  for (let i = -radius * 2; i < radius * 2; i += spacing) {
+    ctx.beginPath();
+    ctx.moveTo(cx + i - radius, cy + radius);
+    ctx.lineTo(cx + i + radius, cy - radius);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // ═══════════════════════════════════════════════════════════════════
+  // CENTERLINES (chain dash per ISO 128)
+  // ═══════════════════════════════════════════════════════════════════
+  ctx.strokeStyle = '#64748b';
+  ctx.lineWidth = 0.8;
+  ctx.setLineDash([15, 3, 3, 3]);
+
   // Horizontal centerline
   ctx.beginPath();
-  ctx.moveTo(cx - radius - 40, cy);
-  ctx.lineTo(cx + radius + 40, cy);
+  ctx.moveTo(cx - radius - 50, cy);
+  ctx.lineTo(cx + radius + 50, cy);
   ctx.stroke();
-  
+
   // Vertical centerline
   ctx.beginPath();
-  ctx.moveTo(cx, cy - radius - 40);
-  ctx.lineTo(cx, cy + radius + 40);
+  ctx.moveTo(cx, cy - radius - 50);
+  ctx.lineTo(cx, cy + radius + 50);
   ctx.stroke();
   ctx.setLineDash([]);
 
   // ═══════════════════════════════════════════════════════════════════
-  // RAFAEL-STYLE ARROWS - from LEFT and TOP with PROBES
+  // LABEL with professional styling
   // ═══════════════════════════════════════════════════════════════════
-  const probeSize = 10;
-  
-  // Arrow from LEFT with probe square
-  const probeLeftX = cx - radius - 55;
-  const probeLeftY = cy;
-  drawRafaelScanArrow(ctx, probeLeftX, probeLeftY, 'right');
-  ctx.fillStyle = '#ffffff';
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 1.5;
-  ctx.fillRect(probeLeftX - probeSize/2, probeLeftY - probeSize/2, probeSize, probeSize);
-  ctx.strokeRect(probeLeftX - probeSize/2, probeLeftY - probeSize/2, probeSize, probeSize);
-  
-  // Arrow from TOP with probe square
-  const probeTopX = cx;
-  const probeTopY = cy - radius - 55;
-  drawRafaelScanArrow(ctx, probeTopX, probeTopY, 'down');
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(probeTopX - probeSize/2, probeTopY - probeSize/2, probeSize, probeSize);
-  ctx.strokeRect(probeTopX - probeSize/2, probeTopY - probeSize/2, probeSize, probeSize);
-  
-  // Angle beam triangle marker
-  drawRafaelAngleBeamArrow(ctx, cx + radius * 0.7, cy - radius - 45);
-
-  // ═══════════════════════════════════════════════════════════════════
-  // "Sphere" LABEL - underlined, at bottom
-  // ═══════════════════════════════════════════════════════════════════
-  ctx.fillStyle = '#1e293b';
-  ctx.font = 'bold 15px Arial';
+  ctx.fillStyle = '#1a1a2e';
+  ctx.font = 'bold 16px Arial';
   ctx.textAlign = 'center';
-  const labelX = cx;
-  const labelY = cy + radius + 50;
-  ctx.fillText('Sphere', labelX, labelY);
-  
+  const labelY = cy + radius + 55;
+  ctx.fillText('SPHERE', cx, labelY);
+
   // Underline
-  const labelWidth = ctx.measureText('Sphere').width;
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 1.5;
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(labelX - labelWidth/2, labelY + 3);
-  ctx.lineTo(labelX + labelWidth/2, labelY + 3);
+  ctx.moveTo(cx - 40, labelY + 5);
+  ctx.lineTo(cx + 40, labelY + 5);
   ctx.stroke();
 
   ctx.restore();
 }
 
 /**
- * Draw RAFAEL-STYLE HEXAGON BAR PROFILE
- * 3D hexagon with scan direction arrows
- * SMART SCALING: Always fits inside bounds
- */
-/**
- * Draw RAFAEL-STYLE TILTED 3D HEXAGON BAR
- * Like Rafael 5036 - tilted at 45° with hexagon cross-section at front
+ * Draw PROFESSIONAL CAD-GRADE 3D HEXAGON BAR
+ * Features:
+ * - Tilted 3D hexagonal bar at 45 degrees
+ * - Gradient shading on visible faces
+ * - ISO hatching on front hexagonal face
+ * - Clear edge definition with proper line weights
+ * - Chain-dash centerlines per ISO 128
+ * - Uses 70% of available canvas space
  */
 function drawHexagonCrossSection(
   ctx: CanvasRenderingContext2D,
@@ -2288,16 +3375,18 @@ function drawHexagonCrossSection(
   bounds: DrawBounds,
   dimensions: DrawDimensions
 ) {
-  // Get dimensions
-  const acrossFlats = dimensions.acrossFlats || dimensions.width || 50;
-  const hexLength = dimensions.length || dimensions.height || 150;
-  
-  // Available space
-  const availableSize = Math.min(bounds.width, bounds.height) - 120;
-  const scale = Math.min(availableSize / Math.max(acrossFlats, hexLength * 0.7), 1.2);
+  ctx.save();
 
-  const radius = (acrossFlats / 2) * scale * 0.8; // Circumradius
-  const length = hexLength * scale * 0.5;
+  // Get dimensions
+  const acrossFlats = dimensions.acrossFlats || dimensions.width || 60;
+  const hexLength = dimensions.length || dimensions.height || 180;
+
+  // Scale to fill canvas (70% of available space)
+  const maxSize = Math.min(bounds.width, bounds.height) * 0.7;
+  const scale = maxSize / Math.max(acrossFlats * 1.5, hexLength * 0.7);
+
+  const radius = (acrossFlats / 2) * scale * 1.15; // Circumradius from across-flats
+  const length = hexLength * scale * 0.55;
 
   // Tilt angle (45 degrees)
   const angle = Math.PI / 4;
@@ -2306,150 +3395,202 @@ function drawHexagonCrossSection(
 
   // Center position
   const cx = centerX;
-  const cy = centerY + 20;
+  const cy = centerY + 10;
 
-  ctx.save();
-
-  // ═══════════════════════════════════════════════════════════════════
-  // BACK HEXAGON (far end) - dashed/hidden
-  // ═══════════════════════════════════════════════════════════════════
+  // Back hexagon position
   const backX = cx - length * cos45;
   const backY = cy - length * sin45;
-  
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 1.5;
+
+  // Helper function to get hexagon vertices
+  const getHexVertex = (centerX: number, centerY: number, r: number, index: number) => {
+    const a = (Math.PI / 3) * index - Math.PI / 2; // Start from top
+    return { x: centerX + r * Math.cos(a), y: centerY + r * Math.sin(a) };
+  };
+
+  // ═══════════════════════════════════════════════════════════════════
+  // BACK HEXAGON (far end) - dashed hidden lines
+  // ═══════════════════════════════════════════════════════════════════
+  ctx.strokeStyle = '#64748b';
+  ctx.lineWidth = 1;
   ctx.setLineDash([4, 4]);
   ctx.beginPath();
   for (let i = 0; i < 6; i++) {
-    const a = (Math.PI / 3) * i - Math.PI / 6;
-    const x = backX + radius * Math.cos(a) * 0.6;
-    const y = backY + radius * Math.sin(a);
-    if (i === 0) ctx.moveTo(x, y);
-    else ctx.lineTo(x, y);
+    const v = getHexVertex(backX, backY, radius * 0.55, i);
+    if (i === 0) ctx.moveTo(v.x, v.y);
+    else ctx.lineTo(v.x, v.y);
   }
   ctx.closePath();
   ctx.stroke();
   ctx.setLineDash([]);
 
   // ═══════════════════════════════════════════════════════════════════
-  // SIDE EDGES - connecting front and back hexagons (only visible edges)
+  // SIDE FACES with gradient (3 visible faces)
   // ═══════════════════════════════════════════════════════════════════
-  ctx.lineWidth = 2;
-  ctx.strokeStyle = '#1e293b';
-  
-  // Top edge
-  const frontTopY = cy - radius;
-  const backTopY = backY - radius;
+
+  // Draw top-right face (lightest)
+  const topGradient = ctx.createLinearGradient(cx, cy - radius, backX, backY - radius * 0.55);
+  topGradient.addColorStop(0, '#f8fafc');
+  topGradient.addColorStop(1, '#e2e8f0');
+
+  ctx.fillStyle = topGradient;
   ctx.beginPath();
-  ctx.moveTo(cx, frontTopY);
-  ctx.lineTo(backX, backTopY);
-  ctx.stroke();
-  
-  // Bottom edge
-  ctx.beginPath();
-  ctx.moveTo(cx, cy + radius);
-  ctx.lineTo(backX, backY + radius);
+  const fv0 = getHexVertex(cx, cy, radius, 0);
+  const fv1 = getHexVertex(cx, cy, radius, 1);
+  const bv0 = getHexVertex(backX, backY, radius * 0.55, 0);
+  const bv1 = getHexVertex(backX, backY, radius * 0.55, 1);
+  ctx.moveTo(fv0.x, fv0.y);
+  ctx.lineTo(fv1.x, fv1.y);
+  ctx.lineTo(bv1.x, bv1.y);
+  ctx.lineTo(bv0.x, bv0.y);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 1.5;
   ctx.stroke();
 
-  // ═══════════════════════════════════════════════════════════════════
-  // FRONT HEXAGON (cross-section) - fully visible
-  // ═══════════════════════════════════════════════════════════════════
-  ctx.fillStyle = '#f8fafc';
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 2.5;
+  // Draw top-left face (medium light)
+  const topLeftGradient = ctx.createLinearGradient(cx, cy - radius, backX, backY);
+  topLeftGradient.addColorStop(0, '#e2e8f0');
+  topLeftGradient.addColorStop(1, '#cbd5e1');
+
+  ctx.fillStyle = topLeftGradient;
   ctx.beginPath();
-  for (let i = 0; i < 6; i++) {
-    const a = (Math.PI / 3) * i - Math.PI / 6;
-    const x = cx + radius * Math.cos(a);
-    const y = cy + radius * Math.sin(a);
-    if (i === 0) ctx.moveTo(x, y);
-    else ctx.lineTo(x, y);
-  }
+  const fv5 = getHexVertex(cx, cy, radius, 5);
+  const bv5 = getHexVertex(backX, backY, radius * 0.55, 5);
+  ctx.moveTo(fv5.x, fv5.y);
+  ctx.lineTo(fv0.x, fv0.y);
+  ctx.lineTo(bv0.x, bv0.y);
+  ctx.lineTo(bv5.x, bv5.y);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  // Draw left face (darkest)
+  const leftGradient = ctx.createLinearGradient(cx - radius, cy, backX - radius * 0.55, backY);
+  leftGradient.addColorStop(0, '#cbd5e1');
+  leftGradient.addColorStop(1, '#94a3b8');
+
+  ctx.fillStyle = leftGradient;
+  ctx.beginPath();
+  const fv4 = getHexVertex(cx, cy, radius, 4);
+  const bv4 = getHexVertex(backX, backY, radius * 0.55, 4);
+  ctx.moveTo(fv4.x, fv4.y);
+  ctx.lineTo(fv5.x, fv5.y);
+  ctx.lineTo(bv5.x, bv5.y);
+  ctx.lineTo(bv4.x, bv4.y);
   ctx.closePath();
   ctx.fill();
   ctx.stroke();
 
   // ═══════════════════════════════════════════════════════════════════
-  // CENTERLINES (dashed) - Rafael style
+  // FRONT HEXAGON with gradient and hatching
   // ═══════════════════════════════════════════════════════════════════
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 1;
-  ctx.setLineDash([12, 4, 3, 4]);
-  
+  const frontGradient = ctx.createRadialGradient(
+    cx - radius * 0.3, cy - radius * 0.3, 0,
+    cx, cy, radius
+  );
+  frontGradient.addColorStop(0, '#f8fafc');
+  frontGradient.addColorStop(0.5, '#e2e8f0');
+  frontGradient.addColorStop(1, '#cbd5e1');
+
+  ctx.fillStyle = frontGradient;
+  ctx.beginPath();
+  for (let i = 0; i < 6; i++) {
+    const v = getHexVertex(cx, cy, radius, i);
+    if (i === 0) ctx.moveTo(v.x, v.y);
+    else ctx.lineTo(v.x, v.y);
+  }
+  ctx.closePath();
+  ctx.fill();
+
+  // ISO Hatching on front face
+  ctx.save();
+  ctx.beginPath();
+  for (let i = 0; i < 6; i++) {
+    const v = getHexVertex(cx, cy, radius - 2, i);
+    if (i === 0) ctx.moveTo(v.x, v.y);
+    else ctx.lineTo(v.x, v.y);
+  }
+  ctx.closePath();
+  ctx.clip();
+
+  ctx.strokeStyle = '#64748b';
+  ctx.lineWidth = 0.6;
+  const spacing = 6;
+  for (let i = -radius * 2; i < radius * 2; i += spacing) {
+    ctx.beginPath();
+    ctx.moveTo(cx + i - radius, cy + radius);
+    ctx.lineTo(cx + i + radius, cy - radius);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // Front hexagon outline - thick
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  for (let i = 0; i < 6; i++) {
+    const v = getHexVertex(cx, cy, radius, i);
+    if (i === 0) ctx.moveTo(v.x, v.y);
+    else ctx.lineTo(v.x, v.y);
+  }
+  ctx.closePath();
+  ctx.stroke();
+
+  // ═══════════════════════════════════════════════════════════════════
+  // CENTERLINES (chain dash per ISO 128)
+  // ═══════════════════════════════════════════════════════════════════
+  ctx.strokeStyle = '#64748b';
+  ctx.lineWidth = 0.8;
+  ctx.setLineDash([15, 3, 3, 3]);
+
   // Horizontal through front
   ctx.beginPath();
-  ctx.moveTo(cx - radius - 30, cy);
-  ctx.lineTo(cx + radius + 30, cy);
+  ctx.moveTo(cx - radius - 40, cy);
+  ctx.lineTo(cx + radius + 40, cy);
   ctx.stroke();
-  
+
   // Vertical through front
   ctx.beginPath();
-  ctx.moveTo(cx, cy - radius - 30);
-  ctx.lineTo(cx, cy + radius + 30);
+  ctx.moveTo(cx, cy - radius - 40);
+  ctx.lineTo(cx, cy + radius + 40);
   ctx.stroke();
-  
-  // Diagonal centerline through length
+
+  // Axial centerline through length
   ctx.beginPath();
-  ctx.moveTo(cx + 30 * cos45, cy + 30 * sin45);
-  ctx.lineTo(backX - 40 * cos45, backY - 40 * sin45);
+  ctx.moveTo(cx + 40 * cos45, cy + 40 * sin45);
+  ctx.lineTo(backX - 50 * cos45, backY - 50 * sin45);
   ctx.stroke();
   ctx.setLineDash([]);
 
   // ═══════════════════════════════════════════════════════════════════
-  // RAFAEL-STYLE ARROWS - from LEFT and TOP with PROBES
+  // LABEL with professional styling
   // ═══════════════════════════════════════════════════════════════════
-  const probeSize = 10;
-  
-  // Arrow from LEFT with probe square
-  const probeLeftX = cx - radius - 55;
-  const probeLeftY = cy;
-  drawRafaelScanArrow(ctx, probeLeftX, probeLeftY, 'right');
-  ctx.fillStyle = '#ffffff';
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 1.5;
-  ctx.fillRect(probeLeftX - probeSize/2, probeLeftY - probeSize/2, probeSize, probeSize);
-  ctx.strokeRect(probeLeftX - probeSize/2, probeLeftY - probeSize/2, probeSize, probeSize);
-  
-  // Arrow from TOP with probe square
-  const probeTopX = cx;
-  const probeTopY = cy - radius - 55;
-  drawRafaelScanArrow(ctx, probeTopX, probeTopY, 'down');
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(probeTopX - probeSize/2, probeTopY - probeSize/2, probeSize, probeSize);
-  ctx.strokeRect(probeTopX - probeSize/2, probeTopY - probeSize/2, probeSize, probeSize);
-  
-  // Angle beam triangle marker
-  drawRafaelAngleBeamArrow(ctx, cx + radius * 0.7, cy - radius - 45);
-
-  // ═══════════════════════════════════════════════════════════════════
-  // "Hex Bar" LABEL - underlined, bottom
-  // ═══════════════════════════════════════════════════════════════════
-  ctx.fillStyle = '#1e293b';
-  ctx.font = 'bold 14px Arial';
+  ctx.fillStyle = '#1a1a2e';
+  ctx.font = 'bold 16px Arial';
   ctx.textAlign = 'center';
-  const labelX = cx;
-  const labelY = cy + radius + 45;
-  ctx.fillText('Hex Bar', labelX, labelY);
-  
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 1.5;
+  const labelY = cy + radius + 55;
+  ctx.fillText('HEX BAR', cx, labelY);
+
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(labelX - 30, labelY + 3);
-  ctx.lineTo(labelX + 30, labelY + 3);
+  ctx.moveTo(cx - 45, labelY + 5);
+  ctx.lineTo(cx + 45, labelY + 5);
   ctx.stroke();
 
   ctx.restore();
 }
 
 /**
- * Draw RAFAEL-STYLE 3D CONE
- * Isometric cone with scan direction arrows
- * SMART SCALING: Always fits inside bounds
- */
-/**
- * Draw RAFAEL-STYLE 3D CONE
- * Cone with isometric base ellipse and diagonal scan arrows
- * SMART SCALING: Always fits inside bounds
+ * Draw PROFESSIONAL CAD-GRADE 3D CONE
+ * Features:
+ * - Isometric 3D cone with elliptical base
+ * - Gradient shading from apex to base
+ * - ISO hatching on base face
+ * - Clear apex and base indication
+ * - Chain-dash centerlines per ISO 128
+ * - Uses 70% of available canvas space
  */
 function drawConeCrossSection(
   ctx: CanvasRenderingContext2D,
@@ -2458,120 +3599,160 @@ function drawConeCrossSection(
   bounds: DrawBounds,
   dimensions: DrawDimensions
 ) {
-  // Get real dimensions
-  const bottomDiam = dimensions.bottomDiameter || dimensions.diameter || 80;
-  const coneHeight = dimensions.height || dimensions.length || 120;
+  ctx.save();
 
-  // Smart scaling
-  const availableSize = Math.min(bounds.width, bounds.height);
-  
-  const scale = Math.min(
-    availableSize / (Math.max(bottomDiam, coneHeight) + 100),
-    1.0
-  ) * 0.45;
+  // Get real dimensions
+  const bottomDiam = dimensions.bottomDiameter || dimensions.diameter || 100;
+  const coneHeight = dimensions.height || dimensions.length || 150;
+
+  // Scale to fill canvas (70% of available space)
+  const maxSize = Math.min(bounds.width, bounds.height) * 0.7;
+  const scale = maxSize / Math.max(bottomDiam, coneHeight);
 
   const bd = bottomDiam * scale;
   const h = coneHeight * scale;
 
-  // Position (shifted for 3D effect)
-  const cx = centerX - 15;
+  // Position
+  const cx = centerX;
   const cy = centerY + 10;
 
-  ctx.save();
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 2;
-  ctx.fillStyle = '#f8fafc';
+  // Ellipse ratio for 3D base
+  const ellipseRatio = 0.35;
 
   // ═══════════════════════════════════════════════════════════════════
-  // 3D CONE (isometric with ellipse base)
+  // CONE BODY with gradient shading
   // ═══════════════════════════════════════════════════════════════════
-  
-  // Ellipse ratio for 3D effect
-  const ellipseRatio = 0.3;
-  
-  // Fill cone body
+
+  // Left side gradient (darker)
+  const leftGradient = ctx.createLinearGradient(cx - bd/2, cy + h/2, cx, cy - h/2);
+  leftGradient.addColorStop(0, '#94a3b8');
+  leftGradient.addColorStop(0.5, '#cbd5e1');
+  leftGradient.addColorStop(1, '#e2e8f0');
+
+  // Draw left half of cone
+  ctx.fillStyle = leftGradient;
   ctx.beginPath();
   ctx.moveTo(cx - bd/2, cy + h/2);
   ctx.lineTo(cx, cy - h/2); // apex
-  ctx.lineTo(cx + bd/2, cy + h/2);
+  ctx.lineTo(cx, cy + h/2);
+  ctx.ellipse(cx, cy + h/2, bd/2, bd/2 * ellipseRatio, 0, 0, Math.PI, true);
   ctx.closePath();
   ctx.fill();
-  
-  // Draw base ellipse
+
+  // Right side gradient (lighter)
+  const rightGradient = ctx.createLinearGradient(cx, cy - h/2, cx + bd/2, cy + h/2);
+  rightGradient.addColorStop(0, '#f8fafc');
+  rightGradient.addColorStop(0.5, '#e2e8f0');
+  rightGradient.addColorStop(1, '#cbd5e1');
+
+  // Draw right half of cone
+  ctx.fillStyle = rightGradient;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - h/2); // apex
+  ctx.lineTo(cx + bd/2, cy + h/2);
+  ctx.ellipse(cx, cy + h/2, bd/2, bd/2 * ellipseRatio, 0, 0, Math.PI);
+  ctx.lineTo(cx, cy + h/2);
+  ctx.closePath();
+  ctx.fill();
+
+  // ═══════════════════════════════════════════════════════════════════
+  // BASE ELLIPSE with hatching
+  // ═══════════════════════════════════════════════════════════════════
+
+  // Base ellipse fill with gradient
+  const baseGradient = ctx.createLinearGradient(cx - bd/2, cy + h/2, cx + bd/2, cy + h/2);
+  baseGradient.addColorStop(0, '#cbd5e1');
+  baseGradient.addColorStop(0.5, '#e2e8f0');
+  baseGradient.addColorStop(1, '#94a3b8');
+
+  ctx.fillStyle = baseGradient;
+  ctx.beginPath();
+  ctx.ellipse(cx, cy + h/2, bd/2, bd/2 * ellipseRatio, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // ISO Hatching on base ellipse
+  ctx.save();
+  ctx.beginPath();
+  ctx.ellipse(cx, cy + h/2, bd/2 - 2, (bd/2 - 2) * ellipseRatio, 0, 0, Math.PI * 2);
+  ctx.clip();
+
+  ctx.strokeStyle = '#64748b';
+  ctx.lineWidth = 0.6;
+  const spacing = 5;
+  for (let i = -bd; i < bd; i += spacing) {
+    ctx.beginPath();
+    ctx.moveTo(cx + i - bd/2, cy + h/2 + bd/2 * ellipseRatio);
+    ctx.lineTo(cx + i + bd/2, cy + h/2 - bd/2 * ellipseRatio);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // Base ellipse outline - thick
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 3;
   ctx.beginPath();
   ctx.ellipse(cx, cy + h/2, bd/2, bd/2 * ellipseRatio, 0, 0, Math.PI * 2);
   ctx.stroke();
-  
-  // Draw cone sides
-  ctx.beginPath();
-  ctx.moveTo(cx - bd/2, cy + h/2);
-  ctx.lineTo(cx, cy - h/2); // apex
-  ctx.lineTo(cx + bd/2, cy + h/2);
-  ctx.stroke();
 
   // ═══════════════════════════════════════════════════════════════════
-  // CENTERLINES (dashed) - Rafael style
+  // CONE EDGES - thick outline
   // ═══════════════════════════════════════════════════════════════════
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 1;
-  ctx.setLineDash([12, 4, 3, 4]);
-  
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 2.5;
+
+  // Left edge
+  ctx.beginPath();
+  ctx.moveTo(cx - bd/2, cy + h/2);
+  ctx.lineTo(cx, cy - h/2);
+  ctx.stroke();
+
+  // Right edge
+  ctx.beginPath();
+  ctx.moveTo(cx + bd/2, cy + h/2);
+  ctx.lineTo(cx, cy - h/2);
+  ctx.stroke();
+
+  // Apex highlight (small filled circle)
+  ctx.fillStyle = '#1a1a2e';
+  ctx.beginPath();
+  ctx.arc(cx, cy - h/2, 3, 0, Math.PI * 2);
+  ctx.fill();
+
+  // ═══════════════════════════════════════════════════════════════════
+  // CENTERLINES (chain dash per ISO 128)
+  // ═══════════════════════════════════════════════════════════════════
+  ctx.strokeStyle = '#64748b';
+  ctx.lineWidth = 0.8;
+  ctx.setLineDash([15, 3, 3, 3]);
+
   // Vertical centerline (through apex)
   ctx.beginPath();
-  ctx.moveTo(cx, cy - h/2 - 40);
-  ctx.lineTo(cx, cy + h/2 + bd/2 * ellipseRatio + 25);
+  ctx.moveTo(cx, cy - h/2 - 50);
+  ctx.lineTo(cx, cy + h/2 + bd/2 * ellipseRatio + 30);
   ctx.stroke();
-  
-  // Horizontal centerline
+
+  // Horizontal centerline (through base)
   ctx.beginPath();
-  ctx.moveTo(cx - bd/2 - 35, cy + h/2);
-  ctx.lineTo(cx + bd/2 + 35, cy + h/2);
+  ctx.moveTo(cx - bd/2 - 40, cy + h/2);
+  ctx.lineTo(cx + bd/2 + 40, cy + h/2);
   ctx.stroke();
   ctx.setLineDash([]);
 
   // ═══════════════════════════════════════════════════════════════════
-  // RAFAEL-STYLE ARROWS - from LEFT and TOP with PROBES
+  // LABEL with professional styling
   // ═══════════════════════════════════════════════════════════════════
-  const probeSize = 10;
-  
-  // Arrow from LEFT with probe square
-  const probeLeftX = cx - bd/2 - 55;
-  const probeLeftY = cy;
-  drawRafaelScanArrow(ctx, probeLeftX, probeLeftY, 'right');
-  ctx.fillStyle = '#ffffff';
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 1.5;
-  ctx.fillRect(probeLeftX - probeSize/2, probeLeftY - probeSize/2, probeSize, probeSize);
-  ctx.strokeRect(probeLeftX - probeSize/2, probeLeftY - probeSize/2, probeSize, probeSize);
-  
-  // Arrow from TOP with probe square
-  const probeTopX = cx;
-  const probeTopY = cy - h/2 - 55;
-  drawRafaelScanArrow(ctx, probeTopX, probeTopY, 'down');
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(probeTopX - probeSize/2, probeTopY - probeSize/2, probeSize, probeSize);
-  ctx.strokeRect(probeTopX - probeSize/2, probeTopY - probeSize/2, probeSize, probeSize);
-  
-  // Angle beam triangle marker
-  drawRafaelAngleBeamArrow(ctx, cx + bd/3, cy - h/2 - 45);
-
-  // ═══════════════════════════════════════════════════════════════════
-  // "Cone" LABEL - underlined, at bottom
-  // ═══════════════════════════════════════════════════════════════════
-  ctx.fillStyle = '#1e293b';
-  ctx.font = 'bold 15px Arial';
+  ctx.fillStyle = '#1a1a2e';
+  ctx.font = 'bold 16px Arial';
   ctx.textAlign = 'center';
-  const labelX = cx;
-  const labelY = cy + h/2 + bd/2 * ellipseRatio + 45;
-  ctx.fillText('Cone', labelX, labelY);
-  
+  const labelY = cy + h/2 + bd/2 * ellipseRatio + 55;
+  ctx.fillText('CONE', cx, labelY);
+
   // Underline
-  const labelWidth = ctx.measureText('Cone').width;
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 1.5;
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(labelX - labelWidth/2, labelY + 3);
-  ctx.lineTo(labelX + labelWidth/2, labelY + 3);
+  ctx.moveTo(cx - 32, labelY + 5);
+  ctx.lineTo(cx + 32, labelY + 5);
   ctx.stroke();
 
   ctx.restore();
@@ -2586,6 +3767,17 @@ function drawConeCrossSection(
  * Draw RAFAEL-STYLE TILTED 3D RECTANGULAR TUBE
  * Like Rafael 5036 - tilted at 45° with hollow rectangular cross-section at front
  */
+/**
+ * Draw PROFESSIONAL CAD-GRADE 3D RECTANGULAR TUBE (Hollow Section)
+ * Features:
+ * - Dramatic 3D isometric view with cutaway showing wall thickness
+ * - Inner void clearly visible with contrasting fill
+ * - Metallic gradient shading for professional 3D appearance
+ * - ISO 45-degree hatching on cut section (6px spacing)
+ * - Chain-dash centerlines per ISO 128 [15, 3, 3, 3]
+ * - Uses 70% of available canvas space
+ * - Line weights: thick (2.5px) outlines, thin (0.6px) hatching
+ */
 function drawRectangularTubeCrossSection(
   ctx: CanvasRenderingContext2D,
   centerX: number,
@@ -2593,49 +3785,50 @@ function drawRectangularTubeCrossSection(
   bounds: DrawBounds,
   dimensions: DrawDimensions
 ) {
-  // Get real dimensions
-  const outerWidth = dimensions.width || 80;
-  const outerHeight = dimensions.height || dimensions.thickness || 60;
-  const wallThickness = dimensions.wallThickness || 8;
+  ctx.save();
 
-  // Smart scaling
-  const availableSize = Math.min(bounds.width, bounds.height);
-  const scale = Math.min(
-    availableSize / (Math.max(outerWidth, outerHeight) + 100),
-    1.2
-  ) * 0.5;
+  // Get REAL dimensions
+  const outerWidth = dimensions.width || 120;
+  const outerHeight = dimensions.height || dimensions.thickness || 80;
+  const wallThickness = dimensions.wallThickness || 10;
+  const tubeLength = dimensions.length || 180;
+
+  // Scale to fill canvas (70% of available space)
+  const maxSize = Math.min(bounds.width, bounds.height) * 0.7;
+  const scale = maxSize / Math.max(outerWidth, outerHeight, tubeLength * 0.6);
 
   const ow = outerWidth * scale;
   const oh = outerHeight * scale;
-  const wt = Math.max(wallThickness * scale, 4);
+  const wt = Math.max(wallThickness * scale, 6);
   const iw = ow - 2 * wt;
   const ih = oh - 2 * wt;
+  const length = tubeLength * scale * 0.45;
 
-  // Position (shifted for 3D effect)
-  const cx = centerX - 25;
-  const cy = centerY + 15;
+  // Center position
+  const cx = centerX;
+  const cy = centerY + 10;
 
-  // 3D extrusion parameters (45° angle like Rafael)
-  const cos45 = Math.cos(Math.PI / 4);
-  const sin45 = Math.sin(Math.PI / 4);
-  const extrusion = availableSize * 0.15;
-  const backX = cx + extrusion * cos45;
-  const backY = cy - extrusion * sin45;
+  // Isometric 45-degree angle
+  const angle = Math.PI / 4;
+  const cos45 = Math.cos(angle);
+  const sin45 = Math.sin(angle);
 
-  ctx.save();
+  // Back face position
+  const backX = cx - length * cos45;
+  const backY = cy - length * sin45;
 
   // ═══════════════════════════════════════════════════════════════════
-  // BACK RECTANGULAR TUBE (lighter, at 45° offset)
+  // BACK FACE (far end) - dashed hidden lines
   // ═══════════════════════════════════════════════════════════════════
-  ctx.strokeStyle = '#94a3b8';
-  ctx.lineWidth = 1.5;
-  ctx.setLineDash([4, 3]);
-  
+  ctx.strokeStyle = '#64748b';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4, 4]);
+
   // Back outer rectangle
   ctx.beginPath();
   ctx.rect(backX - ow/2, backY - oh/2, ow, oh);
   ctx.stroke();
-  
+
   // Back inner rectangle
   ctx.beginPath();
   ctx.rect(backX - iw/2, backY - ih/2, iw, ih);
@@ -2643,135 +3836,169 @@ function drawRectangularTubeCrossSection(
   ctx.setLineDash([]);
 
   // ═══════════════════════════════════════════════════════════════════
-  // EXTRUSION LINES connecting front to back (visible corners)
+  // TOP AND SIDE SURFACES with metallic gradient
   // ═══════════════════════════════════════════════════════════════════
+
+  // Top surface gradient
+  const topGradient = ctx.createLinearGradient(
+    backX - ow/2, backY - oh/2,
+    cx + ow/2, cy - oh/2
+  );
+  topGradient.addColorStop(0, '#cbd5e1');
+  topGradient.addColorStop(0.3, '#f1f5f9');
+  topGradient.addColorStop(0.7, '#e2e8f0');
+  topGradient.addColorStop(1, '#cbd5e1');
+
+  // Draw top surface (outer)
+  ctx.fillStyle = topGradient;
+  ctx.beginPath();
+  ctx.moveTo(cx - ow/2, cy - oh/2);
+  ctx.lineTo(backX - ow/2, backY - oh/2);
+  ctx.lineTo(backX + ow/2, backY - oh/2);
+  ctx.lineTo(cx + ow/2, cy - oh/2);
+  ctx.closePath();
+  ctx.fill();
+
+  // Top surface outline
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Right side surface gradient
+  const sideGradient = ctx.createLinearGradient(cx + ow/2, cy - oh/2, cx + ow/2, cy + oh/2);
+  sideGradient.addColorStop(0, '#e2e8f0');
+  sideGradient.addColorStop(0.5, '#cbd5e1');
+  sideGradient.addColorStop(1, '#94a3b8');
+
+  // Draw right side surface
+  ctx.fillStyle = sideGradient;
+  ctx.beginPath();
+  ctx.moveTo(cx + ow/2, cy - oh/2);
+  ctx.lineTo(backX + ow/2, backY - oh/2);
+  ctx.lineTo(backX + ow/2, backY + oh/2);
+  ctx.lineTo(cx + ow/2, cy + oh/2);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  // ═══════════════════════════════════════════════════════════════════
+  // FRONT FACE with wall cross-section
+  // ═══════════════════════════════════════════════════════════════════
+
+  // Front face gradient (wall material)
+  const frontGradient = ctx.createLinearGradient(cx - ow/2, cy - oh/2, cx + ow/2, cy + oh/2);
+  frontGradient.addColorStop(0, '#f1f5f9');
+  frontGradient.addColorStop(0.3, '#e2e8f0');
+  frontGradient.addColorStop(0.7, '#cbd5e1');
+  frontGradient.addColorStop(1, '#94a3b8');
+
+  // Draw outer rectangle fill
+  ctx.fillStyle = frontGradient;
+  ctx.beginPath();
+  ctx.rect(cx - ow/2, cy - oh/2, ow, oh);
+  ctx.fill();
+
+  // ═══════════════════════════════════════════════════════════════════
+  // ISO HATCHING on wall section (45 degree, 6px spacing)
+  // ═══════════════════════════════════════════════════════════════════
+  ctx.save();
+
+  // Create clipping path for wall area (outer minus inner)
+  ctx.beginPath();
+  ctx.rect(cx - ow/2, cy - oh/2, ow, oh);
+  ctx.rect(cx - iw/2, cy - ih/2, iw, ih);
+  ctx.clip('evenodd');
+
   ctx.strokeStyle = '#64748b';
-  ctx.lineWidth = 1.5;
-  
-  // Outer corners extrusion lines
-  const outerCorners = [
-    { fx: cx - ow/2, fy: cy - oh/2 },  // Top-left
-    { fx: cx + ow/2, fy: cy - oh/2 },  // Top-right
-    { fx: cx + ow/2, fy: cy + oh/2 },  // Bottom-right
-    { fx: cx - ow/2, fy: cy + oh/2 },  // Bottom-left
-  ];
-  
-  outerCorners.forEach(corner => {
-    ctx.beginPath();
-    ctx.moveTo(corner.fx, corner.fy);
-    ctx.lineTo(corner.fx + extrusion * cos45, corner.fy - extrusion * sin45);
-    ctx.stroke();
-  });
+  ctx.lineWidth = 0.6;
+  const hatchSpacing = 6;
+  const hatchExtent = Math.max(ow, oh) * 1.5;
 
-  // Inner corners extrusion lines (for the hollow part)
-  const innerCorners = [
-    { fx: cx - iw/2, fy: cy - ih/2 },  // Top-left
-    { fx: cx + iw/2, fy: cy - ih/2 },  // Top-right
-    { fx: cx + iw/2, fy: cy + ih/2 },  // Bottom-right
-    { fx: cx - iw/2, fy: cy + ih/2 },  // Bottom-left
-  ];
-  
-  innerCorners.forEach(corner => {
+  for (let i = -hatchExtent; i < hatchExtent; i += hatchSpacing) {
     ctx.beginPath();
-    ctx.moveTo(corner.fx, corner.fy);
-    ctx.lineTo(corner.fx + extrusion * cos45, corner.fy - extrusion * sin45);
+    ctx.moveTo(cx + i - hatchExtent/2, cy + hatchExtent/2);
+    ctx.lineTo(cx + i + hatchExtent/2, cy - hatchExtent/2);
     ctx.stroke();
-  });
+  }
+  ctx.restore();
 
   // ═══════════════════════════════════════════════════════════════════
-  // FRONT RECTANGULAR TUBE PROFILE (solid - main view)
+  // INNER VOID (hollow center)
   // ═══════════════════════════════════════════════════════════════════
-  ctx.strokeStyle = '#1e293b';
+  const voidGradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(iw, ih)/2);
+  voidGradient.addColorStop(0, '#ffffff');
+  voidGradient.addColorStop(1, '#f1f5f9');
+
+  ctx.fillStyle = voidGradient;
+  ctx.beginPath();
+  ctx.rect(cx - iw/2, cy - ih/2, iw, ih);
+  ctx.fill();
+
+  // Inner rectangle outline
+  ctx.strokeStyle = '#1a1a2e';
   ctx.lineWidth = 2.5;
-  ctx.fillStyle = '#e2e8f0';
-  
-  // Fill outer
-  ctx.fillRect(cx - ow/2, cy - oh/2, ow, oh);
-  
-  // Outer rectangle
-  ctx.strokeRect(cx - ow/2, cy - oh/2, ow, oh);
-  
-  // Inner rectangle (hollow - white fill)
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(cx - iw/2, cy - ih/2, iw, ih);
   ctx.strokeRect(cx - iw/2, cy - ih/2, iw, ih);
 
+  // Outer rectangle outline - thick
+  ctx.lineWidth = 3;
+  ctx.strokeRect(cx - ow/2, cy - oh/2, ow, oh);
+
   // ═══════════════════════════════════════════════════════════════════
-  // CENTERLINES (dashed) - Rafael style
+  // CENTERLINES (chain-dash per ISO 128)
   // ═══════════════════════════════════════════════════════════════════
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 1;
-  ctx.setLineDash([12, 4, 3, 4]);
-  
-  // Horizontal centerline
+  ctx.strokeStyle = '#64748b';
+  ctx.lineWidth = 0.8;
+  ctx.setLineDash([15, 3, 3, 3]);
+
+  // Horizontal through front
   ctx.beginPath();
-  ctx.moveTo(cx - ow/2 - 40, cy);
-  ctx.lineTo(cx + ow/2 + 40, cy);
+  ctx.moveTo(cx - ow/2 - 50, cy);
+  ctx.lineTo(cx + ow/2 + 50, cy);
   ctx.stroke();
-  
-  // Vertical centerline
+
+  // Vertical through front
   ctx.beginPath();
-  ctx.moveTo(cx, cy - oh/2 - 40);
-  ctx.lineTo(cx, cy + oh/2 + 40);
+  ctx.moveTo(cx, cy - oh/2 - 50);
+  ctx.lineTo(cx, cy + oh/2 + 50);
+  ctx.stroke();
+
+  // Axial centerline through length
+  ctx.beginPath();
+  ctx.moveTo(cx + 40 * cos45, cy + 40 * sin45);
+  ctx.lineTo(backX - 50 * cos45, backY - 50 * sin45);
   ctx.stroke();
   ctx.setLineDash([]);
 
   // ═══════════════════════════════════════════════════════════════════
-  // RAFAEL-STYLE ARROWS - from LEFT and TOP with PROBES
+  // LABEL with professional styling
   // ═══════════════════════════════════════════════════════════════════
-  const probeSize = 10;
-  
-  // Arrow from LEFT with probe square
-  const probeLeftX = cx - ow/2 - 55;
-  const probeLeftY = cy;
-  drawRafaelScanArrow(ctx, probeLeftX, probeLeftY, 'right');
-  ctx.fillStyle = '#ffffff';
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 1.5;
-  ctx.fillRect(probeLeftX - probeSize/2, probeLeftY - probeSize/2, probeSize, probeSize);
-  ctx.strokeRect(probeLeftX - probeSize/2, probeLeftY - probeSize/2, probeSize, probeSize);
-  
-  // Arrow from TOP with probe square
-  const probeTopX = cx;
-  const probeTopY = cy - oh/2 - 55;
-  drawRafaelScanArrow(ctx, probeTopX, probeTopY, 'down');
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(probeTopX - probeSize/2, probeTopY - probeSize/2, probeSize, probeSize);
-  ctx.strokeRect(probeTopX - probeSize/2, probeTopY - probeSize/2, probeSize, probeSize);
-  
-  // Angle beam triangle marker
-  drawRafaelAngleBeamArrow(ctx, cx + ow/3, cy - oh/2 - 45);
-
-  // ═══════════════════════════════════════════════════════════════════
-  // "Rect Tube" LABEL - underlined, at bottom
-  // ═══════════════════════════════════════════════════════════════════
-  ctx.fillStyle = '#1e293b';
-  ctx.font = 'bold 15px Arial';
+  ctx.fillStyle = '#1a1a2e';
+  ctx.font = 'bold 16px Arial';
   ctx.textAlign = 'center';
-  const labelX = cx;
   const labelY = cy + oh/2 + 55;
-  ctx.fillText('Rect Tube', labelX, labelY);
-  
+  ctx.fillText('RECTANGULAR TUBE', cx, labelY);
+
   // Underline
-  const labelWidth = ctx.measureText('Rect Tube').width;
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 1.5;
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(labelX - labelWidth/2, labelY + 3);
-  ctx.lineTo(labelX + labelWidth/2, labelY + 3);
+  ctx.moveTo(cx - 85, labelY + 5);
+  ctx.lineTo(cx + 85, labelY + 5);
   ctx.stroke();
 
   ctx.restore();
 }
 
 /**
- * Draw RAFAEL-STYLE Z-SECTION PROFILE
- * Z-profile shape with scan arrows
- * SMART SCALING: Always fits inside bounds
- */
-/**
- * Draw RAFAEL-STYLE TILTED 3D Z-SECTION
- * Like Rafael 5036 - tilted at 45° with Z cross-section at front
+ * Draw PROFESSIONAL CAD-GRADE 3D Z-SECTION PROFILE
+ * Features:
+ * - Z-shape cross-section view
+ * - 3D isometric view with depth
+ * - Hatching on material areas
+ * - Diagonal web clearly visible
+ * - Gradient fills for metallic look
+ * - Chain-dash centerlines per ISO 128
+ * - Uses 70% of available canvas space
  */
 function drawZSectionCrossSection(
   ctx: CanvasRenderingContext2D,
@@ -2780,131 +4007,246 @@ function drawZSectionCrossSection(
   bounds: DrawBounds,
   dimensions: DrawDimensions
 ) {
-  const flangeWidth = dimensions.width || 50;
-  const totalHeight = dimensions.height || 80;
-  const thickness = dimensions.thickness || 8;
-  const profileLength = dimensions.length || 100;
+  ctx.save();
 
-  const availableSize = Math.min(bounds.width, bounds.height) - 120;
-  const scale = Math.min(availableSize / Math.max(flangeWidth * 2, totalHeight, profileLength * 0.7), 0.8);
+  // Get real dimensions
+  const flangeWidth = dimensions.width || 80;
+  const totalHeight = dimensions.height || 120;
+  const thickness = dimensions.thickness || 12;
+  const profileLength = dimensions.length || 120;
 
-  const fw = flangeWidth * scale * 0.5;
-  const th = totalHeight * scale * 0.5;
-  const t = Math.max(thickness * scale, 3);
-  const length = profileLength * scale * 0.35;
+  // Scale to fill canvas (70% of available space)
+  const maxSize = Math.min(bounds.width, bounds.height) * 0.7;
+  const scale = maxSize / Math.max(flangeWidth * 2, totalHeight, profileLength * 0.6);
 
+  const fw = flangeWidth * scale;
+  const th = totalHeight * scale;
+  const t = Math.max(thickness * scale, 8);
+  const length = profileLength * scale * 0.4;
+
+  // Isometric angle (45 degrees)
   const angle = Math.PI / 4;
   const cos45 = Math.cos(angle);
   const sin45 = Math.sin(angle);
 
+  // Position
   const cx = centerX;
-  const cy = centerY + 15;
+  const cy = centerY + 10;
 
-  ctx.save();
-
-  // Back Z-shape (dashed)
+  // Back face position
   const backX = cx - length * cos45;
   const backY = cy - length * sin45;
-  
-  ctx.strokeStyle = '#1e293b';
+
+  // ═══════════════════════════════════════════════════════════════════
+  // BACK Z-PROFILE (hidden - dashed)
+  // ═══════════════════════════════════════════════════════════════════
+  ctx.strokeStyle = '#94a3b8';
   ctx.lineWidth = 1;
   ctx.setLineDash([4, 4]);
+
+  // Back Z-shape
   ctx.beginPath();
-  // Top flange
+  // Top flange (right side)
   ctx.moveTo(backX, backY - th/2);
-  ctx.lineTo(backX + fw * 0.6, backY - th/2);
-  // Web
-  ctx.moveTo(backX, backY - th/2);
-  ctx.lineTo(backX, backY + th/2);
-  // Bottom flange
-  ctx.moveTo(backX - fw * 0.6, backY + th/2);
-  ctx.lineTo(backX, backY + th/2);
+  ctx.lineTo(backX + fw, backY - th/2);
+  ctx.lineTo(backX + fw, backY - th/2 + t);
+  ctx.lineTo(backX + t/2, backY - th/2 + t);
+  // Web (diagonal)
+  ctx.lineTo(backX + t/2, backY + th/2 - t);
+  // Bottom flange (left side)
+  ctx.lineTo(backX, backY + th/2 - t);
+  ctx.lineTo(backX - fw + t, backY + th/2 - t);
+  ctx.lineTo(backX - fw + t, backY + th/2);
+  ctx.lineTo(backX - fw, backY + th/2);
+  ctx.lineTo(backX - fw, backY + th/2 - t);
+  ctx.lineTo(backX - t/2, backY + th/2 - t);
+  ctx.lineTo(backX - t/2, backY - th/2 + t);
+  ctx.lineTo(backX, backY - th/2 + t);
+  ctx.closePath();
   ctx.stroke();
   ctx.setLineDash([]);
 
-  // Connecting edges
-  ctx.lineWidth = 2;
+  // ═══════════════════════════════════════════════════════════════════
+  // TOP SURFACES with gradient
+  // ═══════════════════════════════════════════════════════════════════
+  const topGradient = ctx.createLinearGradient(backX, backY - th/2, cx, cy - th/2);
+  topGradient.addColorStop(0, '#cbd5e1');
+  topGradient.addColorStop(0.5, '#f1f5f9');
+  topGradient.addColorStop(1, '#e2e8f0');
+
+  // Top flange surface
+  ctx.fillStyle = topGradient;
   ctx.beginPath();
   ctx.moveTo(cx, cy - th/2);
   ctx.lineTo(backX, backY - th/2);
+  ctx.lineTo(backX + fw, backY - th/2);
+  ctx.lineTo(cx + fw, cy - th/2);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 2;
   ctx.stroke();
+
+  // ═══════════════════════════════════════════════════════════════════
+  // SIDE SURFACES with gradient
+  // ═══════════════════════════════════════════════════════════════════
+  const sideGradient = ctx.createLinearGradient(cx + fw, cy - th/2, cx + fw, cy + th/2);
+  sideGradient.addColorStop(0, '#e2e8f0');
+  sideGradient.addColorStop(0.5, '#cbd5e1');
+  sideGradient.addColorStop(1, '#94a3b8');
+
+  // Right side of top flange
+  ctx.fillStyle = sideGradient;
   ctx.beginPath();
   ctx.moveTo(cx + fw, cy - th/2);
-  ctx.lineTo(backX + fw * 0.6, backY - th/2);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(cx - fw, cy + th/2);
-  ctx.lineTo(backX - fw * 0.6, backY + th/2);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(cx, cy + th/2);
-  ctx.lineTo(backX, backY + th/2);
+  ctx.lineTo(backX + fw, backY - th/2);
+  ctx.lineTo(backX + fw, backY - th/2 + t);
+  ctx.lineTo(cx + fw, cy - th/2 + t);
+  ctx.closePath();
+  ctx.fill();
   ctx.stroke();
 
-  // Front Z-shape
-  ctx.fillStyle = '#f8fafc';
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 2.5;
-  
+  // Left side of bottom flange
+  const leftGradient = ctx.createLinearGradient(cx - fw, cy - th/2, cx - fw, cy + th/2);
+  leftGradient.addColorStop(0, '#cbd5e1');
+  leftGradient.addColorStop(0.5, '#b3bcc9');
+  leftGradient.addColorStop(1, '#94a3b8');
+
+  ctx.fillStyle = leftGradient;
+  ctx.beginPath();
+  ctx.moveTo(cx - fw, cy + th/2 - t);
+  ctx.lineTo(backX - fw, backY + th/2 - t);
+  ctx.lineTo(backX - fw, backY + th/2);
+  ctx.lineTo(cx - fw, cy + th/2);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  // ═══════════════════════════════════════════════════════════════════
+  // FRONT Z-PROFILE FACE with gradient
+  // ═══════════════════════════════════════════════════════════════════
+  const faceGradient = ctx.createLinearGradient(cx - fw, cy - th/2, cx + fw, cy + th/2);
+  faceGradient.addColorStop(0, '#f8fafc');
+  faceGradient.addColorStop(0.3, '#f1f5f9');
+  faceGradient.addColorStop(0.7, '#e2e8f0');
+  faceGradient.addColorStop(1, '#cbd5e1');
+
+  ctx.fillStyle = faceGradient;
+  ctx.beginPath();
   // Top flange
-  ctx.fillRect(cx, cy - th/2, fw, t);
-  ctx.strokeRect(cx, cy - th/2, fw, t);
-  
+  ctx.moveTo(cx, cy - th/2);
+  ctx.lineTo(cx + fw, cy - th/2);
+  ctx.lineTo(cx + fw, cy - th/2 + t);
+  ctx.lineTo(cx + t/2, cy - th/2 + t);
   // Web
-  ctx.fillRect(cx - t/2, cy - th/2 + t, t, th - 2*t);
-  ctx.strokeRect(cx - t/2, cy - th/2 + t, t, th - 2*t);
-  
+  ctx.lineTo(cx + t/2, cy + th/2 - t);
   // Bottom flange
-  ctx.fillRect(cx - fw, cy + th/2 - t, fw, t);
-  ctx.strokeRect(cx - fw, cy + th/2 - t, fw, t);
+  ctx.lineTo(cx, cy + th/2 - t);
+  ctx.lineTo(cx, cy + th/2);
+  ctx.lineTo(cx - fw, cy + th/2);
+  ctx.lineTo(cx - fw, cy + th/2 - t);
+  ctx.lineTo(cx - t/2, cy + th/2 - t);
+  // Web back
+  ctx.lineTo(cx - t/2, cy - th/2 + t);
+  ctx.lineTo(cx, cy - th/2 + t);
+  ctx.closePath();
+  ctx.fill();
 
-  // Centerlines
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 1;
-  ctx.setLineDash([12, 4, 3, 4]);
+  // ═══════════════════════════════════════════════════════════════════
+  // ISO HATCHING on front Z-profile (45 degree, 6px spacing)
+  // ═══════════════════════════════════════════════════════════════════
+  ctx.save();
   ctx.beginPath();
-  ctx.moveTo(cx, cy - th/2 - 25);
-  ctx.lineTo(cx, cy + th/2 + 25);
-  ctx.stroke();
+  // Recreate Z-shape for clipping
+  ctx.moveTo(cx, cy - th/2);
+  ctx.lineTo(cx + fw, cy - th/2);
+  ctx.lineTo(cx + fw, cy - th/2 + t);
+  ctx.lineTo(cx + t/2, cy - th/2 + t);
+  ctx.lineTo(cx + t/2, cy + th/2 - t);
+  ctx.lineTo(cx, cy + th/2 - t);
+  ctx.lineTo(cx, cy + th/2);
+  ctx.lineTo(cx - fw, cy + th/2);
+  ctx.lineTo(cx - fw, cy + th/2 - t);
+  ctx.lineTo(cx - t/2, cy + th/2 - t);
+  ctx.lineTo(cx - t/2, cy - th/2 + t);
+  ctx.lineTo(cx, cy - th/2 + t);
+  ctx.closePath();
+  ctx.clip();
+
+  ctx.strokeStyle = '#64748b';
+  ctx.lineWidth = 0.6;
+  const hatchSpacing = 6;
+  const hatchExtent = Math.max(fw * 2, th) * 1.5;
+
+  for (let i = -hatchExtent; i < hatchExtent; i += hatchSpacing) {
+    ctx.beginPath();
+    ctx.moveTo(cx + i - hatchExtent/2, cy + hatchExtent/2);
+    ctx.lineTo(cx + i + hatchExtent/2, cy - hatchExtent/2);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // Front Z-profile outline - thick
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 2.5;
   ctx.beginPath();
-  ctx.moveTo(cx + 20 * cos45, cy + 20 * sin45);
-  ctx.lineTo(backX - 30 * cos45, backY - 30 * sin45);
+  ctx.moveTo(cx, cy - th/2);
+  ctx.lineTo(cx + fw, cy - th/2);
+  ctx.lineTo(cx + fw, cy - th/2 + t);
+  ctx.lineTo(cx + t/2, cy - th/2 + t);
+  ctx.lineTo(cx + t/2, cy + th/2 - t);
+  ctx.lineTo(cx, cy + th/2 - t);
+  ctx.lineTo(cx, cy + th/2);
+  ctx.lineTo(cx - fw, cy + th/2);
+  ctx.lineTo(cx - fw, cy + th/2 - t);
+  ctx.lineTo(cx - t/2, cy + th/2 - t);
+  ctx.lineTo(cx - t/2, cy - th/2 + t);
+  ctx.lineTo(cx, cy - th/2 + t);
+  ctx.closePath();
   ctx.stroke();
+
+  // ═══════════════════════════════════════════════════════════════════
+  // CENTERLINES (chain-dash per ISO 128)
+  // ═══════════════════════════════════════════════════════════════════
+  ctx.strokeStyle = '#64748b';
+  ctx.lineWidth = 0.8;
+  ctx.setLineDash([15, 3, 3, 3]);
+
+  // Vertical centerline through web
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - th/2 - 50);
+  ctx.lineTo(cx, cy + th/2 + 50);
+  ctx.stroke();
+
+  // Horizontal centerline
+  ctx.beginPath();
+  ctx.moveTo(cx - fw - 30, cy);
+  ctx.lineTo(cx + fw + 30, cy);
+  ctx.stroke();
+
+  // Axial centerline through length
+  ctx.beginPath();
+  ctx.moveTo(cx + 40 * cos45, cy + 40 * sin45);
+  ctx.lineTo(backX - 50 * cos45, backY - 50 * sin45);
+  ctx.stroke();
+
   ctx.setLineDash([]);
 
-  // RAFAEL-STYLE ARROWS - from LEFT and TOP with PROBES
-  const probeSize = 10;
-  
-  // Arrow from LEFT with probe square
-  const probeLeftX = cx - fw - 55;
-  const probeLeftY = cy;
-  drawRafaelScanArrow(ctx, probeLeftX, probeLeftY, 'right');
-  ctx.fillStyle = '#ffffff';
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 1.5;
-  ctx.fillRect(probeLeftX - probeSize/2, probeLeftY - probeSize/2, probeSize, probeSize);
-  ctx.strokeRect(probeLeftX - probeSize/2, probeLeftY - probeSize/2, probeSize, probeSize);
-  
-  // Arrow from TOP with probe square
-  const probeTopX = cx;
-  const probeTopY = cy - th/2 - 55;
-  drawRafaelScanArrow(ctx, probeTopX, probeTopY, 'down');
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(probeTopX - probeSize/2, probeTopY - probeSize/2, probeSize, probeSize);
-  ctx.strokeRect(probeTopX - probeSize/2, probeTopY - probeSize/2, probeSize, probeSize);
-  
-  // Angle beam triangle marker
-  drawRafaelAngleBeamArrow(ctx, cx + fw/3, cy - th/2 - 45);
-
-  ctx.fillStyle = '#1e293b';
-  ctx.font = 'bold 14px Arial';
+  // ═══════════════════════════════════════════════════════════════════
+  // LABEL with professional styling
+  // ═══════════════════════════════════════════════════════════════════
+  ctx.fillStyle = '#1a1a2e';
+  ctx.font = 'bold 16px Arial';
   ctx.textAlign = 'center';
-  ctx.fillText('Z-Section', cx, cy + th/2 + 38);
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 1.5;
+  const labelY = cy + th/2 + 55;
+  ctx.fillText('Z-SECTION', cx, labelY);
+
+  // Underline
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(cx - 38, cy + th/2 + 41);
-  ctx.lineTo(cx + 38, cy + th/2 + 41);
+  ctx.moveTo(cx - 50, labelY + 5);
+  ctx.lineTo(cx + 50, labelY + 5);
   ctx.stroke();
 
   ctx.restore();
@@ -2916,9 +4258,15 @@ function drawZSectionCrossSection(
  * SMART SCALING: Always fits inside bounds
  */
 /**
- * Draw RAFAEL-STYLE 3D PYRAMID
- * Pyramid with perspective lines and diagonal scan arrows
- * SMART SCALING: Always fits inside bounds
+ * Draw PROFESSIONAL CAD-GRADE 3D PYRAMID
+ * Features:
+ * - Dramatic 4-sided pyramid in isometric view
+ * - Gradient shading on visible faces (2-3 faces)
+ * - Base with hatching
+ * - Apex clearly marked
+ * - Professional line weights (2.5px)
+ * - Chain-dash centerlines per ISO 128
+ * - Uses 70% of available canvas space
  */
 function drawPyramidCrossSection(
   ctx: CanvasRenderingContext2D,
@@ -2927,127 +4275,188 @@ function drawPyramidCrossSection(
   bounds: DrawBounds,
   dimensions: DrawDimensions
 ) {
-  // Get real dimensions
-  const baseWidth = dimensions.width || dimensions.diameter || 80;
-  const pyramidHeight = dimensions.height || dimensions.length || 120;
+  ctx.save();
 
-  // Smart scaling
-  const availableSize = Math.min(bounds.width, bounds.height);
-  
-  const scale = Math.min(
-    availableSize / (Math.max(baseWidth, pyramidHeight) + 100),
-    1.0
-  ) * 0.45;
+  // Get real dimensions
+  const baseWidth = dimensions.width || dimensions.diameter || 100;
+  const pyramidHeight = dimensions.height || dimensions.length || 150;
+
+  // Scale to fill canvas (70% of available space)
+  const maxSize = Math.min(bounds.width, bounds.height) * 0.7;
+  const scale = maxSize / Math.max(baseWidth, pyramidHeight);
 
   const bw = baseWidth * scale;
   const h = pyramidHeight * scale;
+  const baseDepth = bw * 0.5; // Isometric depth for 3D effect
 
-  // Position (shifted for 3D effect)
-  const cx = centerX - 15;
-  const cy = centerY + 10;
+  // Isometric angles
+  const isoAngle = Math.PI / 6; // 30 degrees
+  const isoX = baseDepth * Math.cos(isoAngle);
+  const isoY = baseDepth * Math.sin(isoAngle);
 
-  ctx.save();
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 2;
-  ctx.fillStyle = '#f8fafc';
+  // Position (centered)
+  const cx = centerX;
+  const cy = centerY;
+
+  // Key points
+  const apex = { x: cx, y: cy - h/2 };
+  const frontLeft = { x: cx - bw/2, y: cy + h/2 };
+  const frontRight = { x: cx + bw/2, y: cy + h/2 };
+  const backLeft = { x: cx - bw/2 + isoX, y: cy + h/2 - isoY };
+  const backRight = { x: cx + bw/2 + isoX, y: cy + h/2 - isoY };
 
   // ═══════════════════════════════════════════════════════════════════
-  // 3D PYRAMID (triangle with perspective lines)
+  // BACK FACE (hidden lines - dashed)
   // ═══════════════════════════════════════════════════════════════════
-  
-  // Front face (triangle)
+  ctx.strokeStyle = '#94a3b8';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4, 4]);
+
+  // Back left edge to apex
   ctx.beginPath();
-  ctx.moveTo(cx - bw/2, cy + h/2); // Bottom left
-  ctx.lineTo(cx + bw/2, cy + h/2); // Bottom right
-  ctx.lineTo(cx, cy - h/2); // Apex
+  ctx.moveTo(backLeft.x, backLeft.y);
+  ctx.lineTo(apex.x, apex.y);
+  ctx.stroke();
+
+  // Back base edge
+  ctx.beginPath();
+  ctx.moveTo(backLeft.x, backLeft.y);
+  ctx.lineTo(backRight.x, backRight.y);
+  ctx.stroke();
+
+  ctx.setLineDash([]);
+
+  // ═══════════════════════════════════════════════════════════════════
+  // RIGHT FACE (darkest - shadow side) with gradient
+  // ═══════════════════════════════════════════════════════════════════
+  const rightGradient = ctx.createLinearGradient(frontRight.x, frontRight.y, apex.x, apex.y);
+  rightGradient.addColorStop(0, '#94a3b8');
+  rightGradient.addColorStop(0.5, '#b3bcc9');
+  rightGradient.addColorStop(1, '#cbd5e1');
+
+  ctx.fillStyle = rightGradient;
+  ctx.beginPath();
+  ctx.moveTo(apex.x, apex.y);
+  ctx.lineTo(frontRight.x, frontRight.y);
+  ctx.lineTo(backRight.x, backRight.y);
   ctx.closePath();
   ctx.fill();
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 2.5;
   ctx.stroke();
 
-  // Back edge (dashed for hidden line - gives 3D effect)
-  ctx.setLineDash([5, 3]);
+  // ═══════════════════════════════════════════════════════════════════
+  // LEFT FACE (main visible face) with gradient
+  // ═══════════════════════════════════════════════════════════════════
+  const leftGradient = ctx.createLinearGradient(frontLeft.x, frontLeft.y, apex.x, apex.y);
+  leftGradient.addColorStop(0, '#e2e8f0');
+  leftGradient.addColorStop(0.4, '#f1f5f9');
+  leftGradient.addColorStop(1, '#f8fafc');
+
+  ctx.fillStyle = leftGradient;
   ctx.beginPath();
-  ctx.moveTo(cx, cy + h/2); // Bottom center
-  ctx.lineTo(cx, cy - h/2); // Apex
+  ctx.moveTo(apex.x, apex.y);
+  ctx.lineTo(frontLeft.x, frontLeft.y);
+  ctx.lineTo(frontRight.x, frontRight.y);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 2.5;
   ctx.stroke();
-  ctx.setLineDash([]);
 
   // ═══════════════════════════════════════════════════════════════════
-  // CENTERLINES (dashed) - Rafael style
+  // ISO HATCHING on front face (45 degree, 6px spacing)
   // ═══════════════════════════════════════════════════════════════════
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 1;
-  ctx.setLineDash([12, 4, 3, 4]);
-  
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(apex.x, apex.y);
+  ctx.lineTo(frontLeft.x, frontLeft.y);
+  ctx.lineTo(frontRight.x, frontRight.y);
+  ctx.closePath();
+  ctx.clip();
+
+  ctx.strokeStyle = '#64748b';
+  ctx.lineWidth = 0.6;
+  const hatchSpacing = 6;
+  const hatchExtent = Math.max(bw, h) * 1.5;
+
+  for (let i = -hatchExtent; i < hatchExtent; i += hatchSpacing) {
+    ctx.beginPath();
+    ctx.moveTo(cx + i - hatchExtent/2, cy + h);
+    ctx.lineTo(cx + i + hatchExtent/2, cy - h);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // ═══════════════════════════════════════════════════════════════════
+  // BASE LINE (front edge - emphasized)
+  // ═══════════════════════════════════════════════════════════════════
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(frontLeft.x, frontLeft.y);
+  ctx.lineTo(frontRight.x, frontRight.y);
+  ctx.stroke();
+
+  // ═══════════════════════════════════════════════════════════════════
+  // APEX MARKER (small circle at apex)
+  // ═══════════════════════════════════════════════════════════════════
+  ctx.fillStyle = '#1a1a2e';
+  ctx.beginPath();
+  ctx.arc(apex.x, apex.y, 4, 0, Math.PI * 2);
+  ctx.fill();
+
+  // ═══════════════════════════════════════════════════════════════════
+  // CENTERLINES (chain-dash per ISO 128)
+  // ═══════════════════════════════════════════════════════════════════
+  ctx.strokeStyle = '#64748b';
+  ctx.lineWidth = 0.8;
+  ctx.setLineDash([15, 3, 3, 3]);
+
   // Vertical centerline (through apex)
   ctx.beginPath();
-  ctx.moveTo(cx, cy - h/2 - 40);
-  ctx.lineTo(cx, cy + h/2 + 30);
+  ctx.moveTo(cx, apex.y - 40);
+  ctx.lineTo(cx, frontLeft.y + 30);
   ctx.stroke();
-  
-  // Horizontal centerline (through base)
+
+  // Horizontal centerline (through base center)
   ctx.beginPath();
-  ctx.moveTo(cx - bw/2 - 35, cy + h/2);
-  ctx.lineTo(cx + bw/2 + 35, cy + h/2);
+  ctx.moveTo(frontLeft.x - 40, frontLeft.y);
+  ctx.lineTo(frontRight.x + 40, frontLeft.y);
   ctx.stroke();
+
   ctx.setLineDash([]);
 
   // ═══════════════════════════════════════════════════════════════════
-  // RAFAEL-STYLE ARROWS - from LEFT and TOP with PROBES
+  // LABEL with professional styling
   // ═══════════════════════════════════════════════════════════════════
-  const probeSize = 10;
-  
-  // Arrow from LEFT with probe square
-  const probeLeftX = cx - bw/2 - 55;
-  const probeLeftY = cy;
-  drawRafaelScanArrow(ctx, probeLeftX, probeLeftY, 'right');
-  ctx.fillStyle = '#ffffff';
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 1.5;
-  ctx.fillRect(probeLeftX - probeSize/2, probeLeftY - probeSize/2, probeSize, probeSize);
-  ctx.strokeRect(probeLeftX - probeSize/2, probeLeftY - probeSize/2, probeSize, probeSize);
-  
-  // Arrow from TOP with probe square
-  const probeTopX = cx;
-  const probeTopY = cy - h/2 - 55;
-  drawRafaelScanArrow(ctx, probeTopX, probeTopY, 'down');
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(probeTopX - probeSize/2, probeTopY - probeSize/2, probeSize, probeSize);
-  ctx.strokeRect(probeTopX - probeSize/2, probeTopY - probeSize/2, probeSize, probeSize);
-  
-  // Angle beam triangle marker
-  drawRafaelAngleBeamArrow(ctx, cx + bw/3, cy - h/2 - 45);
-
-  // ═══════════════════════════════════════════════════════════════════
-  // "Pyramid" LABEL - underlined, at bottom
-  // ═══════════════════════════════════════════════════════════════════
-  ctx.fillStyle = '#1e293b';
-  ctx.font = 'bold 15px Arial';
+  ctx.fillStyle = '#1a1a2e';
+  ctx.font = 'bold 16px Arial';
   ctx.textAlign = 'center';
-  const labelX = cx;
-  const labelY = cy + h/2 + 50;
-  ctx.fillText('Pyramid', labelX, labelY);
-  
+  const labelY = frontLeft.y + 55;
+  ctx.fillText('PYRAMID', cx, labelY);
+
   // Underline
-  const labelWidth = ctx.measureText('Pyramid').width;
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 1.5;
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(labelX - labelWidth/2, labelY + 3);
-  ctx.lineTo(labelX + labelWidth/2, labelY + 3);
+  ctx.moveTo(cx - 45, labelY + 5);
+  ctx.lineTo(cx + 45, labelY + 5);
   ctx.stroke();
 
   ctx.restore();
 }
 
 /**
- * Draw RAFAEL-STYLE ELLIPSE/OVAL PROFILE
- * Ellipse cross-section with scan direction arrows
- * SMART SCALING: Always fits inside bounds
- */
-/**
- * Draw RAFAEL-STYLE TILTED 3D ELLIPSE BAR
- * Like Rafael 5036 - tilted at 45° with ellipse cross-section at front
+ * Draw PROFESSIONAL CAD-GRADE 3D ELLIPSE/OVAL CYLINDER
+ * Features:
+ * - Elliptical cross-section (not circular)
+ * - 3D depth showing the elliptical shape
+ * - Hatching on front ellipse face
+ * - Gradients for metallic look
+ * - Professional line weights (2.5px)
+ * - Chain-dash centerlines per ISO 128
+ * - Uses 70% of available canvas space
  */
 function drawEllipseCrossSection(
   ctx: CanvasRenderingContext2D,
@@ -3056,157 +4465,188 @@ function drawEllipseCrossSection(
   bounds: DrawBounds,
   dimensions: DrawDimensions
 ) {
-  // Get real dimensions
-  const majorAxis = dimensions.width || dimensions.diameter || 100;
-  const minorAxis = dimensions.height || dimensions.thickness || 60;
+  ctx.save();
 
-  // Smart scaling
-  const availableSize = Math.min(bounds.width, bounds.height);
-  
-  const scale = Math.min(
-    availableSize / (Math.max(majorAxis, minorAxis) + 100),
-    1.0
-  ) * 0.4;
+  // Get real dimensions
+  const majorAxis = dimensions.width || dimensions.diameter || 120;
+  const minorAxis = dimensions.height || dimensions.thickness || 70;
+  const depth = dimensions.length || majorAxis * 0.6;
+
+  // Scale to fill canvas (70% of available space)
+  const maxSize = Math.min(bounds.width, bounds.height) * 0.7;
+  const scale = maxSize / Math.max(majorAxis, minorAxis, depth * 0.7);
 
   const ma = majorAxis * scale;
   const mi = minorAxis * scale;
+  const extrusionLength = depth * scale * 0.4;
 
-  // Position (shifted for 3D effect)
-  const cx = centerX - 20;
-  const cy = centerY + 12;
+  // Isometric angle (45 degrees)
+  const angle = Math.PI / 4;
+  const cos45 = Math.cos(angle);
+  const sin45 = Math.sin(angle);
 
-  // 3D extrusion parameters (45° angle like Rafael)
-  const cos45 = Math.cos(Math.PI / 4);
-  const sin45 = Math.sin(Math.PI / 4);
-  const extrusion = availableSize * 0.15;
-  const backX = cx + extrusion * cos45;
-  const backY = cy - extrusion * sin45;
+  // Position (front face center)
+  const cx = centerX;
+  const cy = centerY + 10;
 
-  ctx.save();
+  // Back ellipse center
+  const backX = cx - extrusionLength * cos45;
+  const backY = cy - extrusionLength * sin45;
 
   // ═══════════════════════════════════════════════════════════════════
-  // BACK ELLIPSE (lighter, at 45° offset)
+  // BACK ELLIPSE (hidden - dashed)
   // ═══════════════════════════════════════════════════════════════════
   ctx.strokeStyle = '#94a3b8';
-  ctx.lineWidth = 1.5;
-  ctx.setLineDash([4, 3]);
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4, 4]);
   ctx.beginPath();
   ctx.ellipse(backX, backY, ma/2, mi/2, 0, 0, Math.PI * 2);
   ctx.stroke();
   ctx.setLineDash([]);
 
   // ═══════════════════════════════════════════════════════════════════
-  // EXTRUSION LINES connecting front to back ellipse (visible edges)
+  // TOP SURFACE (curved connecting surface) with gradient
   // ═══════════════════════════════════════════════════════════════════
-  ctx.strokeStyle = '#64748b';
-  ctx.lineWidth = 1.5;
-  
-  // Draw connection lines at key points around the ellipse
-  const anglePoints = [0, Math.PI/4, Math.PI/2, 3*Math.PI/4, Math.PI, 5*Math.PI/4, 3*Math.PI/2, 7*Math.PI/4];
-  anglePoints.forEach(angle => {
-    const fx = cx + (ma/2) * Math.cos(angle);
-    const fy = cy + (mi/2) * Math.sin(angle);
-    const bx = backX + (ma/2) * Math.cos(angle);
-    const by = backY + (mi/2) * Math.sin(angle);
-    ctx.beginPath();
-    ctx.moveTo(fx, fy);
-    ctx.lineTo(bx, by);
-    ctx.stroke();
-  });
-
-  // ═══════════════════════════════════════════════════════════════════
-  // FRONT ELLIPSE PROFILE with gradient (solid - main view)
-  // ═══════════════════════════════════════════════════════════════════
-  
-  // Create subtle gradient for 3D effect
-  const gradient = ctx.createRadialGradient(
-    cx - ma * 0.15, cy - mi * 0.15, 0,
-    cx, cy, ma / 2
+  const topGradient = ctx.createLinearGradient(
+    backX - ma/2, backY,
+    cx + ma/2, cy
   );
-  gradient.addColorStop(0, '#ffffff');
-  gradient.addColorStop(0.7, '#f1f5f9');
-  gradient.addColorStop(1, '#e2e8f0');
+  topGradient.addColorStop(0, '#cbd5e1');
+  topGradient.addColorStop(0.3, '#f1f5f9');
+  topGradient.addColorStop(0.7, '#e2e8f0');
+  topGradient.addColorStop(1, '#cbd5e1');
 
-  ctx.fillStyle = gradient;
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 2.5;
+  // Draw top curved surface (upper half of ellipse connection)
+  ctx.fillStyle = topGradient;
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, ma/2, mi/2, 0, Math.PI, 0);
+  ctx.lineTo(backX + ma/2, backY);
+  ctx.ellipse(backX, backY, ma/2, mi/2, 0, 0, Math.PI, true);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // ═══════════════════════════════════════════════════════════════════
+  // BOTTOM SURFACE (darker) with gradient
+  // ═══════════════════════════════════════════════════════════════════
+  const bottomGradient = ctx.createLinearGradient(cx, cy, cx, cy + mi/2);
+  bottomGradient.addColorStop(0, '#cbd5e1');
+  bottomGradient.addColorStop(1, '#94a3b8');
+
+  ctx.fillStyle = bottomGradient;
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, ma/2, mi/2, 0, 0, Math.PI);
+  ctx.lineTo(backX - ma/2, backY);
+  ctx.ellipse(backX, backY, ma/2, mi/2, 0, Math.PI, 0, true);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // ═══════════════════════════════════════════════════════════════════
+  // FRONT ELLIPSE FACE with radial gradient (3D metallic look)
+  // ═══════════════════════════════════════════════════════════════════
+  const faceGradient = ctx.createRadialGradient(
+    cx - ma * 0.15, cy - mi * 0.15, 0,
+    cx, cy, Math.max(ma, mi) / 2
+  );
+  faceGradient.addColorStop(0, '#ffffff');
+  faceGradient.addColorStop(0.3, '#f8fafc');
+  faceGradient.addColorStop(0.7, '#e2e8f0');
+  faceGradient.addColorStop(1, '#cbd5e1');
+
+  ctx.fillStyle = faceGradient;
   ctx.beginPath();
   ctx.ellipse(cx, cy, ma/2, mi/2, 0, 0, Math.PI * 2);
   ctx.fill();
+
+  // ═══════════════════════════════════════════════════════════════════
+  // ISO HATCHING on front ellipse face (45 degree, 6px spacing)
+  // ═══════════════════════════════════════════════════════════════════
+  ctx.save();
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, ma/2, mi/2, 0, 0, Math.PI * 2);
+  ctx.clip();
+
+  ctx.strokeStyle = '#64748b';
+  ctx.lineWidth = 0.6;
+  const hatchSpacing = 6;
+  const hatchExtent = Math.max(ma, mi) * 1.5;
+
+  for (let i = -hatchExtent; i < hatchExtent; i += hatchSpacing) {
+    ctx.beginPath();
+    ctx.moveTo(cx + i - hatchExtent/2, cy + hatchExtent/2);
+    ctx.lineTo(cx + i + hatchExtent/2, cy - hatchExtent/2);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // Front ellipse outline - thick
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, ma/2, mi/2, 0, 0, Math.PI * 2);
   ctx.stroke();
 
   // ═══════════════════════════════════════════════════════════════════
-  // CENTERLINES (dashed) - Rafael style
+  // CENTERLINES (chain-dash per ISO 128)
   // ═══════════════════════════════════════════════════════════════════
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 1;
-  ctx.setLineDash([12, 4, 3, 4]);
-  
+  ctx.strokeStyle = '#64748b';
+  ctx.lineWidth = 0.8;
+  ctx.setLineDash([15, 3, 3, 3]);
+
   // Horizontal centerline (major axis)
   ctx.beginPath();
-  ctx.moveTo(cx - ma/2 - 40, cy);
-  ctx.lineTo(cx + ma/2 + 40, cy);
+  ctx.moveTo(cx - ma/2 - 50, cy);
+  ctx.lineTo(cx + ma/2 + 50, cy);
   ctx.stroke();
-  
+
   // Vertical centerline (minor axis)
   ctx.beginPath();
-  ctx.moveTo(cx, cy - mi/2 - 40);
-  ctx.lineTo(cx, cy + mi/2 + 40);
+  ctx.moveTo(cx, cy - mi/2 - 50);
+  ctx.lineTo(cx, cy + mi/2 + 50);
   ctx.stroke();
+
+  // Axial centerline through length
+  ctx.beginPath();
+  ctx.moveTo(cx + 40 * cos45, cy + 40 * sin45);
+  ctx.lineTo(backX - 50 * cos45, backY - 50 * sin45);
+  ctx.stroke();
+
   ctx.setLineDash([]);
 
   // ═══════════════════════════════════════════════════════════════════
-  // RAFAEL-STYLE ARROWS - from LEFT and TOP with PROBES
+  // LABEL with professional styling
   // ═══════════════════════════════════════════════════════════════════
-  const probeSize = 10;
-  
-  // Arrow from LEFT with probe square
-  const probeLeftX = cx - ma/2 - 55;
-  const probeLeftY = cy;
-  drawRafaelScanArrow(ctx, probeLeftX, probeLeftY, 'right');
-  ctx.fillStyle = '#ffffff';
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 1.5;
-  ctx.fillRect(probeLeftX - probeSize/2, probeLeftY - probeSize/2, probeSize, probeSize);
-  ctx.strokeRect(probeLeftX - probeSize/2, probeLeftY - probeSize/2, probeSize, probeSize);
-  
-  // Arrow from TOP with probe square
-  const probeTopX = cx;
-  const probeTopY = cy - mi/2 - 55;
-  drawRafaelScanArrow(ctx, probeTopX, probeTopY, 'down');
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(probeTopX - probeSize/2, probeTopY - probeSize/2, probeSize, probeSize);
-  ctx.strokeRect(probeTopX - probeSize/2, probeTopY - probeSize/2, probeSize, probeSize);
-  
-  // Angle beam triangle marker
-  drawRafaelAngleBeamArrow(ctx, cx + ma/3, cy - mi/2 - 45);
-
-  // ═══════════════════════════════════════════════════════════════════
-  // "Ellipse" LABEL - underlined, at bottom
-  // ═══════════════════════════════════════════════════════════════════
-  ctx.fillStyle = '#1e293b';
-  ctx.font = 'bold 15px Arial';
+  ctx.fillStyle = '#1a1a2e';
+  ctx.font = 'bold 16px Arial';
   ctx.textAlign = 'center';
-  const labelX = cx;
-  const labelY = cy + mi/2 + 50;
-  ctx.fillText('Ellipse', labelX, labelY);
-  
+  const labelY = cy + mi/2 + 55;
+  ctx.fillText('ELLIPSE', cx, labelY);
+
   // Underline
-  const labelWidth = ctx.measureText('Ellipse').width;
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 1.5;
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(labelX - labelWidth/2, labelY + 3);
-  ctx.lineTo(labelX + labelWidth/2, labelY + 3);
+  ctx.moveTo(cx - 40, labelY + 5);
+  ctx.lineTo(cx + 40, labelY + 5);
   ctx.stroke();
 
   ctx.restore();
 }
 
 /**
- * Draw RAFAEL-STYLE CUSTOM/IRREGULAR SHAPE
- * Generic shape with scan direction arrows for any custom part
- * SMART SCALING: Always fits inside bounds
+ * Draw PROFESSIONAL CAD-GRADE CUSTOM SHAPE PLACEHOLDER
+ * Features:
+ * - Clean rounded rectangle container
+ * - Professional gear icon in center (engineering symbol)
+ * - Gradient fills for modern look
+ * - "CUSTOM" label with professional styling
+ * - Chain-dash centerlines per ISO 128
+ * - Uses 70% of available canvas space
  */
 function drawCustomCrossSection(
   ctx: CanvasRenderingContext2D,
@@ -3215,41 +4655,36 @@ function drawCustomCrossSection(
   bounds: DrawBounds,
   dimensions: DrawDimensions
 ) {
-  // Get real dimensions
-  const width = dimensions.width || 100;
-  const height = dimensions.height || 80;
+  ctx.save();
 
-  // Smart scaling
-  const arrowSpace = 120;
-  const availableWidth = bounds.width - arrowSpace;
-  const availableHeight = bounds.height - arrowSpace;
-  
-  const scale = Math.min(
-    availableWidth / (width + 60),
-    availableHeight / (height + 60),
-    1.3
-  ) * 0.6;
+  // Get dimensions
+  const width = dimensions.width || 140;
+  const height = dimensions.height || 100;
+
+  // Scale to fill canvas (70% of available space)
+  const maxSize = Math.min(bounds.width, bounds.height) * 0.7;
+  const scale = maxSize / Math.max(width, height);
 
   const w = width * scale;
   const h = height * scale;
+  const r = Math.min(w, h) * 0.12; // Corner radius
 
-  // Position (shifted left for label)
-  const cx = centerX - 20;
+  // Position
+  const cx = centerX;
   const cy = centerY;
-
-  ctx.save();
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 2;
-  ctx.fillStyle = '#f8fafc';
-
-  // ═══════════════════════════════════════════════════════════════════
-  // CUSTOM SHAPE (organic rounded form to indicate "any shape")
-  // ═══════════════════════════════════════════════════════════════════
-  
   const x = cx - w/2;
   const y = cy - h/2;
-  const r = Math.min(w, h) * 0.15;
 
+  // ═══════════════════════════════════════════════════════════════════
+  // MAIN CONTAINER with gradient (rounded rectangle)
+  // ═══════════════════════════════════════════════════════════════════
+  const containerGradient = ctx.createLinearGradient(x, y, x + w, y + h);
+  containerGradient.addColorStop(0, '#f8fafc');
+  containerGradient.addColorStop(0.3, '#f1f5f9');
+  containerGradient.addColorStop(0.7, '#e2e8f0');
+  containerGradient.addColorStop(1, '#cbd5e1');
+
+  ctx.fillStyle = containerGradient;
   ctx.beginPath();
   ctx.moveTo(x + r, y);
   ctx.lineTo(x + w - r, y);
@@ -3262,78 +4697,139 @@ function drawCustomCrossSection(
   ctx.quadraticCurveTo(x, y, x + r, y);
   ctx.closePath();
   ctx.fill();
+
+  // Container outline
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 2.5;
   ctx.stroke();
 
-  // "Custom" text inside
-  ctx.font = 'italic 12px Arial';
-  ctx.fillStyle = '#64748b';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText('Custom', cx, cy);
+  // ═══════════════════════════════════════════════════════════════════
+  // GEAR ICON (engineering symbol for custom/configurable)
+  // ═══════════════════════════════════════════════════════════════════
+  const gearSize = Math.min(w, h) * 0.35;
+  const gearX = cx;
+  const gearY = cy;
+  const outerR = gearSize / 2;
+  const innerR = outerR * 0.6;
+  const holeR = outerR * 0.25;
+  const teethCount = 8;
+  const toothDepth = outerR * 0.25;
+
+  // Gear gradient
+  const gearGradient = ctx.createRadialGradient(gearX - 5, gearY - 5, 0, gearX, gearY, outerR);
+  gearGradient.addColorStop(0, '#94a3b8');
+  gearGradient.addColorStop(0.5, '#64748b');
+  gearGradient.addColorStop(1, '#475569');
+
+  ctx.fillStyle = gearGradient;
+  ctx.beginPath();
+
+  // Draw gear teeth
+  for (let i = 0; i < teethCount; i++) {
+    const angle1 = (i / teethCount) * Math.PI * 2;
+    const angle2 = ((i + 0.35) / teethCount) * Math.PI * 2;
+    const angle3 = ((i + 0.65) / teethCount) * Math.PI * 2;
+    const angle4 = ((i + 1) / teethCount) * Math.PI * 2;
+
+    if (i === 0) {
+      ctx.moveTo(gearX + (outerR + toothDepth) * Math.cos(angle1), gearY + (outerR + toothDepth) * Math.sin(angle1));
+    }
+    ctx.lineTo(gearX + (outerR + toothDepth) * Math.cos(angle2), gearY + (outerR + toothDepth) * Math.sin(angle2));
+    ctx.lineTo(gearX + outerR * Math.cos(angle2), gearY + outerR * Math.sin(angle2));
+    ctx.lineTo(gearX + outerR * Math.cos(angle3), gearY + outerR * Math.sin(angle3));
+    ctx.lineTo(gearX + (outerR + toothDepth) * Math.cos(angle3), gearY + (outerR + toothDepth) * Math.sin(angle3));
+    ctx.lineTo(gearX + (outerR + toothDepth) * Math.cos(angle4), gearY + (outerR + toothDepth) * Math.sin(angle4));
+  }
+  ctx.closePath();
+  ctx.fill();
+
+  // Gear outline
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Inner circle
+  ctx.fillStyle = '#cbd5e1';
+  ctx.beginPath();
+  ctx.arc(gearX, gearY, innerR, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  // Center hole
+  ctx.fillStyle = '#f1f5f9';
+  ctx.beginPath();
+  ctx.arc(gearX, gearY, holeR, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = '#475569';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
 
   // ═══════════════════════════════════════════════════════════════════
-  // CENTERLINES (dashed) - Rafael style
+  // HATCHING around gear (light diagonal lines for texture)
   // ═══════════════════════════════════════════════════════════════════
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 1;
-  ctx.setLineDash([12, 4, 3, 4]);
-  
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+  // Cut out gear area
+  ctx.arc(gearX, gearY, outerR + toothDepth + 10, 0, Math.PI * 2, true);
+  ctx.clip('evenodd');
+
+  ctx.strokeStyle = '#94a3b8';
+  ctx.lineWidth = 0.5;
+  const hatchSpacing = 8;
+  for (let i = -h; i < w + h; i += hatchSpacing) {
+    ctx.beginPath();
+    ctx.moveTo(x + i, y + h);
+    ctx.lineTo(x + i + h, y);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // ═══════════════════════════════════════════════════════════════════
+  // CENTERLINES (chain-dash per ISO 128)
+  // ═══════════════════════════════════════════════════════════════════
+  ctx.strokeStyle = '#64748b';
+  ctx.lineWidth = 0.8;
+  ctx.setLineDash([15, 3, 3, 3]);
+
   // Horizontal centerline
   ctx.beginPath();
-  ctx.moveTo(cx - w/2 - 45, cy);
-  ctx.lineTo(cx + w/2 + 45, cy);
+  ctx.moveTo(x - 50, cy);
+  ctx.lineTo(x + w + 50, cy);
   ctx.stroke();
-  
+
   // Vertical centerline
   ctx.beginPath();
-  ctx.moveTo(cx, cy - h/2 - 45);
-  ctx.lineTo(cx, cy + h/2 + 45);
+  ctx.moveTo(cx, y - 50);
+  ctx.lineTo(cx, y + h + 50);
   ctx.stroke();
+
   ctx.setLineDash([]);
 
   // ═══════════════════════════════════════════════════════════════════
-  // RAFAEL-STYLE ARROWS - from LEFT and TOP with PROBES
+  // LABEL with professional styling
   // ═══════════════════════════════════════════════════════════════════
-  const probeSize = 10;
-  
-  // Arrow from LEFT with probe square
-  const probeLeftX = cx - w/2 - 55;
-  const probeLeftY = cy;
-  drawRafaelScanArrow(ctx, probeLeftX, probeLeftY, 'right');
-  ctx.fillStyle = '#ffffff';
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 1.5;
-  ctx.fillRect(probeLeftX - probeSize/2, probeLeftY - probeSize/2, probeSize, probeSize);
-  ctx.strokeRect(probeLeftX - probeSize/2, probeLeftY - probeSize/2, probeSize, probeSize);
-  
-  // Arrow from TOP with probe square
-  const probeTopX = cx;
-  const probeTopY = cy - h/2 - 55;
-  drawRafaelScanArrow(ctx, probeTopX, probeTopY, 'down');
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(probeTopX - probeSize/2, probeTopY - probeSize/2, probeSize, probeSize);
-  ctx.strokeRect(probeTopX - probeSize/2, probeTopY - probeSize/2, probeSize, probeSize);
-  
-  // Angle beam triangle marker
-  drawRafaelAngleBeamArrow(ctx, cx + w/3, cy - h/2 - 45);
-
-  // ═══════════════════════════════════════════════════════════════════
-  // "Custom" LABEL - underlined, at bottom
-  // ═══════════════════════════════════════════════════════════════════
-  ctx.fillStyle = '#1e293b';
-  ctx.font = 'bold 15px Arial';
+  ctx.fillStyle = '#1a1a2e';
+  ctx.font = 'bold 16px Arial';
   ctx.textAlign = 'center';
-  const labelX = cx;
-  const labelY = cy + h/2 + 55;
-  ctx.fillText('Custom', labelX, labelY);
-  
+  const labelY = y + h + 55;
+  ctx.fillText('CUSTOM', cx, labelY);
+
   // Underline
-  const labelWidth = ctx.measureText('Custom').width;
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 1.5;
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(labelX - labelWidth/2, labelY + 3);
-  ctx.lineTo(labelX + labelWidth/2, labelY + 3);
+  ctx.moveTo(cx - 45, labelY + 5);
+  ctx.lineTo(cx + 45, labelY + 5);
   ctx.stroke();
 
   ctx.restore();
@@ -5203,7 +6699,7 @@ function drawPlateBeam(
   // A - LW 0° (Axial from Top): Arrow from TOP going DOWN
   if (beamType === 'longitudinal-axial-top') {
     x = centerX - plateWidth * 0.3;  // Left-center position
-    y = centerY - plateHeight/2 - 40;  // Above the plate
+    y = centerY - plateHeight/2;  // AT the top surface (ASTM E2375-16)
     direction = 90;  // Points DOWN
     drawPerpedicularBeam(ctx, x, y, direction, beamDepth, beamConfig, label, isHighlighted, animProgress);
     return;
@@ -5212,7 +6708,7 @@ function drawPlateBeam(
   // B - LW 0° (Axial from Bottom): Arrow from BOTTOM going UP
   if (beamType === 'longitudinal-axial-bottom') {
     x = centerX + plateWidth * 0.3;  // Right-center position
-    y = centerY + plateHeight/2 + 40;  // Below the plate
+    y = centerY + plateHeight/2;  // AT the bottom surface (ASTM E2375-16)
     direction = 270;  // Points UP
     drawPerpedicularBeam(ctx, x, y, direction, beamDepth, beamConfig, label, isHighlighted, animProgress);
     return;
@@ -5222,11 +6718,11 @@ function drawPlateBeam(
   if (beamType === 'through-transmission') {
     // Draw transmitter from top
     x = centerX;
-    const yTop = centerY - plateHeight/2 - 40;
+    const yTop = centerY - plateHeight/2;  // AT the top surface (ASTM E2375-16)
     drawPerpedicularBeam(ctx, x, yTop, 90, beamDepth, beamConfig, 'T', isHighlighted, animProgress);
 
     // Draw receiver at bottom (with "R" label)
-    const yBottom = centerY + plateHeight/2 + 40;
+    const yBottom = centerY + plateHeight/2;  // AT the bottom surface (ASTM E2375-16)
     const receiverConfig = { ...beamConfig, color: '#65a30d' };  // Slightly darker lime for receiver
     drawPerpedicularBeam(ctx, x, yBottom, 270, beamDepth * 0.3, receiverConfig, 'R', false, animProgress);
 
@@ -5234,13 +6730,13 @@ function drawPlateBeam(
     ctx.fillStyle = beamConfig.color;
     ctx.font = 'bold 14px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText(label + ' (TT)', x, centerY - plateHeight/2 - 55);
+    ctx.fillText(label + ' (TT)', x, centerY - plateHeight/2 - 20);  // Adjusted label position
     return;
   }
 
   // C - LW 0° (Radial from OD) - for plates this is from the SIDE
   if (beamType === 'longitudinal-radial') {
-    x = centerX - plateWidth/2 - 40;  // Left side of plate
+    x = centerX - plateWidth/2;  // AT the left edge (ASTM E2375-16)
     y = centerY;  // Center height
     direction = 0;  // Points RIGHT (into the plate)
     drawPerpedicularBeam(ctx, x, y, direction, plateWidth + 40, beamConfig, label, isHighlighted, animProgress);
@@ -5257,7 +6753,7 @@ function drawPlateBeam(
     } else {
       x = centerX + plateWidth * 0.2;
     }
-    y = centerY - plateHeight/2 - 30;
+    y = centerY - plateHeight/2;  // AT the top surface (ASTM E2375-16)
 
     // Draw angled beam
     const shearAngle = beamConfig.scanPattern === 'clockwise' ? 90 + beamConfig.angle :
@@ -5296,7 +6792,7 @@ function drawPlateBeam(
     x = centerX - plateWidth/2 + plateWidth * normalizedPosition;
   }
 
-  y = centerY - plateHeight/2 - 40;
+  y = centerY - plateHeight/2;  // AT the top surface (ASTM E2375-16)
   drawPerpedicularBeam(ctx, x, y, 90, beamDepth, beamConfig, label, isHighlighted, animProgress);
 }
 
@@ -5621,8 +7117,30 @@ function drawPerpedicularBeam(
 
   ctx.restore();
 
-  // Label
-  drawLabel(ctx, x, y - 10, label, beamConfig.color, isHighlighted);
+  // Label - position based on beam direction (ASTM E2375-16: labels OUTSIDE the shape)
+  // angle 90° = down, label above; angle 270° = up, label below; angle 0° = right, label left
+  let labelX = x;
+  let labelY = y;
+  const labelOffset = 15;
+
+  if (angle === 90) {
+    // Arrow points DOWN, label goes ABOVE
+    labelY = y - labelOffset;
+  } else if (angle === 270) {
+    // Arrow points UP, label goes BELOW
+    labelY = y + labelOffset;
+  } else if (angle === 0) {
+    // Arrow points RIGHT, label goes LEFT
+    labelX = x - labelOffset;
+  } else if (angle === 180) {
+    // Arrow points LEFT, label goes RIGHT
+    labelX = x + labelOffset;
+  } else {
+    // Default: label above
+    labelY = y - labelOffset;
+  }
+
+  drawLabel(ctx, labelX, labelY, label, beamConfig.color, isHighlighted);
 }
 
 /**

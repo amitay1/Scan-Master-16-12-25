@@ -43,43 +43,44 @@ export function validatePriceType(value: unknown): { valid: boolean; error?: str
   return { valid: true };
 }
 
-// Technique sheet data validation
+// Technique sheet data validation - flexible for saving drafts
 export const techniqueSheetDataSchema = z.object({
   standardName: z.string().optional(),
   inspectionSetup: z.object({
-    partNumber: z.string().max(100),
-    partName: z.string().max(200).optional(),
-    material: z.string().max(100),
-    materialSpec: z.string().max(100).optional(),
-    partType: z.string(),
+    partNumber: z.string().max(100).optional().default(''),
+    partName: z.string().max(200).optional().default(''),
+    material: z.string().max(100).optional().default(''),
+    materialSpec: z.string().max(100).optional().default(''),
+    partType: z.string().optional().default(''),
   }).passthrough(),
   equipment: z.object({
-    manufacturer: z.string().max(100).optional(),
-    model: z.string().max(100).optional(),
-    serialNumber: z.string().max(100).optional(),
-    transducerType: z.string().max(100).optional(),
-    frequency: z.string().max(50).optional(),
+    manufacturer: z.string().max(100).optional().default(''),
+    model: z.string().max(100).optional().default(''),
+    serialNumber: z.string().max(100).optional().default(''),
+    transducerType: z.string().max(100).optional().default(''),
+    frequency: z.string().max(50).optional().default(''),
   }).passthrough(),
   calibration: z.object({
-    standardType: z.string().max(200).optional(),
-    referenceMaterial: z.string().max(100).optional(),
-    blockSerialNumber: z.string().max(100).optional(),
+    standardType: z.string().max(200).optional().default(''),
+    referenceMaterial: z.string().max(100).optional().default(''),
+    blockSerialNumber: z.string().max(100).optional().default(''),
   }).passthrough(),
   scanParameters: z.object({
-    scanMethod: z.string().max(100).optional(),
+    scanMethod: z.string().max(100).optional().default(''),
     scanSpeed: z.union([z.number(), z.string().max(50)]).optional(),
     scanIndex: z.union([z.number(), z.string().max(50)]).optional(),
   }).passthrough(),
   acceptanceCriteria: z.object({
-    acceptanceClass: z.string(),
-    discontinuityType: z.string().max(200).optional(),
-    maximumAllowableSize: z.string().max(100).optional(),
+    acceptanceClass: z.string().optional().default(''),
+    discontinuityType: z.string().max(200).optional().default(''),
+    maximumAllowableSize: z.string().max(100).optional().default(''),
   }).passthrough(),
   documentation: z.object({
-    inspectorName: z.string().max(100),
-    certificationLevel: z.string().max(50).optional(),
-    inspectionDate: z.string(),
+    inspectorName: z.string().max(100).optional().default(''),
+    certificationLevel: z.string().max(50).optional().default(''),
+    inspectionDate: z.string().optional().default(''),
   }).passthrough(),
+  scanDetails: z.any().optional(),
 }).passthrough();
 
 // Validate technique sheet data

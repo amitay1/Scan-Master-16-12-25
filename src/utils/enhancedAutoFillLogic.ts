@@ -121,49 +121,7 @@ export const GEOMETRY_INSPECTION_RULES: Record<PartGeometry, GeometryInspectionR
     specialNotes: ["Account for taper angle"],
     diagramReference: "Base Geometry - Cone"
   },
-  
-  // ============= STRUCTURAL PROFILES =============
-  l_profile: {
-    displayName: "L-Profile (Angle)",
-    scanDirection: ["Axial along legs", "Radial from edges"],
-    waveMode: ["Longitudinal"],
-    conditions: ["Scan flanges and web separately"],
-    specialNotes: ["Check corner fillet"],
-    diagramReference: "Structural - L-Profile"
-  },
-  t_profile: {
-    displayName: "T-Profile",
-    scanDirection: ["Axial", "Indexed transverse per feature"],
-    waveMode: ["Longitudinal"],
-    conditions: ["T-section requires multi-orientation scans"],
-    specialNotes: ["Scan from multiple surfaces"],
-    diagramReference: "Structural - T-Profile"
-  },
-  i_profile: {
-    displayName: "I-Profile (I-Beam)",
-    scanDirection: ["Axial", "Indexed scans on flanges and web"],
-    waveMode: ["Longitudinal"],
-    conditions: ["I-beam geometry"],
-    specialNotes: ["Scan from multiple surfaces"],
-    diagramReference: "Structural - I-Profile"
-  },
-  u_profile: {
-    displayName: "U-Profile (Channel)",
-    scanDirection: ["Axial", "Transverse indexed scans"],
-    waveMode: ["Longitudinal"],
-    conditions: ["U-channel requires coverage of all faces"],
-    specialNotes: ["Check web and flanges"],
-    diagramReference: "Structural - U-Profile"
-  },
-  z_profile: {
-    displayName: "Z-Profile",
-    scanDirection: ["Axial along profile"],
-    waveMode: ["Longitudinal"],
-    conditions: ["Coverage of all faces"],
-    specialNotes: ["Check web and flanges"],
-    diagramReference: "Structural - Z-Profile"
-  },
-  
+
   // ============= LEGACY MAPPINGS =============
   plate: {
     displayName: "Plate and Flat Bar",
@@ -440,22 +398,6 @@ export const GEOMETRY_INSPECTION_RULES: Record<PartGeometry, GeometryInspectionR
     conditions: ["Adaptive scanning required"],
     specialNotes: ["Follow part contour"],
     diagramReference: "Near-Net"
-  },
-  z_section: {
-    displayName: "Z-Section Profile",
-    scanDirection: ["Axial along profile"],
-    waveMode: ["Longitudinal"],
-    conditions: ["Coverage of all faces"],
-    specialNotes: ["Check web and flanges"],
-    diagramReference: "Z-Section"
-  },
-  custom_profile: {
-    displayName: "Custom Profile",
-    scanDirection: ["Per drawing"],
-    waveMode: ["Per specification"],
-    conditions: ["Drawing-specific"],
-    specialNotes: ["Refer to engineering requirements"],
-    diagramReference: "Custom"
   },
   machined_component: {
     displayName: "Machined Component",

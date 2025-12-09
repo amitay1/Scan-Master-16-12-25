@@ -68,9 +68,8 @@ import type {
 import type { InspectionReportData } from "@/types/inspectionReport";
 import type { ScanDetailsData } from "@/types/scanDetails";
 
-// Import actual export functions
+// Import actual export function
 import { exportComprehensiveTechniqueSheet } from "@/utils/comprehensiveTechniqueSheetExport";
-import { exportTechniqueSheetToPDF } from "@/utils/techniqueSheetExport";
 
 interface UnifiedExportDialogProps {
   open: boolean;
@@ -187,16 +186,9 @@ export const UnifiedExportDialog: React.FC<UnifiedExportDialogProps> = ({
         setExportProgress(50);
         await new Promise(r => setTimeout(r, 100));
 
-        // Choose export function based on template
-        if (selectedTemplate === "tuv" || selectedTemplate === "iai") {
-          // Use comprehensive (multi-page) export for detailed templates
-          setExportProgress(70);
-          exportComprehensiveTechniqueSheet(exportData);
-        } else {
-          // Use compact export for simpler templates
-          setExportProgress(70);
-          exportTechniqueSheetToPDF(exportData);
-        }
+        // Use unified comprehensive export for all templates
+        setExportProgress(70);
+        exportComprehensiveTechniqueSheet(exportData);
 
         setExportProgress(100);
       } else {

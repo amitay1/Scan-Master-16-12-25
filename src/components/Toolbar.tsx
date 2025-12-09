@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { 
@@ -8,10 +8,14 @@ import {
   CheckCircle, 
   FileSearch,
   Settings,
-  Printer,
   RefreshCw,
-  FileDown
+  FileDown,
+  FolderOpen
 } from "lucide-react";
+import { SettingsDialog } from "@/components/SettingsDialog";
+import { SavedCardsDialog } from "@/components/SavedCardsDialog";
+import { useSavedCards } from "@/hooks/useSavedCards";
+import type { SavedCard } from "@/contexts/SavedCardsContext";
 
 interface ToolbarProps {
   onSave: () => void;
@@ -25,7 +29,12 @@ interface ToolbarProps {
   activePart?: "A" | "B";
   onActivePartChange?: (value: "A" | "B") => void;
   onCopyAToB?: () => void;
+  onOpenSavedCards?: () => void;
+  onLoadLocalCard?: (card: SavedCard) => void;
 }
+
+// Re-export SavedCard type for consumers
+export type { SavedCard } from '@/contexts/SavedCardsContext';
 
 export const Toolbar = ({ 
   onSave, 
@@ -38,8 +47,14 @@ export const Toolbar = ({
   onSplitModeChange,
   activePart = "A",
   onActivePartChange,
-  onCopyAToB
+  onCopyAToB,
+  onOpenSavedCards,
+  onLoadLocalCard
 }: ToolbarProps) => {
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [localSavedCardsOpen, setLocalSavedCardsOpen] = useState(false);
+  const { cards } = useSavedCards();
+  
   return (
     <div className="h-12 border-b border-border bg-card flex items-center px-2 md:px-3 gap-1 md:gap-2 overflow-x-auto">
       {/* Quick Actions - Compact on mobile */}
@@ -146,9 +161,48 @@ export const Toolbar = ({
       <div className="flex-1" />
 
       {/* Right Side Tools - Hidden on small mobile */}
-      <Button variant="ghost" size="icon" title="Settings" className="h-8 w-8 md:h-9 md:w-9 hidden sm:flex">
+      <Button 
+        variant="ghost" 
+        size="icon" 
+        title="Local Saved Cards" 
+        className="h-8 w-8 md:h-9 md:w-9 hidden sm:flex relative"
+        onClick={() => setLocalSavedCardsOpen(true)}
+      >
+        <FolderOpen className="h-3 w-3 md:h-4 md:w-4" />
+        {cards.length > 0 && (
+          <span className="absolute -top-1 -right-1 h-4 w-4 bg-blue-500 text-white text-[9px] rounded-full flex items-center justify-center">
+            {cards.length}
+          </span>
+        )}
+      </Button>
+      
+      <Button 
+        variant="ghost" 
+        size="icon" 
+        title="Settings" 
+        className="h-8 w-8 md:h-9 md:w-9 hidden sm:flex"
+        onClick={() => setSettingsOpen(true)}
+      >
         <Settings className="h-3 w-3 md:h-4 md:w-4" />
       </Button>
+      
+      {/* Settings Dialog */}
+      <SettingsDialog 
+        open={settingsOpen} 
+        onOpenChange={setSettingsOpen} 
+      />
+      
+      {/* Local Saved Cards Dialog */}
+      <SavedCardsDialog
+        open={localSavedCardsOpen}
+        onOpenChange={setLocalSavedCardsOpen}
+        onLoadCard={(card) => {
+          if (onLoadLocalCard) {
+            onLoadLocalCard(card);
+          }
+          setLocalSavedCardsOpen(false);
+        }}
+      />
     </div>
   );
 };

@@ -49,6 +49,10 @@ interface ThreeDViewerProps {
     innerLength?: number;
     innerWidth?: number;
     wallThickness?: number;
+    // Cone-specific dimensions
+    coneTopDiameter?: number;
+    coneBottomDiameter?: number;
+    coneHeight?: number;
   };
 }
 
@@ -149,6 +153,10 @@ const Part = ({ partType, material, dimensions }: ThreeDViewerProps) => {
     innerLength: debouncedDimensions?.innerLength || 0,
     innerWidth: debouncedDimensions?.innerWidth || 0,
     wallThickness: debouncedDimensions?.wallThickness || 0,
+    // Cone-specific parameters
+    coneTopDiameter: debouncedDimensions?.coneTopDiameter || 0,
+    coneBottomDiameter: debouncedDimensions?.coneBottomDiameter || 0,
+    coneHeight: debouncedDimensions?.coneHeight || 0,
   });
 
   if (!partType) {
@@ -200,17 +208,19 @@ export const ThreeDViewer = (props: ThreeDViewerProps) => {
           maxDistance={10}
         />
         
-        {/* Lighting */}
-        <ambientLight intensity={0.4} />
+        {/* Lighting - Enhanced for better visibility */}
+        <ambientLight intensity={0.7} />
         <directionalLight
           position={[10, 10, 10]}
-          intensity={1}
+          intensity={1.5}
           castShadow
           shadow-mapSize-width={2048}
           shadow-mapSize-height={2048}
         />
-        <directionalLight position={[-10, 10, 10]} intensity={0.5} />
-        <directionalLight position={[0, -10, -10]} intensity={0.3} />
+        <directionalLight position={[-10, 10, 10]} intensity={1.0} />
+        <directionalLight position={[0, -10, -10]} intensity={0.6} />
+        <directionalLight position={[0, 10, -10]} intensity={0.8} />
+        <directionalLight position={[-5, -5, 10]} intensity={0.5} />
         
         {/* Grid */}
         <gridHelper args={[10, 10, "#3b82f6", "#94a3b8"]} position={[0, -1, 0]} />

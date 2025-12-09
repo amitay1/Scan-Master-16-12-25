@@ -95,6 +95,11 @@ export interface ShapeParameters {
   thickness?: number;
   innerLength?: number;
   innerWidth?: number;
+  // Cone-specific parameters
+  coneTopDiameter?: number;      // Top diameter (smaller end, 0 = pointed)
+  coneBottomDiameter?: number;   // Bottom diameter (base, larger end)
+  coneHeight?: number;           // Height of the cone
+  wallThickness?: number;        // Wall thickness for hollow cone
 }
 
 /**
@@ -149,26 +154,39 @@ export const ShapeGeometries = {
   },
   
   tube: (params?: ShapeParameters) => {
-    // Tube is always hollow
-    const outerRadius = 0.8;
-    const innerRadius = params?.innerDiameter && params?.outerDiameter
-      ? outerRadius * (params.innerDiameter / params.outerDiameter)
-      : outerRadius * 0.6;
-    
-    const tubeRadius = (outerRadius - innerRadius) / 2;
-    const geometry = new THREE.TorusGeometry(
-      (outerRadius + innerRadius) / 2,
-      tubeRadius,
-      16,
-      32
-    );
-    geometry.rotateX(Math.PI / 2);
-    return perfectCenter(geometry);
+    // Tube can be shown as solid (cylinder) or hollow based on isHollow toggle
+    const outerRadius = 0.5;
+    const height = 2;
+
+    // If isHollow is explicitly false, show as solid cylinder
+    if (params?.isHollow === false) {
+      const solid = new THREE.CylinderGeometry(outerRadius, outerRadius, height, 32);
+      solid.rotateZ(Math.PI / 2);
+      return perfectCenter(solid);
+    }
+
+    // Default: show as hollow tube
+    const outer = new THREE.CylinderGeometry(outerRadius, outerRadius, height, 32);
+    outer.rotateZ(Math.PI / 2);
+
+    const innerRadius = params?.innerDiameter && params?.outerDiameter && params.innerDiameter > 0
+      ? Math.min((params.innerDiameter / params.outerDiameter) * outerRadius, outerRadius * 0.95)
+      : outerRadius * 0.6; // Default inner radius if not specified
+
+    const inner = new THREE.CylinderGeometry(innerRadius, innerRadius, height + 0.1, 32);
+    inner.rotateZ(Math.PI / 2);
+    return perfectCenter(createHollowGeometry(outer, inner));
   },
   
   rectangular_tube: (params?: ShapeParameters) => {
     const outer = new THREE.BoxGeometry(1, 2, 0.6);
-    
+
+    // If isHollow is explicitly false, show as solid box
+    if (params?.isHollow === false) {
+      return perfectCenter(outer);
+    }
+
+    // Default: show as hollow rectangular tube
     if (params?.innerLength && params.innerWidth) {
       const inner = new THREE.BoxGeometry(
         0.7,
@@ -177,8 +195,10 @@ export const ShapeGeometries = {
       );
       return perfectCenter(createHollowGeometry(outer, inner));
     }
-    
-    return perfectCenter(outer);
+
+    // Default hollow with standard wall thickness
+    const inner = new THREE.BoxGeometry(0.7, 1.7, 0.4);
+    return perfectCenter(createHollowGeometry(outer, inner));
   },
   
   hexagon: (params?: ShapeParameters) => {
@@ -225,86 +245,35 @@ export const ShapeGeometries = {
   },
   
   cone: (params?: ShapeParameters) => {
-    const geometry = new THREE.ConeGeometry(0.7, 1.5, 32);
-    return perfectCenter(geometry);
-  },
-  
-  // ============= STRUCTURAL PROFILES =============
-  l_profile: (params?: ShapeParameters) => {
-    const shape = new THREE.Shape();
-    shape.moveTo(-0.4, -0.4);
-    shape.lineTo(0.4, -0.4);
-    shape.lineTo(0.4, -0.2);
-    shape.lineTo(-0.2, -0.2);
-    shape.lineTo(-0.2, 0.4);
-    shape.lineTo(-0.4, 0.4);
-    shape.lineTo(-0.4, -0.4);
-    
-    const extrudeSettings = { steps: 1, depth: 2, bevelEnabled: false };
-    const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
-    geometry.rotateY(Math.PI / 2);
-    return perfectCenter(geometry);
-  },
-  
-  t_profile: (params?: ShapeParameters) => {
-    const shape = new THREE.Shape();
-    shape.moveTo(-0.4, -0.4);
-    shape.lineTo(0.4, -0.4);
-    shape.lineTo(0.4, -0.2);
-    shape.lineTo(0.1, -0.2);
-    shape.lineTo(0.1, 0.4);
-    shape.lineTo(-0.1, 0.4);
-    shape.lineTo(-0.1, -0.2);
-    shape.lineTo(-0.4, -0.2);
-    shape.lineTo(-0.4, -0.4);
-    
-    const extrudeSettings = { steps: 1, depth: 2, bevelEnabled: false };
-    const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
-    geometry.rotateY(Math.PI / 2);
-    return perfectCenter(geometry);
-  },
-  
-  i_profile: (params?: ShapeParameters) => {
-    const geometry = new THREE.BoxGeometry(0.6, 2, 0.15);
-    return perfectCenter(geometry);
-  },
-  
-  u_profile: (params?: ShapeParameters) => {
-    const shape = new THREE.Shape();
-    shape.moveTo(-0.3, -0.4);
-    shape.lineTo(-0.3, 0.4);
-    shape.lineTo(0.3, 0.4);
-    shape.lineTo(0.3, -0.4);
-    shape.lineTo(0.2, -0.4);
-    shape.lineTo(0.2, 0.3);
-    shape.lineTo(-0.2, 0.3);
-    shape.lineTo(-0.2, -0.4);
-    shape.lineTo(-0.3, -0.4);
-    
-    const extrudeSettings = { steps: 1, depth: 2, bevelEnabled: false };
-    const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
-    geometry.rotateY(Math.PI / 2);
-    return perfectCenter(geometry);
-  },
-  
-  z_profile: (params?: ShapeParameters) => {
-    const shape = new THREE.Shape();
-    shape.moveTo(-0.3, -0.5);
-    shape.lineTo(0.3, -0.5);
-    shape.lineTo(0.3, -0.3);
-    shape.lineTo(0, 0);
-    shape.lineTo(0.3, 0.3);
-    shape.lineTo(0.3, 0.5);
-    shape.lineTo(-0.3, 0.5);
-    shape.lineTo(-0.3, 0.3);
-    shape.lineTo(0, 0);
-    shape.lineTo(-0.3, -0.3);
-    shape.lineTo(-0.3, -0.5);
-    
-    const extrudeSettings = { steps: 1, depth: 2, bevelEnabled: false };
-    const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
-    geometry.rotateY(Math.PI / 2);
-    return perfectCenter(geometry);
+    // Get cone parameters with defaults
+    const bottomRadius = (params?.coneBottomDiameter || 100) / 100; // Scale to reasonable 3D size
+    const topRadius = (params?.coneTopDiameter || 0) / 100;
+    const height = (params?.coneHeight || 150) / 100;
+    const isHollow = params?.isHollow || false;
+    const wallThickness = (params?.wallThickness || 10) / 100;
+
+    if (isHollow && wallThickness > 0) {
+      // Create hollow cone using LatheGeometry
+      const points: THREE.Vector2[] = [];
+      const innerBottomRadius = Math.max(bottomRadius - wallThickness, 0.01);
+      const innerTopRadius = Math.max(topRadius - wallThickness, 0);
+
+      // Create cross-section profile for hollow cone (clockwise from bottom-outer)
+      points.push(new THREE.Vector2(bottomRadius, 0));           // Bottom outer
+      points.push(new THREE.Vector2(topRadius, height));          // Top outer
+      if (topRadius > 0.01) {
+        points.push(new THREE.Vector2(innerTopRadius, height));   // Top inner
+      }
+      points.push(new THREE.Vector2(innerBottomRadius, 0));       // Bottom inner
+
+      const geometry = new THREE.LatheGeometry(points, 64);
+      return perfectCenter(geometry);
+    } else {
+      // Solid cone - use CylinderGeometry with different radii for truncated cone
+      // CylinderGeometry(radiusTop, radiusBottom, height, radialSegments)
+      const geometry = new THREE.CylinderGeometry(topRadius, bottomRadius, height, 64);
+      return perfectCenter(geometry);
+    }
   },
   
   // ============= LEGACY MAPPINGS (for backward compatibility) =============
@@ -332,14 +301,7 @@ export const ShapeGeometries = {
   square_tube: (params?: ShapeParameters) => ShapeGeometries.rectangular_tube(params),
   
   hex_bar: (params?: ShapeParameters) => ShapeGeometries.hexagon(params),
-  
-  extrusion_l: (params?: ShapeParameters) => ShapeGeometries.l_profile(params),
-  extrusion_angle: (params?: ShapeParameters) => ShapeGeometries.l_profile(params),
-  extrusion_t: (params?: ShapeParameters) => ShapeGeometries.t_profile(params),
-  extrusion_i: (params?: ShapeParameters) => ShapeGeometries.i_profile(params),
-  extrusion_u: (params?: ShapeParameters) => ShapeGeometries.u_profile(params),
-  extrusion_channel: (params?: ShapeParameters) => ShapeGeometries.u_profile(params),
-  
+
   // Generic fallbacks
   bar: (params?: ShapeParameters) => ShapeGeometries.box(params),
   forging: (params?: ShapeParameters) => ShapeGeometries.cylinder(params),
@@ -347,7 +309,6 @@ export const ShapeGeometries = {
   rectangular_forging_stock: (params?: ShapeParameters) => ShapeGeometries.box(params),
   near_net_forging: (params?: ShapeParameters) => ShapeGeometries.cylinder(params),
   machined_component: (params?: ShapeParameters) => ShapeGeometries.box(params),
-  custom_profile: (params?: ShapeParameters) => ShapeGeometries.box(params),
   custom: (params?: ShapeParameters) => ShapeGeometries.box(params),
 };
 

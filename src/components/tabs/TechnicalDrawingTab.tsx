@@ -1,17 +1,8 @@
-import { useRef, useState } from 'react';
+import { useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Download, FileImage, FileText, FileCode, Eye } from 'lucide-react';
+import { Download, FileImage, FileText, FileCode } from 'lucide-react';
 import { RealTimeTechnicalDrawing } from '@/components/RealTimeTechnicalDrawing';
 import { PartGeometry, MaterialType } from '@/types/techniqueSheet';
 import { toast } from 'sonner';
@@ -45,8 +36,6 @@ export const TechnicalDrawingTab = ({
   material,
 }: TechnicalDrawingTabProps) => {
   const generatorRef = useRef<TechnicalDrawingGenerator | null>(null);
-  const [showScanCoverage, setShowScanCoverage] = useState(false);
-  const [scanType, setScanType] = useState('LONGITUDINAL_0');
   const navigate = useNavigate();
 
   const handleExportSVG = () => {
@@ -183,43 +172,6 @@ export const TechnicalDrawingTab = ({
         </div>
       </div>
 
-      {/* Scan Coverage Controls */}
-      <Card className="p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Switch 
-              checked={showScanCoverage}
-              onCheckedChange={setShowScanCoverage}
-              id="scan-coverage-toggle"
-              data-testid="switch-scan-coverage"
-            />
-            <Label htmlFor="scan-coverage-toggle" className="flex items-center gap-2 cursor-pointer">
-              <Eye className="w-4 h-4" />
-              Show Scan Coverage
-            </Label>
-          </div>
-          
-          {showScanCoverage && (
-            <Select value={scanType} onValueChange={setScanType}>
-              <SelectTrigger className="w-[220px]" data-testid="select-scan-type">
-                <SelectValue placeholder="Select scan type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="LONGITUDINAL_0">Longitudinal 0°</SelectItem>
-                <SelectItem value="SHEAR_45">Shear 45°</SelectItem>
-                <SelectItem value="SHEAR_60">Shear 60°</SelectItem>
-                <SelectItem value="SHEAR_70">Shear 70°</SelectItem>
-                <SelectItem value="CIRCUMFERENTIAL">Circumferential</SelectItem>
-                <SelectItem value="AXIAL">Axial</SelectItem>
-                <SelectItem value="RADIAL">Radial</SelectItem>
-                <SelectItem value="SURFACE_WAVE">Surface Wave</SelectItem>
-                <SelectItem value="LAMB_WAVE">Lamb Wave</SelectItem>
-              </SelectContent>
-            </Select>
-          )}
-        </div>
-      </Card>
-
       {/* Drawing Card */}
       <Card className="p-6">
         <div className="w-full" style={{ height: '650px' }}>
@@ -230,8 +182,6 @@ export const TechnicalDrawingTab = ({
             viewMode="multi"
             showGrid={false}
             showDimensions={true}
-            showScanCoverage={showScanCoverage}
-            scanType={scanType}
           />
         </div>
       </Card>

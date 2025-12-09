@@ -19,7 +19,14 @@ export interface Dimensions {
   diameter?: number;
   outerDiameter?: number;
   innerDiameter?: number;
+  innerLength?: number;
+  innerWidth?: number;
   wallThickness?: number;
+  isHollow?: boolean;
+  // Cone-specific parameters
+  coneTopDiameter?: number;
+  coneBottomDiameter?: number;
+  coneHeight?: number;
 }
 
 export interface LayoutConfig {

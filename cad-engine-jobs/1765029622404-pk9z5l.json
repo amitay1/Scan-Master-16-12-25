@@ -1,0 +1,15 @@
+{
+  "jobId": "1765029622404-pk9z5l",
+  "engine": "ScanMaster CAD Engine v3.0",
+  "shapeType": "cylinder",
+  "parameters": {
+    "material": "aluminum",
+    "quality": "high",
+    "source": "ScanMaster TechnicalDrawingTest",
+    "geometry_type": "cylinder",
+    "radius": 86.5,
+    "height": 400
+  },
+  "outputFormat": "step",
+  "outputPath": "D:\\Scan-Master-Replit_NEW\\Scan-Master\\cad-3d-output\\00000000-0000-0000-0000-000000000000\\1765029622404-pk9z5l.step"
+}

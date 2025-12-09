@@ -1,23 +1,38 @@
 import { useState, useEffect, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { CalibrationData, InspectionSetupData, AcceptanceClass, CalibrationBlockType } from "@/types/techniqueSheet";
-import { Target, Sparkles, Layers } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { generateCalibrationRecommendation } from "@/utils/calibrationRecommender";
+import { CalibrationData, InspectionSetupData, AcceptanceClass, CalibrationBlockType, StandardType } from "@/types/techniqueSheet";
+import { Target, Info } from "lucide-react";
 import { CalibrationCatalog } from "../CalibrationCatalog";
-import { FBH_3_64_SERIES, pickStandardForMetalTravel } from "@/data/calibrationStandards";
-import { CalibrationStandardsTable } from "../CalibrationStandardsTable";
 import { CalibrationCADIntegration } from "../CalibrationCADIntegration";
-import CalibrationBlock3D from "../CalibrationBlock3D";
-import { CalibrationBlockDrawing } from "../CalibrationBlockDrawing";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { FieldWithHelp } from "@/components/FieldWithHelp";
-import type { 
-  CalibrationTabFields, 
-  InspectionSetupTabFields, 
-  EquipmentTabFields 
+import { Badge } from "@/components/ui/badge";
+// New components for FBH table with dropdowns
+import { FBHHoleTable } from "../FBHHoleTable";
+import { FBHStraightBeamDrawing } from "../FBHStraightBeamDrawing";
+import { AngleBeamDrawing } from "../AngleBeamDrawing";
+import { DEFAULT_FBH_HOLES, type FBHHoleRowData } from "@/data/fbhStandardsData";
+import {
+  calibrationByStandard,
+  getFBHSizeForStandard,
+} from "@/data/standardsDifferences";
+
+// Geometries that require ANGLE BEAM (circumferential shear wave)
+const ANGLE_BEAM_GEOMETRIES = [
+  'ring', 'ring_forging', 'pipe', 'tube', 'sleeve', 'bushing',
+  'rectangular_tube', 'square_tube'
+];
+
+// Check if geometry requires angle beam inspection
+const requiresAngleBeam = (partType: string | undefined): boolean => {
+  if (!partType) return false;
+  return ANGLE_BEAM_GEOMETRIES.includes(partType.toLowerCase());
+};
+import type {
+  CalibrationTabFields,
+  InspectionSetupTabFields,
+  EquipmentTabFields
 } from "@/types/scanMasterCAD";
 
 interface CalibrationTabProps {
@@ -29,110 +44,65 @@ interface CalibrationTabProps {
   equipmentData?: EquipmentTabFields;
   userId?: string;
   projectId?: string;
+  standard?: StandardType;
 }
 
-// Using imported FieldWithHelp component
+// Get standard label
+const getStandardLabel = (standard: StandardType): string => {
+  const labels: Record<StandardType, string> = {
+    "AMS-STD-2154E": "AMS-STD-2154E",
+    "ASTM-A388": "ASTM A388/A388M",
+    "BS-EN-10228-3": "BS EN 10228-3:2016",
+    "BS-EN-10228-4": "BS EN 10228-4:2016",
+  };
+  return labels[standard] || standard;
+};
 
-export const CalibrationTab = ({ 
-  data, 
-  onChange, 
-  inspectionSetup, 
-  acceptanceClass, 
+export const CalibrationTab = ({
+  data,
+  onChange,
+  inspectionSetup,
+  acceptanceClass,
   equipmentData,
   userId,
-  projectId 
+  projectId,
+  standard = "AMS-STD-2154E"
 }: CalibrationTabProps) => {
-  const [recommendation, setRecommendation] = useState<any>(null);
-  const [recommendedModelId, setRecommendedModelId] = useState<CalibrationBlockType | null>(null);
-  const [selectedStandardId, setSelectedStandardId] = useState<string | null>(null);
-  const [recommendedStandardId, setRecommendedStandardId] = useState<string | null>(null);
-  const [hoveredStandardId, setHoveredStandardId] = useState<string | null>(null);
-
-  // Table data for 3D display - REACTIVE to user input
-  const fbhTableData = useMemo(() => {
-    // If user has entered custom FBH sizes, use those
-    if (data.fbhSizes && data.fbhSizes.trim()) {
-      const fbhSizesArray = data.fbhSizes.split(',').map(s => s.trim()).filter(Boolean);
-      const metalTravel = parseFloat(String(data.metalTravelDistance || "25.4"));
-
-      return fbhSizesArray.map((size, index) => {
-        // Parse fraction to decimal (e.g., "3/64" -> 0.046875 inches -> 1.19mm)
-        let diameterMM = 1.19; // default
-        if (size.includes('/')) {
-          const [num, denom] = size.split('/').map(Number);
-          if (num && denom) {
-            diameterMM = (num / denom) * 25.4; // Convert inches to mm
-          }
-        } else {
-          // Try parsing as decimal mm
-          const parsed = parseFloat(size);
-          if (!isNaN(parsed)) {
-            diameterMM = parsed;
-          }
-        }
-
-        // Calculate depth based on metal travel distance and index
-        // Shallow to deep progression
-        const depthFactor = (index + 1) / fbhSizesArray.length;
-        const depth = metalTravel * depthFactor;
-
-        return {
-          identification: `FBH-${index + 1}`,
-          type: 'FBH' as const,
-          depth: depth,
-          diameter: diameterMM,
-          notes: `${size} @ ${depth.toFixed(1)}mm depth`
-        };
-      });
-    }
-
-    // Fallback to static standards data if no user input
-    return FBH_3_64_SERIES.map(standard => ({
-      identification: standard.defectId,
-      type: 'FBH' as const,
-      depth: standard.depthMm,
-      diameter: 1.19,
-      notes: standard.note || ''
-    }));
-  }, [data.fbhSizes, data.metalTravelDistance]);
+  // FBH Holes state - 3 rows by default with dropdown selections
+  const [fbhHoles, setFbhHoles] = useState<FBHHoleRowData[]>(DEFAULT_FBH_HOLES);
+  const [selectedModelId, setSelectedModelId] = useState<CalibrationBlockType | null>(null);
 
   const updateField = (field: keyof CalibrationData, value: any) => {
     onChange({ ...data, [field]: value });
   };
 
-  const canGenerateRecommendation = 
-    inspectionSetup.material && 
-    inspectionSetup.partType && 
-    inspectionSetup.partThickness >= 6.35 &&
-    acceptanceClass;
-
-  // Smart auto-fill functions
-  const getSmartReferenceMaterial = (material: string, materialSpec?: string) => {
-    const materialMap: Record<string, string> = {
-      'Steel': materialSpec || 'Steel Block (ASTM A36)',
-      'Stainless Steel': materialSpec || 'SS 316L Block (ASTM A240)',
-      'Aluminum': materialSpec || 'Al 6061-T6 Block (ASTM B211)',
-      'Titanium': materialSpec || 'Ti-6Al-4V Block (AMS 4928)',
-      'Inconel': materialSpec || 'Inconel 718 Block (AMS 5662)',
-      'Carbon Steel': materialSpec || 'Carbon Steel Block (ASTM A106)',
-    };
-    return materialMap[material] || `${material} Reference Block`;
+  // Handle FBH holes changes from table
+  const handleFbhHolesChange = (newHoles: FBHHoleRowData[]) => {
+    setFbhHoles(newHoles);
+    // Update calibration data with FBH info - both legacy string AND structured array
+    const fbhSizesStr = newHoles.map(h => h.diameterInch).join(', ');
+    const avgMetalTravel = newHoles.length > 0
+      ? newHoles.reduce((sum, h) => sum + h.metalTravelH, 0) / newHoles.length
+      : 19.05;
+    // Convert FBHHoleRowData[] to FBHHoleData[] for export
+    const fbhHolesData = newHoles.map(h => ({
+      id: h.id,
+      partNumber: h.partNumber,
+      deltaType: h.deltaType,
+      diameterInch: h.diameterInch,
+      diameterMm: h.diameterMm,
+      distanceB: h.distanceB,
+      metalTravelH: h.metalTravelH,
+    }));
+    onChange({
+      ...data,
+      fbhSizes: fbhSizesStr,
+      fbhHoles: fbhHolesData,
+      metalTravelDistance: avgMetalTravel,
+    });
   };
 
-  const getSmartFBHSizes = (partThickness: number) => {
-    if (partThickness < 10) return "1/64, 2/64, 3/64";
-    if (partThickness < 25) return "2/64, 3/64, 4/64";
-    if (partThickness < 50) return "2/64, 3/64, 5/64";
-    return "3/64, 4/64, 5/64, 8/64";
-  };
-
-  const getSmartBlockDimensions = (partThickness: number) => {
-    const length = Math.max(100, partThickness * 3);
-    const width = Math.max(50, partThickness * 2);
-    const height = Math.max(25, partThickness * 1.5);
-    return `${length} × ${width} × ${height}`;
-  };
-
+  // Simple serial number generator
   const generateSerialNumber = () => {
     const date = new Date();
     const year = date.getFullYear();
@@ -142,366 +112,130 @@ export const CalibrationTab = ({
     return `CAL-${year}${month}${day}-${time}`;
   };
 
-  // Auto-fill effect when inspection setup changes
+  // Initialize data on mount
   useEffect(() => {
-    if (inspectionSetup.material && !data.referenceMaterial) {
-      updateField("referenceMaterial", getSmartReferenceMaterial(inspectionSetup.material, inspectionSetup.materialSpec));
-    }
-    
-    if (inspectionSetup.partThickness > 0 && !data.fbhSizes) {
-      updateField("fbhSizes", getSmartFBHSizes(inspectionSetup.partThickness));
-    }
-    
-    if (inspectionSetup.partThickness > 0 && !data.blockDimensions) {
-      updateField("blockDimensions", getSmartBlockDimensions(inspectionSetup.partThickness));
-    }
-    
+    // Generate serial number if empty
     if (!data.blockSerialNumber) {
       updateField("blockSerialNumber", generateSerialNumber());
     }
-  }, [inspectionSetup.material, inspectionSetup.materialSpec, inspectionSetup.partThickness]);
-
-  // Real-time recommendation updates
-  useEffect(() => {
-    if (canGenerateRecommendation) {
-      try {
-        const rec = generateCalibrationRecommendation({
-          material: inspectionSetup.material as any,
-          materialSpec: inspectionSetup.materialSpec,
-          partType: inspectionSetup.partType as any,
-          thickness: inspectionSetup.partThickness,
-          acceptanceClass: acceptanceClass as any,
-        });
-        
-        setRecommendation(rec);
-        setRecommendedModelId(rec.standardType as CalibrationBlockType);
-
-        // Map the recommended metal travel distance to the closest FBH standard
-        const targetTravel = rec.metalTravel?.distances?.[0];
-        const std = typeof targetTravel === "number"
-          ? pickStandardForMetalTravel(targetTravel, FBH_3_64_SERIES)
-          : null;
-
-        if (std) {
-          setRecommendedStandardId(std.defectId);
-
-          // Auto-select the standard if the user has not chosen one yet
-          if (!selectedStandardId) {
-            handleSelectStandard(std, false);
-          }
-        } else {
-          setRecommendedStandardId(null);
-        }
-      } catch (error) {
-        setRecommendedModelId(null);
-        setRecommendedStandardId(null);
-      }
-    } else {
-      setRecommendedModelId(null);
-      setRecommendedStandardId(null);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inspectionSetup.material, inspectionSetup.partType, inspectionSetup.partThickness, acceptanceClass, canGenerateRecommendation]);
-
-  const handleSelectStandard = (row: (typeof FBH_3_64_SERIES)[number], markAsUserSelection: boolean = true) => {
-    setSelectedStandardId(row.defectId);
-
-    // Update calibration form fields based on the selected standard row
-    onChange({
-      ...data,
-      metalTravelDistance: row.depthMm,
-      blockSerialNumber: row.defectId,
-      // Keep existing values for other fields (fbhSizes, etc.)
-    });
-
-    // If this came from a user click, we can optionally show a toast from here in future
-    if (markAsUserSelection) {
-      // no-op for now (avoid importing toast twice)
-    }
-  };
-
-  const handleSelectModel = (modelId: string) => {
-    updateField("standardType", modelId);
-    
-    // If selecting the recommended model, auto-fill related fields
-    if (recommendation && modelId === recommendation.standardType) {
+    // Initialize fbhHoles if not present - ensures export has structured data
+    if (!data.fbhHoles || data.fbhHoles.length === 0) {
+      const initialFbhHoles = fbhHoles.map(h => ({
+        id: h.id,
+        partNumber: h.partNumber,
+        deltaType: h.deltaType,
+        diameterInch: h.diameterInch,
+        diameterMm: h.diameterMm,
+        distanceB: h.distanceB,
+        metalTravelH: h.metalTravelH,
+      }));
+      const fbhSizesStr = fbhHoles.map(h => h.diameterInch).join(', ');
+      const avgMetalTravel = fbhHoles.reduce((sum, h) => sum + h.metalTravelH, 0) / fbhHoles.length;
       onChange({
         ...data,
-        standardType: modelId as CalibrationBlockType,
-        referenceMaterial: recommendation.material,
-        fbhSizes: recommendation.fbhSizes.join(", "),
-        metalTravelDistance: recommendation.metalTravel.distances[0],
+        fbhSizes: fbhSizesStr,
+        fbhHoles: initialFbhHoles,
+        metalTravelDistance: avgMetalTravel,
       });
-      toast.success("Recommended calibration applied!");
     }
+  }, []);
+
+  const handleSelectModel = (modelId: string) => {
+    setSelectedModelId(modelId as CalibrationBlockType);
+    updateField("standardType", modelId);
   };
+
+  // Determine if angle beam is required based on part geometry
+  const isAngleBeamRequired = requiresAngleBeam(inspectionSetup.partType);
 
   return (
     <div className="space-y-6 p-6">
-      {/* Auto Recommendation Info */}
-      <div className="bg-gradient-to-br from-primary/5 to-accent/5 border-2 border-primary/20 rounded-lg p-6">
-        <div className="flex items-start gap-4">
-          <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-            <Target className="h-6 w-6 text-primary" />
-          </div>
-          <div className="flex-1">
-            <h3 className="text-lg font-semibold text-foreground mb-2 flex items-center gap-2">
-              🤖 AI-Powered Calibration Recommendation
-              <Sparkles className="h-5 w-5 text-accent" />
-              {inspectionSetup.material && (
-                <Badge className="bg-gradient-to-r from-green-500 to-blue-500 text-white text-xs">
-                  ✨ Smart Auto-Fill Active
-                </Badge>
-              )}
-            </h3>
-            <p className="text-sm text-muted-foreground mb-2">
-              Fill out the Inspection Setup and Acceptance Class tabs, and we'll automatically highlight the 
-              recommended calibration model below. Click the glowing model to apply all settings instantly!
-            </p>
-            {!canGenerateRecommendation && (
-              <Badge variant="outline" className="mt-2">
-                ⚠️ Complete Inspection Setup & Acceptance Class to see recommendations
-              </Badge>
-            )}
-            {recommendedModelId && (
-              <Badge className="mt-2 bg-primary">
-                ✓ Recommendation ready - look for the glowing model below!
-              </Badge>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Live 3D Calibration Block Preview */}
-      <div>
-        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+      {/* Calibration Model Section - Dynamic based on geometry */}
+      <div className="space-y-6">
+        <h3 className="text-lg font-semibold flex items-center gap-2">
           <Target className="h-5 w-5" />
-          Calibration Block Visualization
+          {isAngleBeamRequired
+            ? "Calibration Model - Angle Beam (Shear Wave)"
+            : "Calibration Model - Straight Beam + FBH"}
         </h3>
-        
-        <Tabs defaultValue="3d" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-4">
-            <TabsTrigger value="3d" className="flex items-center gap-2">
-              <Layers className="h-4 w-4" />
-              3D Interactive View
-            </TabsTrigger>
-            <TabsTrigger value="2d" className="flex items-center gap-2">
-              <Target className="h-4 w-4" />
-              Technical Drawing
-            </TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="3d" className="mt-0">
-            <div className="h-96 border rounded-lg overflow-hidden bg-gradient-to-b from-slate-50 to-slate-100">
-              <CalibrationBlock3D
-                blockWidth={parseFloat(data.blockDimensions?.split('×')[0]?.trim() || "0") || 150}
-                blockHeight={parseFloat(data.blockDimensions?.split('×')[2]?.trim() || "0") || 50}
-                blockLength={parseFloat(data.blockDimensions?.split('×')[1]?.trim() || "0") || 100}
-                fbhData={fbhTableData}
-                material={
-                  inspectionSetup.material?.toLowerCase() === 'titanium' ? 'titanium' :
-                  inspectionSetup.material?.toLowerCase() === 'aluminum' ? 'aluminum' :
-                  'steel'
-                }
-                blockType={(data.standardType || recommendedModelId || 'flat_block') as any}
-                showDimensions={true}
-                showFBHLabels={true}
-                highlightedFBH={hoveredStandardId || selectedStandardId || undefined}
-              />
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="2d" className="mt-0">
-            <div className="border rounded-lg overflow-hidden">
-              <CalibrationBlockDrawing 
-                blockType={(data.standardType || recommendedModelId || 'flat_block') as CalibrationBlockType}
-                width={500}
-                height={400}
-                dimensions={{
-                  length: parseFloat(data.blockDimensions?.split('×')[0]?.trim() || "0") || 150,
-                  width: parseFloat(data.blockDimensions?.split('×')[1]?.trim() || "0") || 100,
-                  height: parseFloat(data.blockDimensions?.split('×')[2]?.trim() || "0") || 50,
-                }}
-                fbhData={fbhTableData.map((fbh, i) => ({
-                  size: data.fbhSizes?.split(',')[i]?.trim() || '3/64',
-                  diameter: fbh.diameter,
-                  depth: fbh.depth,
-                  position: {
-                    x: (i + 1) * 50,
-                    y: 50,
-                  },
-                  label: fbh.identification
-                }))}
-                material={
-                  inspectionSetup.material?.toLowerCase() === 'titanium' ? 'Ti-6Al-4V' :
-                  inspectionSetup.material?.toLowerCase() === 'aluminum' ? '6061-T6 AL' :
-                  'Steel (ASTM A36)'
-                }
-                showDimensions={true}
-              />
-            </div>
-            <p className="text-sm text-muted-foreground mt-2 text-center">
-              📐 Technical drawing per MIL-STD-2154 / ASTM E164 specifications
-            </p>
-          </TabsContent>
-        </Tabs>
-        
-        {/* Legacy Catalog - Hidden for now */}
-        <div className="hidden">
-          <CalibrationCatalog
-            recommendedModel={recommendedModelId}
-            onSelectModel={handleSelectModel}
-            selectedModel={data.standardType || undefined}
+
+        {/* Show appropriate drawing based on geometry */}
+        {isAngleBeamRequired ? (
+          <AngleBeamDrawing
+            outerDiameter={inspectionSetup.diameter || 100}
+            innerDiameter={inspectionSetup.innerDiameter || 60}
+            wallThickness={inspectionSetup.wallThickness}
+            partLength={inspectionSetup.partLength || 50}
+            beamAngle={45}
+            width={550}
+            height={320}
+            showDimensions={true}
+          />
+        ) : (
+          <FBHStraightBeamDrawing
+            partNumber={fbhHoles[0]?.partNumber || "7075 5-0150"}
+            serialNumber={data.blockSerialNumber || "000"}
+            width={600}
+            height={450}
+            showDimensions={true}
+            title="FIG. 1 Standard Set Block Dimensions"
+          />
+        )}
+
+        {/* FBH Holes Table - 3 rows with dropdowns */}
+        <div className="border rounded-lg p-4 bg-card">
+          <h4 className="font-semibold mb-4">FBH Hole Specifications</h4>
+          <FBHHoleTable
+            holes={fbhHoles}
+            onChange={handleFbhHolesChange}
+            maxHoles={5}
+            minHoles={1}
+            showPartNumber={true}
+            showDeltaType={true}
           />
         </div>
       </div>
 
-      {/* Standards used for calibration (FBH table) */}
-      <CalibrationStandardsTable
-        standards={FBH_3_64_SERIES}
-        selectedId={selectedStandardId ?? undefined}
-        recommendedId={recommendedStandardId ?? undefined}
-        onSelect={(row) => handleSelectStandard(row, true)}
-        onHover={(defectId) => setHoveredStandardId(defectId)}
-      />
+      {/* Block Catalog */}
+      <div>
+        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+          <Target className="h-5 w-5" />
+          Block Catalog
+        </h3>
+        <CalibrationCatalog
+          recommendedModel={selectedModelId}
+          onSelectModel={handleSelectModel}
+          selectedModel={data.standardType || undefined}
+        />
+      </div>
 
-      {/* Manual Fields */}
+      {/* Block Settings */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
         <FieldWithHelp
           label="Reference Standard Material"
           fieldKey="referenceBlockMaterial"
           required
-          autoFilled={!!inspectionSetup.material}
         >
-          <div className="relative">
-            <Input
-              value={data.referenceMaterial}
-              onChange={(e) => updateField("referenceMaterial", e.target.value)}
-              placeholder="Ti-6Al-4V annealed (AMS 4928)"
-              className={`bg-background ${!!inspectionSetup.material ? 'border-green-300 bg-green-50 text-gray-900 placeholder:text-gray-500' : ''}`}
-            />
-            {!!inspectionSetup.material && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="absolute right-1 top-1 h-6 w-6 p-0 hover:bg-green-100"
-                onClick={() => updateField("referenceMaterial", getSmartReferenceMaterial(inspectionSetup.material, inspectionSetup.materialSpec))}
-                title="Auto-fill from part material"
-              >
-                <Sparkles className="h-3 w-3 text-green-600" />
-              </Button>
-            )}
-          </div>
-          {!!inspectionSetup.material && (
-            <div className="text-xs text-green-600 mt-1">
-              🤖 Smart-filled from {inspectionSetup.material} part material
-            </div>
-          )}
-        </FieldWithHelp>
-
-        <FieldWithHelp
-          label="Flat-Bottom Hole Sizes (inches)"
-          fieldKey="fbhSize"
-          required
-          autoFilled={!!inspectionSetup.partThickness}
-        >
-          <div className="relative">
-            <Input
-              value={data.fbhSizes}
-              onChange={(e) => updateField("fbhSizes", e.target.value)}
-              placeholder="2/64, 3/64, 5/64"
-              className={`bg-background ${inspectionSetup.partThickness > 0 ? 'border-blue-300 bg-blue-50 text-gray-900 placeholder:text-gray-500' : ''}`}
-            />
-            {inspectionSetup.partThickness > 0 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="absolute right-1 top-1 h-6 w-6 p-0 hover:bg-blue-100"
-                onClick={() => updateField("fbhSizes", getSmartFBHSizes(inspectionSetup.partThickness))}
-                title="Auto-suggest based on part thickness"
-              >
-                <Target className="h-3 w-3 text-blue-600" />
-              </Button>
-            )}
-          </div>
-          {inspectionSetup.partThickness > 0 && (
-            <div className="text-xs text-blue-600 mt-1">
-              🎯 Optimized for {inspectionSetup.partThickness}mm thick part
-            </div>
-          )}
-        </FieldWithHelp>
-
-        <FieldWithHelp
-          label="Metal Travel Distance (mm)"
-          fieldKey="fbhDepth"
-          required
-          autoFilled={!!recommendation}
-        >
-          <div className="relative">
-            <Input
-              type="number"
-              value={data.metalTravelDistance}
-              onChange={(e) => updateField("metalTravelDistance", parseFloat(e.target.value) || 0)}
-              min={0}
-              step={0.1}
-              className={`bg-background ${recommendation ? 'border-orange-300 bg-orange-50 text-gray-900 placeholder:text-gray-500' : ''}`}
-            />
-            {recommendation && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="absolute right-1 top-1 h-6 w-6 p-0 hover:bg-orange-100"
-                onClick={() => {
-                  const targetTravel = recommendation.metalTravel?.distances?.[0];
-                  if (typeof targetTravel === "number") {
-                    updateField("metalTravelDistance", targetTravel);
-                  }
-                }}
-                title="Use AI-recommended distance"
-              >
-                <Sparkles className="h-3 w-3 text-orange-600" />
-              </Button>
-            )}
-          </div>
-          {recommendation && (
-            <div className="text-xs text-orange-600 mt-1">
-              🎯 AI recommends: {recommendation.metalTravel?.distances?.[0]}mm
-            </div>
-          )}
+          <Input
+            value={data.referenceMaterial}
+            onChange={(e) => updateField("referenceMaterial", e.target.value)}
+            placeholder="Steel / Aluminum / Titanium"
+            className="bg-background"
+          />
         </FieldWithHelp>
 
         <FieldWithHelp
           label="Block Dimensions (L×W×H mm)"
           fieldKey="calibrationBlock"
         >
-          <div className="relative">
-            <Input
-              value={data.blockDimensions}
-              onChange={(e) => {
-                updateField("blockDimensions", e.target.value);
-                // Immediate update of 3D display
-              }}
-              placeholder="150 × 75 × 50"
-              className={`bg-background ${inspectionSetup.partThickness > 0 ? 'border-purple-300 bg-purple-50 text-gray-900 placeholder:text-gray-500' : ''}`}
-            />
-            {inspectionSetup.partThickness > 0 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="absolute right-1 top-1 h-6 w-6 p-0 hover:bg-purple-100"
-                onClick={() => updateField("blockDimensions", getSmartBlockDimensions(inspectionSetup.partThickness))}
-                title="Auto-size based on part thickness"
-              >
-                <Sparkles className="h-3 w-3 text-purple-600" />
-              </Button>
-            )}
-          </div>
+          <Input
+            value={data.blockDimensions}
+            onChange={(e) => updateField("blockDimensions", e.target.value)}
+            placeholder="100 × 50 × 50"
+            className="bg-background"
+          />
           <div className="text-xs text-muted-foreground mt-1">
-            💡 Changes update the 3D model instantly above
-            {inspectionSetup.partThickness > 0 && (
-              <span className="text-purple-600 block">🔮 Smart-sized for {inspectionSetup.partThickness}mm part</span>
-            )}
+            Updates 3D model view
           </div>
         </FieldWithHelp>
 
@@ -509,25 +243,21 @@ export const CalibrationTab = ({
           label="Block Serial Number"
           fieldKey="calibrationBlock"
         >
-          <div className="relative">
+          <div className="flex gap-2">
             <Input
               value={data.blockSerialNumber}
               onChange={(e) => updateField("blockSerialNumber", e.target.value)}
               placeholder="CAL-2024-001"
-              className="bg-background border-amber-300 bg-amber-50 text-gray-900 placeholder:text-gray-500"
+              className="bg-background flex-1"
             />
             <Button
-              variant="ghost"
+              variant="outline"
               size="sm"
-              className="absolute right-1 top-1 h-6 w-6 p-0 hover:bg-amber-100"
               onClick={() => updateField("blockSerialNumber", generateSerialNumber())}
               title="Generate new serial number"
             >
-              <Sparkles className="h-3 w-3 text-amber-600" />
+              Generate
             </Button>
-          </div>
-          <div className="text-xs text-amber-600 mt-1">
-            🏷️ Auto-generated with timestamp
           </div>
         </FieldWithHelp>
 
@@ -561,8 +291,7 @@ export const CalibrationTab = ({
                 };
               })(),
               standardType: data.standardType || "",
-              // Pass the recommended block type from the calibration recommender
-              recommendedBlockType: recommendation?.standardType || recommendedModelId || undefined,
+              recommendedBlockType: selectedModelId || undefined,
             }}
             inspectionData={{
               material: inspectionSetup.material || "",

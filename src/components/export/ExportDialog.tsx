@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -39,6 +39,7 @@ import {
 import { Download, FileText, Settings, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useSettingsApply } from "@/hooks/useSettingsApply";
 
 interface ExportDialogProps {
   open: boolean;
@@ -56,21 +57,31 @@ interface ExportDialogProps {
 }
 
 export function ExportDialog({ open, onOpenChange, partDiagram, data }: ExportDialogProps) {
-  const [format, setFormat] = useState<ExportFormat>("pdf");
+  // Use settings for defaults
+  const { 
+    getCurrentDate, 
+    companyName: settingsCompanyName, 
+    companyLogo: settingsCompanyLogo,
+    defaultExportFormat,
+    pageSize,
+    includeCompanyLogo
+  } = useSettingsApply();
+
+  const [format, setFormat] = useState<ExportFormat>(defaultExportFormat as ExportFormat);
   const [template, setTemplate] = useState<ExportTemplate>("standard");
   const [includeWatermark, setIncludeWatermark] = useState(false);
-  const [companyName, setCompanyName] = useState("");
+  const [companyName, setCompanyName] = useState(settingsCompanyName || "");
   const [includeTableOfContents, setIncludeTableOfContents] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
   const [exportMessage, setExportMessage] = useState("");
 
   // TÜV-specific state
-  const [companyLogo, setCompanyLogo] = useState<string | null>(null);
+  const [companyLogo, setCompanyLogo] = useState<string | null>(settingsCompanyLogo || null);
   const [documentControl, setDocumentControl] = useState<DocumentControlData>({
     documentNumber: "TUV-UT-001",
     revisionNumber: "Rev. 00",
-    revisionDate: new Date().toLocaleDateString('en-GB'),
+    revisionDate: getCurrentDate(),
     revisionDescription: "Initial Release",
     controlledCopy: true,
     language: "bilingual"
@@ -80,6 +91,16 @@ export function ExportDialog({ open, onOpenChange, partDiagram, data }: ExportDi
     inspectorLevel: "Level II",
     inspectorCertification: "",
   });
+
+  // Update from settings when they change
+  useEffect(() => {
+    if (settingsCompanyName && !companyName) {
+      setCompanyName(settingsCompanyName);
+    }
+    if (settingsCompanyLogo && !companyLogo) {
+      setCompanyLogo(settingsCompanyLogo);
+    }
+  }, [settingsCompanyName, settingsCompanyLogo]);
 
   const selectedTemplate = getTemplateConfig(template);
   const isTuvTemplate = template === "tuv";

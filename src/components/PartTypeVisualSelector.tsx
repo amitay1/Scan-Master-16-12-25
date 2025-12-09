@@ -24,46 +24,48 @@ interface CategoryGroup {
   options: PartTypeOption[];
 }
 
+/**
+ * SHAPE FAMILIES - Rafael 5036 Standard
+ *
+ * Only show PARENT shapes (family heads). The system auto-detects the specific
+ * variant based on dimensions:
+ *
+ * - CYLINDER family: cylinder (solid long), disk (solid short - auto-detected)
+ * - TUBE family: tube (hollow long), ring (hollow short - auto-detected), pipe, sleeve
+ * - BOX family: box, plate (thin - auto-detected), bar (long narrow - auto-detected)
+ * - RECTANGULAR_TUBE: hollow rectangular (unique)
+ * - HEXAGON: hexagonal bars (unique)
+ * - SPHERE: spherical parts (unique)
+ * - CONE: conical parts (unique)
+ */
 const categoryGroups: CategoryGroup[] = [
   {
-    category: "Basic Geometries",
-    description: "Fundamental geometric shapes for all part types",
+    category: "Shape Families",
+    description: "Select base shape - system auto-detects variant from dimensions",
     icon: "🔷",
     options: [
       {
-        value: "box",
-        label: "Box",
-        description: "Plates, bars, blocks, billets (adjustable dimensions)",
-        color: "#4A90E2"
-      },
-      {
         value: "cylinder",
-        label: "Cylinder",
-        description: "Round bars, shafts (solid - long)",
+        label: "Cylinder (Solid Round)",
+        description: "Solid circular: round bars, shafts, disks (auto-detect by height/diameter)",
         color: "#50C878"
       },
       {
-        value: "disk",
-        label: "Disk",
-        description: "Short solid cylinder (height < diameter/3)",
-        color: "#8B5CF6"
-      },
-      {
         value: "tube",
-        label: "Tube",
-        description: "Hollow cylinder - pipes, sleeves (long)",
+        label: "Tube (Hollow Round)",
+        description: "Hollow circular: tubes, pipes, rings, sleeves (auto-detect by height/wall)",
         color: "#FFB84D"
       },
       {
-        value: "ring",
-        label: "Ring",
-        description: "Short hollow cylinder - washers, rings (height < diameter)",
-        color: "#F97316"
+        value: "box",
+        label: "Box (Solid Rectangular)",
+        description: "Solid rectangular: boxes, plates, bars (auto-detect by proportions)",
+        color: "#4A90E2"
       },
       {
         value: "rectangular_tube",
-        label: "Rectangular Tube",
-        description: "Hollow rectangular sections",
+        label: "Rectangular Tube (Hollow)",
+        description: "Hollow rectangular: square/rectangular tubes",
         color: "#E74C3C"
       },
       {
@@ -81,45 +83,8 @@ const categoryGroups: CategoryGroup[] = [
       {
         value: "cone",
         label: "Cone",
-        description: "Conical parts",
+        description: "Conical parts (specify top/bottom diameters)",
         color: "#1ABC9C"
-      }
-    ]
-  },
-  {
-    category: "Structural Profiles",
-    description: "Standard structural cross-sections",
-    icon: "🏗️",
-    options: [
-      {
-        value: "l_profile",
-        label: "L-Profile",
-        description: "Angle extrusions (90° L-shape)",
-        color: "#E67E22"
-      },
-      {
-        value: "t_profile",
-        label: "T-Profile",
-        description: "T-shaped beams and extrusions",
-        color: "#95A5A6"
-      },
-      {
-        value: "i_profile",
-        label: "I-Profile",
-        description: "I-beams (H-beams)",
-        color: "#34495E"
-      },
-      {
-        value: "u_profile",
-        label: "U-Profile",
-        description: "U-channels",
-        color: "#16A085"
-      },
-      {
-        value: "z_profile",
-        label: "Z-Profile",
-        description: "Z-sections",
-        color: "#D35400"
       }
     ]
   }

@@ -4,6 +4,9 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { UIToaster } from "@/components/ui/toaster-wrapper";
 import { SonnerToaster } from "@/components/ui/sonner-toaster";
 import { OrganizationProvider } from "@/contexts/OrganizationContext";
+import { SettingsProvider } from "@/contexts/SettingsContext";
+import { SavedCardsProvider } from "@/contexts/SavedCardsContext";
+import { SettingsSync } from "@/components/SettingsSync";
 import { useServiceWorker } from "@/hooks/useServiceWorker";
 import SplashScreen from "./components/SplashScreen";
 import Index from "./pages/Index";
@@ -54,9 +57,14 @@ const AppContent = () => {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <OrganizationProvider>
-      <AppContent />
-    </OrganizationProvider>
+    <SettingsProvider>
+      <SettingsSync />
+      <SavedCardsProvider>
+        <OrganizationProvider>
+          <AppContent />
+        </OrganizationProvider>
+      </SavedCardsProvider>
+    </SettingsProvider>
   </QueryClientProvider>
 );
 

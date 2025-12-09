@@ -1,6 +1,7 @@
 /**
  * Cylinder Technical Drawing Module
- * Generates multi-view technical drawings for cylindrical parts
+ * Generates 2-view technical drawings for cylindrical parts
+ * Supports solid and hollow configurations
  */
 
 import { TechnicalDrawingGenerator, Dimensions, LayoutConfig } from './TechnicalDrawingGenerator';
@@ -10,48 +11,56 @@ export function drawCylinderTechnicalDrawing(
   dimensions: Dimensions,
   layout: LayoutConfig
 ): void {
-  const diameter = dimensions.diameter || 50;
+  const diameter = dimensions.diameter || dimensions.outerDiameter || 50;
   const length = dimensions.length;
-  
-  // FRONT VIEW (Length × Diameter)
-  drawFrontView(generator, length, diameter, layout.frontView);
-  
-  // TOP VIEW (Circle with Ø)
-  drawTopView(generator, diameter, layout.topView);
-  
-  // SECTION A-A (with hatching)
-  drawSectionView(generator, length, diameter, layout.sideView);
-  
-  // ISOMETRIC VIEW
-  drawIsometricView(generator, length, diameter, layout.isometric);
+  const innerDiameter = dimensions.innerDiameter;
+  const isHollow = dimensions.isHollow || (innerDiameter && innerDiameter > 0);
+
+  // FRONT VIEW (Length × Diameter - side view of cylinder)
+  drawFrontView(generator, length, diameter, isHollow, innerDiameter, layout.frontView);
+
+  // SIDE VIEW (Circle cross-section)
+  drawSideView(generator, diameter, isHollow, innerDiameter, layout.sideView);
 }
 
 function drawFrontView(
   generator: TechnicalDrawingGenerator,
   length: number,
   diameter: number,
-  viewConfig: { x: number; y: number; width: number; height: number }
+  isHollow?: boolean,
+  innerDiameter?: number,
+  viewConfig?: { x: number; y: number; width: number; height: number }
 ) {
+  if (!viewConfig) return;
   const { x, y, width, height } = viewConfig;
-  
+
   // View label
   generator.drawViewLabel(x + width / 2, y, 'FRONT VIEW');
-  
+
   // Scale to fit
   const scale = Math.min(width / length, height / diameter) * 0.6;
   const scaledLength = length * scale;
   const scaledDiameter = diameter * scale;
-  
+
   const rectX = x + (width - scaledLength) / 2;
   const rectY = y + (height - scaledDiameter) / 2;
-  
+
   // Main rectangle (cylinder viewed from side)
   generator.drawRectangle(rectX, rectY, scaledLength, scaledDiameter, 'visible');
-  
+
+  // Draw inner diameter if hollow
+  if (isHollow && innerDiameter && innerDiameter > 0) {
+    const scaledInnerDiameter = innerDiameter * scale;
+    const innerY = rectY + (scaledDiameter - scaledInnerDiameter) / 2;
+
+    // Inner rectangle (hidden lines showing bore)
+    generator.drawRectangle(rectX, innerY, scaledLength, scaledInnerDiameter, 'hidden');
+  }
+
   // Centerlines - horizontal and vertical
   const centerX = x + width / 2;
   const centerY = y + height / 2;
-  
+
   generator.drawLine(
     rectX - 20,
     centerY,
@@ -59,7 +68,7 @@ function drawFrontView(
     centerY,
     'center'
   );
-  
+
   generator.drawLine(
     centerX,
     rectY - 20,
@@ -67,7 +76,7 @@ function drawFrontView(
     rectY + scaledDiameter + 20,
     'center'
   );
-  
+
   // Dimensions
   generator.drawDimension(
     rectX,
@@ -77,7 +86,7 @@ function drawFrontView(
     `L=${length}mm`,
     5
   );
-  
+
   generator.drawDimension(
     rectX + scaledLength + 35,
     rectY,
@@ -86,28 +95,103 @@ function drawFrontView(
     `Ø${diameter}mm`,
     5
   );
+
+  // Inner diameter dimension if hollow
+  if (isHollow && innerDiameter && innerDiameter > 0) {
+    const scaledInnerDiameter = innerDiameter * scale;
+    const innerY = rectY + (scaledDiameter - scaledInnerDiameter) / 2;
+
+    generator.drawDimension(
+      rectX + scaledLength + 55,
+      innerY,
+      rectX + scaledLength + 55,
+      innerY + scaledInnerDiameter,
+      `ID=${innerDiameter}mm`,
+      5
+    );
+  }
 }
 
-function drawTopView(
+function drawSideView(
   generator: TechnicalDrawingGenerator,
   diameter: number,
-  viewConfig: { x: number; y: number; width: number; height: number }
+  isHollow?: boolean,
+  innerDiameter?: number,
+  viewConfig?: { x: number; y: number; width: number; height: number }
 ) {
+  if (!viewConfig) return;
   const { x, y, width, height } = viewConfig;
-  
+
   // View label
-  generator.drawViewLabel(x + width / 2, y, 'TOP VIEW');
-  
+  const label = isHollow ? 'SECTION A-A' : 'END VIEW';
+  generator.drawViewLabel(x + width / 2, y, label);
+
   // Scale to fit
   const scale = Math.min(width, height) / diameter * 0.5;
   const scaledRadius = (diameter / 2) * scale;
-  
+
   const centerX = x + width / 2;
   const centerY = y + height / 2;
-  
-  // Main circle
+
+  // Main circle (outer)
   generator.drawCircle(centerX, centerY, scaledRadius, 'visible');
-  
+
+  if (isHollow && innerDiameter && innerDiameter > 0) {
+    // Hollow cylinder - draw concentric circles with hatching
+    const scaledInnerRadius = (innerDiameter / 2) * scale;
+
+    // Inner circle
+    generator.drawCircle(centerX, centerY, scaledInnerRadius, 'visible');
+
+    // Hatching for the wall area (approximated with rectangles)
+    const wallThickness = scaledRadius - scaledInnerRadius;
+    // Draw hatching in 4 sections around the ring
+    for (let angle = 0; angle < 360; angle += 45) {
+      const rad = (angle * Math.PI) / 180;
+      const midRadius = (scaledRadius + scaledInnerRadius) / 2;
+      const hatchX = centerX + midRadius * Math.cos(rad) - wallThickness / 4;
+      const hatchY = centerY + midRadius * Math.sin(rad) - wallThickness / 4;
+      generator.drawHatching(hatchX, hatchY, wallThickness / 2, wallThickness / 2, 45, 3);
+    }
+
+    // Wall thickness indicator
+    generator.drawText(
+      centerX + (scaledInnerRadius + scaledRadius) / 2 + 10,
+      centerY - 10,
+      `t=${((diameter - innerDiameter) / 2).toFixed(1)}mm`,
+      10,
+      '#FFD700'
+    );
+
+    // Dimension - inner diameter
+    generator.drawDimension(
+      centerX - scaledInnerRadius,
+      centerY + scaledRadius + 25,
+      centerX + scaledInnerRadius,
+      centerY + scaledRadius + 25,
+      `ID=${innerDiameter}mm`,
+      5
+    );
+  } else {
+    // Solid cylinder - show hatching
+    generator.drawHatching(
+      centerX - scaledRadius,
+      centerY - scaledRadius,
+      scaledRadius * 2,
+      scaledRadius * 2,
+      45,
+      6
+    );
+
+    generator.drawText(
+      centerX,
+      centerY,
+      'SOLID',
+      10,
+      '#FFFFFF'
+    );
+  }
+
   // Centerlines - cross
   generator.drawLine(
     centerX - scaledRadius - 20,
@@ -116,7 +200,7 @@ function drawTopView(
     centerY,
     'center'
   );
-  
+
   generator.drawLine(
     centerX,
     centerY - scaledRadius - 20,
@@ -124,8 +208,8 @@ function drawTopView(
     centerY + scaledRadius + 20,
     'center'
   );
-  
-  // Dimension - diameter
+
+  // Dimension - outer diameter
   generator.drawDimension(
     centerX - scaledRadius,
     centerY - scaledRadius - 25,
@@ -133,112 +217,5 @@ function drawTopView(
     centerY - scaledRadius - 25,
     `Ø${diameter}mm`,
     5
-  );
-}
-
-function drawSectionView(
-  generator: TechnicalDrawingGenerator,
-  length: number,
-  diameter: number,
-  viewConfig: { x: number; y: number; width: number; height: number }
-) {
-  const { x, y, width, height } = viewConfig;
-  
-  // View label
-  generator.drawViewLabel(x + width / 2, y, 'SECTION A-A');
-  
-  // Scale to fit
-  const scale = Math.min(width / length, height / diameter) * 0.6;
-  const scaledLength = length * scale;
-  const scaledDiameter = diameter * scale;
-  
-  const rectX = x + (width - scaledLength) / 2;
-  const rectY = y + (height - scaledDiameter) / 2;
-  
-  // Main rectangle with hatching (solid material)
-  generator.drawRectangle(rectX, rectY, scaledLength, scaledDiameter, 'visible');
-  
-  // Hatching to show solid material
-  generator.drawHatching(rectX, rectY, scaledLength, scaledDiameter, 45, 6);
-  
-  // Centerlines
-  const centerX = x + width / 2;
-  const centerY = y + height / 2;
-  
-  generator.drawLine(
-    rectX - 20,
-    centerY,
-    rectX + scaledLength + 20,
-    centerY,
-    'center'
-  );
-  
-  // Text label - HIGH CONTRAST
-  generator.drawText(
-    centerX,
-    centerY + scaledDiameter / 2 + 20,
-    'SOLID MATERIAL',
-    10,
-    '#FFFFFF'
-  );
-}
-
-function drawIsometricView(
-  generator: TechnicalDrawingGenerator,
-  length: number,
-  diameter: number,
-  viewConfig: { x: number; y: number; width: number; height: number }
-) {
-  const { x, y, width, height } = viewConfig;
-  
-  // View label
-  generator.drawViewLabel(x + width / 2, y, 'ISOMETRIC VIEW');
-  
-  // Scale to fit
-  const maxDim = Math.max(length, diameter);
-  const scale = Math.min(width, height) / maxDim * 0.5;
-  
-  const scaledLength = length * scale;
-  const scaledRadius = (diameter / 2) * scale;
-  
-  const centerX = x + width / 2;
-  const centerY = y + height / 2;
-  
-  const scope = generator.getScope();
-  
-  // Draw cylinder in isometric projection
-  // Front ellipse (bottom)
-  const frontEllipse = new scope.Path.Ellipse({
-    center: [centerX - scaledLength / 3, centerY + scaledRadius / 3],
-    radius: [scaledRadius, scaledRadius / 2]
-  });
-  frontEllipse.strokeColor = new scope.Color('#FFFFFF');
-  frontEllipse.strokeWidth = 2;
-  frontEllipse.fillColor = new scope.Color('#505050');
-  
-  // Back ellipse (top)
-  const backEllipse = new scope.Path.Ellipse({
-    center: [centerX + scaledLength / 3, centerY - scaledRadius / 3],
-    radius: [scaledRadius, scaledRadius / 2]
-  });
-  backEllipse.strokeColor = new scope.Color('#FFFFFF');
-  backEllipse.strokeWidth = 2;
-  backEllipse.fillColor = new scope.Color('#F5F5F5');
-  
-  // Side lines
-  generator.drawLine(
-    centerX - scaledLength / 3 - scaledRadius,
-    centerY + scaledRadius / 3,
-    centerX + scaledLength / 3 - scaledRadius,
-    centerY - scaledRadius / 3,
-    'visible'
-  );
-  
-  generator.drawLine(
-    centerX - scaledLength / 3 + scaledRadius,
-    centerY + scaledRadius / 3,
-    centerX + scaledLength / 3 + scaledRadius,
-    centerY - scaledRadius / 3,
-    'visible'
   );
 }
