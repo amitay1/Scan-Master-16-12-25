@@ -94,6 +94,10 @@ export const RealTimeTechnicalDrawing = ({
 
   // Prepare dimensions with deep comparison to ensure updates
   const drawingDimensions: Dimensions = useMemo(() => {
+    // Determine if shape is hollow based on explicit flag OR presence of innerDiameter
+    const isHollow = debouncedDimensions.isHollow ||
+                     (debouncedDimensions.innerDiameter !== undefined && debouncedDimensions.innerDiameter > 0);
+
     const dims = {
       length: debouncedDimensions.length || 100,
       width: debouncedDimensions.width || 50,
@@ -104,6 +108,7 @@ export const RealTimeTechnicalDrawing = ({
       innerLength: debouncedDimensions.innerLength,
       innerWidth: debouncedDimensions.innerWidth,
       wallThickness: debouncedDimensions.wallThickness,
+      isHollow: isHollow,
     };
     
     // Debug log to verify dimension updates
@@ -118,7 +123,8 @@ export const RealTimeTechnicalDrawing = ({
     debouncedDimensions.innerDiameter,
     debouncedDimensions.innerLength,
     debouncedDimensions.innerWidth,
-    debouncedDimensions.wallThickness
+    debouncedDimensions.wallThickness,
+    debouncedDimensions.isHollow
   ]);
 
   // Enriched dimensions object for scan coverage calculations. The scan
@@ -171,62 +177,108 @@ export const RealTimeTechnicalDrawing = ({
       // Draw based on part type
       try {
         switch (partType) {
+          // ============================================
+          // BOX FAMILY - Solid rectangular shapes
+          // ============================================
           case 'box':
+          case 'sheet':
+          case 'slab':
+          case 'flat_bar':
+          case 'rectangular_bar':
+          case 'square_bar':
+          case 'billet':
+          case 'block':
+          case 'rectangular_forging_stock':
+          case 'machined_component':
+          case 'custom':
             drawBoxTechnicalDrawing(generator, drawingDimensions, layout);
             break;
-          
+
+          // ============================================
+          // RECTANGULAR TUBE - Hollow rectangular shapes
+          // ============================================
           case 'rectangular_tube':
+          case 'square_tube':
             drawRectangularTubeTechnicalDrawing(generator, drawingDimensions, layout);
             break;
 
+          // ============================================
+          // CYLINDER FAMILY - Solid circular shapes
+          // ============================================
           case 'cylinder':
+          case 'round_bar':
+          case 'shaft':
+          case 'hub':
+          case 'round_forging_stock':
             drawCylinderTechnicalDrawing(generator, drawingDimensions, layout);
             break;
 
           case 'sphere':
             drawSphereTechnicalDrawing(generator, drawingDimensions, layout);
             break;
-            
+
           case 'cone':
             drawConeTechnicalDrawing(generator, drawingDimensions, layout);
             break;
 
+          // ============================================
+          // TUBE FAMILY - Hollow circular shapes
+          // ============================================
           case 'tube':
+          case 'pipe':
+          case 'sleeve':
+          case 'bushing':
             drawTubeTechnicalDrawing(generator, drawingDimensions, layout);
             break;
 
+          // ============================================
+          // HEXAGON FAMILY
+          // ============================================
           case 'hexagon':
+          case 'hex_bar':
             drawHexagonTechnicalDrawing(generator, drawingDimensions, layout);
             break;
-            
+
           case 'plate':
             drawPlateTechnicalDrawing(generator, drawingDimensions, layout);
             break;
-            
+
           case 'bar':
             drawBarTechnicalDrawing(generator, drawingDimensions, layout);
             break;
-            
+
+          // ============================================
+          // DISK FAMILY - Short solid cylinders
+          // ============================================
           case 'disk':
+          case 'disk_forging':
             drawDiskTechnicalDrawing(generator, drawingDimensions, layout);
             break;
-            
+
+          // ============================================
+          // RING FAMILY - Short hollow cylinders
+          // ============================================
           case 'ring':
+          case 'ring_forging':
             drawRingTechnicalDrawing(generator, drawingDimensions, layout);
             break;
-            
+
           case 'pyramid':
             drawPyramidTechnicalDrawing(generator, drawingDimensions, layout);
             break;
-            
+
           case 'ellipse':
             drawEllipseTechnicalDrawing(generator, drawingDimensions, layout);
             break;
-            
+
+          // ============================================
+          // FORGING FAMILY - Irregular forged shapes
+          // ============================================
           case 'forging':
+          case 'near_net_forging':
             drawForgingTechnicalDrawing(generator, drawingDimensions, layout);
             break;
-            
+
           case 'irregular':
             drawIrregularTechnicalDrawing(generator, drawingDimensions, layout);
             break;

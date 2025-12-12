@@ -1,6 +1,11 @@
 /**
  * Bar Technical Drawing Module
  * Generates 2-view technical drawings for solid rectangular bar parts
+ *
+ * BAR characteristics (industry convention):
+ * - L/W > 4 (length-to-width ratio greater than 4)
+ * - Elongated profile, compact cross-section
+ * - Visually: long and narrow
  */
 
 import { TechnicalDrawingGenerator, Dimensions, LayoutConfig } from './TechnicalDrawingGenerator';
@@ -10,7 +15,10 @@ export function drawBarTechnicalDrawing(
   dimensions: Dimensions,
   layout: LayoutConfig
 ): void {
-  const { length, width, thickness } = dimensions;
+  // For bars, length should be significantly greater than width (L/W > 4)
+  const length = dimensions.length || 500;
+  const width = dimensions.width || Math.min(length / 5, 50);
+  const thickness = dimensions.thickness || width;
 
   // FRONT VIEW (Length × Thickness)
   drawFrontView(generator, length, thickness, layout.frontView);
@@ -124,7 +132,7 @@ function drawSideView(
   generator.drawText(
     x + viewWidth / 2,
     rectY + scaledThickness / 2,
-    'SOLID',
+    'BAR (L/W>4)',
     10,
     '#FFFFFF'
   );

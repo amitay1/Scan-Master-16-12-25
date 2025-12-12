@@ -109,7 +109,7 @@ export interface CalibrationTabFields {
   };
   standardType: string;       // Select dropdown
   /** Recommended calibration block type from the recommender system */
-  recommendedBlockType?: 'flat_block' | 'curved_block' | 'cylinder_fbh' | 'cylinder_notched' | 'angle_beam' | 'iiv_block' | 'step_wedge' | 'iow_block' | 'custom';
+  recommendedBlockType?: 'flat_block' | 'curved_block' | 'cylinder_fbh' | 'solid_cylinder_fbh' | 'cylinder_notched' | 'angle_beam' | 'iiv_block' | 'step_wedge' | 'iow_block' | 'custom';
 }
 
 export interface InspectionSetupTabFields {

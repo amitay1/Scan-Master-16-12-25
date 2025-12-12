@@ -42,16 +42,76 @@ export function exportToDXF(
   
   // Draw based on part type
   switch(partType) {
+    // BOX FAMILY - Solid rectangular shapes
     case 'box':
-    case 'rectangular_tube':
+    case 'sheet':
+    case 'slab':
+    case 'flat_bar':
+    case 'square_bar':
+    case 'billet':
+    case 'block':
+    case 'rectangular_forging_stock':
+    case 'machined_component':
+    case 'custom':
+    case 'plate':
+    case 'bar':
+    case 'rectangular_bar':
       drawBoxDXF(drawing, dimensions);
       break;
-      
+
+    // RECTANGULAR TUBE - Hollow rectangular shapes
+    case 'rectangular_tube':
+    case 'square_tube':
+      drawRectangularTubeDXF(drawing, dimensions);
+      break;
+
+    // CYLINDER FAMILY - Solid circular shapes
     case 'cylinder':
-    case 'tube':
+    case 'round_bar':
+    case 'shaft':
+    case 'hub':
+    case 'round_forging_stock':
+    case 'disk':
+    case 'disk_forging':
       drawCylinderDXF(drawing, dimensions);
       break;
-      
+
+    // TUBE FAMILY - Hollow circular shapes
+    case 'tube':
+    case 'pipe':
+    case 'sleeve':
+    case 'bushing':
+    case 'ring':
+    case 'ring_forging':
+      drawTubeDXF(drawing, dimensions);
+      break;
+
+    // HEXAGON FAMILY
+    case 'hexagon':
+    case 'hex_bar':
+      drawHexagonDXF(drawing, dimensions);
+      break;
+
+    // SPHERE
+    case 'sphere':
+      drawSphereDXF(drawing, dimensions);
+      break;
+
+    // CONE
+    case 'cone':
+      drawConeDXF(drawing, dimensions);
+      break;
+
+    // FORGING FAMILY
+    case 'forging':
+    case 'near_net_forging':
+    case 'pyramid':
+    case 'ellipse':
+    case 'irregular':
+      // For complex shapes, use simplified box representation
+      drawBoxDXF(drawing, dimensions);
+      break;
+
     default:
       drawBoxDXF(drawing, dimensions);
   }
@@ -85,25 +145,143 @@ function drawBoxDXF(drawing: any, dimensions: any) {
 function drawCylinderDXF(drawing: any, dimensions: any) {
   const { length, diameter = 50 } = dimensions;
   const radius = diameter / 2;
-  
+
   // Front view (rectangle)
   drawing.drawRect(0, 0, length, diameter);
-  
+
   // End view (circle)
   drawing.drawCircle(length + 50 + radius, radius, radius);
-  
+
   // Add dimensions
   drawing.setActiveLayer('DIMENSIONS');
   drawing.drawDimension(0, -20, length, -20, `${length}mm`);
-  drawing.drawDimension(length + 50 + diameter + 20, 0, 
+  drawing.drawDimension(length + 50 + diameter + 20, 0,
                         length + 50 + diameter + 20, diameter, `Ø${diameter}mm`);
-  
+
   // Add center lines
   drawing.setActiveLayer('CENTER');
   drawing.drawLine(length / 2, -10, length / 2, diameter + 10);
   drawing.drawLine(-10, diameter / 2, length + 10, diameter / 2);
   drawing.drawLine(length + 50 + radius, -10, length + 50 + radius, diameter + 10);
   drawing.drawLine(length + 40, radius, length + 60 + diameter, radius);
+}
+
+function drawTubeDXF(drawing: any, dimensions: any) {
+  const outerDiameter = dimensions.diameter || 100;
+  const length = dimensions.length || 200;
+
+  // Calculate inner diameter - Tubes are ALWAYS hollow
+  let innerDiameter: number;
+  if (dimensions.innerDiameter && dimensions.innerDiameter > 0) {
+    innerDiameter = dimensions.innerDiameter;
+  } else if (dimensions.wallThickness && dimensions.wallThickness > 0) {
+    innerDiameter = outerDiameter - (2 * dimensions.wallThickness);
+  } else {
+    // Default: ID is 60% of OD
+    innerDiameter = outerDiameter * 0.6;
+  }
+
+  const outerRadius = outerDiameter / 2;
+  const innerRadius = innerDiameter / 2;
+
+  // Front view (rectangle with inner lines)
+  drawing.drawRect(0, 0, length, outerDiameter);
+  // Inner diameter lines (hidden)
+  drawing.setActiveLayer('HIDDEN');
+  drawing.drawLine(0, outerRadius - innerRadius, length, outerRadius - innerRadius);
+  drawing.drawLine(0, outerRadius + innerRadius, length, outerRadius + innerRadius);
+
+  // End view (concentric circles)
+  drawing.setActiveLayer('OUTLINE');
+  drawing.drawCircle(length + 50 + outerRadius, outerRadius, outerRadius);
+  drawing.drawCircle(length + 50 + outerRadius, outerRadius, innerRadius);
+
+  // Add center lines
+  drawing.setActiveLayer('CENTER');
+  drawing.drawLine(length / 2, -10, length / 2, outerDiameter + 10);
+  drawing.drawLine(-10, outerDiameter / 2, length + 10, outerDiameter / 2);
+}
+
+function drawRectangularTubeDXF(drawing: any, dimensions: any) {
+  const { length, width, thickness, wallThickness = 5 } = dimensions;
+
+  // Front view (outer rectangle)
+  drawing.drawRect(0, 0, length, thickness);
+  // Inner rectangle (hidden)
+  drawing.setActiveLayer('HIDDEN');
+  drawing.drawRect(wallThickness, wallThickness, length - 2 * wallThickness, thickness - 2 * wallThickness);
+
+  // Side view
+  drawing.setActiveLayer('OUTLINE');
+  drawing.drawRect(length + 50, 0, width, thickness);
+  drawing.setActiveLayer('HIDDEN');
+  drawing.drawRect(length + 50 + wallThickness, wallThickness, width - 2 * wallThickness, thickness - 2 * wallThickness);
+
+  // Add center lines
+  drawing.setActiveLayer('CENTER');
+  drawing.drawLine(length / 2, -10, length / 2, thickness + 10);
+}
+
+function drawHexagonDXF(drawing: any, dimensions: any) {
+  const { length, diameter = 50 } = dimensions;
+  const acrossFlats = diameter;
+  const radius = acrossFlats / Math.sqrt(3);
+  const cx = length + 50 + acrossFlats / 2;
+  const cy = acrossFlats / 2;
+
+  // Front view (rectangle)
+  drawing.drawRect(0, 0, length, acrossFlats);
+
+  // End view (hexagon)
+  for (let i = 0; i < 6; i++) {
+    const angle1 = (i * 60 + 30) * Math.PI / 180;
+    const angle2 = ((i + 1) * 60 + 30) * Math.PI / 180;
+    drawing.drawLine(
+      cx + radius * Math.cos(angle1),
+      cy + radius * Math.sin(angle1),
+      cx + radius * Math.cos(angle2),
+      cy + radius * Math.sin(angle2)
+    );
+  }
+
+  // Add center lines
+  drawing.setActiveLayer('CENTER');
+  drawing.drawLine(length / 2, -10, length / 2, acrossFlats + 10);
+}
+
+function drawSphereDXF(drawing: any, dimensions: any) {
+  const { diameter = 50 } = dimensions;
+  const radius = diameter / 2;
+
+  // Front view (circle)
+  drawing.drawCircle(radius, radius, radius);
+
+  // Side view (circle - same for sphere)
+  drawing.drawCircle(diameter + 50 + radius, radius, radius);
+
+  // Add center lines
+  drawing.setActiveLayer('CENTER');
+  drawing.drawLine(radius, -10, radius, diameter + 10);
+  drawing.drawLine(-10, radius, diameter + 10, radius);
+}
+
+function drawConeDXF(drawing: any, dimensions: any) {
+  const { length = 100, diameter = 50 } = dimensions;
+  const baseRadius = diameter / 2;
+  const topRadius = diameter / 4; // Assuming truncated cone
+
+  // Front view (trapezoid)
+  drawing.drawLine(0, 0, length, 0); // Bottom
+  drawing.drawLine(0, diameter, length, diameter); // Top
+  drawing.drawLine(0, baseRadius - topRadius, 0, baseRadius + topRadius); // Left
+  drawing.drawLine(length, 0, length, diameter); // Right
+
+  // End view (circle - base)
+  drawing.drawCircle(length + 50 + baseRadius, baseRadius, baseRadius);
+
+  // Add center lines
+  drawing.setActiveLayer('CENTER');
+  drawing.drawLine(length / 2, -10, length / 2, diameter + 10);
 }
 
 /**

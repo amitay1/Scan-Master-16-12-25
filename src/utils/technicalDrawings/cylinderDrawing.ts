@@ -183,12 +183,20 @@ function drawSideView(
       6
     );
 
+    // Shape type label - PROMINENT indicator that this is SOLID
     generator.drawText(
       centerX,
-      centerY,
-      'SOLID',
+      centerY - 15,
+      'CYLINDER',
+      12,
+      '#FF6B6B'  // Coral red for visibility
+    );
+    generator.drawText(
+      centerX,
+      centerY + 5,
+      '(SOLID)',
       10,
-      '#FFFFFF'
+      '#FFFFFF'  // White for contrast
     );
   }
 

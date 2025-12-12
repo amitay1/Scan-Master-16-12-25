@@ -64,20 +64,23 @@ const materialSpecs: Record<MaterialType, string[]> = {
 };
 
 /**
- * AUTOMATIC SHAPE CLASSIFICATION based on ASTM E2375-16
- * (Figure 7: Sound Beam Direction - Ring Forgings, Disk Forging)
+ * AUTOMATIC SHAPE CLASSIFICATION
  *
- * The system automatically determines the correct shape type based on dimensions:
+ * Shape classification thresholds and their sources:
  *
- * For HOLLOW cylindrical shapes (has inner diameter):
- *   - RING: L/T < 5 (Length/Wall-Thickness ratio less than 5)
- *   - TUBE: L/T >= 5 (longer hollow cylinder)
- *   Per ASTM E2375-16 Figure 7: "L/T < 5" indicates ring geometry for axial-only scanning
- *
- * For SOLID cylindrical shapes (no inner diameter):
- *   - DISK: H/D < 0.5 (Height/Diameter ratio less than 0.5)
- *   - CYLINDER: H/D >= 0.5 (taller solid cylinder)
- *   Based on industry standard proportional definitions
+ * ┌─────────────────────────────────────────────────────────────────────────────┐
+ * │ HOLLOW CYLINDRICAL SHAPES (has inner diameter):                            │
+ * │   • RING: L/T < 5 (Length/Wall-Thickness ratio less than 5)                │
+ * │   • TUBE: L/T >= 5 (longer hollow cylinder)                                │
+ * │   Source: ASTM E2375-16 Figure 7 - VERIFIED IN STANDARD ✓                  │
+ * ├─────────────────────────────────────────────────────────────────────────────┤
+ * │ SOLID CYLINDRICAL SHAPES (no inner diameter):                              │
+ * │   • DISK: H/D < 0.5 (Height/Diameter ratio less than 0.5)                  │
+ * │   • CYLINDER: H/D >= 0.5 (taller solid cylinder)                           │
+ * │   Source: Industry convention (forging/manufacturing standard practice)    │
+ * │   Note: Not defined in AMS-STD-2154, ASTM E2375-16, or EN 10079            │
+ * │   Reference: General forging terminology - "pancake" vs "cylinder" shapes  │
+ * └─────────────────────────────────────────────────────────────────────────────┘
  *
  * This ensures proper inspection planning and scan direction visualization.
  */
@@ -118,7 +121,7 @@ function classifyCircularShape(
 
   if (isHollow) {
     // HOLLOW shape classification (Ring vs Tube)
-    // ASTM E2375-16 Figure 7: L/T < 5 indicates RING geometry
+    // Source: ASTM E2375-16 Figure 7 - L/T < 5 indicates RING geometry ✓
     const calculatedWallThickness = wallThickness || ((diameter - (innerDiameter || 0)) / 2);
 
     if (calculatedWallThickness > 0) {
@@ -142,7 +145,8 @@ function classifyCircularShape(
     }
   } else {
     // SOLID shape classification (Disk vs Cylinder)
-    // Industry standard: Disk when H/D < 0.5 (height less than half diameter)
+    // Source: Industry convention - H/D < 0.5 = "pancake/disk" shape
+    // (Not defined in formal standards, but widely used in forging industry)
     const heightToDiameterRatio = height / diameter;
     const isDisk = heightToDiameterRatio < 0.5;
 
@@ -164,13 +168,23 @@ function classifyCircularShape(
   return currentType;
 }
 /**
- * AUTOMATIC RECTANGULAR SHAPE CLASSIFICATION based on ASTM E2375-16
- * (Figure 6: Sound Beam Direction for Various Shapes)
+ * AUTOMATIC RECTANGULAR SHAPE CLASSIFICATION
  *
- * From the standard:
- *   - PLATE: W/T > 5 (width-to-thickness ratio greater than 5)
- *   - RECTANGULAR BAR/BILLET: W/T < 5 (compact cross-section)
- *   - BAR: When length >> width,thickness (elongated profile)
+ * Shape classification thresholds and their sources:
+ *
+ * ┌─────────────────────────────────────────────────────────────────────────────┐
+ * │ PLATE vs BOX/BILLET:                                                       │
+ * │   • PLATE: W/T > 5 (width-to-thickness ratio greater than 5)               │
+ * │   • BOX/BILLET: W/T <= 5 (compact cross-section)                           │
+ * │   Source: ASTM E2375-16 Figure 6 - VERIFIED IN STANDARD ✓                  │
+ * ├─────────────────────────────────────────────────────────────────────────────┤
+ * │ BAR (elongated profile):                                                   │
+ * │   • BAR: L/W > 4 (length >> width, elongated shape)                        │
+ * │   Source: Industry convention (manufacturing/metal supply practice)        │
+ * │   Note: Not defined in AMS-STD-2154, ASTM E2375-16, or EN 10079            │
+ * │   EN 10079 defines bar/plate by absolute dimensions, not ratios            │
+ * │   ASTM A6 defines bar as: width ≤ 6" for ≥0.203" thick flats              │
+ * └─────────────────────────────────────────────────────────────────────────────┘
  *
  * This ensures proper inspection planning and scan direction visualization.
  */
@@ -206,11 +220,11 @@ function classifyRectangularShape(
   const widthToThicknessRatio = middle / smallest; // W/T ratio from standard
   const lengthToWidthRatio = largest / middle;
 
-  // PLATE: Per ASTM E2375 Figure 6 - W/T > 5 (flat sheet-like geometry)
+  // PLATE: Source: ASTM E2375-16 Figure 6 - W/T > 5 (flat sheet-like geometry) ✓
   const isPlate = widthToThicknessRatio > 5;
 
-  // BAR: Elongated shape where length is much greater than cross-section
-  // Using L/W > 4 as practical threshold for bar-like shapes
+  // BAR: Source: Industry convention - L/W > 4 for elongated shapes
+  // (Not defined in formal standards by ratio, but commonly used threshold)
   const isBar = !isPlate && lengthToWidthRatio > 4;
 
   if (isPlate) {
@@ -742,6 +756,66 @@ export const InspectionSetupTab = ({ data, onChange, acceptanceClass }: Inspecti
             step={0.1}
             className="bg-background"
           />
+        </FieldWithHelp>
+
+        <FieldWithHelp
+          label="Drawing Number"
+          fieldKey="partNumber"
+        >
+          <Input
+            value={data.drawingNumber || ""}
+            onChange={(e) => updateField("drawingNumber", e.target.value)}
+            placeholder="DWG-12345-A"
+            className="bg-background"
+          />
+        </FieldWithHelp>
+
+        <FieldWithHelp
+          label="Heat Treatment"
+          fieldKey="material"
+        >
+          <Input
+            value={data.heatTreatment || ""}
+            onChange={(e) => updateField("heatTreatment", e.target.value)}
+            placeholder="e.g., Solution Treated, Annealed, T6"
+            className="bg-background"
+          />
+        </FieldWithHelp>
+
+        <FieldWithHelp
+          label="Acoustic Velocity (m/s)"
+          fieldKey="material"
+        >
+          <Input
+            type="number"
+            value={data.acousticVelocity || ""}
+            onChange={(e) => updateField("acousticVelocity", parseFloat(e.target.value) || undefined)}
+            placeholder={materialProps ? `Auto: ${materialProps.velocity * 1000}` : "Enter velocity"}
+            className="bg-background"
+          />
+          {materialProps && !data.acousticVelocity && (
+            <p className="text-xs text-muted-foreground mt-1">
+              Default for {data.material}: {materialProps.velocity * 1000} m/s
+            </p>
+          )}
+        </FieldWithHelp>
+
+        <FieldWithHelp
+          label="Material Density (kg/m³)"
+          fieldKey="material"
+        >
+          <Input
+            type="number"
+            value={data.materialDensity || ""}
+            onChange={(e) => updateField("materialDensity", parseFloat(e.target.value) || undefined)}
+            placeholder={materialProps ? `Auto: ${materialProps.density * 1000}` : "Enter density"}
+            className="bg-background"
+          />
+          {materialProps && !data.materialDensity && (
+            <p className="text-xs text-muted-foreground mt-1">
+              Default for {data.material}: {materialProps.density * 1000} kg/m³
+            </p>
+          )}
         </FieldWithHelp>
 
         {showDiameter && (

@@ -9,7 +9,7 @@ export const standardCodeSchema = z
   .trim()
   .min(1, { message: 'Standard code is required' })
   .max(50, { message: 'Standard code must be less than 50 characters' })
-  .regex(/^[A-Za-z0-9\-]+$/, { message: 'Standard code contains invalid characters' });
+  .regex(/^[A-Za-z0-9-]+$/, { message: 'Standard code contains invalid characters' });
 
 // Price type validation
 export const priceTypeSchema = z.enum(['one_time', 'monthly', 'annual'], {

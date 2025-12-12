@@ -19,6 +19,7 @@ interface EquipmentTabProps {
 
 // Frequency options per standard
 const frequenciesByStandard: Record<StandardType, string[]> = {
+  "MIL-STD-2154": ["1.0", "2.25", "5.0", "10.0", "15.0"],
   "AMS-STD-2154E": ["1.0", "2.25", "5.0", "10.0", "15.0"],
   "ASTM-A388": ["1.0", "2.25", "5.0"],
   "BS-EN-10228-3": ["1.0", "2.0", "4.0", "5.0"],
@@ -45,6 +46,7 @@ const getResolutionValues = (frequency: string) => {
 // Get standard label
 const getStandardLabel = (standard: StandardType): string => {
   const labels: Record<StandardType, string> = {
+    "MIL-STD-2154": "MIL-STD-2154 Table II",
     "AMS-STD-2154E": "AMS-STD-2154E Table II",
     "ASTM-A388": "ASTM A388/A388M",
     "BS-EN-10228-3": "BS EN 10228-3:2016",
@@ -476,6 +478,40 @@ export const EquipmentTab = ({ data, onChange, partThickness, standard = "AMS-ST
                   value={data.wedgeModel || ""}
                   onChange={(e) => updateField("wedgeModel", e.target.value)}
                   placeholder="e.g., SA32-N55S"
+                  className="bg-background"
+                />
+              </FieldWithHelp>
+
+              <FieldWithHelp
+                label="Wedge Type"
+                fieldKey="manufacturer"
+                help="Type of wedge (Normal, Angled, Immersion)"
+              >
+                <Select
+                  value={data.wedgeType || ""}
+                  onValueChange={(value) => updateField("wedgeType", value)}
+                >
+                  <SelectTrigger className="bg-background">
+                    <SelectValue placeholder="Select wedge type..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Normal">Normal (0°)</SelectItem>
+                    <SelectItem value="Angled">Angled (Shear Wave)</SelectItem>
+                    <SelectItem value="Immersion">Immersion</SelectItem>
+                    <SelectItem value="Custom">Custom</SelectItem>
+                  </SelectContent>
+                </Select>
+              </FieldWithHelp>
+
+              <FieldWithHelp
+                label="Delay Line"
+                fieldKey="manufacturer"
+                help="Delay line specification if applicable"
+              >
+                <Input
+                  value={data.delayLine || ""}
+                  onChange={(e) => updateField("delayLine", e.target.value)}
+                  placeholder="e.g., DL-25, Water column"
                   className="bg-background"
                 />
               </FieldWithHelp>

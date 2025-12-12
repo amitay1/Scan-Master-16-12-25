@@ -159,27 +159,26 @@ const Part = ({ partType, material, dimensions }: ThreeDViewerProps) => {
     coneHeight: debouncedDimensions?.coneHeight || 0,
   });
 
-  if (!partType) {
-    return (
-      <mesh scale={scale}>
-        <boxGeometry args={[1, 0.5, 0.5]} />
-        <meshStandardMaterial color="#A0A0A0" metalness={0.8} roughness={0.3} />
-      </mesh>
-    );
-  }
-
-  // Use the same geometry as Shape3DViewer for consistency
-  // Force recreation when any hollow parameter changes
+  // Use the same geometry as Shape3DViewer for consistency.
+  // IMPORTANT: Hooks must run in the same order on every render.
+  // We therefore compute geometry even when partType is empty, and
+  // fall back to a placeholder geometry.
   const geometry = useMemo(() => {
-    const geom = getGeometryByType(partType, geometryParams);
+    const geom = partType
+      ? getGeometryByType(partType, geometryParams)
+      : new THREE.BoxGeometry(1, 0.5, 0.5);
+
     geom.computeBoundingBox();
     geom.computeVertexNormals();
     return geom;
   }, [partType, geometryParams]);
   
-  return (
-    <mesh castShadow receiveShadow geometry={geometry} material={metalMaterial} scale={scale} />
-  );
+  // When no part type selected, show a neutral placeholder material.
+  const resolvedMaterial = partType
+    ? metalMaterial
+    : (new THREE.MeshStandardMaterial({ color: "#A0A0A0", metalness: 0.8, roughness: 0.3 }));
+
+  return <mesh castShadow receiveShadow geometry={geometry} material={resolvedMaterial} scale={scale} />;
 };
 
 export const ThreeDViewer = (props: ThreeDViewerProps) => {

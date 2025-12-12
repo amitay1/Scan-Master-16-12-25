@@ -21,7 +21,7 @@ export interface AcceptanceClassOption {
   stringency: "highest" | "high" | "medium" | "low" | "basic";
 }
 
-export const acceptanceClassesByStandard: Record<StandardType, AcceptanceClassOption[]> = {
+const acceptanceClassesByStandardBase = {
   "AMS-STD-2154E": [
     { id: "AAA", label: "Class AAA", description: "Ultra-Critical - Rotating turbine components, Primary flight controls", stringency: "highest" },
     { id: "AA", label: "Class AA", description: "Super-Critical - Engine mounts, Landing gear primary structure", stringency: "high" },
@@ -53,6 +53,11 @@ export const acceptanceClassesByStandard: Record<StandardType, AcceptanceClassOp
     { id: "2", label: "Quality Class 2", description: "Standard quality - Intermediate stringency", stringency: "medium" },
     { id: "3", label: "Quality Class 3", description: "Highest quality - Most stringent for austenitic", stringency: "highest" },
   ],
+} satisfies Record<Exclude<StandardType, "MIL-STD-2154">, AcceptanceClassOption[]>;
+
+export const acceptanceClassesByStandard: Record<StandardType, AcceptanceClassOption[]> = {
+  ...acceptanceClassesByStandardBase,
+  "MIL-STD-2154": acceptanceClassesByStandardBase["AMS-STD-2154E"],
 };
 
 // ============================================================================
@@ -68,7 +73,7 @@ export interface AcceptanceCriteriaValues {
   specialNotes?: string;
 }
 
-export const acceptanceCriteriaByStandard: Record<StandardType, Record<string, AcceptanceCriteriaValues>> = {
+const acceptanceCriteriaByStandardBase = {
   // AMS-STD-2154E Table 6 - Ultrasonic Classes (verified from official document)
   "AMS-STD-2154E": {
     "AAA": {
@@ -210,6 +215,11 @@ export const acceptanceCriteriaByStandard: Record<StandardType, Record<string, A
       specialNotes: "MOST STRINGENT - Class 3. Highest quality for austenitic/duplex steels. Most restrictive limits."
     },
   },
+} satisfies Record<Exclude<StandardType, "MIL-STD-2154">, Record<string, AcceptanceCriteriaValues>>;
+
+export const acceptanceCriteriaByStandard: Record<StandardType, Record<string, AcceptanceCriteriaValues>> = {
+  ...acceptanceCriteriaByStandardBase,
+  "MIL-STD-2154": acceptanceCriteriaByStandardBase["AMS-STD-2154E"],
 };
 
 // ============================================================================
@@ -288,7 +298,7 @@ export interface EquipmentParameters {
   notes: string;
 }
 
-export const equipmentParametersByStandard: Record<StandardType, EquipmentParameters> = {
+const equipmentParametersByStandardBase = {
   "AMS-STD-2154E": {
     frequencyRange: { min: 2.25, max: 15, typical: 5, unit: "MHz" },
     verticalLinearity: { min: 5, max: 98 },
@@ -325,6 +335,11 @@ export const equipmentParametersByStandard: Record<StandardType, EquipmentParame
     transducerDiameter: { min: 20, max: 30, unit: "mm" },
     notes: "Low frequency required for austenitic materials due to coarse grain and high attenuation. Consider 0.5-1 MHz for very coarse grain."
   },
+} satisfies Record<Exclude<StandardType, "MIL-STD-2154">, EquipmentParameters>;
+
+export const equipmentParametersByStandard: Record<StandardType, EquipmentParameters> = {
+  ...equipmentParametersByStandardBase,
+  "MIL-STD-2154": equipmentParametersByStandardBase["AMS-STD-2154E"],
 };
 
 // ============================================================================
@@ -341,7 +356,7 @@ export interface ScanParameters {
   notes: string;
 }
 
-export const scanParametersByStandard: Record<StandardType, ScanParameters> = {
+const scanParametersByStandardBase = {
   "AMS-STD-2154E": {
     maxSpeedManual: { value: 150, unit: "mm/s" },
     maxSpeedAutomated: { value: 150, unit: "mm/s" },
@@ -378,6 +393,11 @@ export const scanParametersByStandard: Record<StandardType, ScanParameters> = {
     sensitivityGain: "Adjusted for grain noise level",
     notes: "Lower speeds and higher overlap due to austenitic material characteristics. More frequent calibration required."
   },
+} satisfies Record<Exclude<StandardType, "MIL-STD-2154">, ScanParameters>;
+
+export const scanParametersByStandard: Record<StandardType, ScanParameters> = {
+  ...scanParametersByStandardBase,
+  "MIL-STD-2154": scanParametersByStandardBase["AMS-STD-2154E"],
 };
 
 // ============================================================================
@@ -392,7 +412,7 @@ export interface DocumentationRequirements {
   additionalRequirements: string[];
 }
 
-export const documentationByStandard: Record<StandardType, DocumentationRequirements> = {
+const documentationByStandardBase = {
   "AMS-STD-2154E": {
     recordRetentionYears: 7,
     personnelCertification: "Per company specification (typically NAS 410)",
@@ -439,6 +459,11 @@ export const documentationByStandard: Record<StandardType, DocumentationRequirem
       "Special techniques noted"
     ]
   },
+} satisfies Record<Exclude<StandardType, "MIL-STD-2154">, DocumentationRequirements>;
+
+export const documentationByStandard: Record<StandardType, DocumentationRequirements> = {
+  ...documentationByStandardBase,
+  "MIL-STD-2154": documentationByStandardBase["AMS-STD-2154E"],
 };
 
 // ============================================================================
@@ -454,7 +479,7 @@ export interface CalibrationRequirements {
   verificationRequirements: string;
 }
 
-export const calibrationByStandard: Record<StandardType, CalibrationRequirements> = {
+const calibrationByStandardBase = {
   "AMS-STD-2154E": {
     referenceBlockMaterial: "Same material specification and heat treatment as part",
     calibrationInterval: "Before each inspection, every 4 hours, and at completion",
@@ -487,6 +512,11 @@ export const calibrationByStandard: Record<StandardType, CalibrationRequirements
     transferCorrection: "Measure on actual component due to attenuation variation",
     verificationRequirements: "Verify every 2 hours, acceptance within ±2 dB of initial"
   },
+} satisfies Record<Exclude<StandardType, "MIL-STD-2154">, CalibrationRequirements>;
+
+export const calibrationByStandard: Record<StandardType, CalibrationRequirements> = {
+  ...calibrationByStandardBase,
+  "MIL-STD-2154": calibrationByStandardBase["AMS-STD-2154E"],
 };
 
 // ============================================================================
@@ -545,12 +575,18 @@ export const materialWarnings: MaterialWarning[] = [
  * Get the default acceptance class for a given standard
  */
 export function getDefaultAcceptanceClass(standard: StandardType): string {
-  const defaults: Record<StandardType, string> = {
+  const defaultsByStandardBase = {
     "AMS-STD-2154E": "A",
     "ASTM-A388": "QL2",
     "BS-EN-10228-3": "2", // Class 2 = Standard quality (not too stringent, not too lax)
     "BS-EN-10228-4": "2", // Class 2 = Standard quality (intermediate stringency)
+  } satisfies Record<Exclude<StandardType, "MIL-STD-2154">, string>;
+
+  const defaults: Record<StandardType, string> = {
+    ...defaultsByStandardBase,
+    "MIL-STD-2154": defaultsByStandardBase["AMS-STD-2154E"],
   };
+
   return defaults[standard];
 }
 

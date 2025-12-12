@@ -101,7 +101,7 @@ serve(async (req) => {
 
     // Handle different event types
     switch (event.meta.event_name) {
-      case 'order_created':
+      case 'order_created': {
         // Payment successful
         const isSubscription = priceType === 'monthly' || priceType === 'annual';
         let expiryDate = null;
@@ -149,8 +149,9 @@ serve(async (req) => {
 
         console.log(`Access granted for user ${userId} to standard ${standardId}`);
         break;
+      }
 
-      case 'subscription_cancelled':
+      case 'subscription_cancelled': {
         // Deactivate access
         const { error: deactivateError } = await supabaseAdmin
           .from('user_standard_access')
@@ -163,8 +164,9 @@ serve(async (req) => {
           console.error('Error deactivating access:', deactivateError);
         }
         break;
+      }
 
-      case 'subscription_payment_success':
+      case 'subscription_payment_success': {
         // Renew subscription
         const renewalDate = new Date();
         const newExpiryDate = priceType === 'monthly'
@@ -185,6 +187,7 @@ serve(async (req) => {
           console.error('Error renewing subscription:', renewError);
         }
         break;
+      }
     }
 
     return new Response(JSON.stringify({ received: true }), {

@@ -63,16 +63,57 @@ const cleaningMethods = [
   "Steam Cleaning",
 ];
 
+// Surface roughness options with metric and imperial values per various standards
 const roughnessRequirements = [
-  "Ra 3.2 µm",
-  "Ra 6.3 µm",
-  "Ra 12.5 µm",
-  "Ra 25 µm",
-  "N7 (Ra 1.6)",
-  "N8 (Ra 3.2)",
-  "N9 (Ra 6.3)",
-  "No Requirement",
+  { value: "Ra 1.6 µm (63 µin)", label: "Ra 1.6 µm (63 µin) - N7", standard: "precision" },
+  { value: "Ra 3.2 µm (125 µin)", label: "Ra 3.2 µm (125 µin) - N8", standard: "high" },
+  { value: "Ra 6.3 µm (250 µin)", label: "Ra 6.3 µm (250 µin) - N9 [AMS-STD-2154 Max]", standard: "AMS-STD-2154" },
+  { value: "Ra 12.5 µm (500 µin)", label: "Ra 12.5 µm (500 µin) - N10", standard: "BS-EN-10228" },
+  { value: "Ra 25 µm (1000 µin)", label: "Ra 25 µm (1000 µin) - N11", standard: "rough" },
+  { value: "No Requirement", label: "No Requirement", standard: "none" },
 ];
+
+// Standard-specific surface roughness limits per applicable UT standards
+const standardRoughnessLimits: Record<string, { maxRa: number; maxMicroinch: number; description: string }> = {
+  "AMS-STD-2154": { maxRa: 6.3, maxMicroinch: 250, description: "Per AMS-STD-2154 Section 5.4.6: Surface texture shall not be rougher than 250 microinches (6.3 µm)" },
+  "ASTM-A388": { maxRa: 6.3, maxMicroinch: 250, description: "Per ASTM A388: Surface roughness shall not exceed 250 µin (6 µm)" },
+  "BS-EN-10228-3": { maxRa: 12.5, maxMicroinch: 500, description: "Per BS EN 10228-3: Surface roughness Ra ≤ 12.5 µm" },
+  "BS-EN-10228-4": { maxRa: 6.3, maxMicroinch: 250, description: "Per BS EN 10228-4: Surface roughness Ra ≤ 6.3 µm preferred" },
+  "ASME": { maxRa: 6.3, maxMicroinch: 250, description: "Per ASME Section V: Surface finish suitable for UT examination" },
+  "default": { maxRa: 6.3, maxMicroinch: 250, description: "General recommendation: Ra ≤ 6.3 µm (250 µin)" },
+};
+
+// Helper function to extract Ra value from roughness string
+const extractRaValue = (roughnessStr: string): number => {
+  const match = roughnessStr.match(/Ra\s*([\d.]+)\s*µm/);
+  return match ? parseFloat(match[1]) : 0;
+};
+
+// Check if roughness exceeds standard limit
+const isRoughnessExceeded = (roughnessStr: string, standardKey: string): boolean => {
+  if (!roughnessStr || roughnessStr === "No Requirement") return false;
+  const raValue = extractRaValue(roughnessStr);
+  const limit = standardRoughnessLimits[standardKey] || standardRoughnessLimits["default"];
+  return raValue > limit.maxRa;
+};
+
+// Get recommended roughness for a standard
+const getRecommendedRoughness = (standardKey: string): string => {
+  const limit = standardRoughnessLimits[standardKey] || standardRoughnessLimits["default"];
+  const matching = roughnessRequirements.find(r => extractRaValue(r.value) === limit.maxRa);
+  return matching?.value || "Ra 6.3 µm (250 µin)";
+};
+
+// Get standard key from standard name
+const getStandardKey = (standardName: string): string => {
+  const normalizedName = standardName.toUpperCase();
+  if (normalizedName.includes("AMS") || normalizedName.includes("2154")) return "AMS-STD-2154";
+  if (normalizedName.includes("A388") || normalizedName.includes("ASTM A388")) return "ASTM-A388";
+  if (normalizedName.includes("10228-3")) return "BS-EN-10228-3";
+  if (normalizedName.includes("10228-4")) return "BS-EN-10228-4";
+  if (normalizedName.includes("ASME")) return "ASME";
+  return "default";
+};
 
 const temperatureRanges = [
   "0°C to 50°C",
@@ -135,7 +176,7 @@ export const ProceduresStandardsTab = ({
   };
 
   const deleteStep = (stepNumber: number) => {
-    let procedures = data.procedures?.filter(p => p.stepNumber !== stepNumber) || [];
+    const procedures = data.procedures?.filter(p => p.stepNumber !== stepNumber) || [];
     // Re-number remaining steps
     procedures.forEach((p, i) => p.stepNumber = i + 1);
     updateField("procedures", procedures);
@@ -268,22 +309,59 @@ export const ProceduresStandardsTab = ({
 
               <FieldWithHelp
                 label="Roughness Requirement"
-                help="Maximum surface roughness allowed"
+                help="Maximum surface roughness allowed per standard"
               >
-                <Select
-                  value={data.surfacePrep?.roughnessRequirement || ""}
-                  onValueChange={(value) => updateField('surfacePrep', {...data.surfacePrep, roughnessRequirement: value})}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select roughness" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {roughnessRequirements.map(r => (
-                      <SelectItem key={r} value={r}>{r}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="flex gap-2">
+                  <Select
+                    value={data.surfacePrep?.roughnessRequirement || ""}
+                    onValueChange={(value) => updateField('surfacePrep', {...data.surfacePrep, roughnessRequirement: value})}
+                  >
+                    <SelectTrigger className="flex-1">
+                      <SelectValue placeholder="Select roughness" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {roughnessRequirements.map(r => (
+                        <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    title={`Auto-fill per ${standard || 'default'} standard`}
+                    onClick={() => {
+                      const recommended = getRecommendedRoughness(getStandardKey(standard));
+                      updateField('surfacePrep', {...data.surfacePrep, roughnessRequirement: recommended});
+                    }}
+                  >
+                    <Calculator className="w-4 h-4" />
+                  </Button>
+                </div>
               </FieldWithHelp>
+
+              {/* Surface Roughness Warning - AMS-STD-2154 Compliance */}
+              {data.surfacePrep?.roughnessRequirement &&
+               data.surfacePrep.roughnessRequirement !== "No Requirement" &&
+               isRoughnessExceeded(data.surfacePrep.roughnessRequirement, getStandardKey(standard)) && (
+                <div className="col-span-2 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                  <div className="flex items-start gap-2">
+                    <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                        Surface Roughness Exceeds Standard Limit
+                      </p>
+                      <p className="text-xs text-yellow-700 dark:text-yellow-300">
+                        {standardRoughnessLimits[getStandardKey(standard)]?.description ||
+                         standardRoughnessLimits["default"].description}
+                      </p>
+                      <p className="text-xs text-yellow-600 dark:text-yellow-400">
+                        Recommended: {getRecommendedRoughness(getStandardKey(standard))}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <FieldWithHelp
                 label="Cleaning Method"

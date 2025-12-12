@@ -34,87 +34,90 @@ interface ScanDetailsTabProps {
   };
 }
 
-// Comprehensive scanning directions based on professional UT standards (AMS 2630, AMS-STD-2154)
-// Now includes proper TOP and BOTTOM axial scans for complete volumetric coverage!
+// Scanning directions per ASTM E2375 (Figures 6 & 7, Annex A1)
+// Reference: "Standard Practice for Ultrasonic Testing of Wrought Products"
 const FIXED_SCAN_DETAILS: ScanDetail[] = [
-  // PRIMARY AXIAL SCANS - Critical for volumetric coverage (לכל סוגי החלקים!)
+  // A: PRIMARY STRAIGHT BEAM - From top/flat face through thickness
   {
     scanningDirection: "A",
-    waveMode: "LW 0° (Axial from Top)",
+    waveMode: "LW 0° (Primary Surface - E2375 Fig.6)",
     frequency: "", make: "", probe: "", remarkDetails: "",
     enabled: false,
     entrySurface: "top",
     angle: 0,
     color: "#22c55e"
   },
+  // B: SECONDARY STRAIGHT BEAM - From adjacent side (bars/billets need 2 adjacent sides per E2375)
   {
     scanningDirection: "B",
-    waveMode: "LW 0° (Axial from Bottom)",
+    waveMode: "LW 0° (Adjacent Side - E2375 Fig.6)",
     frequency: "", make: "", probe: "", remarkDetails: "",
     enabled: false,
-    entrySurface: "bottom",
+    entrySurface: "side",
     angle: 0,
     color: "#3b82f6"
   },
-  // RADIAL SCAN - From OD surface (לחלקים עגולים)
+  // C: TERTIARY/RADIAL - Third face (hex bar) or radial from OD (cylindrical parts)
   {
     scanningDirection: "C",
-    waveMode: "LW 0° (Radial from OD)",
+    waveMode: "LW 0° (Third Face / Radial from OD)",
     frequency: "", make: "", probe: "", remarkDetails: "",
     enabled: false,
     entrySurface: "od",
     angle: 0,
     color: "#f59e0b"
   },
-  // SHEAR WAVE SCANS - For detecting oriented defects (גלי גזירה)
+  // D: CIRCUMFERENTIAL SHEAR CW - Required for rings/tubes per E2375 Annex A1.3.1
   {
     scanningDirection: "D",
-    waveMode: "SW 45° (Clockwise)",
+    waveMode: "SW Circumferential CW (E2375 A1.3.1)",
     frequency: "", make: "", probe: "", remarkDetails: "",
     enabled: false,
-    entrySurface: "side",
+    entrySurface: "od",
     angle: 45,
     color: "#ef4444"
   },
+  // E: CIRCUMFERENTIAL SHEAR CCW - Both directions required per E2375 Annex A1.3.1
   {
     scanningDirection: "E",
-    waveMode: "SW 45° (Counter-Clockwise)",
+    waveMode: "SW Circumferential CCW (E2375 A1.3.1)",
     frequency: "", make: "", probe: "", remarkDetails: "",
     enabled: false,
-    entrySurface: "side",
+    entrySurface: "od",
     angle: 45,
     color: "#ec4899"
   },
-  // CIRCUMFERENTIAL AND AXIAL SHEAR (לחלקים עגולים)
+  // F: AXIAL SHEAR DIRECTION 1 - For tubes per E2375 Annex A1.3.3
   {
     scanningDirection: "F",
-    waveMode: "SW Circumferential",
+    waveMode: "SW Axial Dir.1 (E2375 A1.3.3)",
     frequency: "", make: "", probe: "", remarkDetails: "",
     enabled: false,
     entrySurface: "od",
     angle: 45,
     color: "#8b5cf6"
   },
+  // G: AXIAL SHEAR DIRECTION 2 - Opposite direction per E2375 Annex A1.3.3
   {
     scanningDirection: "G",
-    waveMode: "SW Axial 45° (from OD)",
+    waveMode: "SW Axial Dir.2 (E2375 A1.3.3)",
     frequency: "", make: "", probe: "", remarkDetails: "",
     enabled: false,
     entrySurface: "od",
     angle: 45,
     color: "#14b8a6"
   },
-  // ID SURFACE SCAN - For hollow parts (לחלקים חלולים: צינורות, טבעות)
+  // H: FROM ID SURFACE - For hollow parts (tubes, rings)
   {
     scanningDirection: "H",
-    waveMode: "LW 0° (from ID)",
+    waveMode: "LW 0° (from ID - hollow parts)",
     frequency: "", make: "", probe: "", remarkDetails: "",
     enabled: false,
     entrySurface: "id",
     angle: 0,
     color: "#06b6d4"
   },
-  // THROUGH-TRANSMISSION - Two-probe technique (TT)
+  // I: THROUGH-TRANSMISSION - Two-probe technique
   {
     scanningDirection: "I",
     waveMode: "Through-Transmission (TT)",
@@ -124,29 +127,30 @@ const FIXED_SCAN_DETAILS: ScanDetail[] = [
     angle: 0,
     color: "#84cc16"
   },
-  // ADDITIONAL SHEAR WAVE ANGLES (זוויות נוספות)
+  // J: SW 60° - For thin sections (<1 inch) per E2375 Annex A1.3.4
   {
     scanningDirection: "J",
-    waveMode: "SW 60°",
+    waveMode: "SW 60° (thin sections <1in)",
     frequency: "", make: "", probe: "", remarkDetails: "",
     enabled: false,
     entrySurface: "side",
     angle: 60,
     color: "#f97316"
   },
+  // K: SW 45° - For thick sections (>1 inch) per E2375 Annex A1.3.4
   {
     scanningDirection: "K",
-    waveMode: "SW 70°",
+    waveMode: "SW 45° (thick sections >1in)",
     frequency: "", make: "", probe: "", remarkDetails: "",
     enabled: false,
     entrySurface: "side",
-    angle: 70,
+    angle: 45,
     color: "#eab308"
   },
-  // ADDITIONAL RADIAL POSITION (מיקום רדיאלי נוסף)
+  // L: ROTATIONAL 360° - Radial scan while rotating (round bars per E2375 Fig.6)
   {
     scanningDirection: "L",
-    waveMode: "LW 0° (Radial Pos. 2)",
+    waveMode: "LW 0° Rotating 360° (E2375 Fig.6)",
     frequency: "", make: "", probe: "", remarkDetails: "",
     enabled: false,
     entrySurface: "radial",
@@ -159,15 +163,15 @@ const FIXED_SCAN_DETAILS: ScanDetail[] = [
 const getDirectionIcon = (direction: string, color?: string) => {
   const style = { color: color || "#6b7280" };
   switch(direction) {
-    case "A": return <ArrowDown className="w-4 h-4" style={style} title="From Top" />;
-    case "B": return <ArrowUp className="w-4 h-4" style={style} title="From Bottom" />;
-    case "C": return <ArrowLeft className="w-4 h-4" style={style} title="From OD/Side" />;
-    case "D": return <RotateCw className="w-4 h-4" style={style} title="SW 45° CW" />;
-    case "E": return <RotateCcw className="w-4 h-4" style={style} title="SW 45° CCW" />;
-    case "F": return <Circle className="w-4 h-4" style={style} title="Circumferential" />;
-    case "G": return <ArrowRight className="w-4 h-4" style={style} title="Axial from OD" />;
-    case "H": return <Disc className="w-4 h-4" style={style} title="From ID" />;
-    case "I": return <ArrowDown className="w-4 h-4" style={style} title="TT" />;
+    case "A": return <span title="From Top"><ArrowDown className="w-4 h-4" style={style} /></span>;
+    case "B": return <span title="From Bottom"><ArrowUp className="w-4 h-4" style={style} /></span>;
+    case "C": return <span title="From OD/Side"><ArrowLeft className="w-4 h-4" style={style} /></span>;
+    case "D": return <span title="SW 45° CW"><RotateCw className="w-4 h-4" style={style} /></span>;
+    case "E": return <span title="SW 45° CCW"><RotateCcw className="w-4 h-4" style={style} /></span>;
+    case "F": return <span title="Circumferential"><Circle className="w-4 h-4" style={style} /></span>;
+    case "G": return <span title="Axial from OD"><ArrowRight className="w-4 h-4" style={style} /></span>;
+    case "H": return <span title="From ID"><Disc className="w-4 h-4" style={style} /></span>;
+    case "I": return <span title="TT"><ArrowDown className="w-4 h-4" style={style} /></span>;
     default: return null;
   }
 };

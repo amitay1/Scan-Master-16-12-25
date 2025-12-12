@@ -162,7 +162,7 @@ function drawSideView(
     generator.drawText(
       x + viewWidth / 2,
       rectY + scaledThickness / 2,
-      'SOLID',
+      'BOX/BILLET',
       10,
       '#FFFFFF'
     );

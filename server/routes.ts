@@ -596,7 +596,7 @@ export function registerRoutes(app: Express) {
       }
 
       // Validate standard code format
-      if (standardCode.length > 50 || !/^[A-Za-z0-9\-]+$/.test(standardCode)) {
+      if (standardCode.length > 50 || !/^[A-Za-z0-9-]+$/.test(standardCode)) {
         return res.status(400).json({ 
           hasAccess: false,
           error: 'Invalid standard code format' 
@@ -665,13 +665,13 @@ export function registerRoutes(app: Express) {
 
       // Handle different event types
       switch (event.meta.event_name) {
-        case 'order_created':
+        case 'order_created': {
           const isSubscription = priceType === 'monthly' || priceType === 'annual';
           let expiryDate = null;
-          
+
           if (isSubscription) {
             const now = new Date();
-            expiryDate = priceType === 'monthly' 
+            expiryDate = priceType === 'monthly'
               ? new Date(now.setMonth(now.getMonth() + 1))
               : new Date(now.setFullYear(now.getFullYear() + 1));
           }
@@ -695,6 +695,7 @@ export function registerRoutes(app: Express) {
             status: 'completed',
           });
           break;
+        }
 
         case 'subscription_cancelled':
           // Deactivate access logic would go here

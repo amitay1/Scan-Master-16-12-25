@@ -82,6 +82,17 @@ interface StandardRules {
 }
 
 export const standardRules: Record<StandardType, StandardRules> = {
+  "MIL-STD-2154": {
+    defaultAcceptanceClass: "A",
+    minThickness: 6.35,
+    typicalFrequencies: ["2.25", "5.0", "10.0"],
+    couplantRecommendations: ["Water (Immersion)", "Glycerin", "Commercial Gel (Sono 600)"],
+    scanCoverageDefault: 100,
+    linearityRequirements: {
+      vertical: { min: 5, max: 98 },
+      horizontal: { min: 90 }
+    }
+  },
   "AMS-STD-2154E": {
     defaultAcceptanceClass: "A",
     minThickness: 6.35,
@@ -307,6 +318,66 @@ export const geometryRecommendations: Record<PartGeometry, GeometryRecommendatio
     scanPattern: "Circumferential and radial scans",
     transducerType: "contact",
     specialConsiderations: "Short hollow cylinder. Check wall thickness uniformity."
+  },
+  pyramid: {
+    calibrationBlockType: ["flat_block"],
+    scanPattern: "Raster scan on accessible faces with indexed coverage",
+    transducerType: "immersion",
+    specialConsiderations: "Treat as prismatic block; ensure apex region coverage and multiple orientations as needed."
+  },
+  ellipse: {
+    calibrationBlockType: ["flat_block"],
+    scanPattern: "Radial coverage with indexed circumferential positions",
+    transducerType: "immersion",
+    specialConsiderations: "Elliptical section behaves like cylinder with varying curvature; maintain coupling and normal incidence where possible."
+  },
+  irregular: {
+    calibrationBlockType: ["flat_block"],
+    scanPattern: "Drawing-specific with contour following",
+    transducerType: "contact",
+    specialConsiderations: "Irregular geometry requires adaptive scan planning; verify coverage zones against drawing."
+  },
+  l_profile: {
+    calibrationBlockType: ["flat_block"],
+    scanPattern: "Axial along legs with indexed transverse scans",
+    transducerType: "contact",
+    specialConsiderations: "Scan both legs separately; pay attention to corner/fillet regions."
+  },
+  t_profile: {
+    calibrationBlockType: ["flat_block"],
+    scanPattern: "Axial along stem and flange with indexed scans",
+    transducerType: "contact",
+    specialConsiderations: "T-section requires multiple orientations to cover stem/flange intersection."
+  },
+  i_profile: {
+    calibrationBlockType: ["flat_block"],
+    scanPattern: "Axial with indexed scans on flanges and web",
+    transducerType: "contact",
+    specialConsiderations: "I-section requires scanning from multiple surfaces to cover web/flange junctions."
+  },
+  u_profile: {
+    calibrationBlockType: ["flat_block"],
+    scanPattern: "Axial and transverse indexed scans",
+    transducerType: "contact",
+    specialConsiderations: "U-channel requires coverage of all faces; verify web-to-flange transition areas."
+  },
+  z_profile: {
+    calibrationBlockType: ["flat_block"],
+    scanPattern: "Axial with indexed transverse scans",
+    transducerType: "contact",
+    specialConsiderations: "Z-section requires multi-surface coverage; validate coupling on offsets."
+  },
+  z_section: {
+    calibrationBlockType: ["flat_block"],
+    scanPattern: "Axial with indexed transverse scans",
+    transducerType: "contact",
+    specialConsiderations: "Z-section requires multi-surface coverage; validate coupling on offsets."
+  },
+  custom_profile: {
+    calibrationBlockType: ["flat_block"],
+    scanPattern: "Drawing-specific",
+    transducerType: "contact",
+    specialConsiderations: "Custom profile - follow engineering drawing and inspect each feature separately."
   },
   extrusion_l: {
     calibrationBlockType: ["flat_block"],
@@ -536,8 +607,8 @@ export function getFBHSizeRecommendation(
   
   // If thickness-based selection needed
   if (thickness < 25) {
-    return recommended.filter(s => s <= 4.8).map(s => `${s}mm (${(s/25.4).toFixed(3)}\")`);
+    return recommended.filter(s => s <= 4.8).map(s => `${s}mm (${(s/25.4).toFixed(3)}")`);
   }
   
-  return recommended.slice(0, 3).map(s => `${s}mm (${(s/25.4).toFixed(3)}\")`);
+  return recommended.slice(0, 3).map(s => `${s}mm (${(s/25.4).toFixed(3)}")`);
 }

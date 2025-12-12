@@ -26,7 +26,7 @@ interface CalibrationBlockDrawingProps {
   /** Dynamic FBH data from calibration recommender (array for multiple FBHs) */
   fbhData?: FBHData | FBHData[];
   /** Dynamic notch data for notched blocks */
-  notchData?: NotchData;
+  notchData?: NotchData | NotchData[];
   /** Material type for display */
   material?: string;
   /** Show dimension lines (default: true) */
@@ -55,6 +55,11 @@ export const CalibrationBlockDrawing = ({
   
   // Also keep single FBH for components that need it
   const singleFbhData: FBHData = blockFbhDataArray[0] || DEFAULT_FBH_DATA[0];
+
+  // Normalize notchData to array (EnhancedCylinderNotchedDrawing expects an array)
+  const notchDataArray: NotchData[] = notchData
+    ? (Array.isArray(notchData) ? notchData : [notchData])
+    : [];
   
   // Calculate auto-scale based on dimensions
   const scale = calculateAutoScale(blockDimensions, { width: 550, height: 350 });
@@ -86,6 +91,13 @@ export const CalibrationBlockDrawing = ({
       standard: 'MIL-STD-2154A / EN 10228-3',
       partNumber: 'CAL-CYL-001',
       revision: 'B'
+    },
+    'solid_cylinder_fbh': {
+      figure: 'FIGURE 6',
+      title: 'SOLID CYLINDRICAL BLOCK WITH FBH',
+      standard: 'MIL-STD-2154A / EN 10228-3',
+      partNumber: 'CAL-CYL-002',
+      revision: 'A'
     },
     'angle_beam': {
       figure: 'FIGURE 4A',
@@ -183,7 +195,7 @@ export const CalibrationBlockDrawing = ({
         
         {/* Main Drawing Area */}
         <g transform="translate(30, 30)">
-          {renderEnhancedDrawing(blockType, uniqueId, blockDimensions, blockFbhDataArray, singleFbhData, notchData, scale.factor, showDimensions)}
+          {renderEnhancedDrawing(blockType, uniqueId, blockDimensions, blockFbhDataArray, singleFbhData, notchDataArray, scale.factor, showDimensions)}
         </g>
         
         {/* Title Block - Professional Engineering Standard */}
@@ -272,7 +284,7 @@ function renderEnhancedDrawing(
   dimensions: BlockDimensions,
   fbhDataArray: FBHData[],
   singleFbhData: FBHData,
-  notchData: NotchData | undefined,
+  notchData: NotchData[],
   scale: number,
   showDimensions: boolean
 ) {
@@ -289,6 +301,8 @@ function renderEnhancedDrawing(
     case 'curved_block':
       return <EnhancedCurvedBlockDrawing {...commonProps} fbhData={fbhDataArray} />;
     case 'cylinder_fbh':
+      return <EnhancedCylinderFBHDrawing {...commonProps} fbhData={fbhDataArray} />;
+    case 'solid_cylinder_fbh':
       return <EnhancedCylinderFBHDrawing {...commonProps} fbhData={fbhDataArray} />;
     case 'angle_beam':
       return <EnhancedAngleBeamDrawing {...commonProps} fbhData={fbhDataArray} />;

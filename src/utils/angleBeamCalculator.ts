@@ -762,7 +762,7 @@ export function getRecommendedNotch(
   code: 'asme' | 'en_iso_10893' | 'api' | 'aws' = 'asme'
 ): NotchRecommendation {
   switch (code) {
-    case 'asme':
+    case 'asme': {
       // ASME V - notch depth typically 10% of wall or 1mm min
       const asmeDepth = Math.max(thickness * 0.1, 1);
       return {
@@ -775,8 +775,9 @@ export function getRecommendedNotch(
         standard: 'ASME V',
         reason: '10% wall thickness or 1mm minimum, both ID & OD'
       };
+    }
       
-    case 'en_iso_10893':
+    case 'en_iso_10893': {
       // EN ISO 10893-11 for tubes - N5, N10 notches
       const enDepth = thickness * 0.05; // N5 = 5%
       return {
@@ -789,8 +790,9 @@ export function getRecommendedNotch(
         standard: 'EN ISO 10893-11',
         reason: 'N5 notch (5% wall), ID and OD per tube standard'
       };
+    }
       
-    case 'api':
+    case 'api': {
       // API 5L / 5CT - longitudinal notches
       const apiDepth = thickness * 0.125; // 12.5% = N12.5
       return {
@@ -803,6 +805,7 @@ export function getRecommendedNotch(
         standard: 'API 5L',
         reason: 'N12.5 reference notch (12.5% wall)'
       };
+    }
       
     case 'aws':
       // AWS D1.1 - machined notches

@@ -98,7 +98,7 @@ serve(async (req) => {
     }
 
     // Validate standard code format (alphanumeric with dashes, max 50 chars)
-    if (standardCode.length > 50 || !/^[A-Za-z0-9\-]+$/.test(standardCode)) {
+    if (standardCode.length > 50 || !/^[A-Za-z0-9-]+$/.test(standardCode)) {
       return new Response(JSON.stringify({ 
         hasAccess: false,
         error: 'Invalid standard code format' 

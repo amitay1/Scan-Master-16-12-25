@@ -6,6 +6,7 @@ import { SonnerToaster } from "@/components/ui/sonner-toaster";
 import { OrganizationProvider } from "@/contexts/OrganizationContext";
 import { SettingsProvider } from "@/contexts/SettingsContext";
 import { SavedCardsProvider } from "@/contexts/SavedCardsContext";
+import { InspectorProfileProvider } from "@/contexts/InspectorProfileContext";
 import { SettingsSync } from "@/components/SettingsSync";
 import { useServiceWorker } from "@/hooks/useServiceWorker";
 import SplashScreen from "./components/SplashScreen";
@@ -16,6 +17,7 @@ import MyStandards from "./pages/MyStandards";
 import NotFound from "./pages/NotFound";
 import { GaugeDemo } from "./pages/GaugeDemo";
 import TechnicalDrawingTest from "./pages/TechnicalDrawingTest";
+import BlockDesigner from "./pages/BlockDesigner";
 
 const queryClient = new QueryClient();
 
@@ -47,6 +49,7 @@ const AppContent = () => {
         <Route path="/my-standards" element={<MyStandards />} />
         <Route path="/gauge-demo" element={<GaugeDemo />} />
         <Route path="/drawing-test" element={<TechnicalDrawingTest />} />
+        <Route path="/block-designer" element={<BlockDesigner />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
       <UIToaster />
@@ -60,9 +63,11 @@ const App = () => (
     <SettingsProvider>
       <SettingsSync />
       <SavedCardsProvider>
-        <OrganizationProvider>
-          <AppContent />
-        </OrganizationProvider>
+        <InspectorProfileProvider>
+          <OrganizationProvider>
+            <AppContent />
+          </OrganizationProvider>
+        </InspectorProfileProvider>
       </SavedCardsProvider>
     </SettingsProvider>
   </QueryClientProvider>

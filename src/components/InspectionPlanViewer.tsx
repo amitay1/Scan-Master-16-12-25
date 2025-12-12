@@ -852,7 +852,7 @@ function drawSelectedScanDirectionArrow(
 /**
  * Get the exact position for a scan direction based on shape type
  * Each shape has specific positions for each direction (A, B, C, D...)
- * Based on RAFAEL 5036 Figure 1
+ * Per ASTM E2375 Figures 6 & 7 and Annex A1
  */
 function getScanDirectionPosition(
   partType: PartGeometry,
@@ -869,8 +869,12 @@ function getScanDirectionPosition(
   // Normalize part type for matching
   const normalizedType = partType.toLowerCase();
 
-  // Define positions for each shape type and direction
+  // Define positions for each shape type and direction per ASTM E2375
   switch (normalizedType) {
+    // ═══════════════════════════════════════════════════════════════════
+    // PLATE / FLAT BAR / RECTANGULAR BAR / BILLET - E2375 Fig.6
+    // A=through thickness, B=adjacent side (if W/T<5), J/K=angle beams
+    // ═══════════════════════════════════════════════════════════════════
     case 'plate':
     case 'box':
     case 'sheet':
@@ -882,183 +886,343 @@ function getScanDirectionPosition(
     case 'block':
     case 'rectangular_forging_stock':
     case 'bar': {
-      // Plate: A=top, B=bottom, C=side
       const plateW = 100 * scale;
       const plateH = 50 * scale;
       switch (direction.toUpperCase()) {
-        case 'A': // From top - straight beam down
+        case 'A': // E2375 Fig.6: Primary - from top through thickness
           return {
             x: centerX, y: centerY - plateH - 30,
             symbolX: centerX, symbolY: centerY - plateH - 50,
             labelX: centerX + 25, labelY: centerY - plateH - 35,
             arrowDirection: 'down', isAngleBeam: false
           };
-        case 'B': // From bottom - straight beam up
-          return {
-            x: centerX, y: centerY + plateH + 30,
-            symbolX: centerX, symbolY: centerY + plateH + 50,
-            labelX: centerX + 25, labelY: centerY + plateH + 45,
-            arrowDirection: 'up', isAngleBeam: false
-          };
-        case 'C': // From left side
+        case 'B': // E2375 Fig.6: Secondary - from adjacent side (required if W/T<5)
           return {
             x: centerX - plateW - 30, y: centerY,
             symbolX: centerX - plateW - 50, symbolY: centerY,
             labelX: centerX - plateW - 45, labelY: centerY - 20,
             arrowDirection: 'right', isAngleBeam: false
           };
-        case 'D': // Angle beam 45 CW
+        case 'C': // Opposite side (required if >9 inches)
+          return {
+            x: centerX, y: centerY + plateH + 30,
+            symbolX: centerX, symbolY: centerY + plateH + 50,
+            labelX: centerX + 25, labelY: centerY + plateH + 45,
+            arrowDirection: 'up', isAngleBeam: false
+          };
+        case 'J': // E2375 A1.3.4: SW 60° for thin sections (<1 inch)
           return {
             x: centerX + plateW * 0.5, y: centerY - plateH - 25,
             symbolX: centerX + plateW * 0.5, symbolY: centerY - plateH - 25,
             labelX: centerX + plateW * 0.5 + 20, labelY: centerY - plateH - 40,
             arrowDirection: 'down', isAngleBeam: true
           };
-        case 'E': // Angle beam 45 CCW
+        case 'K': // E2375 A1.3.4: SW 45° for thick sections (>1 inch)
           return {
             x: centerX - plateW * 0.5, y: centerY - plateH - 25,
             symbolX: centerX - plateW * 0.5, symbolY: centerY - plateH - 25,
             labelX: centerX - plateW * 0.5 - 20, labelY: centerY - plateH - 40,
             arrowDirection: 'down', isAngleBeam: true
           };
+        case 'I': // Through-Transmission
+          return {
+            x: centerX + plateW * 0.3, y: centerY - plateH - 30,
+            symbolX: centerX + plateW * 0.3, symbolY: centerY - plateH - 50,
+            labelX: centerX + plateW * 0.3 + 25, labelY: centerY - plateH - 35,
+            arrowDirection: 'down', isAngleBeam: false
+          };
         default: return null;
       }
     }
 
+    // ═══════════════════════════════════════════════════════════════════
+    // ROUND BAR / CYLINDER / SHAFT - E2375 Fig.6
+    // A/B=radial (while rotating), D/E=circumferential shear CW/CCW, L=360° rotation
+    // ═══════════════════════════════════════════════════════════════════
     case 'cylinder':
     case 'round_bar':
     case 'shaft':
     case 'hub':
     case 'round_forging_stock': {
-      // Round Bar: A=radial from top, B=radial from side, C=axial, angle beams at 45
       const barRadius = 55 * scale;
       switch (direction.toUpperCase()) {
-        case 'A': // Radial from top
+        case 'A': // E2375 Fig.6: Radial from top (part rotates)
           return {
             x: centerX, y: centerY - barRadius - 35,
             symbolX: centerX, symbolY: centerY - barRadius - 55,
             labelX: centerX + 25, labelY: centerY - barRadius - 40,
             arrowDirection: 'down', isAngleBeam: false
           };
-        case 'B': // Radial from side
+        case 'B': // E2375 Fig.6: Radial from side (alternative position)
           return {
             x: centerX - barRadius - 35, y: centerY,
             symbolX: centerX - barRadius - 55, symbolY: centerY,
             labelX: centerX - barRadius - 50, labelY: centerY - 20,
             arrowDirection: 'right', isAngleBeam: false
           };
-        case 'C': // Axial from end
+        case 'C': // Radial from OD (general radial access)
           return {
-            x: centerX + barRadius + 45, y: centerY - barRadius * 0.5,
-            symbolX: centerX + barRadius + 65, symbolY: centerY - barRadius * 0.5,
-            labelX: centerX + barRadius + 70, labelY: centerY - barRadius * 0.5 - 20,
+            x: centerX + barRadius + 35, y: centerY,
+            symbolX: centerX + barRadius + 55, symbolY: centerY,
+            labelX: centerX + barRadius + 50, labelY: centerY - 20,
             arrowDirection: 'left', isAngleBeam: false
           };
-        case 'D': // Angle beam 45 CW
+        case 'D': // E2375 A1.3.2: Circumferential shear CW (angle ≤45°)
           return {
-            x: centerX + barRadius * 0.6, y: centerY - barRadius - 30,
-            symbolX: centerX + barRadius * 0.6, symbolY: centerY - barRadius - 30,
-            labelX: centerX + barRadius * 0.6 + 20, labelY: centerY - barRadius - 45,
+            x: centerX + barRadius * 0.7, y: centerY - barRadius - 25,
+            symbolX: centerX + barRadius * 0.7, symbolY: centerY - barRadius - 25,
+            labelX: centerX + barRadius * 0.7 + 20, labelY: centerY - barRadius - 40,
             arrowDirection: 'down', isAngleBeam: true
           };
-        case 'E': // Angle beam 45 CCW
+        case 'E': // E2375 A1.3.2: Circumferential shear CCW
           return {
-            x: centerX - barRadius * 0.6, y: centerY - barRadius - 30,
-            symbolX: centerX - barRadius * 0.6, symbolY: centerY - barRadius - 30,
-            labelX: centerX - barRadius * 0.6 - 20, labelY: centerY - barRadius - 45,
+            x: centerX - barRadius * 0.7, y: centerY - barRadius - 25,
+            symbolX: centerX - barRadius * 0.7, symbolY: centerY - barRadius - 25,
+            labelX: centerX - barRadius * 0.7 - 20, labelY: centerY - barRadius - 40,
             arrowDirection: 'down', isAngleBeam: true
+          };
+        case 'L': // E2375 Fig.6: Rotational 360° scan (bar rotates while scanning)
+          return {
+            x: centerX, y: centerY + barRadius + 35,
+            symbolX: centerX, symbolY: centerY + barRadius + 55,
+            labelX: centerX + 25, labelY: centerY + barRadius + 50,
+            arrowDirection: 'up', isAngleBeam: false
           };
         default: return null;
       }
     }
 
+    // ═══════════════════════════════════════════════════════════════════
+    // TUBE / PIPE - E2375 Fig.7 + Annex A1.3.3
+    // A=from OD, B=from side, C=radial, D/E=circumferential shear CW/CCW,
+    // F/G=axial shear directions 1&2, H=from ID
+    // ═══════════════════════════════════════════════════════════════════
     case 'tube':
     case 'pipe':
     case 'sleeve':
     case 'bushing': {
-      // Tube: A=from OD radial top, B=from OD side, C=axial, D/E=angle beams
       const tubeRadius = 55 * scale;
       switch (direction.toUpperCase()) {
-        case 'A': // From OD radial top
+        case 'A': // E2375: From OD radial top
           return {
             x: centerX, y: centerY - tubeRadius - 35,
             symbolX: centerX, symbolY: centerY - tubeRadius - 55,
             labelX: centerX + 25, labelY: centerY - tubeRadius - 40,
             arrowDirection: 'down', isAngleBeam: false
           };
-        case 'B': // From OD side
+        case 'B': // E2375: From OD radial side
           return {
             x: centerX - tubeRadius - 35, y: centerY,
             symbolX: centerX - tubeRadius - 55, symbolY: centerY,
             labelX: centerX - tubeRadius - 50, labelY: centerY - 20,
             arrowDirection: 'right', isAngleBeam: false
           };
-        case 'C': // Axial from end
+        case 'C': // Radial from OD (general)
           return {
-            x: centerX + tubeRadius + 50, y: centerY - tubeRadius * 0.5,
-            symbolX: centerX + tubeRadius + 70, symbolY: centerY - tubeRadius * 0.5,
-            labelX: centerX + tubeRadius + 75, labelY: centerY - tubeRadius * 0.5 - 20,
+            x: centerX + tubeRadius + 35, y: centerY,
+            symbolX: centerX + tubeRadius + 55, symbolY: centerY,
+            labelX: centerX + tubeRadius + 50, labelY: centerY - 20,
             arrowDirection: 'left', isAngleBeam: false
           };
-        case 'D': // Angle beam CW
+        case 'D': // E2375 A1.3.3: Circumferential shear CLOCKWISE (required!)
           return {
-            x: centerX + tubeRadius * 0.6, y: centerY - tubeRadius - 30,
-            symbolX: centerX + tubeRadius * 0.6, symbolY: centerY - tubeRadius - 30,
-            labelX: centerX + tubeRadius * 0.6 + 20, labelY: centerY - tubeRadius - 45,
+            x: centerX + tubeRadius * 0.7, y: centerY - tubeRadius - 25,
+            symbolX: centerX + tubeRadius * 0.7, symbolY: centerY - tubeRadius - 25,
+            labelX: centerX + tubeRadius * 0.7 + 20, labelY: centerY - tubeRadius - 40,
             arrowDirection: 'down', isAngleBeam: true
           };
-        case 'E': // Angle beam CCW
+        case 'E': // E2375 A1.3.3: Circumferential shear COUNTER-CLOCKWISE (required!)
           return {
-            x: centerX - tubeRadius * 0.6, y: centerY - tubeRadius - 30,
-            symbolX: centerX - tubeRadius * 0.6, symbolY: centerY - tubeRadius - 30,
-            labelX: centerX - tubeRadius * 0.6 - 20, labelY: centerY - tubeRadius - 45,
+            x: centerX - tubeRadius * 0.7, y: centerY - tubeRadius - 25,
+            symbolX: centerX - tubeRadius * 0.7, symbolY: centerY - tubeRadius - 25,
+            labelX: centerX - tubeRadius * 0.7 - 20, labelY: centerY - tubeRadius - 40,
             arrowDirection: 'down', isAngleBeam: true
           };
-        case 'H': // From ID
+        case 'F': // E2375 A1.3.3: Axial shear direction 1
           return {
-            x: centerX + tubeRadius * 0.4, y: centerY + tubeRadius + 35,
-            symbolX: centerX + tubeRadius * 0.4, symbolY: centerY + tubeRadius + 55,
-            labelX: centerX + tubeRadius * 0.4 + 25, labelY: centerY + tubeRadius + 50,
+            x: centerX + tubeRadius + 40, y: centerY - tubeRadius * 0.5,
+            symbolX: centerX + tubeRadius + 40, symbolY: centerY - tubeRadius * 0.5,
+            labelX: centerX + tubeRadius + 55, labelY: centerY - tubeRadius * 0.5 - 15,
+            arrowDirection: 'left', isAngleBeam: true
+          };
+        case 'G': // E2375 A1.3.3: Axial shear direction 2 (opposite)
+          return {
+            x: centerX + tubeRadius + 40, y: centerY + tubeRadius * 0.5,
+            symbolX: centerX + tubeRadius + 40, symbolY: centerY + tubeRadius * 0.5,
+            labelX: centerX + tubeRadius + 55, labelY: centerY + tubeRadius * 0.5 + 15,
+            arrowDirection: 'left', isAngleBeam: true
+          };
+        case 'H': // E2375: From ID (inner surface)
+          return {
+            x: centerX, y: centerY + tubeRadius + 35,
+            symbolX: centerX, symbolY: centerY + tubeRadius + 55,
+            labelX: centerX + 25, labelY: centerY + tubeRadius + 50,
             arrowDirection: 'up', isAngleBeam: false
           };
         default: return null;
       }
     }
 
+    // ═══════════════════════════════════════════════════════════════════
+    // RING FORGING - E2375 Fig.7 + Annex A1.3.1
+    // A=from flat face, B=radial from OD (if wall>20% OD), C=radial from circumference,
+    // D/E=circumferential shear CW/CCW (REQUIRED!), F/G=axial shear, H=from ID
+    // ═══════════════════════════════════════════════════════════════════
     case 'ring':
-    case 'ring_forging':
-    case 'disk':
-    case 'disk_forging': {
-      // Ring/Disk per RAFAEL 5036 Figure 1
+    case 'ring_forging': {
       const ringRadius = 55 * scale;
       switch (direction.toUpperCase()) {
-        case 'A': // From top face
+        case 'A': // E2375 Fig.7: From flat face (axial)
           return {
             x: centerX, y: centerY - ringRadius - 35,
             symbolX: centerX, symbolY: centerY - ringRadius - 55,
             labelX: centerX + 25, labelY: centerY - ringRadius - 40,
             arrowDirection: 'down', isAngleBeam: false
           };
-        case 'B': // From OD radial
+        case 'B': // E2375 Fig.7: Radial from OD (if wall thickness > 20% of OD)
           return {
             x: centerX - ringRadius - 35, y: centerY,
             symbolX: centerX - ringRadius - 55, symbolY: centerY,
             labelX: centerX - ringRadius - 50, labelY: centerY - 20,
             arrowDirection: 'right', isAngleBeam: false
           };
-        case 'C': // Angle beam
+        case 'C': // E2375 Fig.7: Radial from circumference
+          return {
+            x: centerX + ringRadius + 35, y: centerY,
+            symbolX: centerX + ringRadius + 55, symbolY: centerY,
+            labelX: centerX + ringRadius + 50, labelY: centerY - 20,
+            arrowDirection: 'left', isAngleBeam: false
+          };
+        case 'D': // E2375 A1.3.1: Circumferential shear CLOCKWISE (REQUIRED for rings!)
           return {
             x: centerX + ringRadius * 0.7, y: centerY - ringRadius - 25,
             symbolX: centerX + ringRadius * 0.7, symbolY: centerY - ringRadius - 25,
             labelX: centerX + ringRadius * 0.7 + 20, labelY: centerY - ringRadius - 40,
             arrowDirection: 'down', isAngleBeam: true
           };
-        case 'D': // From bottom face
+        case 'E': // E2375 A1.3.1: Circumferential shear CCW (REQUIRED for rings!)
+          return {
+            x: centerX - ringRadius * 0.7, y: centerY - ringRadius - 25,
+            symbolX: centerX - ringRadius * 0.7, symbolY: centerY - ringRadius - 25,
+            labelX: centerX - ringRadius * 0.7 - 20, labelY: centerY - ringRadius - 40,
+            arrowDirection: 'down', isAngleBeam: true
+          };
+        case 'F': // Axial shear direction 1
+          return {
+            x: centerX + ringRadius + 35, y: centerY - ringRadius * 0.4,
+            symbolX: centerX + ringRadius + 35, symbolY: centerY - ringRadius * 0.4,
+            labelX: centerX + ringRadius + 50, labelY: centerY - ringRadius * 0.4 - 15,
+            arrowDirection: 'left', isAngleBeam: true
+          };
+        case 'G': // Axial shear direction 2
+          return {
+            x: centerX + ringRadius + 35, y: centerY + ringRadius * 0.4,
+            symbolX: centerX + ringRadius + 35, symbolY: centerY + ringRadius * 0.4,
+            labelX: centerX + ringRadius + 50, labelY: centerY + ringRadius * 0.4 + 15,
+            arrowDirection: 'left', isAngleBeam: true
+          };
+        case 'H': // E2375: From ID (inner surface)
           return {
             x: centerX, y: centerY + ringRadius + 35,
             symbolX: centerX, symbolY: centerY + ringRadius + 55,
             labelX: centerX + 25, labelY: centerY + ringRadius + 50,
             arrowDirection: 'up', isAngleBeam: false
+          };
+        default: return null;
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // DISK FORGING - E2375 Fig.7
+    // A=from flat face (primary), B=from opposite flat face,
+    // C=radial from circumference (required per Fig.7)
+    // ═══════════════════════════════════════════════════════════════════
+    case 'disk':
+    case 'disk_forging': {
+      const diskRadius = 55 * scale;
+      switch (direction.toUpperCase()) {
+        case 'A': // E2375 Fig.7: From flat face (at least one required)
+          return {
+            x: centerX, y: centerY - diskRadius - 35,
+            symbolX: centerX, symbolY: centerY - diskRadius - 55,
+            labelX: centerX + 25, labelY: centerY - diskRadius - 40,
+            arrowDirection: 'down', isAngleBeam: false
+          };
+        case 'B': // E2375 Fig.7: From opposite flat face (for thick disks)
+          return {
+            x: centerX, y: centerY + diskRadius + 35,
+            symbolX: centerX, symbolY: centerY + diskRadius + 55,
+            labelX: centerX + 25, labelY: centerY + diskRadius + 50,
+            arrowDirection: 'up', isAngleBeam: false
+          };
+        case 'C': // E2375 Fig.7: Radial from circumference (whenever practical)
+          return {
+            x: centerX - diskRadius - 35, y: centerY,
+            symbolX: centerX - diskRadius - 55, symbolY: centerY,
+            labelX: centerX - diskRadius - 50, labelY: centerY - 20,
+            arrowDirection: 'right', isAngleBeam: false
+          };
+        case 'D': // Angle beam from top
+          return {
+            x: centerX + diskRadius * 0.6, y: centerY - diskRadius - 25,
+            symbolX: centerX + diskRadius * 0.6, symbolY: centerY - diskRadius - 25,
+            labelX: centerX + diskRadius * 0.6 + 20, labelY: centerY - diskRadius - 40,
+            arrowDirection: 'down', isAngleBeam: true
+          };
+        case 'E': // Angle beam opposite
+          return {
+            x: centerX - diskRadius * 0.6, y: centerY - diskRadius - 25,
+            symbolX: centerX - diskRadius * 0.6, symbolY: centerY - diskRadius - 25,
+            labelX: centerX - diskRadius * 0.6 - 20, labelY: centerY - diskRadius - 40,
+            arrowDirection: 'down', isAngleBeam: true
+          };
+        default: return null;
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // HEX BAR - E2375 Fig.7
+    // A/B/C = THREE adjacent faces (required per standard!)
+    // ═══════════════════════════════════════════════════════════════════
+    case 'hexagon':
+    case 'hex_bar': {
+      const hexR = 50 * scale;
+      // Hex bar has 6 faces at 60° intervals - scan from 3 adjacent (A, B, C)
+      switch (direction.toUpperCase()) {
+        case 'A': // E2375 Fig.7: First face (top)
+          return {
+            x: centerX, y: centerY - hexR - 35,
+            symbolX: centerX, symbolY: centerY - hexR - 55,
+            labelX: centerX + 25, labelY: centerY - hexR - 40,
+            arrowDirection: 'down', isAngleBeam: false
+          };
+        case 'B': // E2375 Fig.7: Second adjacent face (upper-left, 60° from A)
+          return {
+            x: centerX - hexR * 0.87 - 30, y: centerY - hexR * 0.5 - 15,
+            symbolX: centerX - hexR * 0.87 - 50, symbolY: centerY - hexR * 0.5 - 15,
+            labelX: centerX - hexR * 0.87 - 45, labelY: centerY - hexR * 0.5 - 35,
+            arrowDirection: 'right', isAngleBeam: false
+          };
+        case 'C': // E2375 Fig.7: Third adjacent face (upper-right, 60° from A other side)
+          return {
+            x: centerX + hexR * 0.87 + 30, y: centerY - hexR * 0.5 - 15,
+            symbolX: centerX + hexR * 0.87 + 50, symbolY: centerY - hexR * 0.5 - 15,
+            labelX: centerX + hexR * 0.87 + 45, labelY: centerY - hexR * 0.5 - 35,
+            arrowDirection: 'left', isAngleBeam: false
+          };
+        case 'D': // Angle beam if needed
+          return {
+            x: centerX + hexR * 0.5, y: centerY - hexR - 30,
+            symbolX: centerX + hexR * 0.5, symbolY: centerY - hexR - 30,
+            labelX: centerX + hexR * 0.5 + 20, labelY: centerY - hexR - 45,
+            arrowDirection: 'down', isAngleBeam: true
+          };
+        case 'E': // Angle beam opposite
+          return {
+            x: centerX - hexR * 0.5, y: centerY - hexR - 30,
+            symbolX: centerX - hexR * 0.5, symbolY: centerY - hexR - 30,
+            labelX: centerX - hexR * 0.5 - 20, labelY: centerY - hexR - 45,
+            arrowDirection: 'down', isAngleBeam: true
           };
         default: return null;
       }
@@ -1083,12 +1247,26 @@ function getScanDirectionPosition(
             labelX: centerX - rectW - 50, labelY: centerY - 20,
             arrowDirection: 'right', isAngleBeam: false
           };
-        case 'C': // Angle beam
+        case 'C': // From right side
+          return {
+            x: centerX + rectW + 35, y: centerY,
+            symbolX: centerX + rectW + 55, symbolY: centerY,
+            labelX: centerX + rectW + 50, labelY: centerY - 20,
+            arrowDirection: 'left', isAngleBeam: false
+          };
+        case 'D': // Angle beam
           return {
             x: centerX + rectW * 0.5, y: centerY - rectH - 30,
             symbolX: centerX + rectW * 0.5, symbolY: centerY - rectH - 30,
             labelX: centerX + rectW * 0.5 + 20, labelY: centerY - rectH - 45,
             arrowDirection: 'down', isAngleBeam: true
+          };
+        case 'H': // From inside (hollow)
+          return {
+            x: centerX, y: centerY + rectH + 35,
+            symbolX: centerX, symbolY: centerY + rectH + 55,
+            labelX: centerX + 25, labelY: centerY + rectH + 50,
+            arrowDirection: 'up', isAngleBeam: false
           };
         default: return null;
       }
@@ -1106,7 +1284,7 @@ function getScanDirectionPosition(
     case 'extrusion_t':
     case 'z_profile':
     case 'z_section': {
-      // Structural profiles
+      // Structural profiles - scan from multiple directions
       const profH = 55 * scale;
       const profW = 45 * scale;
       switch (direction.toUpperCase()) {
@@ -1124,7 +1302,14 @@ function getScanDirectionPosition(
             labelX: centerX - profW - 50, labelY: centerY - 20,
             arrowDirection: 'right', isAngleBeam: false
           };
-        case 'C': // Angle beam
+        case 'C': // From right side
+          return {
+            x: centerX + profW + 35, y: centerY,
+            symbolX: centerX + profW + 55, symbolY: centerY,
+            labelX: centerX + profW + 50, labelY: centerY - 20,
+            arrowDirection: 'left', isAngleBeam: false
+          };
+        case 'D': // Angle beam
           return {
             x: centerX + profW * 0.5, y: centerY - profH - 30,
             symbolX: centerX + profW * 0.5, symbolY: centerY - profH - 30,
@@ -1152,40 +1337,18 @@ function getScanDirectionPosition(
             labelX: centerX - sphereR - 50, labelY: centerY - 20,
             arrowDirection: 'right', isAngleBeam: false
           };
-        case 'C': // Angle beam
+        case 'C': // From right side
+          return {
+            x: centerX + sphereR + 35, y: centerY,
+            symbolX: centerX + sphereR + 55, symbolY: centerY,
+            labelX: centerX + sphereR + 50, labelY: centerY - 20,
+            arrowDirection: 'left', isAngleBeam: false
+          };
+        case 'D': // Angle beam
           return {
             x: centerX + sphereR * 0.7, y: centerY - sphereR - 25,
             symbolX: centerX + sphereR * 0.7, symbolY: centerY - sphereR - 25,
             labelX: centerX + sphereR * 0.7 + 20, labelY: centerY - sphereR - 40,
-            arrowDirection: 'down', isAngleBeam: true
-          };
-        default: return null;
-      }
-    }
-
-    case 'hexagon':
-    case 'hex_bar': {
-      const hexR = 50 * scale;
-      switch (direction.toUpperCase()) {
-        case 'A': // From top
-          return {
-            x: centerX, y: centerY - hexR - 35,
-            symbolX: centerX, symbolY: centerY - hexR - 55,
-            labelX: centerX + 25, labelY: centerY - hexR - 40,
-            arrowDirection: 'down', isAngleBeam: false
-          };
-        case 'B': // From left side
-          return {
-            x: centerX - hexR - 35, y: centerY,
-            symbolX: centerX - hexR - 55, symbolY: centerY,
-            labelX: centerX - hexR - 50, labelY: centerY - 20,
-            arrowDirection: 'right', isAngleBeam: false
-          };
-        case 'C': // Angle beam
-          return {
-            x: centerX + hexR * 0.6, y: centerY - hexR - 30,
-            symbolX: centerX + hexR * 0.6, symbolY: centerY - hexR - 30,
-            labelX: centerX + hexR * 0.6 + 20, labelY: centerY - hexR - 45,
             arrowDirection: 'down', isAngleBeam: true
           };
         default: return null;
@@ -1211,7 +1374,14 @@ function getScanDirectionPosition(
             labelX: centerX - coneW - 50, labelY: centerY - 20,
             arrowDirection: 'right', isAngleBeam: false
           };
-        case 'C': // Angle beam
+        case 'C': // From base
+          return {
+            x: centerX, y: centerY + coneH + 35,
+            symbolX: centerX, symbolY: centerY + coneH + 55,
+            labelX: centerX + 25, labelY: centerY + coneH + 50,
+            arrowDirection: 'up', isAngleBeam: false
+          };
+        case 'D': // Angle beam
           return {
             x: centerX + coneW * 0.5, y: centerY - coneH - 30,
             symbolX: centerX + coneW * 0.5, symbolY: centerY - coneH - 30,
@@ -1240,7 +1410,14 @@ function getScanDirectionPosition(
             labelX: centerX - ellMajor - 50, labelY: centerY - 20,
             arrowDirection: 'right', isAngleBeam: false
           };
-        case 'C': // Angle beam
+        case 'C': // From right side
+          return {
+            x: centerX + ellMajor + 35, y: centerY,
+            symbolX: centerX + ellMajor + 55, symbolY: centerY,
+            labelX: centerX + ellMajor + 50, labelY: centerY - 20,
+            arrowDirection: 'left', isAngleBeam: false
+          };
+        case 'D': // Angle beam
           return {
             x: centerX + ellMajor * 0.5, y: centerY - ellMinor - 30,
             symbolX: centerX + ellMajor * 0.5, symbolY: centerY - ellMinor - 30,
@@ -1271,16 +1448,23 @@ function getScanDirectionPosition(
           };
         case 'C':
           return {
-            x: centerX, y: centerY + defaultR + 30,
-            symbolX: centerX, symbolY: centerY + defaultR + 50,
-            labelX: centerX + 25, labelY: centerY + defaultR + 45,
-            arrowDirection: 'up', isAngleBeam: false
+            x: centerX + defaultR + 30, y: centerY,
+            symbolX: centerX + defaultR + 50, symbolY: centerY,
+            labelX: centerX + defaultR + 45, labelY: centerY - 20,
+            arrowDirection: 'left', isAngleBeam: false
           };
         case 'D':
           return {
             x: centerX + defaultR * 0.5, y: centerY - defaultR - 25,
             symbolX: centerX + defaultR * 0.5, symbolY: centerY - defaultR - 25,
             labelX: centerX + defaultR * 0.5 + 20, labelY: centerY - defaultR - 40,
+            arrowDirection: 'down', isAngleBeam: true
+          };
+        case 'E':
+          return {
+            x: centerX - defaultR * 0.5, y: centerY - defaultR - 25,
+            symbolX: centerX - defaultR * 0.5, symbolY: centerY - defaultR - 25,
+            labelX: centerX - defaultR * 0.5 - 20, labelY: centerY - defaultR - 40,
             arrowDirection: 'down', isAngleBeam: true
           };
         default: return null;

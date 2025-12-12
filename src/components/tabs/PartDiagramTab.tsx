@@ -103,12 +103,16 @@ export const PartDiagramTab = ({
 
   const mapPartTypeToGeometry = (type: string): PartGeometry => {
     const typeMap: Record<string, PartGeometry> = {
+      // Primary shapes
       'tube': 'tube',
       'cylinder': 'cylinder',
       'box': 'box',
       'sphere': 'sphere',
       'cone': 'cone',
       'hexagon': 'hexagon',
+      'rectangular_tube': 'rectangular_tube',
+
+      // Extended shapes
       'plate': 'plate',
       'bar': 'bar',
       'disk': 'disk',
@@ -117,10 +121,41 @@ export const PartDiagramTab = ({
       'ellipse': 'ellipse',
       'forging': 'forging',
       'irregular': 'irregular',
+
+      // BOX family aliases
       'rectangular': 'box',
-      'rectangular_tube': 'rectangular_tube',
+      'sheet': 'box',
+      'slab': 'box',
+      'flat_bar': 'bar',
+      'rectangular_bar': 'bar',
+      'square_bar': 'box',
+      'billet': 'box',
+      'block': 'box',
+      'rectangular_forging_stock': 'box',
+      'machined_component': 'box',
+      'custom': 'box',
+
+      // CYLINDER family aliases
+      'round_bar': 'cylinder',
+      'shaft': 'cylinder',
+      'hub': 'cylinder',
+      'round_forging_stock': 'cylinder',
+      'disk_forging': 'disk',
+
+      // TUBE family aliases
+      'pipe': 'tube',
+      'sleeve': 'tube',
+      'bushing': 'tube',
+      'ring_forging': 'ring',
+      'square_tube': 'rectangular_tube',
+
+      // HEXAGON family aliases
+      'hex_bar': 'hexagon',
+
+      // FORGING family aliases
+      'near_net_forging': 'forging',
     };
-    return typeMap[type] || 'cylinder';
+    return typeMap[type] || 'box';
   };
 
   return (

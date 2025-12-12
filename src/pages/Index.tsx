@@ -7,7 +7,6 @@ import { ThreeDViewer } from "@/components/ThreeDViewer";
 import { MenuBar } from "@/components/MenuBar";
 import { Toolbar } from "@/components/Toolbar";
 import { StatusBar } from "@/components/StatusBar";
-import { ExportDialog } from "@/components/export/ExportDialog";
 import { UnifiedExportDialog } from "@/components/export/UnifiedExportDialog";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -29,6 +28,8 @@ import { ScanDetailsTab } from "@/components/tabs/ScanDetailsTab";
 import type { ScanDetailsData } from "@/types/scanDetails";
 import { TechnicalDrawingTab } from "@/components/tabs/TechnicalDrawingTab";
 import { ProbeProgressGauge } from "@/components/ui/ProbeProgressGauge";
+import { HorizontalProgressBar } from "@/components/ui/HorizontalProgressBar";
+import { WebGLLiquidProgress } from "@/components/ui/WebGLLiquidProgress";
 import { Collapsible3DPanel } from "@/components/ui/ResizablePanel";
 import type { SavedCard } from "@/contexts/SavedCardsContext";
 import {
@@ -43,7 +44,6 @@ import {
 } from "@/types/techniqueSheet";
 import { InspectionReportData } from "@/types/inspectionReport";
 import { standardRules, getRecommendedFrequency, getCouplantRecommendation, calculateMetalTravel } from "@/utils/autoFillLogic";
-import { exportComprehensiveTechniqueSheet } from "@/utils/comprehensiveTechniqueSheetExport";
 import { useAuth } from "@/hooks/useAuth";
 import { logError, logInfo } from "@/lib/logger";
 import { Button } from "@/components/ui/button";
@@ -52,16 +52,19 @@ import { fieldDependencyEngine } from "@/utils/standards/fieldDependencyEngine";
 import { validationEngine } from "@/utils/standards/validationEngine";
 import { techniqueSheetService } from "@/services/techniqueSheetService";
 import type { TechniqueSheetRecord, TechniqueSheetCardData } from "@/services/techniqueSheetService";
+import { FloatingDesignerButton } from "@/components/ui/FloatingDesignerButton";
+import { useInspectorProfile } from "@/contexts/InspectorProfileContext";
+import { ProfileSelectionDialog } from "@/components/inspector";
 
 const Index = () => {
   const navigate = useNavigate();
   const { user, loading, signOut } = useAuth();
+  const { needsProfileSelection, isLoading: profileLoading } = useInspectorProfile();
   const [standard, setStandard] = useState<StandardType>("AMS-STD-2154E");
   const [activeTab, setActiveTab] = useState("setup");
   const [reportMode, setReportMode] = useState<"Technique" | "Report">("Technique");
   const [isSplitMode, setIsSplitMode] = useState(false);
   const [activePart, setActivePart] = useState<"A" | "B">("A");
-  const [unifiedExportDialogOpen, setUnifiedExportDialogOpen] = useState(false);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [capturedDrawing, setCapturedDrawing] = useState<string | undefined>();
   const [viewer3DOpen, setViewer3DOpen] = useState(true);
@@ -726,7 +729,7 @@ const Index = () => {
             break;
           case 'e':
             e.preventDefault();
-            handleExportPDF();
+            setExportDialogOpen(true);
             break;
           case 'n':
             e.preventDefault();
@@ -966,12 +969,18 @@ const Index = () => {
 
   return (
     <div className="h-screen flex flex-col overflow-hidden bg-background">
+      {/* Profile Selection Dialog */}
+      <ProfileSelectionDialog
+        open={needsProfileSelection && !profileLoading}
+        allowClose={false}
+      />
+
       {/* Menu Bar - Hidden on Mobile */}
       <div className="hidden md:block">
-        <MenuBar 
+        <MenuBar
           onSave={handleSave}
           onOpenSavedCards={handleOpenSavedCards}
-          onExport={handleExportPDF}
+          onExport={() => setExportDialogOpen(true)}
           onNew={handleNewProject}
           onSignOut={signOut}
           onOpenDrawingEngine={() => navigate("/drawing-test")}
@@ -981,8 +990,7 @@ const Index = () => {
       {/* Toolbar */}
       <Toolbar
         onSave={handleSave}
-        onExport={handleExportPDF}
-        onUnifiedExport={() => setUnifiedExportDialogOpen(true)}
+        onExport={() => setExportDialogOpen(true)}
         onValidate={handleValidate}
         reportMode={reportMode}
         onReportModeChange={setReportMode}
@@ -997,19 +1005,15 @@ const Index = () => {
 
       {/* Main Content Area - Responsive Layout */}
       <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
-        {/* Mobile: Compact Header with Standard and Completion */}
+        {/* Mobile: Compact Header with Standard */}
         <div className="md:hidden border-b border-border bg-card p-3">
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
             <div className="flex-1">
               <h3 className="font-semibold text-xs mb-2">Standard</h3>
-              <StandardSelector 
-                value={standard} 
-                onChange={setStandard} 
+              <StandardSelector
+                value={standard}
+                onChange={setStandard}
               />
-            </div>
-            <div className="flex flex-col items-center">
-              <ProbeProgressGauge value={calculateCompletion()} />
-              <div className="text-xs text-muted-foreground mt-1">Complete</div>
             </div>
           </div>
         </div>
@@ -1028,19 +1032,7 @@ const Index = () => {
                 </div>
                 <ScrollArea className="flex-1 p-3">
                   <div className="space-y-4">
-                    <div>
-                      <h4 className="text-xs font-semibold text-muted-foreground mb-2">COMPLETION</h4>
-                      <div className="flex flex-col items-center">
-                        <ProbeProgressGauge value={calculateCompletion()} />
-                        <div className="text-xs text-muted-foreground mt-2">
-                          {(() => {
-                            const completion = calculateCompletion();
-                            const totalFields = reportMode === "Technique" ? 50 : 40;
-                            return Math.round((completion / 100) * totalFields);
-                          })()}/{reportMode === "Technique" ? 50 : 40} fields
-                        </div>
-                      </div>
-                    </div>
+                    {/* Additional sidebar content can go here */}
                   </div>
                 </ScrollArea>
               </div>
@@ -1067,6 +1059,19 @@ const Index = () => {
                         <TabsTrigger value="acceptance" className="flex-shrink-0 px-3 text-xs md:text-sm">Acceptance</TabsTrigger>
                         <TabsTrigger value="docs" className="flex-shrink-0 px-3 text-xs md:text-sm">Documentation</TabsTrigger>
                       </TabsList>
+                    </div>
+
+                    {/* WebGL Liquid Progress Bar - Below Tabs */}
+                    <div className="mt-3">
+                      <WebGLLiquidProgress
+                        value={calculateCompletion()}
+                        completedFields={(() => {
+                          const completion = calculateCompletion();
+                          const totalFields = reportMode === "Technique" ? 50 : 40;
+                          return Math.round((completion / 100) * totalFields);
+                        })()}
+                        totalFields={reportMode === "Technique" ? 50 : 40}
+                      />
                     </div>
 
                     <div className="mt-4 app-panel rounded-md">
@@ -1190,6 +1195,19 @@ const Index = () => {
                       </TabsList>
                     </div>
 
+                    {/* WebGL Liquid Progress Bar - Below Tabs (Report Mode) */}
+                    <div className="mt-3">
+                      <WebGLLiquidProgress
+                        value={calculateCompletion()}
+                        completedFields={(() => {
+                          const completion = calculateCompletion();
+                          const totalFields = reportMode === "Technique" ? 50 : 40;
+                          return Math.round((completion / 100) * totalFields);
+                        })()}
+                        totalFields={reportMode === "Technique" ? 50 : 40}
+                      />
+                    </div>
+
                     <div className="mt-4 app-panel rounded-md">
                       <TabsContent value="cover" className="m-0">
                         <CoverPageTab 
@@ -1283,26 +1301,10 @@ const Index = () => {
         totalRequiredFields={reportMode === "Technique" ? 50 : 40}
       />
 
-      {/* Export Dialog (Legacy) */}
-      <ExportDialog
+      {/* Export Dialog */}
+      <UnifiedExportDialog
         open={exportDialogOpen}
         onOpenChange={setExportDialogOpen}
-        partDiagram={capturedDrawing}
-        data={{
-          standard,
-          inspectionSetup: isSplitMode && activePart === "B" ? inspectionSetupB : inspectionSetup,
-          equipment: isSplitMode && activePart === "B" ? equipmentB : equipment,
-          calibration: isSplitMode && activePart === "B" ? calibrationB : calibration,
-          scanParameters: isSplitMode && activePart === "B" ? scanParametersB : scanParameters,
-          acceptanceCriteria: isSplitMode && activePart === "B" ? acceptanceCriteriaB : acceptanceCriteria,
-          documentation: isSplitMode && activePart === "B" ? documentationB : documentation,
-        }}
-      />
-
-      {/* Unified Export Dialog - New */}
-      <UnifiedExportDialog
-        open={unifiedExportDialogOpen}
-        onOpenChange={setUnifiedExportDialogOpen}
         standard={standard}
         inspectionSetup={isSplitMode && activePart === "B" ? inspectionSetupB : inspectionSetup}
         equipment={isSplitMode && activePart === "B" ? equipmentB : equipment}
@@ -1404,6 +1406,9 @@ const Index = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Floating Button for Block Designer */}
+      <FloatingDesignerButton />
     </div>
   );
 };

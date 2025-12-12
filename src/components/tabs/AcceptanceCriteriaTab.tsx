@@ -23,6 +23,7 @@ interface AcceptanceCriteriaTabProps {
 // Get the standard label for reference notes
 const getStandardLabel = (standard: StandardType): string => {
   const labels: Record<StandardType, string> = {
+    "MIL-STD-2154": "MIL-STD-2154 Table VI",
     "AMS-STD-2154E": "MIL-STD-2154 / AMS-STD-2154E Table VI",
     "ASTM-A388": "ASTM A388/A388M Quality Levels",
     "BS-EN-10228-3": "BS EN 10228-3:2016 Quality Classes",

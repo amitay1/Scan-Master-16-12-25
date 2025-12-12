@@ -20,6 +20,30 @@ interface RequestOptions {
   orgId?: string;
 }
 
+async function readJsonOrThrow<T>(response: Response): Promise<T> {
+  const contentType = response.headers.get("content-type") || "";
+  const rawText = await response.text();
+
+  // Some environments mislabel JSON; attempt parse if it looks like JSON.
+  const looksLikeJson = /^\s*[\[{]/.test(rawText);
+  const shouldTryJson = contentType.includes("application/json") || looksLikeJson;
+
+  if (shouldTryJson) {
+    try {
+      // Empty JSON bodies are valid in some APIs; treat as undefined.
+      if (!rawText.trim()) return undefined as T;
+      return JSON.parse(rawText) as T;
+    } catch {
+      // Fall through to a descriptive error.
+    }
+  }
+
+  const preview = rawText.trim().slice(0, 300);
+  throw new Error(
+    `Expected JSON response but got ${contentType || "unknown content-type"}. Body starts with: ${preview}`
+  );
+}
+
 async function request<T>({ path, method = "GET", body, userId, orgId }: RequestOptions): Promise<T> {
   const headers: Record<string, string> = {
     "x-user-id": userId,
@@ -43,7 +67,7 @@ async function request<T>({ path, method = "GET", body, userId, orgId }: Request
   if (!response.ok) {
     let errorMessage = `Request failed with status ${response.status}`;
     try {
-      const errorBody = await response.json();
+      const errorBody = await readJsonOrThrow<any>(response);
       if (typeof errorBody?.error === "string") {
         errorMessage = errorBody.error;
       }
@@ -57,7 +81,7 @@ async function request<T>({ path, method = "GET", body, userId, orgId }: Request
         }
       }
     } catch (error) {
-      // Ignore JSON parse errors - fallback to default message
+      // Ignore parse errors - fallback to default message
     }
     throw new Error(errorMessage);
   }
@@ -66,7 +90,7 @@ async function request<T>({ path, method = "GET", body, userId, orgId }: Request
     return undefined as T;
   }
 
-  return response.json() as Promise<T>;
+  return readJsonOrThrow<T>(response);
 }
 
 export interface TechniqueSheetPartData {

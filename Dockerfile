@@ -32,14 +32,17 @@ RUN addgroup -g 1001 -S nodejs && \
 # Copy package files
 COPY package*.json ./
 
-# Install production dependencies only
+# Install production dependencies plus tsx for TypeScript execution
 RUN npm ci --production && \
+    npm install tsx && \
     npm cache clean --force
 
 # Copy built application from builder
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/server ./server
+COPY --from=builder /app/shared ./shared
 COPY --from=builder /app/public ./public
+COPY --from=builder /app/standards ./standards
 
 # Copy necessary config files
 COPY --from=builder /app/drizzle.config.ts ./
@@ -62,5 +65,5 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 # Use dumb-init to handle signals properly
 ENTRYPOINT ["dumb-init", "--"]
 
-# Start the application
-CMD ["node", "server/index.js"]
+# Start the application with tsx for TypeScript support
+CMD ["npx", "tsx", "server/index.ts"]

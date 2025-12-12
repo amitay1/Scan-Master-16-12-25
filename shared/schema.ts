@@ -22,7 +22,7 @@ export const insertOrganizationSchema = createInsertSchema(organizations).omit({
   createdAt: true,
   updatedAt: true,
 });
-export type InsertOrganization = z.infer<typeof insertOrganizationSchema>;
+export type InsertOrganization = typeof organizations.$inferInsert;
 export type Organization = typeof organizations.$inferSelect;
 
 // Organization members junction table
@@ -39,7 +39,7 @@ export const insertOrgMemberSchema = createInsertSchema(orgMembers).omit({
   id: true,
   joinedAt: true,
 });
-export type InsertOrgMember = z.infer<typeof insertOrgMemberSchema>;
+export type InsertOrgMember = typeof orgMembers.$inferInsert;
 export type OrgMember = typeof orgMembers.$inferSelect;
 
 // Profiles table
@@ -56,7 +56,7 @@ export const insertProfileSchema = createInsertSchema(profiles).omit({
   createdAt: true,
   updatedAt: true,
 });
-export type InsertProfile = z.infer<typeof insertProfileSchema>;
+export type InsertProfile = typeof profiles.$inferInsert;
 export type Profile = typeof profiles.$inferSelect;
 
 // Technique sheets table
@@ -79,7 +79,7 @@ export const insertTechniqueSheetSchema = createInsertSchema(techniqueSheets).om
   createdAt: true,
   updatedAt: true,
 });
-export type InsertTechniqueSheet = z.infer<typeof insertTechniqueSheetSchema>;
+export type InsertTechniqueSheet = typeof techniqueSheets.$inferInsert;
 export type TechniqueSheet = typeof techniqueSheets.$inferSelect;
 
 // Standards table
@@ -110,7 +110,7 @@ export const insertStandardSchema = createInsertSchema(standards).omit({
   id: true,
   createdAt: true,
 });
-export type InsertStandard = z.infer<typeof insertStandardSchema>;
+export type InsertStandard = typeof standards.$inferInsert;
 export type Standard = typeof standards.$inferSelect;
 
 // User standard access table
@@ -133,7 +133,7 @@ export const insertUserStandardAccessSchema = createInsertSchema(userStandardAcc
   id: true,
   createdAt: true,
 });
-export type InsertUserStandardAccess = z.infer<typeof insertUserStandardAccessSchema>;
+export type InsertUserStandardAccess = typeof userStandardAccess.$inferInsert;
 export type UserStandardAccess = typeof userStandardAccess.$inferSelect;
 
 // Standard bundles table
@@ -153,7 +153,7 @@ export const insertStandardBundleSchema = createInsertSchema(standardBundles).om
   id: true,
   createdAt: true,
 });
-export type InsertStandardBundle = z.infer<typeof insertStandardBundleSchema>;
+export type InsertStandardBundle = typeof standardBundles.$inferInsert;
 export type StandardBundle = typeof standardBundles.$inferSelect;
 
 // Purchase history table
@@ -175,5 +175,5 @@ export const insertPurchaseHistorySchema = createInsertSchema(purchaseHistory).o
   id: true,
   createdAt: true,
 });
-export type InsertPurchaseHistory = z.infer<typeof insertPurchaseHistorySchema>;
+export type InsertPurchaseHistory = typeof purchaseHistory.$inferInsert;
 export type PurchaseHistory = typeof purchaseHistory.$inferSelect;

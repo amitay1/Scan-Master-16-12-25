@@ -177,7 +177,7 @@ export const xssProtection = (req: Request, res: Response, next: NextFunction) =
         "'": '&#39;',
         '/': '&#x2F;',
       };
-      return str.replace(/[&<>"'\/]/g, (s) => htmlEntities[s]);
+      return str.replace(/[&<>"'/]/g, (s) => htmlEntities[s]);
     };
 
     const sanitize = (obj: any): any => {
@@ -190,7 +190,7 @@ export const xssProtection = (req: Request, res: Response, next: NextFunction) =
       if (typeof obj === 'object' && obj !== null) {
         const sanitized: any = {};
         for (const key in obj) {
-          if (obj.hasOwnProperty(key)) {
+          if (Object.prototype.hasOwnProperty.call(obj, key)) {
             sanitized[key] = sanitize(obj[key]);
           }
         }

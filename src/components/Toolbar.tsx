@@ -1,11 +1,10 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { 
-  FileText, 
-  Save, 
-  Download, 
-  CheckCircle, 
+import {
+  FileText,
+  Save,
+  CheckCircle,
   FileSearch,
   Settings,
   RefreshCw,
@@ -14,13 +13,13 @@ import {
 } from "lucide-react";
 import { SettingsDialog } from "@/components/SettingsDialog";
 import { SavedCardsDialog } from "@/components/SavedCardsDialog";
+import { ProfileIndicator } from "@/components/inspector";
 import { useSavedCards } from "@/hooks/useSavedCards";
 import type { SavedCard } from "@/contexts/SavedCardsContext";
 
 interface ToolbarProps {
   onSave: () => void;
   onExport: () => void;
-  onUnifiedExport?: () => void;  // New unified export
   onValidate: () => void;
   reportMode: "Technique" | "Report";
   onReportModeChange: (mode: "Technique" | "Report") => void;
@@ -36,10 +35,9 @@ interface ToolbarProps {
 // Re-export SavedCard type for consumers
 export type { SavedCard } from '@/contexts/SavedCardsContext';
 
-export const Toolbar = ({ 
-  onSave, 
+export const Toolbar = ({
+  onSave,
   onExport,
-  onUnifiedExport,
   onValidate,
   reportMode,
   onReportModeChange,
@@ -62,23 +60,16 @@ export const Toolbar = ({
         <Save className="h-3 w-3 md:h-4 md:w-4" />
       </Button>
 
-      {/* Unified Export Button - New */}
-      {onUnifiedExport && (
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          onClick={onUnifiedExport} 
-          title="Unified Export - One complete document"
-          className="h-8 px-2 md:px-3 text-[10px] md:text-xs bg-primary/10 hover:bg-primary/20 text-primary"
-        >
-          <FileDown className="h-3 w-3 md:h-4 md:w-4 md:mr-1" />
-          <span className="hidden sm:inline">Export</span>
-        </Button>
-      )}
-
-      {/* Legacy Export - kept for compatibility */}
-      <Button variant="ghost" size="icon" onClick={onExport} title="Quick Export (Legacy)" className="h-8 w-8 md:h-9 md:w-9">
-        <Download className="h-3 w-3 md:h-4 md:w-4" />
+      {/* Export Button */}
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={onExport}
+        title="Export PDF"
+        className="h-8 px-2 md:px-3 text-[10px] md:text-xs bg-primary/10 hover:bg-primary/20 text-primary"
+      >
+        <FileDown className="h-3 w-3 md:h-4 md:w-4 md:mr-1" />
+        <span className="hidden sm:inline">Export</span>
       </Button>
 
       <Button variant="ghost" size="icon" onClick={onValidate} title="Validate" className="h-8 w-8 md:h-9 md:w-9">
@@ -160,11 +151,16 @@ export const Toolbar = ({
 
       <div className="flex-1" />
 
+      {/* Inspector Profile Indicator */}
+      <ProfileIndicator className="hidden sm:flex" />
+
+      <Separator orientation="vertical" className="h-6 md:h-8 mx-0.5 md:mx-1 hidden sm:block" />
+
       {/* Right Side Tools - Hidden on small mobile */}
-      <Button 
-        variant="ghost" 
-        size="icon" 
-        title="Local Saved Cards" 
+      <Button
+        variant="ghost"
+        size="icon"
+        title="Local Saved Cards"
         className="h-8 w-8 md:h-9 md:w-9 hidden sm:flex relative"
         onClick={() => setLocalSavedCardsOpen(true)}
       >

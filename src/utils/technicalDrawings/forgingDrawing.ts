@@ -164,7 +164,9 @@ function drawSideView(
     new scope.Point(centerX - scaledWidth / 2 + scaledWidth * 0.1, centerY + scaledThickness / 2),
   ];
 
-  path.add(points);
+  for (const point of points) {
+    path.add(point);
+  }
   path.closed = true;
   path.strokeColor = new scope.Color('#FFFFFF');
   path.strokeWidth = 2;

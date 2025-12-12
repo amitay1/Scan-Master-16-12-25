@@ -570,7 +570,13 @@ export class ProfessionalPDFExporter {
     this.doc.text("Thickness:", col1X, lineY);
     this.doc.setFont("helvetica", "normal");
     this.doc.setTextColor(0, 0, 0);
-    this.doc.text(`${data.inspectionSetup.partThickness} mm` || "N/A", col1X + 30, lineY);
+    this.doc.text(
+      Number.isFinite(data.inspectionSetup.partThickness)
+        ? `${data.inspectionSetup.partThickness} mm`
+        : "N/A",
+      col1X + 30,
+      lineY,
+    );
     
     // Column 2
     lineY = yPos + 8;
@@ -595,7 +601,13 @@ export class ProfessionalPDFExporter {
     this.doc.text("Frequency:", col2X, lineY);
     this.doc.setFont("helvetica", "normal");
     this.doc.setTextColor(0, 0, 0);
-    this.doc.text(`${data.equipment.frequency} MHz` || "N/A", col2X + 30, lineY);
+    this.doc.text(
+      data.equipment.frequency != null && String(data.equipment.frequency).trim() !== ""
+        ? `${data.equipment.frequency} MHz`
+        : "N/A",
+      col2X + 30,
+      lineY,
+    );
   }
 
   private drawStandardsComparisonSummary(yPos: number, data: ProfessionalTechniqueSheetData): void {

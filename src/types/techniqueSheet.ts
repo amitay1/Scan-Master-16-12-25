@@ -1,5 +1,6 @@
 export type StandardType = 
   | "AMS-STD-2154E"
+  | "MIL-STD-2154"
   | "ASTM-A388"
   | "BS-EN-10228-3"
   | "BS-EN-10228-4";
@@ -15,6 +16,28 @@ export type PartGeometry =
   | "hexagon"       // Hex bars
   | "sphere"        // Spheres
   | "cone"          // Cones
+
+  // Additional geometries used by the drawing/CAD subsystems
+  | "pyramid"
+  | "ellipse"
+  | "irregular"
+
+  // Structural profiles / extrusions
+  | "l_profile"
+  | "t_profile"
+  | "i_profile"
+  | "u_profile"
+  | "z_profile"
+  | "z_section"
+  | "custom_profile"
+
+  // Extrusion variants used in auto-fill and planning
+  | "extrusion_l"
+  | "extrusion_t"
+  | "extrusion_i"
+  | "extrusion_u"
+  | "extrusion_channel"
+  | "extrusion_angle"
 
   // Legacy support (will be mapped to base shapes)
   | "plate" | "sheet" | "slab" | "flat_bar" | "rectangular_bar" | "square_bar" | "billet" | "block"
@@ -78,6 +101,12 @@ export interface InspectionSetupData {
   coneTopDiameter?: number;      // Top diameter (smaller end, 0 = pointed)
   coneBottomDiameter?: number;   // Bottom diameter (base, larger end)
   coneHeight?: number;           // Height of the cone
+
+  // Additional fields for PDF export
+  drawingNumber?: string;        // Drawing reference number
+  heatTreatment?: string;        // Heat treatment condition
+  acousticVelocity?: number;     // Material acoustic velocity (m/s)
+  materialDensity?: number;      // Material density (kg/m³)
 }
 
 export interface EquipmentData {
@@ -98,6 +127,10 @@ export interface EquipmentData {
   numberOfElements?: number;       // Number of elements in PA probe (e.g., 32, 64)
   elementPitch?: number;           // Distance between elements in mm
   wedgeModel?: string;             // Wedge model identifier
+
+  // Additional fields for PDF export
+  wedgeType?: string;              // Type of wedge (e.g., "Normal", "Angled", "Immersion")
+  delayLine?: string;              // Delay line specification
 }
 
 // FBH Hole data structure for calibration blocks
@@ -160,6 +193,11 @@ export interface DocumentationData {
   revision: string;
   additionalNotes: string;
   approvalRequired: boolean;
+
+  // Additional fields for PDF export
+  customerName?: string;           // Customer/client name
+  purchaseOrder?: string;          // Purchase order number
+  serialNumber?: string;           // Part serial number
 }
 
 export interface CalibrationRecommendation {

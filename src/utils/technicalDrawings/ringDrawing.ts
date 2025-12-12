@@ -12,8 +12,25 @@ export function drawRingTechnicalDrawing(
   layout: LayoutConfig
 ): void {
   const outerDiameter = dimensions.diameter || dimensions.outerDiameter || 100;
-  const innerDiameter = dimensions.innerDiameter || outerDiameter * 0.6;
-  const thickness = dimensions.thickness || 20;
+  const thickness = dimensions.thickness || dimensions.length || 30;
+
+  // Calculate inner diameter - Rings are ALWAYS hollow
+  // Priority: 1) explicit innerDiameter, 2) wallThickness-based, 3) default 60% of OD
+  let innerDiameter: number;
+
+  if (dimensions.innerDiameter && dimensions.innerDiameter > 0) {
+    innerDiameter = dimensions.innerDiameter;
+  } else if (dimensions.wallThickness && dimensions.wallThickness > 0) {
+    innerDiameter = outerDiameter - (2 * dimensions.wallThickness);
+  } else {
+    // Default: ID is 60% of OD (standard ring proportion)
+    innerDiameter = outerDiameter * 0.6;
+  }
+
+  // Ensure inner diameter is valid (minimum 30% of OD for visual clarity)
+  if (innerDiameter < outerDiameter * 0.3) {
+    innerDiameter = outerDiameter * 0.6;
+  }
 
   // FRONT VIEW (Concentric circles)
   drawFrontView(generator, outerDiameter, innerDiameter, layout.frontView);
@@ -101,6 +118,22 @@ function drawFrontView(
     `w=${wallThickness.toFixed(1)}mm`,
     10,
     '#FFD700'
+  );
+
+  // Shape type label - PROMINENT indicator that this is HOLLOW
+  generator.drawText(
+    centerX,
+    centerY - 15,
+    'RING',
+    12,
+    '#00BFFF'  // Bright cyan for visibility
+  );
+  generator.drawText(
+    centerX,
+    centerY + 5,
+    '(HOLLOW, L/T<5)',
+    9,
+    '#FFD700'  // Gold color for emphasis
   );
 }
 

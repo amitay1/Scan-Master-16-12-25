@@ -3,8 +3,11 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
 import { DocumentationData } from "@/types/techniqueSheet";
 import { FieldWithHelp } from "@/components/FieldWithHelp";
+import { useInspectorProfile } from "@/contexts/InspectorProfileContext";
+import { UserCheck } from "lucide-react";
 
 interface DocumentationTabProps {
   data: DocumentationData;
@@ -16,8 +19,23 @@ interface DocumentationTabProps {
 const inspectorLevels = ["Level I", "Level II", "Level III"];
 
 export const DocumentationTab = ({ data, onChange }: DocumentationTabProps) => {
+  const { currentProfile } = useInspectorProfile();
+
   const updateField = (field: keyof DocumentationData, value: any) => {
     onChange({ ...data, [field]: value });
+  };
+
+  // Auto-fill from profile
+  const fillFromProfile = () => {
+    if (currentProfile) {
+      onChange({
+        ...data,
+        inspectorName: currentProfile.name,
+        inspectorCertification: currentProfile.certificationNumber,
+        inspectorLevel: currentProfile.certificationLevel,
+        certifyingOrganization: currentProfile.certifyingOrganization,
+      });
+    }
   };
 
   // Set today's date as default
@@ -28,6 +46,27 @@ export const DocumentationTab = ({ data, onChange }: DocumentationTabProps) => {
 
   return (
     <div className="space-y-6 p-6">
+      {/* Profile Quick Fill Banner */}
+      {currentProfile && (
+        <div className="flex items-center justify-between bg-primary/5 border border-primary/20 rounded-lg p-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold">
+              {currentProfile.initials}
+            </div>
+            <div>
+              <p className="text-sm font-medium">{currentProfile.name}</p>
+              <p className="text-xs text-muted-foreground">
+                {currentProfile.certificationLevel} · {currentProfile.certificationNumber}
+              </p>
+            </div>
+          </div>
+          <Button variant="outline" size="sm" onClick={fillFromProfile}>
+            <UserCheck className="h-4 w-4 mr-2" />
+            Use Profile
+          </Button>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <FieldWithHelp
           label="Inspector Name"
@@ -98,6 +137,42 @@ export const DocumentationTab = ({ data, onChange }: DocumentationTabProps) => {
             type="date"
             value={data.inspectionDate}
             onChange={(e) => updateField("inspectionDate", e.target.value)}
+            className="bg-background"
+          />
+        </FieldWithHelp>
+
+        <FieldWithHelp
+          label="Customer Name"
+          fieldKey="inspectorName"
+        >
+          <Input
+            value={data.customerName || ""}
+            onChange={(e) => updateField("customerName", e.target.value)}
+            placeholder="Customer / Client Name"
+            className="bg-background"
+          />
+        </FieldWithHelp>
+
+        <FieldWithHelp
+          label="Purchase Order"
+          fieldKey="procedureNumber"
+        >
+          <Input
+            value={data.purchaseOrder || ""}
+            onChange={(e) => updateField("purchaseOrder", e.target.value)}
+            placeholder="PO-12345"
+            className="bg-background"
+          />
+        </FieldWithHelp>
+
+        <FieldWithHelp
+          label="Part Serial Number"
+          fieldKey="procedureNumber"
+        >
+          <Input
+            value={data.serialNumber || ""}
+            onChange={(e) => updateField("serialNumber", e.target.value)}
+            placeholder="SN-001, SN-002"
             className="bg-background"
           />
         </FieldWithHelp>

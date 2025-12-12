@@ -1,4 +1,8 @@
-import { PDFExporter } from "./pdfExporter";
+/**
+ * Export Manager - Centralized export handling
+ * Now uses the new TechniqueSheetPDF exporter
+ */
+
 import { WordExporter } from "./wordExporter";
 import { TuvStyleExporter } from "./tuvStyleExporter";
 import { BaseExporter } from "./baseExporter";
@@ -19,12 +23,13 @@ import type {
   AcceptanceCriteriaData,
   DocumentationData,
 } from "@/types/techniqueSheet";
+import { exportTechniqueSheetPDF } from "@/utils/export/TechniqueSheetPDF";
 
 export class ExportManager {
   private exporters: Map<ExportFormat, typeof BaseExporter> = new Map();
 
   constructor() {
-    this.registerExporter("pdf", PDFExporter);
+    // Word and TUV exporters still use the old system
     this.registerExporter("word", WordExporter);
   }
 
@@ -37,15 +42,40 @@ export class ExportManager {
     data: ExportData,
     options: Partial<ExportOptions> = {}
   ): Promise<ExportResult> {
-    // Use TÜV exporter for TÜV template regardless of format
-    let ExporterClass: typeof BaseExporter;
-    
+    // PDF uses the new exporter
+    if (format === "pdf" && options.template !== "tuv") {
+      try {
+        exportTechniqueSheetPDF({
+          standard: data.standard,
+          inspectionSetup: data.inspectionSetup,
+          equipment: data.equipment,
+          calibration: data.calibration,
+          scanParameters: data.scanParameters,
+          acceptanceCriteria: data.acceptanceCriteria,
+          documentation: data.documentation,
+        }, {
+          companyName: options.companyName,
+          companyLogo: options.companyLogo,
+          documentNumber: options.documentNumber,
+        });
+        return { success: true };
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : "PDF export failed",
+        };
+      }
+    }
+
+    // Use TÜV exporter for TÜV template
+    let ExporterClass: typeof BaseExporter | undefined;
+
     if (options.template === "tuv") {
       ExporterClass = TuvStyleExporter;
     } else {
-      ExporterClass = this.exporters.get(format) || PDFExporter;
+      ExporterClass = this.exporters.get(format);
     }
-    
+
     if (!ExporterClass) {
       return {
         success: false,
@@ -78,7 +108,7 @@ export class ExportManager {
     };
 
     try {
-      const exporter = new (ExporterClass as any)(data, fullOptions);
+      const exporter = new (ExporterClass as unknown as new (data: ExportData, options: ExportOptions) => BaseExporter)(data, fullOptions);
       return await exporter.export();
     } catch (error) {
       console.error(`Export error for format ${format}:`, error);
@@ -114,11 +144,11 @@ export class ExportManager {
   }
 
   getSupportedFormats(): ExportFormat[] {
-    return Array.from(this.exporters.keys());
+    return ["pdf", "word"];
   }
 
   isFormatSupported(format: ExportFormat): boolean {
-    return this.exporters.has(format);
+    return format === "pdf" || this.exporters.has(format);
   }
 
   getDefaultOptions(template: ExportTemplate = "standard"): ExportOptions {
@@ -141,17 +171,17 @@ export class ExportManager {
     try {
       // Simulate progress for user feedback
       onProgress?.(0, "Initializing export...");
-      
+
       onProgress?.(20, "Preparing document structure...");
-      
+
       onProgress?.(40, "Processing data...");
-      
+
       onProgress?.(60, "Generating content...");
-      
+
       const result = await this.export(format, data, options);
-      
+
       onProgress?.(100, "Export complete!");
-      
+
       return result;
     } catch (error) {
       onProgress?.(0, "Export failed");

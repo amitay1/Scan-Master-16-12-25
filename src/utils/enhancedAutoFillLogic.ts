@@ -122,6 +122,88 @@ export const GEOMETRY_INSPECTION_RULES: Record<PartGeometry, GeometryInspectionR
     diagramReference: "Base Geometry - Cone"
   },
 
+  // ============= ADDITIONAL GEOMETRIES / PROFILES =============
+  pyramid: {
+    displayName: "Pyramid",
+    scanDirection: ["Raster scan on accessible faces", "Indexed coverage / multiple orientations"],
+    waveMode: ["Longitudinal"],
+    conditions: ["Treat as prismatic block; ensure coverage near apex"],
+    specialNotes: ["May require multiple setups to maintain normal incidence"],
+    diagramReference: "Special Geometry - Pyramid"
+  },
+  ellipse: {
+    displayName: "Ellipse",
+    scanDirection: ["Radial scan from perimeter", "Indexed circumferential positions"],
+    waveMode: ["Longitudinal"],
+    conditions: ["Varying curvature - adjust coupling and beam entry"],
+    specialNotes: ["Similar to cylinder, but curvature changes with angle"],
+    diagramReference: "Special Geometry - Ellipse"
+  },
+  irregular: {
+    displayName: "Irregular",
+    scanDirection: ["Drawing-specific contour following", "Feature-by-feature inspection"],
+    waveMode: ["Longitudinal"],
+    conditions: ["Define scan zones from drawing/CAD"],
+    specialNotes: ["Validate coverage map against part geometry"],
+    diagramReference: "Special Geometry - Irregular"
+  },
+  l_profile: {
+    displayName: "L-Profile (Angle)",
+    scanDirection: ["Axial along legs", "Indexed transverse scans"],
+    waveMode: ["Longitudinal"],
+    conditions: ["Scan both legs separately"],
+    specialNotes: ["Pay attention to corner/fillet regions"],
+    diagramReference: "Profile - L"
+  },
+  t_profile: {
+    displayName: "T-Profile",
+    scanDirection: ["Axial along stem and flange", "Indexed transverse scans"],
+    waveMode: ["Longitudinal"],
+    conditions: ["Multiple orientations to cover stem/flange intersection"],
+    specialNotes: ["Ensure coverage of junction region"],
+    diagramReference: "Profile - T"
+  },
+  i_profile: {
+    displayName: "I-Profile",
+    scanDirection: ["Axial along web and flanges", "Indexed scans per surface"],
+    waveMode: ["Longitudinal"],
+    conditions: ["Scan from multiple surfaces"],
+    specialNotes: ["Web/flange junctions are critical"],
+    diagramReference: "Profile - I"
+  },
+  u_profile: {
+    displayName: "U-Profile (Channel)",
+    scanDirection: ["Axial along channel", "Indexed transverse scans"],
+    waveMode: ["Longitudinal"],
+    conditions: ["Cover web and both flanges"],
+    specialNotes: ["Verify coupling on inside corner radii"],
+    diagramReference: "Profile - U"
+  },
+  z_profile: {
+    displayName: "Z-Profile",
+    scanDirection: ["Axial along profile", "Indexed transverse scans"],
+    waveMode: ["Longitudinal"],
+    conditions: ["Cover offsets and all faces"],
+    specialNotes: ["Check coupling across step changes"],
+    diagramReference: "Profile - Z"
+  },
+  z_section: {
+    displayName: "Z-Section",
+    scanDirection: ["Axial along section", "Indexed transverse scans"],
+    waveMode: ["Longitudinal"],
+    conditions: ["Cover offsets and all faces"],
+    specialNotes: ["Check coupling across step changes"],
+    diagramReference: "Profile - Z Section"
+  },
+  custom_profile: {
+    displayName: "Custom Profile",
+    scanDirection: ["Drawing-specific", "Feature-by-feature inspection"],
+    waveMode: ["Longitudinal"],
+    conditions: ["Define scan zones from drawing"],
+    specialNotes: ["Use conservative overlap and validate coverage"],
+    diagramReference: "Profile - Custom"
+  },
+
   // ============= LEGACY MAPPINGS =============
   plate: {
     displayName: "Plate and Flat Bar",

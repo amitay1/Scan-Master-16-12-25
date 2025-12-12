@@ -1,6 +1,11 @@
 /**
  * Plate Technical Drawing Module
  * Generates 2-view technical drawings for flat rectangular plate parts
+ *
+ * PLATE characteristics (per ASTM E2375-16):
+ * - W/T > 5 (width-to-thickness ratio greater than 5)
+ * - Flat, thin, sheet-like geometry
+ * - Visually: emphasized length/width, thin profile
  */
 
 import { TechnicalDrawingGenerator, Dimensions, LayoutConfig } from './TechnicalDrawingGenerator';
@@ -10,12 +15,15 @@ export function drawPlateTechnicalDrawing(
   dimensions: Dimensions,
   layout: LayoutConfig
 ): void {
-  const { length, width, thickness } = dimensions;
+  const length = dimensions.length || 400;
+  const width = dimensions.width || 200;
+  // For plates, thickness should be thin relative to width (W/T > 5)
+  const thickness = dimensions.thickness || Math.min(width / 6, 20);
 
-  // FRONT VIEW (Length × Thickness - thin rectangle)
+  // FRONT VIEW (Length × Thickness - emphasize thinness)
   drawFrontView(generator, length, thickness, layout.frontView);
 
-  // SIDE VIEW (Width × Thickness - with hatching)
+  // SIDE VIEW (Width × Thickness - section view)
   drawSideView(generator, width, thickness, layout.sideView);
 }
 
@@ -115,7 +123,7 @@ function drawSideView(
   generator.drawText(
     x + viewWidth / 2,
     rectY + scaledThickness / 2,
-    'SOLID',
+    'PLATE (W/T>5)',
     10,
     '#FFFFFF'
   );

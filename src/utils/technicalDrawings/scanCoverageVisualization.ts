@@ -1031,14 +1031,21 @@ export function renderScanZone(
       );
       break;
       
-    case 'circular':
-      const center = new scope.Point(zone.bounds.x + zone.bounds.width / 2, zone.bounds.y + zone.bounds.height / 2);
+    case 'circular': {
+      const center = new scope.Point(
+        zone.bounds.x + zone.bounds.width / 2,
+        zone.bounds.y + zone.bounds.height / 2
+      );
       zonePath = new scope.Path.Circle(center, zone.actualOuterRadius || zone.bounds.width / 2);
       break;
+    }
     
-    case 'annular':
+    case 'annular': {
       if (zone.actualInnerRadius !== undefined && zone.actualOuterRadius !== undefined) {
-        const center = new scope.Point(zone.bounds.x + zone.bounds.width / 2, zone.bounds.y + zone.bounds.height / 2);
+        const center = new scope.Point(
+          zone.bounds.x + zone.bounds.width / 2,
+          zone.bounds.y + zone.bounds.height / 2
+        );
         const outerCircle = new scope.Path.Circle(center, zone.actualOuterRadius);
         const innerCircle = new scope.Path.Circle(center, zone.actualInnerRadius);
         zonePath = outerCircle.subtract(innerCircle);
@@ -1049,6 +1056,7 @@ export function renderScanZone(
         );
       }
       break;
+    }
     
     default:
       zonePath = new scope.Path.Rectangle(
@@ -1573,12 +1581,13 @@ export function createShapeClippingMask(
       }
       break;
       
-    case 'sphere':
+    case 'sphere': {
       // Always a circle for sphere
       const centerX = bounds.x + bounds.width / 2;
       const centerY = bounds.y + bounds.height / 2;
       const radius = Math.min(bounds.width, bounds.height) / 2;
       return new scope.Path.Circle(new scope.Point(centerX, centerY), radius);
+    }
       
     case 'plate':
       // Rectangle for plate

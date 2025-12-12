@@ -11,10 +11,33 @@ export function drawTubeTechnicalDrawing(
   dimensions: Dimensions,
   layout: LayoutConfig
 ): void {
-  const outerDiameter = dimensions.diameter || dimensions.outerDiameter || 50;
-  const wallThickness = dimensions.wallThickness || dimensions.thickness || 5;
-  const innerDiameter = dimensions.innerDiameter || (outerDiameter - (2 * wallThickness));
-  const length = dimensions.length;
+  const outerDiameter = dimensions.diameter || dimensions.outerDiameter || 100;
+  const length = dimensions.length || 200;
+
+  // Calculate wall thickness and inner diameter
+  // Priority: 1) explicit innerDiameter, 2) explicit wallThickness, 3) default 10% of OD
+  let innerDiameter: number;
+  let wallThickness: number;
+
+  if (dimensions.innerDiameter && dimensions.innerDiameter > 0) {
+    // Inner diameter provided explicitly
+    innerDiameter = dimensions.innerDiameter;
+    wallThickness = (outerDiameter - innerDiameter) / 2;
+  } else if (dimensions.wallThickness && dimensions.wallThickness > 0) {
+    // Wall thickness provided
+    wallThickness = dimensions.wallThickness;
+    innerDiameter = outerDiameter - (2 * wallThickness);
+  } else {
+    // Default: wall thickness is 10% of OD (minimum 5mm)
+    wallThickness = Math.max(outerDiameter * 0.1, 5);
+    innerDiameter = outerDiameter - (2 * wallThickness);
+  }
+
+  // Ensure inner diameter is valid (minimum 20% of OD)
+  if (innerDiameter < outerDiameter * 0.2) {
+    innerDiameter = outerDiameter * 0.6;
+    wallThickness = (outerDiameter - innerDiameter) / 2;
+  }
 
   // FRONT VIEW (Length × OD with inner rectangle)
   drawFrontView(generator, length, outerDiameter, innerDiameter, layout.frontView);
@@ -180,8 +203,24 @@ function drawSideView(
   generator.drawText(
     centerX + (scaledInnerRadius + scaledOuterRadius) / 2,
     centerY - 10,
-    `t=${wallThickness}mm`,
+    `t=${wallThickness.toFixed(1)}mm`,
     10,
     '#FFD700'
+  );
+
+  // Shape type label - PROMINENT indicator that this is HOLLOW
+  generator.drawText(
+    centerX,
+    centerY - 15,
+    'TUBE',
+    12,
+    '#00BFFF'  // Bright cyan for visibility
+  );
+  generator.drawText(
+    centerX,
+    centerY + 5,
+    '(HOLLOW)',
+    10,
+    '#FFD700'  // Gold color for emphasis
   );
 }

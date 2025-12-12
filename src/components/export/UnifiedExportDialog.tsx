@@ -1,61 +1,26 @@
 /**
- * Unified Export Dialog
- * =====================
- * דיאלוג ייצוא מאוחד - כפתור אחד לייצוא מלא
- * 
- * מחליף את:
- * - Technique Mode Export
- * - Report Mode Export
- * 
- * עם: ייצוא אחד חכם שמזהה את שלב הבדיקה ומייצא את הכל
+ * Export Dialog - Professional & Complete
  */
 
-import React, { useState, useMemo, useEffect } from "react";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import React, { useState, useMemo } from "react";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 import {
   Download,
   FileText,
-  Eye,
-  CheckCircle,
-  XCircle,
-  Clock,
-  AlertTriangle,
-  Settings,
-  Globe,
-  Image,
-  Table as TableIcon,
-  BarChart,
-  FileDown,
-  Printer,
-  Mail,
+  FileIcon,
   Loader2,
-  ChevronRight,
-  Info,
+  X,
+  CheckCircle2,
+  FileWarning,
+  Sparkles,
+  Upload,
+  Building2,
+  Trash2,
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
 
-import {
-  unifiedExportService,
-  EXPORT_TEMPLATES,
-  ExportTemplateConfig,
-  ExportContext,
-  ExportStats,
-  InspectionPhase,
-  mapLegacyDataToUnified,
-} from "@/services/unifiedExportService";
-import type { ExportTemplate, UnifiedInspectionData } from "@/types/unifiedInspection";
 import type {
   StandardType,
   InspectionSetupData,
@@ -67,15 +32,13 @@ import type {
 } from "@/types/techniqueSheet";
 import type { InspectionReportData } from "@/types/inspectionReport";
 import type { ScanDetailsData } from "@/types/scanDetails";
+import type { ExportTemplate } from "@/types/unifiedInspection";
 
-// Import actual export function
-import { exportComprehensiveTechniqueSheet } from "@/utils/comprehensiveTechniqueSheetExport";
+import { exportTechniqueSheetPDF } from "@/utils/export/TechniqueSheetPDF";
 
 interface UnifiedExportDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  
-  // נתונים מהמערכת הישנה
   standard: StandardType;
   inspectionSetup: InspectionSetupData;
   equipment: EquipmentData;
@@ -83,10 +46,10 @@ interface UnifiedExportDialogProps {
   scanParameters: ScanParametersData;
   acceptanceCriteria: AcceptanceCriteriaData;
   documentation: TechniqueDocumentationData;
-  inspectionReport: InspectionReportData;
+  inspectionReport?: InspectionReportData;
   scanDetails?: ScanDetailsData;
-  
-  // קולבקים
+  capturedDrawing?: string;
+  calibrationBlockDiagram?: string;
   onExport?: (format: "pdf" | "word", template: ExportTemplate) => void;
 }
 
@@ -100,519 +63,345 @@ export const UnifiedExportDialog: React.FC<UnifiedExportDialogProps> = ({
   scanParameters,
   acceptanceCriteria,
   documentation,
-  inspectionReport,
   scanDetails,
+  capturedDrawing,
+  calibrationBlockDiagram,
   onExport,
 }) => {
-  // State
-  const [activeTab, setActiveTab] = useState("template");
-  const [selectedTemplate, setSelectedTemplate] = useState<ExportTemplate>("tuv");
-  const [exportContext, setExportContext] = useState<ExportContext>(
-    unifiedExportService.getDefaultContext()
-  );
   const [isExporting, setIsExporting] = useState(false);
-  const [exportProgress, setExportProgress] = useState(0);
+  const [exportFormat, setExportFormat] = useState<"pdf" | "word">("pdf");
+  const [companyName, setCompanyName] = useState("");
+  const [companyLogo, setCompanyLogo] = useState<string | null>(null);
+  const [logoFileName, setLogoFileName] = useState<string | null>(null);
 
-  // מיפוי נתונים למבנה מאוחד
-  const unifiedData = useMemo(() => {
-    return mapLegacyDataToUnified(
-      inspectionSetup,
-      equipment,
-      calibration,
-      scanParameters,
-      acceptanceCriteria,
-      documentation,
-      inspectionReport,
-      scanDetails
-    );
-  }, [inspectionSetup, equipment, calibration, scanParameters, acceptanceCriteria, documentation, inspectionReport, scanDetails]);
-
-  // זיהוי שלב הבדיקה
-  const phase = useMemo(() => 
-    unifiedExportService.detectPhase(unifiedData), 
-    [unifiedData]
-  );
-
-  // תבנית נבחרת
-  const currentTemplate = useMemo(() => 
-    unifiedExportService.getTemplate(selectedTemplate),
-    [selectedTemplate]
-  );
-
-  // סטטיסטיקות
-  const stats = useMemo(() => {
-    if (!currentTemplate) return null;
-    return unifiedExportService.calculateStats(unifiedData, currentTemplate, exportContext);
-  }, [unifiedData, currentTemplate, exportContext]);
-
-  // עדכון קונטקסט כשמשתנה התבנית
-  useEffect(() => {
-    setExportContext(prev => ({
-      ...prev,
-      template: selectedTemplate,
-      phase,
-    }));
-  }, [selectedTemplate, phase]);
-
-  // ביצוא ייצוא אמיתי
-  const handleExport = async (format: "pdf" | "word") => {
-    setIsExporting(true);
-    setExportProgress(0);
-
-    try {
-      // Progress step 1: Preparing data
-      setExportProgress(10);
-      await new Promise(r => setTimeout(r, 100));
-
-      // Build the data object for the export function
-      const exportData = {
-        standard: standard,
-        inspectionSetup,
-        equipment,
-        calibration,
-        scanParameters,
-        acceptanceCriteria,
-        documentation,
-        partDiagram: undefined as string | undefined,
-        scanImages: [] as string[],
-      };
-
-      // Progress step 2: Processing
-      setExportProgress(30);
-      await new Promise(r => setTimeout(r, 100));
-
-      if (format === "pdf") {
-        // Progress step 3: Generating PDF
-        setExportProgress(50);
-        await new Promise(r => setTimeout(r, 100));
-
-        // Use unified comprehensive export for all templates
-        setExportProgress(70);
-        exportComprehensiveTechniqueSheet(exportData);
-
-        setExportProgress(100);
-      } else {
-        // Word export - TODO: implement later
-        setExportProgress(100);
-        console.warn("Word export not yet implemented");
+  // Handle logo file upload
+  const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        alert('Please upload an image file (PNG, JPG, etc.)');
+        return;
+      }
+      // Validate file size (max 2MB)
+      if (file.size > 2 * 1024 * 1024) {
+        alert('Logo file must be smaller than 2MB');
+        return;
       }
 
-      // Success callback
-      onExport?.(format, selectedTemplate);
-      
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setCompanyLogo(e.target?.result as string);
+        setLogoFileName(file.name);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeLogo = () => {
+    setCompanyLogo(null);
+    setLogoFileName(null);
+  };
+
+  // Calculate readiness with detailed breakdown
+  const readinessData = useMemo(() => {
+    const sections = [
+      {
+        name: "Part Information",
+        fields: [
+          { name: "Part Number", value: inspectionSetup.partNumber },
+          { name: "Part Name", value: inspectionSetup.partName },
+          { name: "Material", value: inspectionSetup.material },
+          { name: "Part Type", value: inspectionSetup.partType },
+        ]
+      },
+      {
+        name: "Equipment",
+        fields: [
+          { name: "Manufacturer", value: equipment.manufacturer },
+          { name: "Model", value: equipment.model },
+          { name: "Frequency", value: equipment.frequency },
+        ]
+      },
+      {
+        name: "Calibration",
+        fields: [
+          { name: "Standard Type", value: calibration.standardType },
+          { name: "Reference Material", value: calibration.referenceMaterial },
+        ]
+      },
+      {
+        name: "Acceptance",
+        fields: [
+          { name: "Acceptance Class", value: acceptanceCriteria.acceptanceClass },
+        ]
+      },
+      {
+        name: "Documentation",
+        fields: [
+          { name: "Inspector Name", value: documentation.inspectorName },
+          { name: "Inspector Level", value: documentation.inspectorLevel },
+        ]
+      },
+    ];
+
+    let totalFilled = 0;
+    let totalFields = 0;
+
+    sections.forEach(section => {
+      section.fields.forEach(field => {
+        totalFields++;
+        if (field.value && field.value !== "") totalFilled++;
+      });
+    });
+
+    return {
+      sections,
+      percentage: Math.round((totalFilled / totalFields) * 100),
+      filled: totalFilled,
+      total: totalFields,
+    };
+  }, [inspectionSetup, equipment, calibration, acceptanceCriteria, documentation]);
+
+  const handleExport = async (format: "pdf" | "word") => {
+    setIsExporting(true);
+    setExportFormat(format);
+
+    try {
+      await new Promise(r => setTimeout(r, 400));
+
+      if (format === "pdf") {
+        exportTechniqueSheetPDF({
+          standard,
+          inspectionSetup,
+          equipment,
+          calibration,
+          scanParameters,
+          acceptanceCriteria,
+          documentation,
+          scanDetails,
+          capturedDrawing,
+          calibrationBlockDiagram,
+        }, {
+          companyName: companyName || undefined,
+          companyLogo: companyLogo || undefined,
+        });
+      } else {
+        // Word export - coming soon
+        console.log("Word export - coming soon");
+        alert("Word export is coming soon!");
+      }
+
+      onExport?.(format, "custom");
+
+      setTimeout(() => {
+        onOpenChange(false);
+      }, 500);
+
     } catch (error) {
       console.error("Export error:", error);
     } finally {
-      setIsExporting(false);
-      setExportProgress(0);
+      setTimeout(() => {
+        setIsExporting(false);
+      }, 600);
     }
   };
 
-  // קבלת אייקון סטטוס
-  const getStatusIcon = (status: "ready" | "partial" | "pending") => {
-    switch (status) {
-      case "ready":
-        return <CheckCircle className="w-4 h-4 text-green-500" />;
-      case "partial":
-        return <AlertTriangle className="w-4 h-4 text-yellow-500" />;
-      case "pending":
-        return <Clock className="w-4 h-4 text-gray-400" />;
-    }
+  const getStatusColor = (percentage: number) => {
+    if (percentage >= 80) return "text-emerald-600";
+    if (percentage >= 50) return "text-amber-500";
+    return "text-red-500";
   };
 
-  // קבלת תוויות שלב
-  const getPhaseInfo = (p: InspectionPhase) => {
-    const info = {
-      "pre-inspection": {
-        label: "Pre-Inspection",
-        labelHe: "לפני הבדיקה",
-        color: "bg-blue-100 text-blue-700",
-        icon: <Clock className="w-4 h-4" />,
-        description: "Export planning documents before inspection",
-        descriptionHe: "ייצוא מסמכי תכנון לפני הבדיקה",
-      },
-      "post-inspection": {
-        label: "Post-Inspection",
-        labelHe: "אחרי הבדיקה",
-        color: "bg-orange-100 text-orange-700",
-        icon: <FileText className="w-4 h-4" />,
-        description: "Export includes results and findings",
-        descriptionHe: "הייצוא כולל תוצאות וממצאים",
-      },
-      "complete": {
-        label: "Complete Report",
-        labelHe: "דו״ח מלא",
-        color: "bg-green-100 text-green-700",
-        icon: <CheckCircle className="w-4 h-4" />,
-        description: "Full professional report ready for delivery",
-        descriptionHe: "דו\"ח מקצועי מלא מוכן למסירה",
-      },
-    };
-    return info[p];
+  const getStatusBg = (percentage: number) => {
+    if (percentage >= 80) return "bg-emerald-500";
+    if (percentage >= 50) return "bg-amber-500";
+    return "bg-red-500";
   };
-
-  const phaseInfo = getPhaseInfo(phase);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <FileDown className="w-5 h-5" />
-            Unified Export
-            <span className="text-muted-foreground text-sm font-normal">/ ייצוא מאוחד</span>
-          </DialogTitle>
-          <DialogDescription>
-            One export, complete documentation • ייצוא אחד, תיעוד מלא
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className="max-w-md p-0 gap-0 overflow-hidden border-0 shadow-2xl">
+        {/* Header */}
+        <div className="relative bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 px-6 py-5">
+          <button
+            onClick={() => onOpenChange(false)}
+            className="absolute right-4 top-4 rounded-full p-1.5 text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
 
-        {/* Phase Indicator */}
-        <div className={cn("p-3 rounded-lg flex items-center justify-between", phaseInfo.color)}>
-          <div className="flex items-center gap-2">
-            {phaseInfo.icon}
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg">
+              <FileText className="w-6 h-6 text-white" />
+            </div>
             <div>
-              <span className="font-medium">{phaseInfo.label}</span>
-              <span className="mx-2">•</span>
-              <span>{phaseInfo.labelHe}</span>
+              <h2 className="text-lg font-semibold text-white">Export Document</h2>
+              <p className="text-sm text-slate-400">Professional technique sheet</p>
             </div>
           </div>
-          <Badge variant="outline" className="bg-white/50">
-            {stats?.readinessPercentage || 0}% Ready
-          </Badge>
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="template" className="flex items-center gap-2">
-              <FileText className="w-4 h-4" />
-              Template
-            </TabsTrigger>
-            <TabsTrigger value="settings" className="flex items-center gap-2">
-              <Settings className="w-4 h-4" />
-              Settings
-            </TabsTrigger>
-            <TabsTrigger value="preview" className="flex items-center gap-2">
-              <Eye className="w-4 h-4" />
-              Preview
-            </TabsTrigger>
-          </TabsList>
+        {/* Content */}
+        <div className="p-6 space-y-5">
 
-          <ScrollArea className="h-[400px] mt-4">
-            {/* Template Selection */}
-            <TabsContent value="template" className="m-0 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                {EXPORT_TEMPLATES.map((template) => (
-                  <Card
-                    key={template.id}
-                    className={cn(
-                      "cursor-pointer transition-all hover:shadow-md",
-                      selectedTemplate === template.id && "ring-2 ring-primary"
-                    )}
-                    onClick={() => setSelectedTemplate(template.id)}
-                  >
-                    <CardHeader className="pb-2">
-                      <div className="flex justify-between items-start">
-                        <div className="flex items-center gap-2">
-                          <span className="text-2xl">{template.icon}</span>
-                          <div>
-                            <CardTitle className="text-base">{template.name}</CardTitle>
-                            <CardDescription className="text-xs">{template.nameHe}</CardDescription>
-                          </div>
-                        </div>
-                        {selectedTemplate === template.id && (
-                          <Badge>Selected</Badge>
-                        )}
-                      </div>
-                    </CardHeader>
-                    <CardContent className="pt-0">
-                      <p className="text-sm text-muted-foreground mb-3">
-                        {template.description}
-                      </p>
-                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                          <FileText className="w-3 h-3" />
-                          {template.pageCount} pages
-                        </span>
-                        {template.supportsBilingual && (
-                          <span className="flex items-center gap-1">
-                            <Globe className="w-3 h-3" />
-                            Bilingual
-                          </span>
-                        )}
-                      </div>
-                      <div className="mt-3 flex flex-wrap gap-1">
-                        {template.features.slice(0, 3).map((feature, idx) => (
-                          <Badge key={idx} variant="secondary" className="text-xs">
-                            {feature}
-                          </Badge>
-                        ))}
-                        {template.features.length > 3 && (
-                          <Badge variant="outline" className="text-xs">
-                            +{template.features.length - 3}
-                          </Badge>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+          {/* Document Info */}
+          <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-900 rounded-xl">
+            <div className="flex items-center gap-3">
+              <Sparkles className="w-5 h-5 text-blue-500" />
+              <div>
+                <div className="font-medium text-sm">Professional Format</div>
+                <div className="text-xs text-slate-500">10+ pages, A4, all sections included</div>
               </div>
-
-              {/* Template Features */}
-              {currentTemplate && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-sm">
-                      {currentTemplate.name} Features
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-2 gap-2">
-                      {currentTemplate.features.map((feature, idx) => (
-                        <div key={idx} className="flex items-center gap-2 text-sm">
-                          <CheckCircle className="w-3 h-3 text-green-500" />
-                          <span>{feature}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-            </TabsContent>
-
-            {/* Export Settings */}
-            <TabsContent value="settings" className="m-0 space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-sm">Export Options</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-6">
-                    {/* Language */}
-                    <div className="space-y-2">
-                      <Label className="flex items-center gap-2">
-                        <Globe className="w-4 h-4" />
-                        Language
-                      </Label>
-                      <Select
-                        value={exportContext.language}
-                        onValueChange={(v) => setExportContext(prev => ({ ...prev, language: v as "en" | "he" | "both" }))}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="en">English</SelectItem>
-                          <SelectItem value="he">עברית (Hebrew)</SelectItem>
-                          <SelectItem value="both">Bilingual / דו-לשוני</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {/* Watermark */}
-                    <div className="space-y-2">
-                      <Label>Watermark</Label>
-                      <Input
-                        placeholder="e.g., CONTROLLED COPY"
-                        value={exportContext.watermark || ""}
-                        onChange={(e) => setExportContext(prev => ({ ...prev, watermark: e.target.value }))}
-                      />
-                    </div>
-                  </div>
-
-                  <Separator />
-
-                  {/* Content Options */}
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="flex items-center justify-between p-3 border rounded-lg">
-                      <div className="flex items-center gap-2">
-                        <Image className="w-4 h-4 text-muted-foreground" />
-                        <span className="text-sm">Images</span>
-                      </div>
-                      <Switch
-                        checked={exportContext.includeImages}
-                        onCheckedChange={(checked) => setExportContext(prev => ({ ...prev, includeImages: checked }))}
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between p-3 border rounded-lg">
-                      <div className="flex items-center gap-2">
-                        <TableIcon className="w-4 h-4 text-muted-foreground" />
-                        <span className="text-sm">Tables</span>
-                      </div>
-                      <Switch
-                        checked={exportContext.includeTables}
-                        onCheckedChange={(checked) => setExportContext(prev => ({ ...prev, includeTables: checked }))}
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between p-3 border rounded-lg">
-                      <div className="flex items-center gap-2">
-                        <BarChart className="w-4 h-4 text-muted-foreground" />
-                        <span className="text-sm">Charts</span>
-                      </div>
-                      <Switch
-                        checked={exportContext.includeCharts}
-                        onCheckedChange={(checked) => setExportContext(prev => ({ ...prev, includeCharts: checked }))}
-                      />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Missing Data Warning */}
-              {stats && stats.missingData.length > 0 && (
-                <Alert variant="default" className="border-yellow-200 bg-yellow-50">
-                  <AlertTriangle className="w-4 h-4 text-yellow-600" />
-                  <AlertTitle className="text-yellow-800">Missing Data</AlertTitle>
-                  <AlertDescription className="text-yellow-700">
-                    The following fields are not filled:
-                    <ul className="mt-2 list-disc list-inside">
-                      {stats.missingData.map((field, idx) => (
-                        <li key={idx}>{field}</li>
-                      ))}
-                    </ul>
-                  </AlertDescription>
-                </Alert>
-              )}
-            </TabsContent>
-
-            {/* Preview */}
-            <TabsContent value="preview" className="m-0 space-y-4">
-              {currentTemplate && (
-                <>
-                  {/* Stats Summary */}
-                  <div className="grid grid-cols-4 gap-4">
-                    <Card className="p-4 text-center">
-                      <div className="text-2xl font-bold text-primary">
-                        {stats?.totalPages || 0}
-                      </div>
-                      <div className="text-xs text-muted-foreground">Pages</div>
-                    </Card>
-                    <Card className="p-4 text-center">
-                      <div className="text-2xl font-bold text-primary">
-                        {stats?.sectionsIncluded || 0}
-                      </div>
-                      <div className="text-xs text-muted-foreground">Sections</div>
-                    </Card>
-                    <Card className="p-4 text-center">
-                      <div className="text-2xl font-bold text-primary">
-                        {stats?.readinessPercentage || 0}%
-                      </div>
-                      <div className="text-xs text-muted-foreground">Ready</div>
-                    </Card>
-                    <Card className="p-4 text-center">
-                      <div className="text-2xl font-bold text-orange-500">
-                        {stats?.missingData.length || 0}
-                      </div>
-                      <div className="text-xs text-muted-foreground">Missing</div>
-                    </Card>
-                  </div>
-
-                  {/* Sections List */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-sm">Document Sections</CardTitle>
-                      <CardDescription>
-                        Sections included based on {phaseInfo.label}
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-2">
-                        {unifiedExportService.getSections(currentTemplate, phase).map((section, idx) => {
-                          const preview = unifiedExportService.generatePreview(
-                            unifiedData, 
-                            currentTemplate, 
-                            exportContext
-                          );
-                          const sectionPreview = preview.sections.find(s => s.id === section.id);
-                          
-                          return (
-                            <div
-                              key={section.id}
-                              className="flex items-center justify-between p-3 border rounded-lg"
-                            >
-                              <div className="flex items-center gap-3">
-                                <span className="text-sm text-muted-foreground w-6">
-                                  {idx + 1}.
-                                </span>
-                                {getStatusIcon(sectionPreview?.status || "pending")}
-                                <div>
-                                  <div className="font-medium text-sm">
-                                    {exportContext.language === "he" ? section.nameHe : section.name}
-                                  </div>
-                                  <div className="text-xs text-muted-foreground">
-                                    {sectionPreview?.content || ""}
-                                  </div>
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <Badge variant="outline" className="text-xs">
-                                  {section.pages} {section.pages === 1 ? "page" : "pages"}
-                                </Badge>
-                                {section.required && (
-                                  <Badge variant="secondary" className="text-xs">Required</Badge>
-                                )}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* Phase-specific info */}
-                  <Alert>
-                    <Info className="w-4 h-4" />
-                    <AlertTitle>{phaseInfo.label}</AlertTitle>
-                    <AlertDescription>
-                      {phaseInfo.description}
-                      <br />
-                      <span className="text-muted-foreground">{phaseInfo.descriptionHe}</span>
-                    </AlertDescription>
-                  </Alert>
-                </>
-              )}
-            </TabsContent>
-          </ScrollArea>
-        </Tabs>
-
-        {/* Export Progress */}
-        {isExporting && (
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="flex items-center gap-2">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Generating document...
-              </span>
-              <span>{exportProgress}%</span>
             </div>
-            <Progress value={exportProgress} />
+            <div className={cn("text-2xl font-bold", getStatusColor(readinessData.percentage))}>
+              {readinessData.percentage}%
+            </div>
           </div>
-        )}
 
-        <DialogFooter className="gap-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={() => handleExport("word")}
+          {/* Progress Bar */}
+          <div className="space-y-2">
+            <div className="flex justify-between text-xs">
+              <span className="text-slate-500">Document completeness</span>
+              <span className="font-medium">{readinessData.filled} / {readinessData.total} fields</span>
+            </div>
+            <div className="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+              <div
+                className={cn("h-full rounded-full transition-all duration-500", getStatusBg(readinessData.percentage))}
+                style={{ width: `${readinessData.percentage}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Sections Status */}
+          <div className="grid grid-cols-5 gap-2">
+            {readinessData.sections.map((section) => {
+              const sectionFilled = section.fields.filter(f => f.value && f.value !== "").length;
+              const sectionTotal = section.fields.length;
+              const isComplete = sectionFilled === sectionTotal;
+
+              return (
+                <div
+                  key={section.name}
+                  className={cn(
+                    "text-center p-2 rounded-lg border transition-colors",
+                    isComplete
+                      ? "bg-emerald-50 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800"
+                      : "bg-slate-50 border-slate-200 dark:bg-slate-900 dark:border-slate-700"
+                  )}
+                >
+                  {isComplete ? (
+                    <CheckCircle2 className="w-4 h-4 mx-auto text-emerald-500 mb-1" />
+                  ) : (
+                    <FileWarning className="w-4 h-4 mx-auto text-slate-400 mb-1" />
+                  )}
+                  <div className="text-[10px] font-medium text-slate-600 dark:text-slate-400 truncate">
+                    {section.name}
+                  </div>
+                  <div className="text-[9px] text-slate-400">
+                    {sectionFilled}/{sectionTotal}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Export Format Selection */}
+          <div className="space-y-3">
+            <div className="text-sm font-medium text-slate-700 dark:text-slate-300">Export Format</div>
+            <div className="grid grid-cols-2 gap-3">
+              {/* PDF Option */}
+              <button
+                onClick={() => !isExporting && handleExport("pdf")}
+                disabled={isExporting}
+                className={cn(
+                  "relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all",
+                  "hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20",
+                  isExporting && exportFormat === "pdf"
+                    ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                    : "border-slate-200 dark:border-slate-700"
+                )}
+              >
+                {isExporting && exportFormat === "pdf" ? (
+                  <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+                ) : (
+                  <div className="w-10 h-10 rounded-lg bg-red-500 flex items-center justify-center">
+                    <FileText className="w-5 h-5 text-white" />
+                  </div>
+                )}
+                <div>
+                  <div className="font-semibold text-sm">PDF</div>
+                  <div className="text-[10px] text-slate-500">Ready to export</div>
+                </div>
+              </button>
+
+              {/* Word Option */}
+              <button
+                onClick={() => !isExporting && handleExport("word")}
+                disabled={isExporting}
+                className={cn(
+                  "relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all",
+                  "hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20",
+                  isExporting && exportFormat === "word"
+                    ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                    : "border-slate-200 dark:border-slate-700"
+                )}
+              >
+                {isExporting && exportFormat === "word" ? (
+                  <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+                ) : (
+                  <div className="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center">
+                    <FileIcon className="w-5 h-5 text-white" />
+                  </div>
+                )}
+                <div>
+                  <div className="font-semibold text-sm">Word</div>
+                  <div className="text-[10px] text-slate-500">Coming soon</div>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          {/* Warning for low completion */}
+          {readinessData.percentage < 50 && (
+            <div className="flex items-start gap-3 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+              <FileWarning className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+              <div className="text-sm">
+                <div className="font-medium text-amber-700 dark:text-amber-300">Low completeness</div>
+                <div className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">
+                  Fill in more fields for a complete professional document
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="px-6 py-4 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800">
+          <div className="flex items-center justify-between">
+            <button
+              onClick={() => onOpenChange(false)}
               disabled={isExporting}
+              className="text-sm text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors"
             >
-              <FileText className="w-4 h-4 mr-2" />
-              Word
-            </Button>
-            
+              Cancel
+            </button>
+
             <Button
+              size="lg"
               onClick={() => handleExport("pdf")}
               disabled={isExporting}
-              className="min-w-[140px]"
+              className={cn(
+                "px-6 font-medium rounded-xl",
+                "bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600",
+                "shadow-lg shadow-blue-500/20"
+              )}
             >
               {isExporting ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Exporting...
+                </>
               ) : (
                 <>
                   <Download className="w-4 h-4 mr-2" />
@@ -621,7 +410,7 @@ export const UnifiedExportDialog: React.FC<UnifiedExportDialogProps> = ({
               )}
             </Button>
           </div>
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );

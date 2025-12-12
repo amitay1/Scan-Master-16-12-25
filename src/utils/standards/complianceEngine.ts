@@ -428,6 +428,7 @@ export class StandardsComplianceEngine {
     switch (parameter) {
       case "scanSpeed":
         comparison.standards = {
+          "MIL-STD-2154": "150 mm/s",
           "AMS-STD-2154E": "150 mm/s",  // Use AMS-STD-2154E as display name
           "ASTM-A388": "150-300 mm/s",
           "BS-EN-10228-3": "150-500 mm/s",
@@ -443,6 +444,7 @@ export class StandardsComplianceEngine {
       
       case "frequency":
         comparison.standards = {
+          "MIL-STD-2154": "1-15 MHz (thickness dependent)",
           "AMS-STD-2154E": "1-15 MHz (thickness dependent)",
           "ASTM-A388": "1-5 MHz",
           "BS-EN-10228-3": "1-5 MHz",
@@ -458,6 +460,7 @@ export class StandardsComplianceEngine {
       
       case "overlap":
         comparison.standards = {
+          "MIL-STD-2154": "30% minimum",
           "AMS-STD-2154E": "30% minimum",
           "ASTM-A388": "10-15%",
           "BS-EN-10228-3": "10% minimum",
@@ -474,6 +477,7 @@ export class StandardsComplianceEngine {
       case "fbhSize":
         if (thickness) {
           comparison.standards = {
+            "MIL-STD-2154": this.getMilStdFBHSize(thickness, "A"),
             "AMS-STD-2154E": this.getMilStdFBHSize(thickness, "A"),
             "ASTM-A388": this.getAstmFBHSize(thickness),
             "BS-EN-10228-3": this.getBSENFBHSize(thickness),
