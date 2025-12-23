@@ -1,9 +1,8 @@
-import React, { useRef, useMemo, useEffect, useState } from 'react';
+import React, { useRef, useMemo, useEffect, useState, Component, ErrorInfo, ReactNode } from 'react';
 import { Canvas, useFrame, useLoader, extend, useThree } from '@react-three/fiber';
 import { 
   OrbitControls, 
   Grid, 
-  ContactShadows, 
   Text,
   Html,
   PerspectiveCamera
@@ -12,6 +11,39 @@ import * as THREE from 'three';
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+
+/**
+ * Error boundary for 3D viewer - prevents app crashes
+ */
+interface ErrorBoundaryState {
+  hasError: boolean;
+}
+
+class Block3DErrorBoundary extends Component<{ children: ReactNode }, ErrorBoundaryState> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(): ErrorBoundaryState {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.warn('CalibrationBlock3D error caught:', error.message);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="w-full h-full flex items-center justify-center bg-gradient-to-b from-slate-100 to-slate-200 text-slate-500">
+          <p className="text-sm">3D Preview unavailable</p>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 // Three.js extensions
 extend({ OrbitControls });
@@ -379,15 +411,16 @@ export default function CalibrationBlock3D({
 }: CalibrationBlock3DProps) {
 
   return (
-    <div className="w-full h-full relative">
-      {/* 3D Canvas display */}
-      <Canvas
-        shadows
-        camera={{ position: [100, 100, 100], fov: 50 }}
-        style={{ background: 'linear-gradient(to bottom, #f8fafc, #e2e8f0)' }}
-      >
-        {/* Lighting */}
-        <ambientLight intensity={0.3} />
+    <Block3DErrorBoundary>
+      <div className="w-full h-full relative">
+        {/* 3D Canvas display */}
+        <Canvas
+          shadows
+          camera={{ position: [100, 100, 100], fov: 50 }}
+          style={{ background: 'linear-gradient(to bottom, #f8fafc, #e2e8f0)' }}
+        >
+          {/* Lighting */}
+          <ambientLight intensity={0.3} />
         <directionalLight
           position={[10, 10, 5]}
           intensity={1}
@@ -398,16 +431,7 @@ export default function CalibrationBlock3D({
         <pointLight position={[-10, -10, -10]} intensity={0.5} />
 
         {/* Environment – "warehouse" preset removed because remote HDR returns 404 and caused crashes */}
-
-        {/* Shadows */}
-        <ContactShadows 
-          opacity={0.4} 
-          scale={200} 
-          blur={1} 
-          far={200} 
-          resolution={256} 
-          color="#000000"
-        />
+        {/* ContactShadows removed to prevent crashes */}
 
         {/* The model */}
         <CalibrationBlockGeometry
@@ -468,6 +492,7 @@ export default function CalibrationBlock3D({
           <div>• Hover holes: Info</div>
         </div>
       </div>
-    </div>
+      </div>
+    </Block3DErrorBoundary>
   );
 }

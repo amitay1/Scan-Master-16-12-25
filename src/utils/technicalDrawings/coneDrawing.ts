@@ -11,9 +11,12 @@ export function drawConeTechnicalDrawing(
   dimensions: Dimensions,
   layout: LayoutConfig
 ): void {
-  const baseDiameter = dimensions.coneBottomDiameter || dimensions.diameter || dimensions.width || 100;
-  const height = dimensions.coneHeight || dimensions.length || dimensions.thickness * 10 || 150;
-  const topDiameter = dimensions.coneTopDiameter || dimensions.innerDiameter || 0; // 0 for pointed cone
+  // Ensure valid dimensions to prevent division by zero
+  const baseDiameter = Math.max(dimensions.coneBottomDiameter || dimensions.diameter || dimensions.width || 100, 1);
+  const height = Math.max(dimensions.coneHeight || dimensions.length || (dimensions.thickness || 15) * 10 || 150, 1);
+  // Always create a truncated cone (frustum) with open top - default to 30% of base diameter
+  const defaultTopDiameter = baseDiameter * 0.3;
+  const topDiameter = dimensions.coneTopDiameter ?? dimensions.innerDiameter ?? defaultTopDiameter;
   const isHollow = dimensions.isHollow;
   const wallThickness = dimensions.wallThickness || 10;
 

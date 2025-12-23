@@ -25,66 +25,122 @@ interface CategoryGroup {
 }
 
 /**
- * SHAPE FAMILIES - Rafael 5036 Standard
+ * ASTM E2375 Product Form Categories
  *
- * Only show PARENT shapes (family heads). The system auto-detects the specific
- * variant based on dimensions:
+ * Categories match ASTM E2375-16 Figure nomenclature for wrought product inspection.
+ * The system auto-detects specific variant based on dimensions per standard criteria.
  *
- * - CYLINDER family: cylinder (solid long), disk (solid short - auto-detected)
- * - TUBE family: tube (hollow long), ring (hollow short - auto-detected), pipe, sleeve
- * - BOX family: box, plate (thin - auto-detected), bar (long narrow - auto-detected)
- * - RECTANGULAR_TUBE: hollow rectangular (unique)
- * - HEXAGON: hexagonal bars (unique)
- * - SPHERE: spherical parts (unique)
- * - CONE: conical parts (unique)
+ * Classification Rules (from ASTM E2375):
+ * - PLATE: W/T > 5 (width-to-thickness ratio)
+ * - RECTANGULAR BAR/BILLET: W/T < 5
+ * - RING (Tube family): L/T < 5 (length-to-wall-thickness ratio)
+ * - TUBE: L/T >= 5
+ * - DISK: H/D < 0.5 (height-to-diameter ratio)
+ * - CYLINDER/ROUND BAR: H/D >= 0.5
+ *
+ * Note: "Ring Forgings" from E2375 is called "Tube" in this system (hollow circular family)
  */
 const categoryGroups: CategoryGroup[] = [
   {
-    category: "Shape Families",
-    description: "Select base shape - system auto-detects variant from dimensions",
-    icon: "🔷",
+    category: "Plate and Flat Bar",
+    description: "Flat rectangular products - W/T > 5 per ASTM E2375 Fig. 6",
+    icon: "📋",
+    options: [
+      {
+        value: "plate",
+        label: "Plate / Flat Bar",
+        description: "W/T > 5: Scan with straight beam from top. If W or T > 228.6mm, scan from opposite sides",
+        color: "#4A90E2"
+      }
+    ]
+  },
+  {
+    category: "Rectangular Bar, Bloom, and Billets",
+    description: "Compact rectangular products - W/T < 5 per ASTM E2375 Fig. 6 (can be hollow)",
+    icon: "🧱",
+    options: [
+      {
+        value: "box",
+        label: "Rectangular Bar / Billet / Block",
+        description: "W/T < 5: Scan from two adjacent sides. Toggle 'Hollow' for tubes. If T or W > 228.6mm, scan from opposite sides",
+        color: "#E67E22"
+      }
+    ]
+  },
+  {
+    category: "Round Bar / Cylinder",
+    description: "Solid circular products per ASTM E2375 Fig. 7",
+    icon: "⚫",
     options: [
       {
         value: "cylinder",
-        label: "Cylinder (Solid Round)",
-        description: "Solid circular: round bars, shafts, disks (auto-detect by height/diameter)",
+        label: "Round Bar / Shaft / Forging Stock",
+        description: "Solid round: Scan radially while rotating. For forgings, consider grain structure per Appendix A",
         color: "#50C878"
-      },
+      }
+    ]
+  },
+  {
+    category: "Tube (Ring Forgings)",
+    description: "Hollow circular products per ASTM E2375 Fig. 7 - L/T ratio determines Ring vs Tube",
+    icon: "⭕",
+    options: [
       {
         value: "tube",
-        label: "Tube (Hollow Round)",
-        description: "Hollow circular: tubes, pipes, rings, sleeves (auto-detect by height/wall)",
+        label: "Tube / Pipe",
+        description: "L/T >= 5: Long hollow cylinder. Scan from circumference + axial shear wave",
         color: "#FFB84D"
       },
       {
-        value: "box",
-        label: "Box (Solid Rectangular)",
-        description: "Solid rectangular: boxes, plates, bars (auto-detect by proportions)",
-        color: "#4A90E2"
-      },
+        value: "ring_forging",
+        label: "Ring Forging",
+        description: "L/T < 5: Short hollow. Radial scan if T < 20% OD, axial if L/T < 5, + shear wave",
+        color: "#F39C12"
+      }
+    ]
+  },
+  {
+    category: "Disk Forging",
+    description: "Flat circular products per ASTM E2375 Fig. 8",
+    icon: "💿",
+    options: [
       {
-        value: "rectangular_tube",
-        label: "Rectangular Tube (Hollow)",
-        description: "Hollow rectangular: square/rectangular tubes",
-        color: "#E74C3C"
-      },
+        value: "disk_forging",
+        label: "Disk Forging",
+        description: "Flat face + radial scan: From at least one flat face, radially from circumference when practical",
+        color: "#9B59B6"
+      }
+    ]
+  },
+  {
+    category: "Hex Bar",
+    description: "Hexagonal bar products per ASTM E2375 Fig. 9",
+    icon: "⬡",
+    options: [
       {
         value: "hexagon",
-        label: "Hexagon",
-        description: "Hexagonal bars and profiles",
-        color: "#9B59B6"
+        label: "Hex Bar",
+        description: "Scan from three adjacent faces. If attenuation high, scan from opposite sides",
+        color: "#8E44AD"
+      }
+    ]
+  },
+  {
+    category: "Special Geometries",
+    description: "Non-standard shapes not covered by ASTM E2375",
+    icon: "🔶",
+    options: [
+      {
+        value: "cone",
+        label: "Cone",
+        description: "Conical parts (specify top/bottom diameters and height)",
+        color: "#1ABC9C"
       },
       {
         value: "sphere",
         label: "Sphere",
         description: "Spherical parts",
         color: "#3498DB"
-      },
-      {
-        value: "cone",
-        label: "Cone",
-        description: "Conical parts (specify top/bottom diameters)",
-        color: "#1ABC9C"
       }
     ]
   }
@@ -100,11 +156,13 @@ export const PartTypeVisualSelector: React.FC<PartTypeVisualSelectorProps> = ({
 
   // Track when categories are expanded to force re-render of 3D models
   useEffect(() => {
-    const newMounted = new Set(mountedCategories);
     if (expandedCategory) {
-      newMounted.add(expandedCategory);
+      setMountedCategories(prev => {
+        const newMounted = new Set(prev);
+        newMounted.add(expandedCategory);
+        return newMounted;
+      });
     }
-    setMountedCategories(newMounted);
   }, [expandedCategory]);
 
   const handleShapeSelect = (shape: PartGeometry) => {

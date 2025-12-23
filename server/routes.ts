@@ -195,15 +195,16 @@ export function registerRoutes(app: Express) {
       const sheet = await storage.createTechniqueSheet(data, orgId);
       res.status(201).json(sheet);
     } catch (error: any) {
-      if (error.name === 'ZodError') {
+      if (error.name === 'ZodError' || error instanceof z.ZodError) {
         logger.error('❌ Technique sheet validation failed:');
-        error.errors.forEach((err: any) => {
-          logger.error(`  - Path: ${err.path.join('.')}, Code: ${err.code}, Message: ${err.message}`);
+        const errors = error.errors || error.issues || [];
+        errors.forEach((err: any) => {
+          logger.error(`  - Path: ${err.path?.join('.') || 'unknown'}, Code: ${err.code}, Message: ${err.message}`);
         });
-        return res.status(400).json({ error: "Invalid data", details: error.errors });
+        return res.status(400).json({ error: "Invalid data", details: errors });
       }
       logger.error('❌ Technique sheet creation failed:', error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: error.message || 'Unknown error' });
     }
   });
 

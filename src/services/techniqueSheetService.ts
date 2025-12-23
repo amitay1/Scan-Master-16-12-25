@@ -25,7 +25,7 @@ async function readJsonOrThrow<T>(response: Response): Promise<T> {
   const rawText = await response.text();
 
   // Some environments mislabel JSON; attempt parse if it looks like JSON.
-  const looksLikeJson = /^\s*[\[{]/.test(rawText);
+  const looksLikeJson = /^\s*[[{]/.test(rawText);
   const shouldTryJson = contentType.includes("application/json") || looksLikeJson;
 
   if (shouldTryJson) {

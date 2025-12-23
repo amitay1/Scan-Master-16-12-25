@@ -356,7 +356,7 @@ export const RealTimeTechnicalDrawing = ({
     } catch (error) {
       console.error('Error generating technical drawing:', error);
     }
-  }, [partType, drawingDimensions, layout, showGrid, material, showScanCoverage, scanType]);
+  }, [partType, drawingDimensions, layout, showGrid, material, showScanCoverage, scanType, coverageDimensions]);
 
   return (
     <div className="w-full h-full flex items-center justify-center bg-background">

@@ -18,12 +18,6 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Toggle } from '@/components/ui/toggle';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
@@ -140,21 +134,16 @@ export function BlockDesignerToolbar() {
 
         <Separator orientation="vertical" className="h-6" />
 
-        {/* Export */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm">
+        {/* Export - Coming Soon */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="outline" size="sm" disabled className="opacity-50 cursor-not-allowed">
               <Download className="h-4 w-4 mr-2" />
               Export
             </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem>Export as SVG</DropdownMenuItem>
-            <DropdownMenuItem>Export as DXF</DropdownMenuItem>
-            <DropdownMenuItem>Export as PDF</DropdownMenuItem>
-            <DropdownMenuItem>Export as PNG</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+          </TooltipTrigger>
+          <TooltipContent>Export functionality coming soon</TooltipContent>
+        </Tooltip>
       </div>
     </TooltipProvider>
   );

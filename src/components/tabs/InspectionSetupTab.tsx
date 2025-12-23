@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -64,22 +64,31 @@ const materialSpecs: Record<MaterialType, string[]> = {
 };
 
 /**
- * AUTOMATIC SHAPE CLASSIFICATION
+ * AUTOMATIC SHAPE CLASSIFICATION - ASTM E2375-16 Standard
  *
- * Shape classification thresholds and their sources:
+ * Shape classification thresholds per ASTM E2375-16:
  *
  * ┌─────────────────────────────────────────────────────────────────────────────┐
- * │ HOLLOW CYLINDRICAL SHAPES (has inner diameter):                            │
+ * │ HOLLOW CYLINDRICAL SHAPES (Ring Forgings - has inner diameter):            │
  * │   • RING: L/T < 5 (Length/Wall-Thickness ratio less than 5)                │
  * │   • TUBE: L/T >= 5 (longer hollow cylinder)                                │
- * │   Source: ASTM E2375-16 Figure 7 - VERIFIED IN STANDARD ✓                  │
+ * │   Additional: If T (wall) not > 20% of OD → scan radially                  │
+ * │   Additional: Axial scan required only if L/T < 5                          │
+ * │   Additional: Always add circumferential shear wave per Appendix A         │
+ * │   Source: ASTM E2375-16 Figure 7 - Ring Forgings ✓                         │
  * ├─────────────────────────────────────────────────────────────────────────────┤
- * │ SOLID CYLINDRICAL SHAPES (no inner diameter):                              │
+ * │ SOLID CYLINDRICAL SHAPES (Round Bars and Round Forging Stock):             │
  * │   • DISK: H/D < 0.5 (Height/Diameter ratio less than 0.5)                  │
- * │   • CYLINDER: H/D >= 0.5 (taller solid cylinder)                           │
- * │   Source: Industry convention (forging/manufacturing standard practice)    │
- * │   Note: Not defined in AMS-STD-2154, ASTM E2375-16, or EN 10079            │
- * │   Reference: General forging terminology - "pancake" vs "cylinder" shapes  │
+ * │   • ROUND BAR: H/D >= 0.5 (taller solid cylinder)                          │
+ * │   Note: Scan radially while rotating to locate discontinuities at center   │
+ * │   Note: May require angle beam per Appendix A when specified               │
+ * │   Source: ASTM E2375-16 Figure 7 - Round Bars and Round Forging Stock ✓    │
+ * ├─────────────────────────────────────────────────────────────────────────────┤
+ * │ RECTANGULAR (Plate and Flat Bar vs Rectangular Bar/Billet):                │
+ * │   • PLATE: W/T > 5 (width-to-thickness ratio)                              │
+ * │   • BAR/BILLET: W/T <= 5 (compact cross-section)                           │
+ * │   Additional: If W or T > 228.6mm (9") → may require opposite side scan    │
+ * │   Source: ASTM E2375-16 Figure 6 ✓                                         │
  * └─────────────────────────────────────────────────────────────────────────────┘
  *
  * This ensures proper inspection planning and scan direction visualization.
@@ -168,24 +177,25 @@ function classifyCircularShape(
   return currentType;
 }
 /**
- * AUTOMATIC RECTANGULAR SHAPE CLASSIFICATION
+ * AUTOMATIC RECTANGULAR SHAPE CLASSIFICATION - ASTM E2375-16
  *
- * Shape classification thresholds and their sources:
+ * Shape classification per ASTM E2375-16 Figure 6:
  *
  * ┌─────────────────────────────────────────────────────────────────────────────┐
- * │ PLATE vs BOX/BILLET:                                                       │
+ * │ PLATE AND FLAT BAR (W/T > 5):                                              │
  * │   • PLATE: W/T > 5 (width-to-thickness ratio greater than 5)               │
- * │   • BOX/BILLET: W/T <= 5 (compact cross-section)                           │
- * │   Source: ASTM E2375-16 Figure 6 - VERIFIED IN STANDARD ✓                  │
+ * │   • Scan with straight beam directed as shown                              │
+ * │   • If W or T > 9" (228.6mm) → may require scanning from opposite sides    │
+ * │   Source: ASTM E2375-16 Figure 6 - Plate and Flat Bar ✓                    │
  * ├─────────────────────────────────────────────────────────────────────────────┤
- * │ BAR (elongated profile):                                                   │
- * │   • BAR: L/W > 4 (length >> width, elongated shape)                        │
- * │   Source: Industry convention (manufacturing/metal supply practice)        │
- * │   Note: Not defined in AMS-STD-2154, ASTM E2375-16, or EN 10079            │
- * │   EN 10079 defines bar/plate by absolute dimensions, not ratios            │
- * │   ASTM A6 defines bar as: width ≤ 6" for ≥0.203" thick flats              │
+ * │ RECTANGULAR BAR, BLOOM, AND BILLETS (W/T < 5):                             │
+ * │   • BAR/BILLET: W/T < 5 (compact cross-section)                            │
+ * │   • Scan from two adjacent sides with sound beam directed as shown         │
+ * │   • If T or W > 9" (228.6mm) → may require scanning from opposite sides    │
+ * │   Source: ASTM E2375-16 Figure 6 - Rectangular Bar, Bloom, Billets ✓       │
  * └─────────────────────────────────────────────────────────────────────────────┘
  *
+ * NOTE: 228.6mm = 9 inches - threshold for surface resolution requirements
  * This ensures proper inspection planning and scan direction visualization.
  */
 function classifyRectangularShape(
@@ -284,6 +294,12 @@ function classifyShape(
 // Using imported FieldWithHelp component
 
 export const InspectionSetupTab = ({ data, onChange, acceptanceClass }: InspectionSetupTabProps) => {
+  // Refs to avoid stale closures in useEffect with setTimeout
+  const dataRef = useRef(data);
+  const onChangeRef = useRef(onChange);
+  dataRef.current = data;
+  onChangeRef.current = onChange;
+
   const updateField = (field: keyof InspectionSetupData, value: any) => {
     onChange({ ...data, [field]: value });
   };
@@ -363,33 +379,39 @@ export const InspectionSetupTab = ({ data, onChange, acceptanceClass }: Inspecti
   }, [data.diameter, data.innerDiameter, data.isHollow, data.wallThickness, updateField]);
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // AUTOMATIC SHAPE CLASSIFICATION - Rafael 5036 Standard
-  // Automatically updates partType when dimensions change:
-  // - Circular: Ring ↔ Tube (hollow), Disk ↔ Cylinder (solid)
-  // - Rectangular: Plate ↔ Bar ↔ Box (based on proportions)
+  // AUTOMATIC SHAPE CLASSIFICATION - DISABLED
+  // This feature was causing issues where user-selected shapes would be 
+  // immediately reclassified based on existing dimensions.
+  // The classification logic is preserved in comments for future reference.
   // ═══════════════════════════════════════════════════════════════════════════
-  React.useEffect(() => {
-    if (!data.partType) return;
-    
-    // Classify the shape based on current dimensions using unified classifier
-    const newPartType = classifyShape(data.partType, {
-      diameter: data.diameter,
-      innerDiameter: data.innerDiameter,
-      length: data.partLength,
-      width: data.partWidth,
-      thickness: data.partThickness,
-      wallThickness: data.wallThickness
-    });
-    
-    // Only update if the classification changed
-    if (newPartType !== data.partType) {
-      console.log(`🔄 Auto-classifying shape: ${data.partType} → ${newPartType} (based on dimensions)`);
-      // Use setTimeout to avoid state update during render
-      setTimeout(() => {
-        onChange({ ...data, partType: newPartType });
-      }, 0);
-    }
-  }, [data.partType, data.diameter, data.innerDiameter, data.partLength, data.partWidth, data.partThickness, data.wallThickness, onChange]);
+  // React.useEffect(() => {
+  //   if (!data.partType) return;
+  //   
+  //   // Don't auto-classify if dimensions are not yet filled in
+  //   const hasRectangularDimensions = data.partLength && data.partWidth && data.partThickness;
+  //   const hasCircularDimensions = data.diameter && (data.partLength || data.partThickness);
+  //   
+  //   if (!hasRectangularDimensions && !hasCircularDimensions) {
+  //     return;
+  //   }
+  //   
+  //   const newPartType = classifyShape(data.partType, {
+  //     diameter: data.diameter,
+  //     innerDiameter: data.innerDiameter,
+  //     length: data.partLength,
+  //     width: data.partWidth,
+  //     thickness: data.partThickness,
+  //     wallThickness: data.wallThickness
+  //   });
+  //   
+  //   if (newPartType !== data.partType) {
+  //     console.log(`🔄 Auto-classifying shape: ${data.partType} → ${newPartType}`);
+  //     setTimeout(() => {
+  //       const currentData = dataRef.current;
+  //       onChangeRef.current({ ...currentData, partType: newPartType });
+  //     }, 0);
+  //   }
+  // }, [data.partType, data.diameter, data.innerDiameter, data.partLength, data.partWidth, data.partThickness, data.wallThickness]);
   
   // Get material properties for info
   const materialProps = data.material ? materialDatabase[data.material as MaterialType] : null;
@@ -479,7 +501,7 @@ export const InspectionSetupTab = ({ data, onChange, acceptanceClass }: Inspecti
               <SelectValue placeholder={data.material ? "Select specification..." : "Select material first"} />
             </SelectTrigger>
             <SelectContent>
-              {data.material && materialSpecs[data.material as MaterialType].map((spec) => (
+              {data.material && materialSpecs[data.material as MaterialType]?.map((spec) => (
                 <SelectItem key={spec} value={spec}>
                   {spec}
                 </SelectItem>

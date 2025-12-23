@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 
 export const useServiceWorker = () => {
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
@@ -6,38 +6,55 @@ export const useServiceWorker = () => {
   const [registration, setRegistration] = useState<ServiceWorkerRegistration | null>(null);
   const [updateInProgress, setUpdateInProgress] = useState(false);
 
+  // Store refs to event handlers for cleanup
+  const updateFoundHandlerRef = useRef<(() => void) | null>(null);
+  const messageHandlerRef = useRef<((event: MessageEvent) => void) | null>(null);
+  const registrationRef = useRef<ServiceWorkerRegistration | null>(null);
+
   useEffect(() => {
+    let isMounted = true;
+
     if ('serviceWorker' in navigator) {
       if (import.meta.env.PROD) {
+        // Define message handler
+        const messageHandler = (event: MessageEvent) => {
+          if (event.data && event.data.type === 'SYNC_COMPLETE') {
+            console.log(`Sync complete: ${event.data.successful} successful, ${event.data.failed} failed`);
+          }
+        };
+        messageHandlerRef.current = messageHandler;
+        navigator.serviceWorker.addEventListener('message', messageHandler);
+
         // Use the advanced service worker for full PWA capabilities
         navigator.serviceWorker
           .register('/service-worker-advanced.js')
         .then((reg) => {
+          if (!isMounted) return;
+
           setRegistration(reg);
+          registrationRef.current = reg;
           console.log('Service Worker registered successfully');
 
-          // Check for updates
-          reg.addEventListener('updatefound', () => {
+          // Define update handler
+          const updateFoundHandler = () => {
             const newWorker = reg.installing;
             if (newWorker) {
-              newWorker.addEventListener('statechange', () => {
+              const stateChangeHandler = () => {
                 if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                  setIsUpdateAvailable(true);
+                  if (isMounted) {
+                    setIsUpdateAvailable(true);
+                  }
                 }
-              });
+              };
+              newWorker.addEventListener('statechange', stateChangeHandler);
             }
-          });
+          };
+          updateFoundHandlerRef.current = updateFoundHandler;
+          reg.addEventListener('updatefound', updateFoundHandler);
         })
         .catch((error) => {
           console.error('Service Worker registration failed:', error);
         });
-
-      // Listen for messages from service worker
-      navigator.serviceWorker.addEventListener('message', (event) => {
-        if (event.data && event.data.type === 'SYNC_COMPLETE') {
-          console.log(`Sync complete: ${event.data.successful} successful, ${event.data.failed} failed`);
-        }
-      });
       } else {
         // In development, unregister any existing service workers and clear caches
         navigator.serviceWorker.getRegistrations().then((registrations) => {
@@ -46,7 +63,7 @@ export const useServiceWorker = () => {
             registration.unregister();
           });
         });
-        
+
         // Clear all caches in development
         if ('caches' in window) {
           caches.keys().then((cacheNames) => {
@@ -60,15 +77,28 @@ export const useServiceWorker = () => {
     }
 
     // Listen for online/offline events
-    const handleOnline = () => setIsOffline(false);
-    const handleOffline = () => setIsOffline(true);
+    const handleOnline = () => {
+      if (isMounted) setIsOffline(false);
+    };
+    const handleOffline = () => {
+      if (isMounted) setIsOffline(true);
+    };
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
     return () => {
+      isMounted = false;
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
+
+      // Clean up service worker event listeners
+      if (messageHandlerRef.current && 'serviceWorker' in navigator) {
+        navigator.serviceWorker.removeEventListener('message', messageHandlerRef.current);
+      }
+      if (updateFoundHandlerRef.current && registrationRef.current) {
+        registrationRef.current.removeEventListener('updatefound', updateFoundHandlerRef.current);
+      }
     };
   }, []);
 

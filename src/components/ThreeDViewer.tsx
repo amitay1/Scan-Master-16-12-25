@@ -2,11 +2,12 @@ import { Canvas } from "@react-three/fiber";
 import { OrbitControls, PerspectiveCamera } from "@react-three/drei";
 import { PartGeometry, MaterialType } from "@/types/techniqueSheet";
 import { Button } from "@/components/ui/button";
-import { RotateCcw, Navigation } from "lucide-react";
-import { useRef, useMemo, useState, useEffect } from "react";
+import { RotateCcw, Navigation, Loader2 } from "lucide-react";
+import { useRef, useMemo, useState, useEffect, memo, useCallback, Suspense } from "react";
 import * as THREE from "three";
 import { getMaterialByMaterialType } from "./3d/ShapeMaterials";
 import { getGeometryByType } from "./3d/ShapeGeometries";
+import { Skeleton } from "@/components/ui/skeleton";
 
 // Debounce hook for smooth updates without flickering
 function useDebounce<T>(value: T, delay: number): T {
@@ -123,7 +124,8 @@ const HollowRing = ({ material, outerRadius, innerRadius, height }: { material: 
   );
 };
 
-const Part = ({ partType, material, dimensions }: ThreeDViewerProps) => {
+// Memoized Part component to prevent unnecessary re-renders
+const Part = memo(function Part({ partType, material, dimensions }: ThreeDViewerProps) {
   // Shorter debounce for more responsive updates (150ms)
   const debouncedDimensions = useDebounce(dimensions, 150);
   
@@ -179,25 +181,54 @@ const Part = ({ partType, material, dimensions }: ThreeDViewerProps) => {
     : (new THREE.MeshStandardMaterial({ color: "#A0A0A0", metalness: 0.8, roughness: 0.3 }));
 
   return <mesh castShadow receiveShadow geometry={geometry} material={resolvedMaterial} scale={scale} />;
-};
+});
 
-export const ThreeDViewer = (props: ThreeDViewerProps) => {
+// Loading fallback for 3D canvas
+const CanvasLoader = () => (
+  <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-muted/30 to-muted/10">
+    <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
+    <p className="text-xs text-muted-foreground">Loading 3D view...</p>
+  </div>
+);
+
+export const ThreeDViewer = memo(function ThreeDViewer(props: ThreeDViewerProps) {
   const controlsRef = useRef<any>();
+  const [isLoading, setIsLoading] = useState(true);
 
-  const handleReset = () => {
+  const handleReset = useCallback(() => {
     if (controlsRef.current) {
       controlsRef.current.reset();
     }
-  };
+  }, []);
 
   // Only re-render Canvas when part type or material changes (not dimensions - handled by Part component)
   const viewerKey = useMemo(() => {
     return `${props.partType}-${props.material}`;
   }, [props.partType, props.material]);
 
+  // Show loading state briefly when part type changes
+  useEffect(() => {
+    setIsLoading(true);
+    const timer = setTimeout(() => setIsLoading(false), 300);
+    return () => clearTimeout(timer);
+  }, [props.partType, props.material]);
+
   return (
-    <div className="relative w-full h-full bg-gradient-to-br from-muted/30 to-muted/10 rounded-lg border border-border overflow-hidden">
-      <Canvas key={viewerKey} shadows>
+    <div className="relative w-full h-full bg-gradient-to-br from-muted/30 to-muted/10 rounded-lg border border-border overflow-hidden transition-opacity duration-200">
+      {isLoading && <CanvasLoader />}
+      <Canvas
+        key={viewerKey}
+        shadows
+        className={`transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
+        gl={{
+          antialias: true,
+          powerPreference: 'high-performance',
+          preserveDrawingBuffer: false
+        }}
+        dpr={[1, 2]}
+        frameloop="demand"
+        onCreated={() => setIsLoading(false)}
+      >
         <PerspectiveCamera makeDefault position={[3, 2, 3]} />
         <OrbitControls 
           ref={controlsRef}
@@ -229,12 +260,12 @@ export const ThreeDViewer = (props: ThreeDViewerProps) => {
       </Canvas>
 
       {/* Controls overlay */}
-      <div className="absolute bottom-4 right-4 flex gap-2">
+      <div className="absolute bottom-4 right-4 flex gap-2 animate-fade-in">
         <Button
           size="sm"
           variant="secondary"
           onClick={handleReset}
-          className="shadow-lg"
+          className="shadow-lg backdrop-blur-sm"
         >
           <RotateCcw className="h-4 w-4 mr-1" />
           Reset View
@@ -242,13 +273,13 @@ export const ThreeDViewer = (props: ThreeDViewerProps) => {
       </div>
 
       {/* Info overlay */}
-      <div className="absolute top-4 left-4 bg-card/90 backdrop-blur-sm rounded-md p-3 border border-border shadow-lg">
+      <div className="absolute top-4 left-4 bg-card/90 backdrop-blur-sm rounded-md p-3 border border-border shadow-lg animate-fade-in transition-all duration-200">
         <p className="text-xs font-medium text-foreground mb-1 flex items-center gap-2">
           <Navigation className="h-3 w-3" />
           Part Visualization
         </p>
-        <p className="text-xs text-muted-foreground">
-          {props.partType ? 
+        <p className="text-xs text-muted-foreground transition-colors duration-200">
+          {props.partType ?
             `${props.partType.charAt(0).toUpperCase() + props.partType.slice(1)} • ${props.material || "No material"}` :
             "Configure part geometry"
           }
@@ -259,4 +290,4 @@ export const ThreeDViewer = (props: ThreeDViewerProps) => {
       </div>
     </div>
   );
-};
+});

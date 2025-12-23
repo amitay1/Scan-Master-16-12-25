@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -304,7 +304,7 @@ export default function Auth() {
               <div className="space-y-2">
                 <Label htmlFor="fullName">Full Name</Label>
                 <Input
-                  id="fullName"
+                  id="fullName" data-testid="input-fullname"
                   type="text"
                   placeholder="John Doe"
                   value={fullName}
@@ -338,7 +338,7 @@ export default function Auth() {
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <Input
-                id="password"
+                id="password" data-testid="input-password"
                 type="password"
                 placeholder="••••••••"
                 value={password}
@@ -351,7 +351,7 @@ export default function Auth() {
               )}
             </div>
 
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button type="submit" className="w-full" data-testid="submit-button" disabled={loading}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {isSignUp ? 'Sign Up' : 'Sign In'}
             </Button>
@@ -377,3 +377,4 @@ export default function Auth() {
     </div>
   );
 }
+

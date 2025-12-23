@@ -1631,8 +1631,8 @@ export function applyScanCoverage(
         dimensions.width,
         dimensions.height,
         dimensions.thickness,
-        BEAM_ANGLES[scanType],
-        5
+        5,  // numZones
+        scanType
       );
       break;
       
@@ -1650,8 +1650,8 @@ export function applyScanCoverage(
       zones = calculateCylinderZones(
         dimensions.diameter,
         dimensions.length,
-        BEAM_ANGLES[scanType],
-        5
+        5,  // numZones
+        scanType
       );
       break;
       
@@ -1660,16 +1660,16 @@ export function applyScanCoverage(
         dimensions.baseDiameter,
         dimensions.topDiameter,
         dimensions.height,
-        BEAM_ANGLES[scanType],
-        5
+        5,  // numZones
+        scanType
       );
       break;
       
     case 'sphere':
       zones = calculateSphereZones(
         dimensions.diameter,
-        scanType,
-        4
+        4,  // numZones
+        scanType
       );
       break;
   }

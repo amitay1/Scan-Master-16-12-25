@@ -25,62 +25,80 @@ function createHollowGeometry(
   outerGeometry: THREE.BufferGeometry,
   innerGeometry: THREE.BufferGeometry
 ): THREE.BufferGeometry {
+  // Track temporary geometries for cleanup
+  let outerClone: THREE.BufferGeometry | null = null;
+  let innerClone: THREE.BufferGeometry | null = null;
+
   try {
     // Validate input geometries
     if (!outerGeometry || !innerGeometry) {
       console.warn('Invalid geometry provided for CSG operation, returning outer geometry');
       return outerGeometry;
     }
-    
+
     // Ensure geometries have proper attributes
     if (!outerGeometry.attributes.position || !innerGeometry.attributes.position) {
       console.warn('Geometry missing position attribute, returning outer geometry');
       return outerGeometry;
     }
-    
+
     // Check for degenerate geometries
     const outerPositions = outerGeometry.attributes.position.array;
     const innerPositions = innerGeometry.attributes.position.array;
-    
+
     if (outerPositions.length < 9 || innerPositions.length < 9) { // At least 3 vertices (x,y,z each)
       console.warn('Degenerate geometry detected, returning outer geometry');
       return outerGeometry;
     }
-    
-    // Create meshes with error checking
-    const outerMesh = new THREE.Mesh(outerGeometry.clone());
-    const innerMesh = new THREE.Mesh(innerGeometry.clone());
-    
+
+    // Create meshes with error checking - clone geometries for CSG
+    outerClone = outerGeometry.clone();
+    innerClone = innerGeometry.clone();
+    const outerMesh = new THREE.Mesh(outerClone);
+    const innerMesh = new THREE.Mesh(innerClone);
+
     // Ensure meshes are properly initialized
     outerMesh.updateMatrix();
     innerMesh.updateMatrix();
-    
+
     // Perform CSG operation with additional error handling
     let resultMesh;
     try {
       resultMesh = CSG.subtract(outerMesh, innerMesh);
     } catch (csgError) {
       console.warn('CSG.subtract failed, attempting fallback:', csgError);
+      // Dispose temporary geometries before returning
+      outerClone?.dispose();
+      innerClone?.dispose();
       // Return a clone of outer geometry to prevent mutation issues
       return outerGeometry.clone();
     }
-    
+
+    // Dispose temporary geometries - they're no longer needed
+    outerClone.dispose();
+    innerClone.dispose();
+    outerClone = null;
+    innerClone = null;
+
     // Validate result
     if (!resultMesh || !resultMesh.geometry) {
       console.warn('CSG operation produced invalid result, returning outer geometry');
       return outerGeometry.clone();
     }
-    
+
     // Ensure the result geometry is valid
     const resultGeometry = resultMesh.geometry;
     if (!resultGeometry.attributes.position) {
       console.warn('CSG result missing position attribute, returning outer geometry');
       return outerGeometry.clone();
     }
-    
+
     return resultGeometry;
   } catch (error) {
     console.error('Unexpected error in createHollowGeometry, safely returning outer geometry:', error);
+    // Dispose any temporary geometries on error
+    outerClone?.dispose();
+    innerClone?.dispose();
     // Return a clone to prevent mutation issues
     return outerGeometry.clone();
   }
@@ -246,8 +264,11 @@ export const ShapeGeometries = {
   
   cone: (params?: ShapeParameters) => {
     // Get cone parameters with defaults
+    // Always create a truncated cone (frustum) with open top - never pointed
     const bottomRadius = (params?.coneBottomDiameter || 100) / 100; // Scale to reasonable 3D size
-    const topRadius = (params?.coneTopDiameter || 0) / 100;
+    // Default top diameter is 30% of bottom diameter for a nice frustum shape
+    const defaultTopDiameter = (params?.coneBottomDiameter || 100) * 0.3;
+    const topRadius = (params?.coneTopDiameter ?? defaultTopDiameter) / 100;
     const height = (params?.coneHeight || 150) / 100;
     const isHollow = params?.isHollow || false;
     const wallThickness = (params?.wallThickness || 10) / 100;
@@ -277,10 +298,27 @@ export const ShapeGeometries = {
   },
   
   // ============= LEGACY MAPPINGS (for backward compatibility) =============
-  plate: (params?: ShapeParameters) => ShapeGeometries.box(params),
-  sheet: (params?: ShapeParameters) => ShapeGeometries.box(params),
-  slab: (params?: ShapeParameters) => ShapeGeometries.box(params),
-  flat_bar: (params?: ShapeParameters) => ShapeGeometries.box(params),
+
+  // PLATE - Flat rectangular (W/T > 5 per ASTM E2375) - thin and wide
+  plate: (params?: ShapeParameters) => {
+    // Plate is thin: width >> thickness
+    const outer = new THREE.BoxGeometry(2.5, 0.3, 1.8); // Wide and thin
+
+    if (params?.isHollow && params.innerLength && params.innerWidth) {
+      if (params.innerLength <= 0 || params.innerWidth <= 0) {
+        return perfectCenter(outer);
+      }
+      const inner = new THREE.BoxGeometry(2.2, 0.25, 1.5);
+      return perfectCenter(createHollowGeometry(outer, inner));
+    }
+
+    return perfectCenter(outer);
+  },
+  sheet: (params?: ShapeParameters) => ShapeGeometries.plate(params),
+  slab: (params?: ShapeParameters) => ShapeGeometries.plate(params),
+  flat_bar: (params?: ShapeParameters) => ShapeGeometries.plate(params),
+
+  // BOX/BAR/BILLET - Compact rectangular (W/T < 5 per ASTM E2375)
   rectangular_bar: (params?: ShapeParameters) => ShapeGeometries.box(params),
   square_bar: (params?: ShapeParameters) => ShapeGeometries.box(params),
   billet: (params?: ShapeParameters) => ShapeGeometries.box(params),
@@ -288,13 +326,42 @@ export const ShapeGeometries = {
   
   round_bar: (params?: ShapeParameters) => ShapeGeometries.cylinder(params),
   shaft: (params?: ShapeParameters) => ShapeGeometries.cylinder(params),
-  disk: (params?: ShapeParameters) => ShapeGeometries.cylinder(params),
-  disk_forging: (params?: ShapeParameters) => ShapeGeometries.cylinder(params),
   hub: (params?: ShapeParameters) => ShapeGeometries.cylinder(params),
-  
+
+  // DISK - Flat solid circular (H/D < 0.5 per ASTM E2375)
+  disk: (params?: ShapeParameters) => {
+    const outerRadius = 1.0;
+    const height = 0.4; // Flat disk - height much less than diameter
+    const outer = new THREE.CylinderGeometry(outerRadius, outerRadius, height, 32);
+    // No rotation - disk is flat like a pancake
+    return perfectCenter(outer);
+  },
+  disk_forging: (params?: ShapeParameters) => {
+    const outerRadius = 1.0;
+    const height = 0.4; // Flat disk forging - H/D < 0.5
+    const outer = new THREE.CylinderGeometry(outerRadius, outerRadius, height, 32);
+    return perfectCenter(outer);
+  },
+
+  // RING - Short hollow circular (L/T < 5 per ASTM E2375)
+  ring: (params?: ShapeParameters) => {
+    const outerRadius = 0.8;
+    const innerRadius = 0.5;
+    const height = 0.6; // Short ring - L/T < 5
+    const outer = new THREE.CylinderGeometry(outerRadius, outerRadius, height, 32);
+    const inner = new THREE.CylinderGeometry(innerRadius, innerRadius, height + 0.1, 32);
+    return perfectCenter(createHollowGeometry(outer, inner));
+  },
+  ring_forging: (params?: ShapeParameters) => {
+    const outerRadius = 0.8;
+    const innerRadius = 0.5;
+    const height = 0.6; // Short ring forging - L/T < 5
+    const outer = new THREE.CylinderGeometry(outerRadius, outerRadius, height, 32);
+    const inner = new THREE.CylinderGeometry(innerRadius, innerRadius, height + 0.1, 32);
+    return perfectCenter(createHollowGeometry(outer, inner));
+  },
+
   pipe: (params?: ShapeParameters) => ShapeGeometries.tube(params),
-  ring: (params?: ShapeParameters) => ShapeGeometries.tube(params),
-  ring_forging: (params?: ShapeParameters) => ShapeGeometries.tube(params),
   sleeve: (params?: ShapeParameters) => ShapeGeometries.tube(params),
   bushing: (params?: ShapeParameters) => ShapeGeometries.tube(params),
   

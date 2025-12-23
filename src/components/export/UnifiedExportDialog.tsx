@@ -50,6 +50,7 @@ interface UnifiedExportDialogProps {
   scanDetails?: ScanDetailsData;
   capturedDrawing?: string;
   calibrationBlockDiagram?: string;
+  scanDirectionsDrawing?: string;
   onExport?: (format: "pdf" | "word", template: ExportTemplate) => void;
 }
 
@@ -66,6 +67,7 @@ export const UnifiedExportDialog: React.FC<UnifiedExportDialogProps> = ({
   scanDetails,
   capturedDrawing,
   calibrationBlockDiagram,
+  scanDirectionsDrawing,
   onExport,
 }) => {
   const [isExporting, setIsExporting] = useState(false);
@@ -182,6 +184,7 @@ export const UnifiedExportDialog: React.FC<UnifiedExportDialogProps> = ({
           scanDetails,
           capturedDrawing,
           calibrationBlockDiagram,
+          scanDirectionsDrawing,
         }, {
           companyName: companyName || undefined,
           companyLogo: companyLogo || undefined,
@@ -335,30 +338,22 @@ export const UnifiedExportDialog: React.FC<UnifiedExportDialogProps> = ({
                 </div>
               </button>
 
-              {/* Word Option */}
-              <button
-                onClick={() => !isExporting && handleExport("word")}
-                disabled={isExporting}
+              {/* Word Option - Disabled */}
+              <div
                 className={cn(
-                  "relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all",
-                  "hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20",
-                  isExporting && exportFormat === "word"
-                    ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
-                    : "border-slate-200 dark:border-slate-700"
+                  "relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all cursor-not-allowed opacity-50",
+                  "border-slate-200 dark:border-slate-700"
                 )}
+                title="Word export coming soon"
               >
-                {isExporting && exportFormat === "word" ? (
-                  <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
-                ) : (
-                  <div className="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center">
-                    <FileIcon className="w-5 h-5 text-white" />
-                  </div>
-                )}
-                <div>
-                  <div className="font-semibold text-sm">Word</div>
-                  <div className="text-[10px] text-slate-500">Coming soon</div>
+                <div className="w-10 h-10 rounded-lg bg-slate-400 flex items-center justify-center">
+                  <FileIcon className="w-5 h-5 text-white" />
                 </div>
-              </button>
+                <div>
+                  <div className="font-semibold text-sm text-slate-400">Word</div>
+                  <div className="text-[10px] text-slate-400">Coming soon</div>
+                </div>
+              </div>
             </div>
           </div>
 

@@ -8,13 +8,12 @@ interface StatusBarProps {
   totalRequiredFields: number;
 }
 
-export const StatusBar = ({ 
-  completionPercent, 
-  requiredFieldsComplete, 
-  totalRequiredFields 
+export const StatusBar = ({
+  completionPercent,
+  requiredFieldsComplete,
+  totalRequiredFields
 }: StatusBarProps) => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
-  const [lastSaved, setLastSaved] = useState<Date>(new Date());
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -60,13 +59,6 @@ export const StatusBar = ({
           ({requiredFieldsComplete}/{totalRequiredFields} fields)
         </span>
       </div>
-
-      <Separator orientation="vertical" className="h-4 mx-3" />
-
-      {/* Last Saved */}
-      <span>
-        Last saved: {lastSaved.toLocaleTimeString()}
-      </span>
 
       <div className="flex-1" />
 

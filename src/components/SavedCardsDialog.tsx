@@ -345,13 +345,23 @@ export function SavedCardsDialog({ open, onOpenChange, onLoadCard }: SavedCardsD
       if (file) {
         const reader = new FileReader();
         reader.onload = (e) => {
-          const json = e.target?.result as string;
-          const count = importCards(json);
-          if (count > 0) {
-            toast.success(`Imported ${count} cards`);
-          } else {
-            toast.error('No valid cards found in file');
+          try {
+            const json = e.target?.result as string;
+            // Validate JSON first
+            JSON.parse(json);
+            const count = importCards(json);
+            if (count > 0) {
+              toast.success(`Imported ${count} card${count > 1 ? 's' : ''} successfully`);
+            } else {
+              toast.error('No valid cards found. The file format may not be compatible.');
+            }
+          } catch (parseError) {
+            console.error('JSON parse error:', parseError);
+            toast.error('Invalid JSON file. Please check the file format.');
           }
+        };
+        reader.onerror = () => {
+          toast.error('Failed to read file');
         };
         reader.readAsText(file);
       }

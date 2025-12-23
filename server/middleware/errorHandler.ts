@@ -44,21 +44,22 @@ export const errorHandler = (err: any, req: Request, res: Response, next: NextFu
     requestId: (req as any).requestId,
   });
 
-  // Mongoose bad ObjectId
-  if (err.name === 'CastError') {
-    const message = 'Resource not found';
-    error = new AppError(message, 404);
-  }
-
-  // Mongoose duplicate key
-  if (err.code === 11000) {
+  // PostgreSQL/Drizzle specific errors
+  if (err.code === '23505') {
+    // PostgreSQL unique violation
     const message = 'Duplicate field value entered';
     error = new AppError(message, 400);
   }
 
-  // Mongoose validation error
-  if (err.name === 'ValidationError') {
-    const message = Object.values((err as any).errors).map((val: any) => val.message).join(', ');
+  if (err.code === '23503') {
+    // PostgreSQL foreign key violation
+    const message = 'Referenced resource not found';
+    error = new AppError(message, 400);
+  }
+
+  if (err.code === '22P02') {
+    // PostgreSQL invalid text representation (e.g., invalid UUID)
+    const message = 'Invalid input format';
     error = new AppError(message, 400);
   }
 

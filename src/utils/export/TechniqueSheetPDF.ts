@@ -65,6 +65,7 @@ export interface TechniqueSheetExportData {
   scanDetails?: ScanDetailsData;
   capturedDrawing?: string; // Base64 image of technical drawing
   calibrationBlockDiagram?: string; // Base64 image of calibration block
+  scanDirectionsDrawing?: string; // Base64 image of scan directions (from InspectionPlanViewer)
 }
 
 export interface ExportOptions {
@@ -119,7 +120,8 @@ class TechniqueSheetPDFBuilder {
   private calculatePages(): void {
     let pages = 10; // Base pages (cover, toc, setup, equipment, calibration, cal-diagram, scan-params, acceptance, docs, approvals)
 
-    if (this.data.scanDetails) pages++; // Scan details page
+    if (this.data.scanDetails) pages++; // Scan details table page
+    if (this.data.scanDirectionsDrawing) pages++; // Scan directions drawing page
     if (this.data.capturedDrawing) pages++; // Technical drawing page
 
     this.totalPages = pages;
@@ -136,6 +138,9 @@ class TechniqueSheetPDFBuilder {
     this.pageMapping.set('acceptance', page++);
     if (this.data.scanDetails) {
       this.pageMapping.set('scan-details', page++);
+    }
+    if (this.data.scanDirectionsDrawing) {
+      this.pageMapping.set('scan-directions-drawing', page++);
     }
     if (this.data.capturedDrawing) {
       this.pageMapping.set('technical-drawing', page++);
@@ -167,6 +172,11 @@ class TechniqueSheetPDFBuilder {
     if (this.data.scanDetails) {
       this.addNewPage();
       this.buildScanDetails();
+    }
+
+    if (this.data.scanDirectionsDrawing) {
+      this.addNewPage();
+      this.buildScanDirectionsDrawing();
     }
 
     if (this.data.capturedDrawing) {
@@ -467,12 +477,20 @@ class TechniqueSheetPDFBuilder {
       { title: '5. Acceptance Criteria', page: this.pageMapping.get('acceptance') || 8 },
     ];
 
-    // Add optional sections
+    // Add optional sections with dynamic numbering
+    let sectionNum = 6;
     if (this.data.scanDetails) {
-      tocItems.push({ title: '6. Scan Details & Directions', page: this.pageMapping.get('scan-details') || 9 });
+      tocItems.push({ title: `${sectionNum}. Scan Details & Directions`, page: this.pageMapping.get('scan-details') || 9 });
+      sectionNum++;
+    }
+    if (this.data.scanDirectionsDrawing) {
+      const subSection = this.data.scanDetails ? `${sectionNum - 1}.1` : String(sectionNum);
+      tocItems.push({ title: `   ${subSection} Inspection Plan Drawing`, page: this.pageMapping.get('scan-directions-drawing') || 10 });
+      if (!this.data.scanDetails) sectionNum++;
     }
     if (this.data.capturedDrawing) {
-      tocItems.push({ title: '7. Technical Drawing', page: this.pageMapping.get('technical-drawing') || 10 });
+      tocItems.push({ title: `${sectionNum}. Technical Drawing`, page: this.pageMapping.get('technical-drawing') || 10 });
+      sectionNum++;
     }
 
     const docPage = this.pageMapping.get('documentation') || 11;
@@ -829,9 +847,9 @@ class TechniqueSheetPDFBuilder {
 
     if (this.data.calibrationBlockDiagram) {
       try {
-        // Calculate image dimensions to fit page
+        // Use full available space for better quality
         const maxWidth = PAGE.contentWidth;
-        const maxHeight = 180;
+        const maxHeight = PAGE.height - y - PAGE.footerHeight - 20; // Available space
 
         this.pdf.addImage(
           this.data.calibrationBlockDiagram,
@@ -839,9 +857,9 @@ class TechniqueSheetPDFBuilder {
           PAGE.marginLeft,
           y,
           maxWidth,
-          maxHeight,
+          Math.min(maxHeight, 200), // Cap at 200mm
           undefined,
-          'FAST'
+          'MEDIUM' // Better quality
         );
       } catch {
         this.pdf.setFontSize(10);
@@ -1132,6 +1150,61 @@ class TechniqueSheetPDFBuilder {
   }
 
   // =========================================================================
+  // PAGE 9.5: SCAN DIRECTIONS DRAWING (if available)
+  // =========================================================================
+
+  private buildScanDirectionsDrawing(): void {
+    this.addHeader();
+    let y = PAGE.contentStart;
+
+    // Dynamic section numbering
+    const sectionNum = this.data.scanDetails ? '6.1' : '6';
+    y = this.addSectionTitle(`${sectionNum}. SCAN DIRECTIONS - INSPECTION PLAN`, y);
+
+    if (this.data.scanDirectionsDrawing) {
+      try {
+        // Use full available space for better quality
+        const maxWidth = PAGE.contentWidth;
+        const maxHeight = PAGE.height - y - PAGE.footerHeight - 25; // Available space
+
+        this.pdf.addImage(
+          this.data.scanDirectionsDrawing,
+          'PNG',
+          PAGE.marginLeft,
+          y,
+          maxWidth,
+          Math.min(maxHeight, 200), // Cap at 200mm
+          undefined,
+          'MEDIUM' // Better quality
+        );
+
+        // Add caption below the image
+        const captionY = y + Math.min(maxHeight, 200) + 5;
+        this.pdf.setFontSize(9);
+        this.pdf.setTextColor(...COLORS.lightText);
+        this.pdf.text(
+          'Figure: Inspection plan showing selected scanning directions with entry surfaces and beam paths.',
+          PAGE.width / 2,
+          captionY,
+          { align: 'center' }
+        );
+      } catch {
+        this.pdf.setFontSize(10);
+        this.pdf.setTextColor(...COLORS.lightText);
+        this.pdf.text('Scan directions drawing could not be loaded.', PAGE.marginLeft, y + 20);
+      }
+    } else {
+      this.pdf.setFontSize(10);
+      this.pdf.setTextColor(...COLORS.lightText);
+      this.pdf.text('No scan directions drawing available.', PAGE.marginLeft, y + 10);
+      this.pdf.text('Visit the Scan Details tab to generate the inspection plan drawing.', PAGE.marginLeft, y + 20);
+    }
+
+    this.pdf.setTextColor(...COLORS.text);
+    this.addFooter();
+  }
+
+  // =========================================================================
   // PAGE 10: TECHNICAL DRAWING (if available)
   // =========================================================================
 
@@ -1139,22 +1212,31 @@ class TechniqueSheetPDFBuilder {
     this.addHeader();
     let y = PAGE.contentStart;
 
-    y = this.addSectionTitle('7. TECHNICAL DRAWING', y);
+    // Dynamic section numbering based on what's included
+    const hasScans = this.data.scanDetails;
+    const hasDirections = this.data.scanDirectionsDrawing;
+    let sectionNum = '7';
+    if (hasScans && hasDirections) sectionNum = '8';
+    else if (hasScans || hasDirections) sectionNum = '7';
+
+    y = this.addSectionTitle(`${sectionNum}. TECHNICAL DRAWING`, y);
 
     if (this.data.capturedDrawing) {
       try {
+        // Use full page width and auto-calculate height to maintain aspect ratio
         const maxWidth = PAGE.contentWidth;
-        const maxHeight = 180;
+        const maxHeight = PAGE.height - y - PAGE.footerHeight - 20; // Available space
 
+        // Add image with better quality settings
         this.pdf.addImage(
           this.data.capturedDrawing,
           'PNG',
           PAGE.marginLeft,
           y,
           maxWidth,
-          maxHeight,
+          Math.min(maxHeight, 200), // Cap at 200mm but allow more space
           undefined,
-          'FAST'
+          'MEDIUM' // Better quality than FAST
         );
       } catch {
         this.pdf.setFontSize(10);
@@ -1179,9 +1261,13 @@ class TechniqueSheetPDFBuilder {
     this.addHeader();
     let y = PAGE.contentStart;
 
-    const sectionNum = this.data.scanDetails && this.data.capturedDrawing ? '8' :
-                       this.data.scanDetails || this.data.capturedDrawing ? '7' : '6';
-    y = this.addSectionTitle(`${sectionNum}. DOCUMENTATION`, y);
+    // Calculate section number based on what's included
+    let docSectionNum = 6;
+    if (this.data.scanDetails) docSectionNum++;
+    if (this.data.scanDirectionsDrawing && !this.data.scanDetails) docSectionNum++;
+    if (this.data.capturedDrawing) docSectionNum++;
+
+    y = this.addSectionTitle(`${docSectionNum}. DOCUMENTATION`, y);
 
     const doc = this.data.documentation;
 
@@ -1254,9 +1340,13 @@ class TechniqueSheetPDFBuilder {
     this.addHeader();
     let y = PAGE.contentStart;
 
-    const sectionNum = this.data.scanDetails && this.data.capturedDrawing ? '9' :
-                       this.data.scanDetails || this.data.capturedDrawing ? '8' : '7';
-    y = this.addSectionTitle(`${sectionNum}. APPROVAL SIGNATURES`, y);
+    // Calculate section number based on what's included
+    let approvalSectionNum = 7;
+    if (this.data.scanDetails) approvalSectionNum++;
+    if (this.data.scanDirectionsDrawing && !this.data.scanDetails) approvalSectionNum++;
+    if (this.data.capturedDrawing) approvalSectionNum++;
+
+    y = this.addSectionTitle(`${approvalSectionNum}. APPROVAL SIGNATURES`, y);
 
     const doc = this.data.documentation;
 

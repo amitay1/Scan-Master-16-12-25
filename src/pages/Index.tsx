@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -55,6 +55,9 @@ import type { TechniqueSheetRecord, TechniqueSheetCardData } from "@/services/te
 import { FloatingDesignerButton } from "@/components/ui/FloatingDesignerButton";
 import { useInspectorProfile } from "@/contexts/InspectorProfileContext";
 import { ProfileSelectionDialog } from "@/components/inspector";
+import { useExportCaptures } from "@/hooks/useExportCaptures";
+import { testCards, type TestCard } from "@/data/testCards";
+import { CurrentShapeHeader } from "@/components/CurrentShapeHeader";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -67,7 +70,20 @@ const Index = () => {
   const [activePart, setActivePart] = useState<"A" | "B">("A");
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [capturedDrawing, setCapturedDrawing] = useState<string | undefined>();
+  const [calibrationBlockDiagram, setCalibrationBlockDiagram] = useState<string | undefined>();
   const [viewer3DOpen, setViewer3DOpen] = useState(true);
+
+  // Smart capture system for export
+  const {
+    captures: exportCaptures,
+    captureTechnicalDrawing,
+    captureCalibrationBlock,
+    captureScanDirections,
+    isCapturing: isCaptureInProgress,
+  } = useExportCaptures();
+
+  // State for captured scan directions drawing
+  const [capturedScanDirections, setCapturedScanDirections] = useState<string | undefined>();
 
   const [inspectionSetup, setInspectionSetup] = useState<InspectionSetupData>({
     partNumber: "",
@@ -288,7 +304,84 @@ const Index = () => {
       }
     }
   }, [standard, isSplitMode, activePart]);
-  
+
+  // Auto-capture technical drawing when visiting the drawing tab
+  useEffect(() => {
+    if (activeTab === 'drawing' && reportMode === 'Technique') {
+      const timer = setTimeout(async () => {
+        const success = await captureTechnicalDrawing();
+        if (success && exportCaptures.technicalDrawing) {
+          setCapturedDrawing(exportCaptures.technicalDrawing);
+        }
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [activeTab, reportMode, captureTechnicalDrawing, exportCaptures.technicalDrawing]);
+
+  // Auto-capture calibration block diagram when visiting the calibration tab
+  useEffect(() => {
+    if (activeTab === 'calibration' && reportMode === 'Technique') {
+      const timer = setTimeout(async () => {
+        const success = await captureCalibrationBlock();
+        if (success && exportCaptures.calibrationBlockDiagram) {
+          setCalibrationBlockDiagram(exportCaptures.calibrationBlockDiagram);
+        }
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [activeTab, reportMode, captureCalibrationBlock, exportCaptures.calibrationBlockDiagram]);
+
+  // Auto-capture scan directions drawing when visiting the scandetails tab
+  useEffect(() => {
+    if (activeTab === 'scandetails' && reportMode === 'Technique') {
+      const timer = setTimeout(async () => {
+        const success = await captureScanDirections();
+        if (success && exportCaptures.scanDirectionsView) {
+          setCapturedScanDirections(exportCaptures.scanDirectionsView);
+        }
+      }, 800); // Slightly longer delay to ensure arrows are rendered
+      return () => clearTimeout(timer);
+    }
+  }, [activeTab, reportMode, captureScanDirections, exportCaptures.scanDirectionsView]);
+
+  // CRITICAL: Reset captured drawings when part type or key dimensions change
+  // This ensures PDF export always uses drawings that match the current shape
+  useEffect(() => {
+    // Clear all captured drawings when geometry changes
+    setCapturedDrawing(undefined);
+    setCapturedScanDirections(undefined);
+    setCalibrationBlockDiagram(undefined);
+  }, [
+    inspectionSetup.partType,
+    inspectionSetup.diameter,
+    inspectionSetup.innerDiameter,
+    inspectionSetup.partThickness,
+    inspectionSetup.partLength,
+    inspectionSetup.partWidth,
+    inspectionSetup.isHollow,
+    inspectionSetup.coneTopDiameter,
+    inspectionSetup.coneBottomDiameter,
+    inspectionSetup.coneHeight,
+  ]);
+
+  // Also reset for Part B in split mode
+  useEffect(() => {
+    if (isSplitMode) {
+      // When Part B geometry changes, the drawings will be re-captured on export
+      // Note: We share the same captured drawings states, so they'll be updated
+      // based on the active part when export is triggered
+    }
+  }, [
+    isSplitMode,
+    inspectionSetupB.partType,
+    inspectionSetupB.diameter,
+    inspectionSetupB.innerDiameter,
+    inspectionSetupB.partThickness,
+    inspectionSetupB.partLength,
+    inspectionSetupB.partWidth,
+    inspectionSetupB.isHollow,
+  ]);
+
   // Auto-fill logic when material changes - Part A
   useEffect(() => {
     if (inspectionSetup.material && inspectionSetup.partThickness) {
@@ -377,8 +470,8 @@ const Index = () => {
     toast.success("Part A copied to Part B");
   };
 
-  // Get current data based on active part
-  const getCurrentData = () => {
+  // Get current data based on active part - memoized to prevent unnecessary recalculations
+  const currentData = useMemo(() => {
     if (!isSplitMode || activePart === "A") {
       return {
         inspectionSetup,
@@ -414,9 +507,11 @@ const Index = () => {
         setScanDetails: setScanDetailsB,
       };
     }
-  };
-
-  const currentData = getCurrentData();
+  }, [
+    isSplitMode, activePart,
+    inspectionSetup, equipment, calibration, scanParameters, acceptanceCriteria, documentation, scanDetails,
+    inspectionSetupB, equipmentB, calibrationB, scanParametersB, acceptanceCriteriaB, documentationB, scanDetailsB
+  ]);
 
   const buildTechniqueSheetPayload = (): TechniqueSheetCardData => ({
     standard,
@@ -745,69 +840,68 @@ const Index = () => {
 
   // Calculate completion with weighted fields based on standard requirements
   // Weights: CRITICAL=5, HIGH=3, MEDIUM=2, LOW=1 (per MIL-STD-2154E / AMS-STD-2154E)
-  const calculateCompletion = () => {
+  // Memoized to prevent recalculation on every render
+  const completionPercent = useMemo(() => {
     let score = 0;
     const maxScore = 85; // Total possible points
 
-    // ═══════════════════════════════════════════════════════════════
-    // CRITICAL FIELDS (5 points each) - Required per standard sections 3.2-3.5, 4.2, Table VI
-    // ═══════════════════════════════════════════════════════════════
-    if (currentData.inspectionSetup.partNumber) score += 5;      // Section 3.2 - Part identification
-    if (currentData.inspectionSetup.material) score += 5;        // Section 3.3 - Material (affects all params)
-    if (currentData.inspectionSetup.partType) score += 5;        // Section 3.4 - Geometry selection
-    if (currentData.inspectionSetup.partThickness >= 6.35) score += 5; // Section 3.5 - Drives calculations
-    if (currentData.acceptanceCriteria.acceptanceClass) score += 5;    // Table VI - Acceptance criteria
-    if (currentData.equipment.frequency) score += 5;             // Section 4.2 - Primary inspection param
+    // CRITICAL FIELDS (5 points each)
+    if (currentData.inspectionSetup.partNumber) score += 5;
+    if (currentData.inspectionSetup.material) score += 5;
+    if (currentData.inspectionSetup.partType) score += 5;
+    if (currentData.inspectionSetup.partThickness >= 6.35) score += 5;
+    if (currentData.acceptanceCriteria.acceptanceClass) score += 5;
+    if (currentData.equipment.frequency) score += 5;
 
-    // ═══════════════════════════════════════════════════════════════
-    // HIGH PRIORITY FIELDS (3 points each) - Equipment & Calibration per sections 4.3-4.5, 8.3
-    // ═══════════════════════════════════════════════════════════════
-    if (currentData.equipment.transducerType) score += 3;        // Section 4.3 - Transducer selection
-    if (currentData.equipment.transducerDiameter) score += 3;    // Section 4.3 - Beam coverage
-    if (currentData.equipment.verticalLinearity) score += 3;     // Section 4.4 - Equipment validation
-    if (currentData.equipment.horizontalLinearity) score += 3;   // Section 4.5 - Equipment validation
-    if (currentData.calibration.standardType) score += 3;        // Calibration block type
-    if (currentData.calibration.fbhSizes) score += 3;            // Table I - FBH reference
-    if (currentData.calibration.metalTravelDistance) score += 3; // Section 8.3.1 - 3T rule
-    if (currentData.scanParameters.coverage) score += 3;         // Section 8.1.2 - 100% volumetric
+    // HIGH PRIORITY FIELDS (3 points each)
+    if (currentData.equipment.transducerType) score += 3;
+    if (currentData.equipment.transducerDiameter) score += 3;
+    if (currentData.equipment.verticalLinearity) score += 3;
+    if (currentData.equipment.horizontalLinearity) score += 3;
+    if (currentData.calibration.standardType) score += 3;
+    if (currentData.calibration.fbhSizes) score += 3;
+    if (currentData.calibration.metalTravelDistance) score += 3;
+    if (currentData.scanParameters.coverage) score += 3;
 
-    // ═══════════════════════════════════════════════════════════════
-    // MEDIUM PRIORITY FIELDS (2 points each) - Scan parameters & Acceptance details
-    // ═══════════════════════════════════════════════════════════════
-    if (currentData.scanParameters.scanMethod) score += 2;       // Immersion/Contact/Squirter
-    if (currentData.scanParameters.scanType) score += 2;         // Manual/Semi-Auto/Fully Auto
-    if (currentData.scanParameters.scanSpeed) score += 2;        // Section 8.2.4 - Max 150mm/s
-    if (currentData.scanParameters.scanIndex) score += 2;        // Section 8.2.2 - 30% overlap min
-    if (currentData.scanParameters.scanPattern) score += 2;      // Raster/Linear pattern
-    if (currentData.equipment.couplant) score += 2;              // Section 4.8 - Coupling medium
-    if (currentData.calibration.referenceMaterial) score += 2;   // Reference block material
-    if (currentData.acceptanceCriteria.singleDiscontinuity) score += 2;     // Table VI limits
-    if (currentData.acceptanceCriteria.multipleDiscontinuities) score += 2; // Table VI limits
-    if (currentData.acceptanceCriteria.linearDiscontinuity) score += 2;     // Table VI limits
+    // MEDIUM PRIORITY FIELDS (2 points each)
+    if (currentData.scanParameters.scanMethod) score += 2;
+    if (currentData.scanParameters.scanType) score += 2;
+    if (currentData.scanParameters.scanSpeed) score += 2;
+    if (currentData.scanParameters.scanIndex) score += 2;
+    if (currentData.scanParameters.scanPattern) score += 2;
+    if (currentData.equipment.couplant) score += 2;
+    if (currentData.calibration.referenceMaterial) score += 2;
+    if (currentData.acceptanceCriteria.singleDiscontinuity) score += 2;
+    if (currentData.acceptanceCriteria.multipleDiscontinuities) score += 2;
+    if (currentData.acceptanceCriteria.linearDiscontinuity) score += 2;
 
-    // ═══════════════════════════════════════════════════════════════
-    // LOW PRIORITY FIELDS (1 point each) - Documentation & Optional info
-    // ═══════════════════════════════════════════════════════════════
-    if (currentData.inspectionSetup.partName) score += 1;        // Descriptive - Section 3.2
-    if (currentData.inspectionSetup.materialSpec) score += 1;    // Material specification
-    if (currentData.equipment.manufacturer) score += 1;          // Equipment ID - Section 4.1
-    if (currentData.equipment.model) score += 1;                 // Equipment ID - Section 4.1
-    if (currentData.acceptanceCriteria.backReflectionLoss) score += 1;  // Additional criteria
-    if (currentData.acceptanceCriteria.noiseLevel) score += 1;          // Additional criteria
-    if (currentData.documentation.inspectorName) score += 1;            // Section 6.2
-    if (currentData.documentation.inspectorCertification) score += 1;   // Section 6.2
-    if (currentData.documentation.inspectorLevel) score += 1;           // Section 6.2
-    if (currentData.documentation.inspectionDate) score += 1;           // Section 6.2
-    if (currentData.documentation.revision) score += 1;                 // Document control
+    // LOW PRIORITY FIELDS (1 point each)
+    if (currentData.inspectionSetup.partName) score += 1;
+    if (currentData.inspectionSetup.materialSpec) score += 1;
+    if (currentData.equipment.manufacturer) score += 1;
+    if (currentData.equipment.model) score += 1;
+    if (currentData.acceptanceCriteria.backReflectionLoss) score += 1;
+    if (currentData.acceptanceCriteria.noiseLevel) score += 1;
+    if (currentData.documentation.inspectorName) score += 1;
+    if (currentData.documentation.inspectorCertification) score += 1;
+    if (currentData.documentation.inspectorLevel) score += 1;
+    if (currentData.documentation.inspectionDate) score += 1;
+    if (currentData.documentation.revision) score += 1;
 
     return (score / maxScore) * 100;
-  };
+  }, [currentData]);
 
-  const handleNewProject = () => {
+  // Memoized completed fields count
+  const completedFieldsCount = useMemo(() => {
+    const totalFields = reportMode === "Technique" ? 50 : 40;
+    return Math.round((completionPercent / 100) * totalFields);
+  }, [completionPercent, reportMode]);
+
+  const handleNewProject = useCallback(() => {
     if (confirm('Start a new project? Unsaved changes will be lost.')) {
       window.location.reload();
     }
-  };
+  }, []);
 
   const handleSave = async () => {
     if (isSavingSheet) return;
@@ -857,71 +951,120 @@ const Index = () => {
     }
   };
 
-  const handleExportPDF = () => {
+  const handleExportPDF = async () => {
     if (reportMode === "Technique") {
-      // Function to capture drawing after ensuring canvas is rendered
-      const captureAndExport = () => {
-        // Small delay to ensure canvas is fully rendered
-        setTimeout(() => {
-          const canvas = document.getElementById('technical-drawing-canvas') as HTMLCanvasElement;
-          if (!canvas) {
-            toast.error('Failed to render technical drawing. Please try again.');
-            // DO NOT open export dialog - block export
-            return;
-          }
-          
-          try {
-            const drawingImage = canvas.toDataURL('image/png');
-            if (!drawingImage || drawingImage.length <= 100) {
-              toast.error('Technical drawing is empty. Please ensure the drawing has rendered before exporting.');
-              // DO NOT open export dialog - block export
-              return;
-            }
-            
-            // SUCCESS - drawing captured
-            setCapturedDrawing(drawingImage);
-            setExportDialogOpen(true);
-            
-          } catch (error) {
-            console.error('Failed to capture technical drawing:', error);
-            toast.error('Failed to capture technical drawing. Please try again or contact support.');
-            // DO NOT open export dialog - block export
-            return;
-          }
-        }, 300); // 300ms delay for canvas rendering
-      };
-      
-      // Check if we're already on the technical drawing tab
-      if (activeTab === 'drawing') {
-        // Already on the tab, capture immediately
-        captureAndExport();
-      } else {
-        // Switch to technical drawing tab first
+      // Show loading toast
+      toast.loading('Preparing drawings for export...', { id: 'export-prep' });
+
+      // Capture all drawings by visiting each tab temporarily
+      const originalTab = activeTab;
+
+      try {
+        // Step 1: Go to technical drawing tab and capture
         setActiveTab('drawing');
-        // Capture after tab switch completes
-        captureAndExport();
+        await new Promise(resolve => setTimeout(resolve, 800)); // Longer wait for canvas to render
+
+        const drawingCanvas = document.getElementById('technical-drawing-canvas') as HTMLCanvasElement;
+        if (drawingCanvas) {
+          try {
+            // Create a high-resolution copy of the canvas for better print quality
+            const scale = 3; // 3x resolution for crisp printing
+            const highResCanvas = document.createElement('canvas');
+            highResCanvas.width = drawingCanvas.width * scale;
+            highResCanvas.height = drawingCanvas.height * scale;
+            const ctx = highResCanvas.getContext('2d');
+            if (ctx) {
+              // DON'T fill with white background - keep the dark background with white lines
+              // This preserves the original technical drawing appearance
+              ctx.scale(scale, scale);
+              ctx.drawImage(drawingCanvas, 0, 0);
+              const drawingImage = highResCanvas.toDataURL('image/png', 1.0);
+              if (drawingImage && drawingImage.length > 100) {
+                setCapturedDrawing(drawingImage);
+              }
+            }
+          } catch (error) {
+            console.warn('Could not capture technical drawing:', error);
+          }
+        }
+
+        // Step 2: Go to calibration tab and capture
+        setActiveTab('calibration');
+        await new Promise(resolve => setTimeout(resolve, 800)); // Wait for SVG to render
+
+        const captureResult = await captureCalibrationBlock();
+        if (captureResult && exportCaptures.calibrationBlockDiagram) {
+          setCalibrationBlockDiagram(exportCaptures.calibrationBlockDiagram);
+        }
+
+        // Step 3: Go to scan details tab and capture the inspection plan drawing
+        setActiveTab('scandetails');
+        await new Promise(resolve => setTimeout(resolve, 1200)); // Longer wait for canvas to fully render
+
+        // Capture the scan directions canvas directly for better quality
+        const scanDirectionsCanvas = document.getElementById('scan-directions-canvas') as HTMLCanvasElement;
+        if (scanDirectionsCanvas) {
+          try {
+            // Create a high-resolution copy for better print quality
+            const scale = 3;
+            const highResCanvas = document.createElement('canvas');
+            highResCanvas.width = scanDirectionsCanvas.width * scale;
+            highResCanvas.height = scanDirectionsCanvas.height * scale;
+            const ctx = highResCanvas.getContext('2d');
+            if (ctx) {
+              ctx.fillStyle = 'white';
+              ctx.fillRect(0, 0, highResCanvas.width, highResCanvas.height);
+              ctx.scale(scale, scale);
+              ctx.drawImage(scanDirectionsCanvas, 0, 0);
+              const scanImage = highResCanvas.toDataURL('image/png', 1.0);
+              if (scanImage && scanImage.length > 100) {
+                setCapturedScanDirections(scanImage);
+                console.log('Scan directions captured successfully (high-res)');
+              }
+            }
+          } catch (error) {
+            console.warn('Could not capture scan directions (high-res), trying fallback:', error);
+            // Fallback to hook-based capture
+            const scanResult = await captureScanDirections();
+            if (scanResult && exportCaptures.scanDirectionsView) {
+              setCapturedScanDirections(exportCaptures.scanDirectionsView);
+            }
+          }
+        } else {
+          // Fallback if canvas not found
+          const scanResult = await captureScanDirections();
+          if (scanResult && exportCaptures.scanDirectionsView) {
+            setCapturedScanDirections(exportCaptures.scanDirectionsView);
+          }
+        }
+
+        // Step 4: Return to original tab
+        setActiveTab(originalTab);
+
+        // CRITICAL: Wait for React state to update with new drawings
+        // This ensures the export dialog receives the freshly captured drawings
+        await new Promise(resolve => setTimeout(resolve, 300));
+
+        // Dismiss loading and open dialog
+        toast.dismiss('export-prep');
+        toast.success('Drawings captured successfully!');
+        setExportDialogOpen(true);
+
+      } catch (error) {
+        console.error('Error capturing drawings:', error);
+        toast.dismiss('export-prep');
+        toast.error('Some drawings could not be captured');
+        // Still open the dialog even if capture fails
+        setActiveTab(originalTab);
+        setExportDialogOpen(true);
       }
     } else {
-      // For inspection reports, use the same comprehensive export
-      try {
-        exportComprehensiveTechniqueSheet({
-          standard,
-          inspectionSetup,
-          equipment,
-          calibration,
-          scanParameters,
-          acceptanceCriteria,
-          documentation,
-        });
-        toast.success("Inspection Report PDF exported successfully!");
-      } catch (error) {
-        console.error("Failed to export PDF:", error);
-        toast.error("Failed to export PDF. Please try again.");
-      }
+      // For inspection reports, open the export dialog
+      setExportDialogOpen(true);
     }
   };
 
-  const handleValidate = () => {
+  const handleValidate = useCallback(() => {
     const missing = [];
     if (!inspectionSetup.partNumber) missing.push("Part Number");
     if (!equipment.manufacturer) missing.push("Equipment Manufacturer");
@@ -932,9 +1075,86 @@ const Index = () => {
     if (missing.length > 0) {
       toast.error(`Missing required fields: ${missing.join(", ")}`);
     } else {
-      toast.success("All required fields complete! ✓");
+      toast.success("All required fields complete!");
     }
-  };
+  }, [inspectionSetup.partNumber, equipment.manufacturer, calibration.standardType, acceptanceCriteria.acceptanceClass, documentation.inspectorName]);
+
+  // Load test card function - for development/testing
+  const loadTestCard = useCallback((cardIndex: number) => {
+    const card = testCards[cardIndex - 1];
+    if (!card) {
+      toast.error(`Test card ${cardIndex} not found`);
+      return;
+    }
+
+    // Load all data from the test card
+    setStandard(card.standard);
+    setInspectionSetup(card.inspectionSetup);
+    setEquipment(card.equipment);
+    setCalibration(card.calibration);
+    setScanParameters(card.scanParameters);
+    setAcceptanceCriteria(card.acceptanceCriteria);
+    setDocumentation(card.documentation);
+    setScanDetails(card.scanDetails);
+
+    toast.success(`Loaded test card: ${card.name}`);
+    logInfo('Loaded test card', { cardId: card.id, cardName: card.name });
+  }, []);
+
+  // Load sample cards from JSON file
+  const handleLoadSampleCards = useCallback(async () => {
+    try {
+      const response = await fetch('/sample-cards.json');
+      if (!response.ok) {
+        throw new Error('Failed to fetch sample cards');
+      }
+      const cards = await response.json();
+
+      if (Array.isArray(cards) && cards.length > 0) {
+        // Load the first sample card
+        const card = cards[0];
+
+        setStandard(card.standard || 'AMS-STD-2154E');
+        setInspectionSetup(card.inspectionSetup || inspectionSetup);
+        setEquipment(card.equipment || equipment);
+        setCalibration(card.calibration || calibration);
+        setScanParameters(card.scanParameters || scanParameters);
+        setAcceptanceCriteria(card.acceptanceCriteria || acceptanceCriteria);
+        setDocumentation(card.documentation || documentation);
+
+        toast.success(`Loaded sample card: ${card.name}`, {
+          description: `${cards.length} sample cards available. Use Ctrl+Shift+1/2/3 to load others.`
+        });
+        logInfo('Loaded sample card', { cardName: card.name });
+      } else {
+        toast.error('No sample cards found');
+      }
+    } catch (error) {
+      console.error('Error loading sample cards:', error);
+      toast.error('Failed to load sample cards');
+    }
+  }, [inspectionSetup, equipment, calibration, scanParameters, acceptanceCriteria, documentation]);
+
+  // Keyboard shortcuts for loading test cards (Ctrl+Shift+1/2/3)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.shiftKey) {
+        if (e.key === '1') {
+          e.preventDefault();
+          loadTestCard(1);
+        } else if (e.key === '2') {
+          e.preventDefault();
+          loadTestCard(2);
+        } else if (e.key === '3') {
+          e.preventDefault();
+          loadTestCard(3);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Redirect to auth page if not authenticated
   useEffect(() => {
@@ -984,6 +1204,7 @@ const Index = () => {
           onNew={handleNewProject}
           onSignOut={signOut}
           onOpenDrawingEngine={() => navigate("/drawing-test")}
+          onLoadSampleCards={handleLoadSampleCards}
         />
       </div>
 
@@ -1064,14 +1285,15 @@ const Index = () => {
                     {/* WebGL Liquid Progress Bar - Below Tabs */}
                     <div className="mt-3">
                       <WebGLLiquidProgress
-                        value={calculateCompletion()}
-                        completedFields={(() => {
-                          const completion = calculateCompletion();
-                          const totalFields = reportMode === "Technique" ? 50 : 40;
-                          return Math.round((completion / 100) * totalFields);
-                        })()}
+                        value={completionPercent}
+                        completedFields={completedFieldsCount}
                         totalFields={reportMode === "Technique" ? 50 : 40}
                       />
+                    </div>
+
+                    {/* Current Shape Header - Shows selected part type */}
+                    <div className="mt-3">
+                      <CurrentShapeHeader partType={currentData.inspectionSetup.partType} />
                     </div>
 
                     <div className="mt-4 app-panel rounded-md">
@@ -1198,12 +1420,8 @@ const Index = () => {
                     {/* WebGL Liquid Progress Bar - Below Tabs (Report Mode) */}
                     <div className="mt-3">
                       <WebGLLiquidProgress
-                        value={calculateCompletion()}
-                        completedFields={(() => {
-                          const completion = calculateCompletion();
-                          const totalFields = reportMode === "Technique" ? 50 : 40;
-                          return Math.round((completion / 100) * totalFields);
-                        })()}
+                        value={completionPercent}
+                        completedFields={completedFieldsCount}
                         totalFields={reportMode === "Technique" ? 50 : 40}
                       />
                     </div>
@@ -1292,12 +1510,8 @@ const Index = () => {
 
       {/* Status Bar */}
       <StatusBar
-        completionPercent={calculateCompletion()}
-        requiredFieldsComplete={(() => {
-          const completion = calculateCompletion();
-          const totalFields = reportMode === "Technique" ? 50 : 40;
-          return Math.round((completion / 100) * totalFields);
-        })()}
+        completionPercent={completionPercent}
+        requiredFieldsComplete={completedFieldsCount}
         totalRequiredFields={reportMode === "Technique" ? 50 : 40}
       />
 
@@ -1314,6 +1528,9 @@ const Index = () => {
         documentation={isSplitMode && activePart === "B" ? documentationB : documentation}
         inspectionReport={inspectionReport}
         scanDetails={scanDetails}
+        capturedDrawing={capturedDrawing}
+        calibrationBlockDiagram={calibrationBlockDiagram}
+        scanDirectionsDrawing={capturedScanDirections}
         onExport={(format, template) => {
           toast.success(`Exported ${template.toUpperCase()} as ${format.toUpperCase()} successfully!`);
         }}

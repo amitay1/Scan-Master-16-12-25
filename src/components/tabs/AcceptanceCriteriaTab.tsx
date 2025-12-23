@@ -4,7 +4,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { AcceptanceCriteriaData, StandardType } from "@/types/techniqueSheet";
 import { AlertTriangle, Info } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { FieldWithHelp } from "@/components/FieldWithHelp";
 import {
   acceptanceClassesByStandard,
@@ -45,6 +45,12 @@ const getStringencyColor = (stringency: string): string => {
 };
 
 export const AcceptanceCriteriaTab = ({ data, onChange, material, standard = "AMS-STD-2154E" }: AcceptanceCriteriaTabProps) => {
+  // Refs to avoid stale closures in useEffect
+  const dataRef = useRef(data);
+  const onChangeRef = useRef(onChange);
+  dataRef.current = data;
+  onChangeRef.current = onChange;
+
   const updateField = (field: keyof AcceptanceCriteriaData, value: any) => {
     onChange({ ...data, [field]: value });
   };
@@ -70,24 +76,26 @@ export const AcceptanceCriteriaTab = ({ data, onChange, material, standard = "AM
 
   // Auto-fill criteria when class changes or standard changes
   useEffect(() => {
-    if (data.acceptanceClass && currentCriteria) {
-      onChange({
-        ...data,
+    const currentData = dataRef.current;
+    if (currentData.acceptanceClass && currentCriteria) {
+      onChangeRef.current({
+        ...currentData,
         singleDiscontinuity: currentCriteria.singleDiscontinuity,
         multipleDiscontinuities: currentCriteria.multipleDiscontinuities,
         linearDiscontinuity: currentCriteria.linearDiscontinuity,
         backReflectionLoss: parseFloat(currentCriteria.backReflectionLoss) || 0,
         noiseLevel: currentCriteria.noiseLevel,
-        specialRequirements: data.specialRequirements || currentCriteria.specialNotes || ""
+        specialRequirements: currentData.specialRequirements || currentCriteria.specialNotes || ""
       });
     }
-  }, [data.acceptanceClass, standard]);
+  }, [data.acceptanceClass, standard, currentCriteria]);
 
   // Reset acceptance class when standard changes if current class is invalid
   useEffect(() => {
     if (!isClassValidForStandard) {
       const defaultClass = getDefaultAcceptanceClass(standard);
-      updateField("acceptanceClass", defaultClass);
+      const currentData = dataRef.current;
+      onChangeRef.current({ ...currentData, acceptanceClass: defaultClass });
     }
   }, [standard, isClassValidForStandard]);
 

@@ -152,12 +152,12 @@ export default function ShapeCard({
         >
           <Shape3DViewer
             partType={partType}
-            color={color}
+            color={color || '#ffffff'}
             material={material}
             isHovered={isHovered}
             isActive={isActive}
-            mouseX={sMx.get()}
-            mouseY={sMy.get()}
+            mouseX={sMx.get() ?? 0.5}
+            mouseY={sMy.get() ?? 0.5}
           />
         </motion.div>
       </div>

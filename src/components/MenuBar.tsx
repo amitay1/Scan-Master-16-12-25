@@ -8,7 +8,7 @@ import {
   MenubarShortcut,
   MenubarTrigger,
 } from "@/components/ui/menubar";
-import { FileText, Save, Download, FolderOpen, Settings, Info, Book, LogOut } from "lucide-react";
+import { FileText, Save, Download, FolderOpen, Info, Book, LogOut, PackagePlus } from "lucide-react";
 
 interface MenuBarProps {
   onSave: () => void;
@@ -17,9 +17,10 @@ interface MenuBarProps {
   onNew: () => void;
   onSignOut: () => void;
   onOpenDrawingEngine: () => void;
+  onLoadSampleCards?: () => void;
 }
 
-export const MenuBar = ({ onSave, onOpenSavedCards, onExport, onNew, onSignOut, onOpenDrawingEngine }: MenuBarProps) => {
+export const MenuBar = ({ onSave, onOpenSavedCards, onExport, onNew, onSignOut, onOpenDrawingEngine, onLoadSampleCards }: MenuBarProps) => {
   return (
     <Menubar className="border-b border-border bg-card rounded-none h-10 px-2">
       <MenubarMenu>
@@ -35,6 +36,12 @@ export const MenuBar = ({ onSave, onOpenSavedCards, onExport, onNew, onSignOut, 
             Open
             <MenubarShortcut>Ctrl+O</MenubarShortcut>
           </MenubarItem>
+          {onLoadSampleCards && (
+            <MenubarItem onClick={onLoadSampleCards}>
+              <PackagePlus className="mr-2 h-4 w-4" />
+              Load Sample Cards
+            </MenubarItem>
+          )}
           <MenubarSeparator />
           <MenubarItem onClick={onSave}>
             <Save className="mr-2 h-4 w-4" />
@@ -55,62 +62,22 @@ export const MenuBar = ({ onSave, onOpenSavedCards, onExport, onNew, onSignOut, 
       </MenubarMenu>
 
       <MenubarMenu>
-        <MenubarTrigger className="font-medium text-sm">Edit</MenubarTrigger>
-        <MenubarContent>
-          <MenubarItem>
-            Undo
-            <MenubarShortcut>Ctrl+Z</MenubarShortcut>
-          </MenubarItem>
-          <MenubarItem>
-            Redo
-            <MenubarShortcut>Ctrl+Y</MenubarShortcut>
-          </MenubarItem>
-          <MenubarSeparator />
-          <MenubarItem>
-            Copy
-            <MenubarShortcut>Ctrl+C</MenubarShortcut>
-          </MenubarItem>
-          <MenubarItem>
-            Paste
-            <MenubarShortcut>Ctrl+V</MenubarShortcut>
-          </MenubarItem>
-        </MenubarContent>
-      </MenubarMenu>
-
-      <MenubarMenu>
-        <MenubarTrigger className="font-medium text-sm">View</MenubarTrigger>
-        <MenubarContent>
-          <MenubarItem>Toggle 3D View</MenubarItem>
-          <MenubarItem>Fullscreen</MenubarItem>
-          <MenubarSeparator />
-          <MenubarItem>Zoom In</MenubarItem>
-          <MenubarItem>Zoom Out</MenubarItem>
-        </MenubarContent>
-      </MenubarMenu>
-
-      <MenubarMenu>
         <MenubarTrigger className="font-medium text-sm">Tools</MenubarTrigger>
         <MenubarContent>
-          <MenubarItem>
-            <Settings className="mr-2 h-4 w-4" />
-            Preferences
-          </MenubarItem>
           <MenubarItem onClick={onOpenDrawingEngine}>
             Technical Drawing Engine (CAD)
           </MenubarItem>
-          <MenubarItem>Calibration Calculator</MenubarItem>
-          <MenubarItem>Inspection Validator</MenubarItem>
         </MenubarContent>
       </MenubarMenu>
 
       <MenubarMenu>
         <MenubarTrigger className="font-medium text-sm">Help</MenubarTrigger>
         <MenubarContent>
-          <MenubarItem>
+          <MenubarItem onClick={() => window.open('https://github.com/scan-master-docs', '_blank')}>
             <Book className="mr-2 h-4 w-4" />
             Documentation
           </MenubarItem>
-          <MenubarItem>
+          <MenubarItem onClick={() => alert('Scan-Master v1.0.0\nNDT Inspection Planning System')}>
             <Info className="mr-2 h-4 w-4" />
             About
           </MenubarItem>

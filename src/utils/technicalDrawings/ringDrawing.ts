@@ -11,8 +11,9 @@ export function drawRingTechnicalDrawing(
   dimensions: Dimensions,
   layout: LayoutConfig
 ): void {
-  const outerDiameter = dimensions.diameter || dimensions.outerDiameter || 100;
-  const thickness = dimensions.thickness || dimensions.length || 30;
+  // Ensure valid dimensions to prevent division by zero
+  const outerDiameter = Math.max(dimensions.diameter || dimensions.outerDiameter || 100, 1);
+  const thickness = Math.max(dimensions.thickness || dimensions.length || 30, 1);
 
   // Calculate inner diameter - Rings are ALWAYS hollow
   // Priority: 1) explicit innerDiameter, 2) wallThickness-based, 3) default 60% of OD

@@ -1,54 +1,72 @@
 import * as THREE from 'three';
 
 /**
- * Material presets for different metal types
+ * Premium material presets using MeshPhysicalMaterial
+ * MeshPhysicalMaterial provides clearcoat, sheen, and other advanced PBR features
  */
-export const createMetalMaterial = (color: string, roughness = 0.3, metalness = 0.9) => {
-  return new THREE.MeshStandardMaterial({
+export const createPremiumMetalMaterial = (
+  color: string,
+  roughness = 0.3,
+  metalness = 0.9,
+  clearcoat = 0.3,
+  clearcoatRoughness = 0.2
+) => {
+  return new THREE.MeshPhysicalMaterial({
     color: new THREE.Color(color),
     roughness,
     metalness,
-    envMapIntensity: 1.5,
+    envMapIntensity: 2.0,
+    clearcoat,
+    clearcoatRoughness,
+    reflectivity: 1.0,
+    ior: 2.5, // Higher IOR for metals
   });
+};
+
+/**
+ * Legacy material creation for backward compatibility
+ */
+export const createMetalMaterial = (color: string, roughness = 0.3, metalness = 0.9) => {
+  return createPremiumMetalMaterial(color, roughness, metalness, 0.2, 0.3);
 };
 
 export const ShapeMaterials = {
   // Blues - Plates & Sheets
-  plateBlue: () => createMetalMaterial('#3b82f6', 0.25, 0.95),
-  sheetBlue: () => createMetalMaterial('#60a5fa', 0.2, 0.95),
-  slabBlue: () => createMetalMaterial('#2563eb', 0.3, 0.9),
-  
+  plateBlue: () => createPremiumMetalMaterial('#3b82f6', 0.20, 0.95, 0.4, 0.15),
+  sheetBlue: () => createPremiumMetalMaterial('#60a5fa', 0.15, 0.95, 0.5, 0.1),
+  slabBlue: () => createPremiumMetalMaterial('#2563eb', 0.25, 0.90, 0.3, 0.2),
+
   // Greens - Flat & Rectangular Bars
-  flatBarGreen: () => createMetalMaterial('#10b981', 0.3, 0.85),
-  rectBarGreen: () => createMetalMaterial('#059669', 0.35, 0.85),
-  
+  flatBarGreen: () => createPremiumMetalMaterial('#10b981', 0.25, 0.90, 0.35, 0.2),
+  rectBarGreen: () => createPremiumMetalMaterial('#059669', 0.30, 0.88, 0.3, 0.25),
+
   // Oranges/Yellows - Square & Block
-  squareBarOrange: () => createMetalMaterial('#f59e0b', 0.3, 0.9),
-  billetYellow: () => createMetalMaterial('#fbbf24', 0.25, 0.9),
-  blockOrange: () => createMetalMaterial('#f59e0b', 0.35, 0.85),
-  
+  squareBarOrange: () => createPremiumMetalMaterial('#f59e0b', 0.25, 0.92, 0.4, 0.15),
+  billetYellow: () => createPremiumMetalMaterial('#fbbf24', 0.20, 0.93, 0.45, 0.1),
+  blockOrange: () => createPremiumMetalMaterial('#f59e0b', 0.30, 0.88, 0.35, 0.2),
+
   // Purples - Round Bars & Shafts
-  roundBarPurple: () => createMetalMaterial('#8b5cf6', 0.25, 0.95),
-  shaftPurple: () => createMetalMaterial('#a78bfa', 0.3, 0.9),
-  
+  roundBarPurple: () => createPremiumMetalMaterial('#8b5cf6', 0.20, 0.95, 0.45, 0.12),
+  shaftPurple: () => createPremiumMetalMaterial('#a78bfa', 0.25, 0.92, 0.4, 0.15),
+
   // Reds - Forgings
-  forgingRed: () => createMetalMaterial('#ef4444', 0.4, 0.8),
-  roundForgingRed: () => createMetalMaterial('#f87171', 0.35, 0.85),
-  
+  forgingRed: () => createPremiumMetalMaterial('#ef4444', 0.35, 0.85, 0.25, 0.3),
+  roundForgingRed: () => createPremiumMetalMaterial('#f87171', 0.30, 0.88, 0.3, 0.25),
+
   // Pinks - Ring & Disk Forgings
-  ringForgingPink: () => createMetalMaterial('#ec4899', 0.3, 0.9),
-  diskForgingTeal: () => createMetalMaterial('#14b8a6', 0.25, 0.95),
-  
+  ringForgingPink: () => createPremiumMetalMaterial('#ec4899', 0.25, 0.92, 0.4, 0.18),
+  diskForgingTeal: () => createPremiumMetalMaterial('#14b8a6', 0.20, 0.95, 0.5, 0.1),
+
   // Cyans - Hex & Extrusions
-  hexBarCyan: () => createMetalMaterial('#06b6d4', 0.3, 0.9),
-  extrusionCyan: () => createMetalMaterial('#0891b2', 0.35, 0.85),
-  
+  hexBarCyan: () => createPremiumMetalMaterial('#06b6d4', 0.25, 0.92, 0.4, 0.15),
+  extrusionCyan: () => createPremiumMetalMaterial('#0891b2', 0.30, 0.88, 0.35, 0.2),
+
   // Grays - Tubes & Generic
-  tubeGray: () => createMetalMaterial('#64748b', 0.25, 0.95),
-  pipeGray: () => createMetalMaterial('#475569', 0.3, 0.9),
-  sleeveGray: () => createMetalMaterial('#94a3b8', 0.25, 0.9),
-  genericGray: () => createMetalMaterial('#71717a', 0.4, 0.7),
-  
+  tubeGray: () => createPremiumMetalMaterial('#64748b', 0.20, 0.95, 0.45, 0.12),
+  pipeGray: () => createPremiumMetalMaterial('#475569', 0.25, 0.92, 0.4, 0.15),
+  sleeveGray: () => createPremiumMetalMaterial('#94a3b8', 0.20, 0.93, 0.45, 0.1),
+  genericGray: () => createPremiumMetalMaterial('#71717a', 0.35, 0.80, 0.25, 0.3),
+
   // Edge highlighting material (for glowing edges)
   edgeGlow: (color: string) => new THREE.MeshBasicMaterial({
     color: new THREE.Color(color),
@@ -147,100 +165,257 @@ export const MaterialTypeColors: Record<string, string> = {
 };
 
 /**
- * PBR Material Properties for realistic metal rendering
- * Roughness: 0 = mirror, 1 = matte
- * Metalness: 0 = dielectric, 1 = pure metal
+ * Premium PBR Material Properties for ultra-realistic metal rendering
+ * Using MeshPhysicalMaterial properties
  */
-interface MetalProperties {
+interface PremiumMetalProperties {
   roughness: number;
   metalness: number;
   envMapIntensity: number;
+  clearcoat: number;
+  clearcoatRoughness: number;
+  reflectivity: number;
+  ior: number;
 }
 
-const MetalPBRProperties: Record<string, MetalProperties> = {
-  // Aluminum - moderately reflective, slight texture
-  aluminum: { roughness: 0.25, metalness: 0.92, envMapIntensity: 1.2 },
-  aluminium: { roughness: 0.25, metalness: 0.92, envMapIntensity: 1.2 },
+const PremiumMetalPBRProperties: Record<string, PremiumMetalProperties> = {
+  // Aluminum - clean, reflective with subtle clearcoat
+  aluminum: {
+    roughness: 0.18,
+    metalness: 0.95,
+    envMapIntensity: 2.0,
+    clearcoat: 0.4,
+    clearcoatRoughness: 0.1,
+    reflectivity: 1.0,
+    ior: 2.4
+  },
+  aluminium: {
+    roughness: 0.18,
+    metalness: 0.95,
+    envMapIntensity: 2.0,
+    clearcoat: 0.4,
+    clearcoatRoughness: 0.1,
+    reflectivity: 1.0,
+    ior: 2.4
+  },
 
-  // Titanium - slightly rougher surface
-  titanium: { roughness: 0.35, metalness: 0.88, envMapIntensity: 1.0 },
+  // Titanium - slightly rougher, warm reflections
+  titanium: {
+    roughness: 0.28,
+    metalness: 0.92,
+    envMapIntensity: 1.8,
+    clearcoat: 0.3,
+    clearcoatRoughness: 0.15,
+    reflectivity: 0.9,
+    ior: 2.6
+  },
 
   // Steel varieties
-  steel: { roughness: 0.30, metalness: 0.90, envMapIntensity: 1.3 },
-  'stainless-steel': { roughness: 0.15, metalness: 0.95, envMapIntensity: 1.8 }, // Very reflective
-  'carbon-steel': { roughness: 0.40, metalness: 0.85, envMapIntensity: 0.9 },
-  'tool-steel': { roughness: 0.35, metalness: 0.88, envMapIntensity: 1.0 },
+  steel: {
+    roughness: 0.22,
+    metalness: 0.95,
+    envMapIntensity: 2.2,
+    clearcoat: 0.35,
+    clearcoatRoughness: 0.12,
+    reflectivity: 1.0,
+    ior: 2.5
+  },
+  'stainless-steel': {
+    roughness: 0.08,
+    metalness: 0.98,
+    envMapIntensity: 2.8,
+    clearcoat: 0.6,
+    clearcoatRoughness: 0.05,
+    reflectivity: 1.0,
+    ior: 2.8
+  },
+  'carbon-steel': {
+    roughness: 0.35,
+    metalness: 0.90,
+    envMapIntensity: 1.5,
+    clearcoat: 0.2,
+    clearcoatRoughness: 0.25,
+    reflectivity: 0.85,
+    ior: 2.3
+  },
+  'tool-steel': {
+    roughness: 0.30,
+    metalness: 0.92,
+    envMapIntensity: 1.7,
+    clearcoat: 0.25,
+    clearcoatRoughness: 0.2,
+    reflectivity: 0.9,
+    ior: 2.4
+  },
 
-  // Magnesium - more matte
-  magnesium: { roughness: 0.45, metalness: 0.80, envMapIntensity: 0.8 },
+  // Magnesium - more matte finish
+  magnesium: {
+    roughness: 0.40,
+    metalness: 0.85,
+    envMapIntensity: 1.2,
+    clearcoat: 0.15,
+    clearcoatRoughness: 0.35,
+    reflectivity: 0.75,
+    ior: 1.8
+  },
 
-  // Nickel alloys - very reflective
-  nickel: { roughness: 0.20, metalness: 0.95, envMapIntensity: 1.5 },
-  inconel: { roughness: 0.25, metalness: 0.92, envMapIntensity: 1.3 },
+  // Nickel alloys - highly reflective
+  nickel: {
+    roughness: 0.12,
+    metalness: 0.98,
+    envMapIntensity: 2.5,
+    clearcoat: 0.5,
+    clearcoatRoughness: 0.08,
+    reflectivity: 1.0,
+    ior: 2.7
+  },
+  inconel: {
+    roughness: 0.20,
+    metalness: 0.95,
+    envMapIntensity: 2.2,
+    clearcoat: 0.4,
+    clearcoatRoughness: 0.12,
+    reflectivity: 0.95,
+    ior: 2.5
+  },
 
-  // Copper alloys - distinctive properties
-  copper: { roughness: 0.20, metalness: 0.95, envMapIntensity: 1.6 },
-  bronze: { roughness: 0.30, metalness: 0.90, envMapIntensity: 1.2 },
-  brass: { roughness: 0.15, metalness: 0.95, envMapIntensity: 1.8 }, // Very shiny
+  // Copper alloys - warm, distinctive reflections
+  copper: {
+    roughness: 0.15,
+    metalness: 0.98,
+    envMapIntensity: 2.5,
+    clearcoat: 0.5,
+    clearcoatRoughness: 0.08,
+    reflectivity: 1.0,
+    ior: 2.6
+  },
+  bronze: {
+    roughness: 0.25,
+    metalness: 0.93,
+    envMapIntensity: 2.0,
+    clearcoat: 0.35,
+    clearcoatRoughness: 0.15,
+    reflectivity: 0.9,
+    ior: 2.4
+  },
+  brass: {
+    roughness: 0.10,
+    metalness: 0.98,
+    envMapIntensity: 2.8,
+    clearcoat: 0.6,
+    clearcoatRoughness: 0.05,
+    reflectivity: 1.0,
+    ior: 2.7
+  },
 
-  // Specialty metals
-  gold: { roughness: 0.10, metalness: 1.0, envMapIntensity: 2.0 },
-  silver: { roughness: 0.10, metalness: 1.0, envMapIntensity: 2.0 },
-  platinum: { roughness: 0.15, metalness: 0.98, envMapIntensity: 1.8 },
-  chromium: { roughness: 0.05, metalness: 1.0, envMapIntensity: 2.5 }, // Mirror-like
+  // Precious metals - mirror-like
+  gold: {
+    roughness: 0.05,
+    metalness: 1.0,
+    envMapIntensity: 3.0,
+    clearcoat: 0.7,
+    clearcoatRoughness: 0.02,
+    reflectivity: 1.0,
+    ior: 3.0
+  },
+  silver: {
+    roughness: 0.05,
+    metalness: 1.0,
+    envMapIntensity: 3.0,
+    clearcoat: 0.7,
+    clearcoatRoughness: 0.02,
+    reflectivity: 1.0,
+    ior: 3.0
+  },
+  platinum: {
+    roughness: 0.08,
+    metalness: 0.99,
+    envMapIntensity: 2.8,
+    clearcoat: 0.65,
+    clearcoatRoughness: 0.03,
+    reflectivity: 1.0,
+    ior: 2.9
+  },
+  chromium: {
+    roughness: 0.02,
+    metalness: 1.0,
+    envMapIntensity: 3.5,
+    clearcoat: 0.8,
+    clearcoatRoughness: 0.01,
+    reflectivity: 1.0,
+    ior: 3.2
+  },
 
-  default: { roughness: 0.35, metalness: 0.85, envMapIntensity: 1.0 },
+  default: {
+    roughness: 0.30,
+    metalness: 0.88,
+    envMapIntensity: 1.8,
+    clearcoat: 0.3,
+    clearcoatRoughness: 0.2,
+    reflectivity: 0.85,
+    ior: 2.2
+  },
 };
 
 /**
- * Get PBR properties for a material type
+ * Get premium PBR properties for a material type
  */
-const getPBRProperties = (materialType: string): MetalProperties => {
+const getPremiumPBRProperties = (materialType: string): PremiumMetalProperties => {
   // Check for exact match
-  if (MetalPBRProperties[materialType]) {
-    return MetalPBRProperties[materialType];
+  if (PremiumMetalPBRProperties[materialType]) {
+    return PremiumMetalPBRProperties[materialType];
   }
 
   // Check for partial matches
-  for (const [key, props] of Object.entries(MetalPBRProperties)) {
+  for (const [key, props] of Object.entries(PremiumMetalPBRProperties)) {
     if (materialType.includes(key) || key.includes(materialType)) {
       return props;
     }
   }
 
-  return MetalPBRProperties.default;
+  return PremiumMetalPBRProperties.default;
 };
 
 /**
- * Get material by material type (aerospace metals) - ENHANCED PBR
- * Creates physically accurate metallic materials
+ * Get material by material type (aerospace metals) - PREMIUM PBR
+ * Creates physically accurate metallic materials with MeshPhysicalMaterial
  */
-export const getMaterialByMaterialType = (materialType?: string): THREE.MeshStandardMaterial => {
+export const getMaterialByMaterialType = (materialType?: string): THREE.MeshPhysicalMaterial => {
   if (!materialType) {
-    return createMetalMaterial(MaterialTypeColors.default, 0.4, 0.7);
+    const defaultProps = PremiumMetalPBRProperties.default;
+    return new THREE.MeshPhysicalMaterial({
+      color: new THREE.Color(MaterialTypeColors.default),
+      roughness: defaultProps.roughness,
+      metalness: defaultProps.metalness,
+      envMapIntensity: defaultProps.envMapIntensity,
+      clearcoat: defaultProps.clearcoat,
+      clearcoatRoughness: defaultProps.clearcoatRoughness,
+      reflectivity: defaultProps.reflectivity,
+      ior: defaultProps.ior,
+    });
   }
 
   const normalizedMaterial = materialType.toLowerCase().replace(/\s+/g, '-');
   const color = MaterialTypeColors[normalizedMaterial] || MaterialTypeColors.default;
-  const pbrProps = getPBRProperties(normalizedMaterial);
+  const pbrProps = getPremiumPBRProperties(normalizedMaterial);
 
-  const material = new THREE.MeshStandardMaterial({
+  return new THREE.MeshPhysicalMaterial({
     color: new THREE.Color(color),
     roughness: pbrProps.roughness,
     metalness: pbrProps.metalness,
     envMapIntensity: pbrProps.envMapIntensity,
-    // Add subtle variation for more realistic appearance
-    flatShading: false,
+    clearcoat: pbrProps.clearcoat,
+    clearcoatRoughness: pbrProps.clearcoatRoughness,
+    reflectivity: pbrProps.reflectivity,
+    ior: pbrProps.ior,
   });
-
-  return material;
 };
 
 /**
  * Get material by part type (legacy - for fallback)
  */
-export const getMaterialByType = (partType: string): THREE.MeshStandardMaterial => {
-  const materialMap: { [key: string]: () => THREE.MeshStandardMaterial } = {
+export const getMaterialByType = (partType: string): THREE.MeshPhysicalMaterial => {
+  const materialMap: { [key: string]: () => THREE.MeshPhysicalMaterial } = {
     plate: ShapeMaterials.plateBlue,
     sheet: ShapeMaterials.sheetBlue,
     slab: ShapeMaterials.slabBlue,
@@ -273,6 +448,6 @@ export const getMaterialByType = (partType: string): THREE.MeshStandardMaterial 
     cone: ShapeMaterials.blockOrange,
     custom: ShapeMaterials.genericGray,
   };
-  
+
   return (materialMap[partType] || ShapeMaterials.genericGray)();
 };

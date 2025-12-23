@@ -99,7 +99,13 @@ export function FBHStraightBeamDrawing({
     <div className="relative border rounded-lg bg-white flex flex-col items-center">
       <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
 
-      <svg width={width} height={height} className="block mx-auto">
+      <svg
+        width={width}
+        height={height}
+        className="block mx-auto fbh-straight-beam-drawing"
+        data-testid="calibration-block-diagram"
+        id="calibration-block-svg"
+      >
         <rect x="0" y="0" width={width} height={height} fill="#fafafa" />
 
         {/* ==================== SIDE VIEW ==================== */}

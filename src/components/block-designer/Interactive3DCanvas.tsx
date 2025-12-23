@@ -3,9 +3,9 @@
  * Three.js canvas with click-to-place holes and interactive controls
  */
 
-import React, { useRef, useMemo, useCallback, useState } from 'react';
+import React, { useRef, useMemo, useCallback, useState, Component, ErrorInfo, ReactNode } from 'react';
 import { Canvas, ThreeEvent } from '@react-three/fiber';
-import { OrbitControls, Grid, Html, Environment } from '@react-three/drei';
+import { OrbitControls, Grid, Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { useBlockDesigner } from '@/contexts/BlockDesignerContext';
 import { BlockWithHoles } from './BlockWithHoles';
@@ -18,6 +18,42 @@ import {
   HoleSurface,
   CustomBlockShape,
 } from '@/types/blockDesigner.types';
+
+/**
+ * Error boundary for 3D canvas - prevents app crashes
+ */
+interface ErrorBoundaryState {
+  hasError: boolean;
+}
+
+class Canvas3DErrorBoundary extends Component<{ children: ReactNode }, ErrorBoundaryState> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(): ErrorBoundaryState {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.warn('3D Canvas error caught:', error.message);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="w-full h-full flex items-center justify-center bg-gradient-to-b from-slate-800 to-slate-900 text-slate-400">
+          <div className="text-center">
+            <p className="text-lg font-medium">3D Preview unavailable</p>
+            <p className="text-sm mt-2">Please refresh the page</p>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 // Hole marker component - shows hole on the block surface
 function HoleMarker({
@@ -399,8 +435,8 @@ function SceneContent() {
       {/* Back fill */}
       <pointLight position={[0, 50, -150]} intensity={0.4} />
 
-      {/* Environment for reflections */}
-      <Environment preset="studio" />
+      {/* Environment preset removed - external HDRI violates CSP. Using local lights for reflections */}
+      <hemisphereLight args={['#ffffff', '#444444', 0.6]} />
 
       {/* The block with CSG holes - centered at origin */}
       <group>
@@ -466,37 +502,39 @@ export function Interactive3DCanvas() {
   }, [isCylindrical, blockShape.length, blockShape.width, blockShape.height, blockShape.outerDiameter, blockShape.cylinderLength]);
 
   return (
-    <div className="w-full h-full relative bg-gradient-to-b from-slate-800 to-slate-900">
-      <Canvas
-        shadows
-        camera={{ position: cameraPosition, fov: 45, near: 1, far: 2000 }}
-        style={{
-          cursor: interactionMode === 'place' ? 'crosshair' : 'grab',
-        }}
-      >
-        <SceneContent />
-      </Canvas>
+    <Canvas3DErrorBoundary>
+      <div className="w-full h-full relative bg-gradient-to-b from-slate-800 to-slate-900">
+        <Canvas
+          shadows
+          camera={{ position: cameraPosition, fov: 45, near: 1, far: 2000 }}
+          style={{
+            cursor: interactionMode === 'place' ? 'crosshair' : 'grab',
+          }}
+        >
+          <SceneContent />
+        </Canvas>
 
-      {/* Interaction mode indicator */}
-      <div className="absolute bottom-4 left-4 bg-slate-800/95 backdrop-blur-sm rounded-lg px-4 py-2 shadow-lg border border-slate-700">
-        <span className={`font-medium ${interactionMode === 'place' ? 'text-green-400' : 'text-slate-300'}`}>
-          {interactionMode === 'place'
-            ? placementMode === 'sdh'
-              ? 'Click on block to place SDH'
-              : placementMode === 'notch'
-              ? 'Click on edge to place notch'
-              : 'Click on block to place FBH'
-            : 'Select mode - click features to select'}
-        </span>
-      </div>
+        {/* Interaction mode indicator */}
+        <div className="absolute bottom-4 left-4 bg-slate-800/95 backdrop-blur-sm rounded-lg px-4 py-2 shadow-lg border border-slate-700">
+          <span className={`font-medium ${interactionMode === 'place' ? 'text-green-400' : 'text-slate-300'}`}>
+            {interactionMode === 'place'
+              ? placementMode === 'sdh'
+                ? 'Click on block to place SDH'
+                : placementMode === 'notch'
+                ? 'Click on edge to place notch'
+                : 'Click on block to place FBH'
+              : 'Select mode - click features to select'}
+          </span>
+        </div>
 
-      {/* Controls help */}
-      <div className="absolute top-4 right-4 bg-slate-800/95 backdrop-blur-sm rounded-lg p-3 shadow-lg border border-slate-700 text-xs">
-        <div className="font-bold mb-2 text-slate-200">Controls:</div>
-        <div className="text-slate-400">Left drag: Rotate</div>
-        <div className="text-slate-400">Right drag: Pan</div>
-        <div className="text-slate-400">Scroll: Zoom</div>
+        {/* Controls help */}
+        <div className="absolute top-4 right-4 bg-slate-800/95 backdrop-blur-sm rounded-lg p-3 shadow-lg border border-slate-700 text-xs">
+          <div className="font-bold mb-2 text-slate-200">Controls:</div>
+          <div className="text-slate-400">Left drag: Rotate</div>
+          <div className="text-slate-400">Right drag: Pan</div>
+          <div className="text-slate-400">Scroll: Zoom</div>
+        </div>
       </div>
-    </div>
+    </Canvas3DErrorBoundary>
   );
 }

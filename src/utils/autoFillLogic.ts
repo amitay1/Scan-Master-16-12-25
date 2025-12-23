@@ -460,8 +460,8 @@ export function getRecommendedFrequency(thickness: number, material?: MaterialTy
   if (material) {
     const props = materialDatabase[material];
     // Higher attenuation materials need lower frequencies
-    if (props.attenuation > 5) attenuationFactor = 0.5;
-    else if (props.attenuation > 3) attenuationFactor = 0.75;
+    if (props && props.attenuation > 5) attenuationFactor = 0.5;
+    else if (props && props.attenuation > 3) attenuationFactor = 0.75;
   }
 
   const adjustedThickness = thickness / attenuationFactor;

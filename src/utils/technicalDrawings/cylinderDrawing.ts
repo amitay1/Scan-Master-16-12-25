@@ -11,8 +11,9 @@ export function drawCylinderTechnicalDrawing(
   dimensions: Dimensions,
   layout: LayoutConfig
 ): void {
-  const diameter = dimensions.diameter || dimensions.outerDiameter || 50;
-  const length = dimensions.length;
+  // Ensure valid dimensions to prevent division by zero
+  const diameter = Math.max(dimensions.diameter || dimensions.outerDiameter || 50, 1);
+  const length = Math.max(dimensions.length || 100, 1);
   const innerDiameter = dimensions.innerDiameter;
   const isHollow = dimensions.isHollow || (innerDiameter && innerDiameter > 0);
 

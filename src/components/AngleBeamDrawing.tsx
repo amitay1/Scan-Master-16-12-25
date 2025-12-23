@@ -123,7 +123,13 @@ export function AngleBeamDrawing({
         onChange={handleFileChange}
       />
 
-      <svg width={width} height={height} className="block mx-auto">
+      <svg
+        width={width}
+        height={height}
+        className="block mx-auto angle-beam-drawing"
+        data-testid="calibration-block-diagram"
+        id="calibration-block-svg"
+      >
         {/* Background */}
         <rect x="0" y="0" width={width} height={height} fill="#fafafa" />
 

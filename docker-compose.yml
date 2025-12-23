@@ -9,6 +9,8 @@ services:
       - "5000:5000"
     environment:
       NODE_ENV: production
+      DOCKER_ENV: "true"
+      ALLOW_ALL_ORIGINS: "true"
       DATABASE_URL: ${DATABASE_URL}
       SUPABASE_URL: ${SUPABASE_URL}
       SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY}
@@ -32,9 +34,9 @@ services:
     environment:
       POSTGRES_DB: scanmaster
       POSTGRES_USER: ${DB_USER:-scanmaster}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-scanmaster_dev_password}
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:

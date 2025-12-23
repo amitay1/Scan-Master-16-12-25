@@ -4,7 +4,7 @@ import { EquipmentData, StandardType } from "@/types/techniqueSheet";
 import { FieldWithHelp } from "@/components/FieldWithHelp";
 import { Badge } from "@/components/ui/badge";
 import { Info, AlertTriangle, ChevronDown, ChevronRight } from "lucide-react";
-import { useMemo, useEffect, useState } from "react";
+import { useMemo, useEffect, useState, useRef } from "react";
 import {
   equipmentParametersByStandard,
   getRecommendedFrequencyForStandard,
@@ -59,6 +59,12 @@ export const EquipmentTab = ({ data, onChange, partThickness, standard = "AMS-ST
   // State to control Phased Array section visibility
   const [showPASection, setShowPASection] = useState(false);
 
+  // Refs to avoid stale closures in useEffect
+  const dataRef = useRef(data);
+  const onChangeRef = useRef(onChange);
+  dataRef.current = data;
+  onChangeRef.current = onChange;
+
   // Get equipment parameters for current standard
   const equipmentParams = useMemo(() => {
     return equipmentParametersByStandard[standard];
@@ -112,16 +118,17 @@ export const EquipmentTab = ({ data, onChange, partThickness, standard = "AMS-ST
   useEffect(() => {
     const vMin = equipmentParams.verticalLinearity.min;
     const hMin = equipmentParams.horizontalLinearity?.min || 0;
+    const currentData = dataRef.current;
 
     // Only update if current values don't meet minimum requirements
-    if (data.verticalLinearity < vMin || data.horizontalLinearity < hMin) {
-      onChange({
-        ...data,
-        verticalLinearity: Math.max(data.verticalLinearity, vMin),
-        horizontalLinearity: Math.max(data.horizontalLinearity, hMin),
+    if (currentData.verticalLinearity < vMin || currentData.horizontalLinearity < hMin) {
+      onChangeRef.current({
+        ...currentData,
+        verticalLinearity: Math.max(currentData.verticalLinearity, vMin),
+        horizontalLinearity: Math.max(currentData.horizontalLinearity, hMin),
       });
     }
-  }, [standard]);
+  }, [standard, equipmentParams]);
 
   // Warn if frequency is invalid for standard
   const showFrequencyWarning = !isFrequencyValid && data.frequency;
@@ -403,7 +410,7 @@ export const EquipmentTab = ({ data, onChange, partThickness, standard = "AMS-ST
           className="w-full bg-purple-500/10 px-4 py-2 border-b border-purple-500/30 flex items-center justify-between hover:bg-purple-500/20 transition-colors cursor-pointer"
         >
           <div className="text-left">
-            <h4 className="text-sm font-semibold">Phased Array Settings (Optional)</h4>
+            <h4 className="text-sm font-semibold">Phased Array Settings</h4>
             <p className="text-xs text-muted-foreground mt-1">Fill in if using Phased Array equipment</p>
           </div>
           {showPASection ? (

@@ -183,6 +183,8 @@ export const InspectionPlanViewer: React.FC<InspectionPlanViewerProps> = ({
         <div className="border-4 border-slate-800 rounded-lg bg-gradient-to-br from-slate-50 to-slate-100 p-2 shadow-2xl">
           <canvas
             ref={canvasRef}
+            id="scan-directions-canvas"
+            data-testid="scan-directions-canvas"
             className="w-full h-auto"
             style={{ imageRendering: 'crisp-edges' }}
           />
@@ -256,24 +258,24 @@ function drawProfessionalCrossSection(
   ctx.strokeStyle = '#1e293b';
 
   switch (partType) {
-    // RING - Isometric 3D view (short hollow cylinder, height < 2x wall thickness)
+    // RING - Orthographic 2D view with front and side views
     case 'ring':
     case 'ring_forging':
-      drawIsometricRing(ctx, centerX, centerY, bounds, dimensions);
+      drawForgedRingAndDiscOrthographic(ctx, centerX, centerY, bounds, dimensions, true);
       break;
 
-    // DISK - Isometric 3D view (short solid cylinder, height < diameter/3)
+    // DISK - Orthographic 2D view with front and side views
     case 'disk':
     case 'disk_forging':
-      drawIsometricDisk(ctx, centerX, centerY, bounds, dimensions);
+      drawForgedRingAndDiscOrthographic(ctx, centerX, centerY, bounds, dimensions, false);
       break;
 
-    // TUBE/PIPE - Hollow circular cross-sections (longer hollow cylinders)
+    // TUBE/PIPE - Orthographic 2D view with front and side views
     case 'tube':
     case 'pipe':
     case 'sleeve':
     case 'bushing':
-      drawTubeCrossSection(ctx, centerX, centerY, bounds, dimensions);
+      drawForgedTubeOrthographic(ctx, centerX, centerY, bounds, dimensions);
       break;
 
     // RECTANGULAR TUBE - Hollow rectangular cross-section
@@ -993,70 +995,75 @@ function getScanDirectionPosition(
     }
 
     // ═══════════════════════════════════════════════════════════════════
-    // TUBE / PIPE - E2375 Fig.7 + Annex A1.3.3
-    // A=from OD, B=from side, C=radial, D/E=circumferential shear CW/CCW,
-    // F/G=axial shear directions 1&2, H=from ID
+    // TUBE / PIPE - Orthographic View (Front left, Side right)
+    // Based on NDT standard diagram: straight beam from top with angle beam,
+    // straight beam from both ends (covering 150mm from each side)
     // ═══════════════════════════════════════════════════════════════════
     case 'tube':
     case 'pipe':
     case 'sleeve':
     case 'bushing': {
       const tubeRadius = 55 * scale;
+      // Front view is offset to the left, side view to the right
+      const frontViewX = centerX - bounds.width * 0.18;
+      const sideViewX = centerX + bounds.width * 0.15;
+      const sideWidth = tubeRadius * 2.2; // Approximate side view width
+      
       switch (direction.toUpperCase()) {
-        case 'A': // E2375: From OD radial top
+        case 'A': // Straight beam from top (on side view)
           return {
-            x: centerX, y: centerY - tubeRadius - 35,
-            symbolX: centerX, symbolY: centerY - tubeRadius - 55,
-            labelX: centerX + 25, labelY: centerY - tubeRadius - 40,
+            x: sideViewX, y: centerY - tubeRadius - 35,
+            symbolX: sideViewX, symbolY: centerY - tubeRadius - 55,
+            labelX: sideViewX + 30, labelY: centerY - tubeRadius - 40,
             arrowDirection: 'down', isAngleBeam: false
           };
-        case 'B': // E2375: From OD radial side
+        case 'B': // Straight beam from left end (on side view)
           return {
-            x: centerX - tubeRadius - 35, y: centerY,
-            symbolX: centerX - tubeRadius - 55, symbolY: centerY,
-            labelX: centerX - tubeRadius - 50, labelY: centerY - 20,
+            x: sideViewX - sideWidth / 2 - 35, y: centerY,
+            symbolX: sideViewX - sideWidth / 2 - 55, symbolY: centerY,
+            labelX: sideViewX - sideWidth / 2 - 60, labelY: centerY - 20,
             arrowDirection: 'right', isAngleBeam: false
           };
-        case 'C': // Radial from OD (general)
+        case 'C': // Straight beam from right end (on side view)
           return {
-            x: centerX + tubeRadius + 35, y: centerY,
-            symbolX: centerX + tubeRadius + 55, symbolY: centerY,
-            labelX: centerX + tubeRadius + 50, labelY: centerY - 20,
+            x: sideViewX + sideWidth / 2 + 35, y: centerY,
+            symbolX: sideViewX + sideWidth / 2 + 55, symbolY: centerY,
+            labelX: sideViewX + sideWidth / 2 + 60, labelY: centerY - 20,
             arrowDirection: 'left', isAngleBeam: false
           };
-        case 'D': // E2375 A1.3.3: Circumferential shear CLOCKWISE (required!)
+        case 'D': // Angle beam from top (on side view - left side)
           return {
-            x: centerX + tubeRadius * 0.7, y: centerY - tubeRadius - 25,
-            symbolX: centerX + tubeRadius * 0.7, symbolY: centerY - tubeRadius - 25,
-            labelX: centerX + tubeRadius * 0.7 + 20, labelY: centerY - tubeRadius - 40,
+            x: sideViewX - 25, y: centerY - tubeRadius - 25,
+            symbolX: sideViewX - 25, symbolY: centerY - tubeRadius - 45,
+            labelX: sideViewX - 5, labelY: centerY - tubeRadius - 40,
             arrowDirection: 'down', isAngleBeam: true
           };
-        case 'E': // E2375 A1.3.3: Circumferential shear COUNTER-CLOCKWISE (required!)
+        case 'E': // Angle beam from top (on side view - right side)
           return {
-            x: centerX - tubeRadius * 0.7, y: centerY - tubeRadius - 25,
-            symbolX: centerX - tubeRadius * 0.7, symbolY: centerY - tubeRadius - 25,
-            labelX: centerX - tubeRadius * 0.7 - 20, labelY: centerY - tubeRadius - 40,
+            x: sideViewX + 25, y: centerY - tubeRadius - 25,
+            symbolX: sideViewX + 25, symbolY: centerY - tubeRadius - 45,
+            labelX: sideViewX + 45, labelY: centerY - tubeRadius - 40,
             arrowDirection: 'down', isAngleBeam: true
           };
-        case 'F': // E2375 A1.3.3: Axial shear direction 1
+        case 'F': // Axial shear direction 1 (on front view)
           return {
-            x: centerX + tubeRadius + 40, y: centerY - tubeRadius * 0.5,
-            symbolX: centerX + tubeRadius + 40, symbolY: centerY - tubeRadius * 0.5,
-            labelX: centerX + tubeRadius + 55, labelY: centerY - tubeRadius * 0.5 - 15,
+            x: frontViewX + tubeRadius + 35, y: centerY - tubeRadius * 0.4,
+            symbolX: frontViewX + tubeRadius + 55, symbolY: centerY - tubeRadius * 0.4,
+            labelX: frontViewX + tubeRadius + 60, labelY: centerY - tubeRadius * 0.4 - 15,
             arrowDirection: 'left', isAngleBeam: true
           };
-        case 'G': // E2375 A1.3.3: Axial shear direction 2 (opposite)
+        case 'G': // Axial shear direction 2 (on front view)
           return {
-            x: centerX + tubeRadius + 40, y: centerY + tubeRadius * 0.5,
-            symbolX: centerX + tubeRadius + 40, symbolY: centerY + tubeRadius * 0.5,
-            labelX: centerX + tubeRadius + 55, labelY: centerY + tubeRadius * 0.5 + 15,
+            x: frontViewX + tubeRadius + 35, y: centerY + tubeRadius * 0.4,
+            symbolX: frontViewX + tubeRadius + 55, symbolY: centerY + tubeRadius * 0.4,
+            labelX: frontViewX + tubeRadius + 60, labelY: centerY + tubeRadius * 0.4 + 15,
             arrowDirection: 'left', isAngleBeam: true
           };
-        case 'H': // E2375: From ID (inner surface)
+        case 'H': // From ID (on front view center)
           return {
-            x: centerX, y: centerY + tubeRadius + 35,
-            symbolX: centerX, symbolY: centerY + tubeRadius + 55,
-            labelX: centerX + 25, labelY: centerY + tubeRadius + 50,
+            x: frontViewX, y: centerY + tubeRadius + 35,
+            symbolX: frontViewX, symbolY: centerY + tubeRadius + 55,
+            labelX: frontViewX + 25, labelY: centerY + tubeRadius + 50,
             arrowDirection: 'up', isAngleBeam: false
           };
         default: return null;
@@ -1064,68 +1071,73 @@ function getScanDirectionPosition(
     }
 
     // ═══════════════════════════════════════════════════════════════════
-    // RING FORGING - E2375 Fig.7 + Annex A1.3.1
-    // A=from flat face, B=radial from OD (if wall>20% OD), C=radial from circumference,
-    // D/E=circumferential shear CW/CCW (REQUIRED!), F/G=axial shear, H=from ID
+    // RING / DISC FORGING - Orthographic View (Front left, Side right)
+    // Based on NDT standard diagram: straight beam from top with angle beam,
+    // straight beam from side
     // ═══════════════════════════════════════════════════════════════════
     case 'ring':
     case 'ring_forging': {
       const ringRadius = 55 * scale;
+      // Front view is offset to the left, side view to the right
+      const frontViewX = centerX - bounds.width * 0.18;
+      const sideViewX = centerX + bounds.width * 0.18;
+      const sideWidth = 25 * scale; // Thin side view
+      
       switch (direction.toUpperCase()) {
-        case 'A': // E2375 Fig.7: From flat face (axial)
+        case 'A': // Straight beam from top (on side view)
           return {
-            x: centerX, y: centerY - ringRadius - 35,
-            symbolX: centerX, symbolY: centerY - ringRadius - 55,
-            labelX: centerX + 25, labelY: centerY - ringRadius - 40,
+            x: sideViewX, y: centerY - ringRadius - 35,
+            symbolX: sideViewX, symbolY: centerY - ringRadius - 55,
+            labelX: sideViewX + 25, labelY: centerY - ringRadius - 40,
             arrowDirection: 'down', isAngleBeam: false
           };
-        case 'B': // E2375 Fig.7: Radial from OD (if wall thickness > 20% of OD)
+        case 'B': // Straight beam from side (on side view - left)
           return {
-            x: centerX - ringRadius - 35, y: centerY,
-            symbolX: centerX - ringRadius - 55, symbolY: centerY,
-            labelX: centerX - ringRadius - 50, labelY: centerY - 20,
+            x: sideViewX - sideWidth - 35, y: centerY,
+            symbolX: sideViewX - sideWidth - 55, symbolY: centerY,
+            labelX: sideViewX - sideWidth - 60, labelY: centerY - 20,
             arrowDirection: 'right', isAngleBeam: false
           };
-        case 'C': // E2375 Fig.7: Radial from circumference
+        case 'C': // Straight beam from side (on side view - right)
           return {
-            x: centerX + ringRadius + 35, y: centerY,
-            symbolX: centerX + ringRadius + 55, symbolY: centerY,
-            labelX: centerX + ringRadius + 50, labelY: centerY - 20,
+            x: sideViewX + sideWidth + 35, y: centerY,
+            symbolX: sideViewX + sideWidth + 55, symbolY: centerY,
+            labelX: sideViewX + sideWidth + 60, labelY: centerY - 20,
             arrowDirection: 'left', isAngleBeam: false
           };
-        case 'D': // E2375 A1.3.1: Circumferential shear CLOCKWISE (REQUIRED for rings!)
+        case 'D': // Angle beam from top (on side view - left)
           return {
-            x: centerX + ringRadius * 0.7, y: centerY - ringRadius - 25,
-            symbolX: centerX + ringRadius * 0.7, symbolY: centerY - ringRadius - 25,
-            labelX: centerX + ringRadius * 0.7 + 20, labelY: centerY - ringRadius - 40,
+            x: sideViewX - 15, y: centerY - ringRadius - 25,
+            symbolX: sideViewX - 15, symbolY: centerY - ringRadius - 45,
+            labelX: sideViewX + 5, labelY: centerY - ringRadius - 40,
             arrowDirection: 'down', isAngleBeam: true
           };
-        case 'E': // E2375 A1.3.1: Circumferential shear CCW (REQUIRED for rings!)
+        case 'E': // Angle beam from top (on side view - right)
           return {
-            x: centerX - ringRadius * 0.7, y: centerY - ringRadius - 25,
-            symbolX: centerX - ringRadius * 0.7, symbolY: centerY - ringRadius - 25,
-            labelX: centerX - ringRadius * 0.7 - 20, labelY: centerY - ringRadius - 40,
+            x: sideViewX + 15, y: centerY - ringRadius - 25,
+            symbolX: sideViewX + 15, symbolY: centerY - ringRadius - 45,
+            labelX: sideViewX + 35, labelY: centerY - ringRadius - 40,
             arrowDirection: 'down', isAngleBeam: true
           };
-        case 'F': // Axial shear direction 1
+        case 'F': // Axial shear direction 1 (on front view)
           return {
-            x: centerX + ringRadius + 35, y: centerY - ringRadius * 0.4,
-            symbolX: centerX + ringRadius + 35, symbolY: centerY - ringRadius * 0.4,
-            labelX: centerX + ringRadius + 50, labelY: centerY - ringRadius * 0.4 - 15,
+            x: frontViewX + ringRadius + 35, y: centerY - ringRadius * 0.4,
+            symbolX: frontViewX + ringRadius + 55, symbolY: centerY - ringRadius * 0.4,
+            labelX: frontViewX + ringRadius + 60, labelY: centerY - ringRadius * 0.4 - 15,
             arrowDirection: 'left', isAngleBeam: true
           };
-        case 'G': // Axial shear direction 2
+        case 'G': // Axial shear direction 2 (on front view)
           return {
-            x: centerX + ringRadius + 35, y: centerY + ringRadius * 0.4,
-            symbolX: centerX + ringRadius + 35, symbolY: centerY + ringRadius * 0.4,
-            labelX: centerX + ringRadius + 50, labelY: centerY + ringRadius * 0.4 + 15,
+            x: frontViewX + ringRadius + 35, y: centerY + ringRadius * 0.4,
+            symbolX: frontViewX + ringRadius + 55, symbolY: centerY + ringRadius * 0.4,
+            labelX: frontViewX + ringRadius + 60, labelY: centerY + ringRadius * 0.4 + 15,
             arrowDirection: 'left', isAngleBeam: true
           };
-        case 'H': // E2375: From ID (inner surface)
+        case 'H': // From ID (on front view center)
           return {
-            x: centerX, y: centerY + ringRadius + 35,
-            symbolX: centerX, symbolY: centerY + ringRadius + 55,
-            labelX: centerX + 25, labelY: centerY + ringRadius + 50,
+            x: frontViewX, y: centerY + ringRadius + 35,
+            symbolX: frontViewX, symbolY: centerY + ringRadius + 55,
+            labelX: frontViewX + 25, labelY: centerY + ringRadius + 50,
             arrowDirection: 'up', isAngleBeam: false
           };
         default: return null;
@@ -1133,47 +1145,51 @@ function getScanDirectionPosition(
     }
 
     // ═══════════════════════════════════════════════════════════════════
-    // DISK FORGING - E2375 Fig.7
-    // A=from flat face (primary), B=from opposite flat face,
-    // C=radial from circumference (required per Fig.7)
+    // DISK FORGING - Orthographic View (Front left, Side right)
+    // Same as ring but without inner circle
     // ═══════════════════════════════════════════════════════════════════
     case 'disk':
     case 'disk_forging': {
       const diskRadius = 55 * scale;
+      // Front view is offset to the left, side view to the right
+      const frontViewX = centerX - bounds.width * 0.18;
+      const sideViewX = centerX + bounds.width * 0.18;
+      const sideWidth = 25 * scale; // Thin side view
+      
       switch (direction.toUpperCase()) {
-        case 'A': // E2375 Fig.7: From flat face (at least one required)
+        case 'A': // Straight beam from top (on side view)
           return {
-            x: centerX, y: centerY - diskRadius - 35,
-            symbolX: centerX, symbolY: centerY - diskRadius - 55,
-            labelX: centerX + 25, labelY: centerY - diskRadius - 40,
+            x: sideViewX, y: centerY - diskRadius - 35,
+            symbolX: sideViewX, symbolY: centerY - diskRadius - 55,
+            labelX: sideViewX + 25, labelY: centerY - diskRadius - 40,
             arrowDirection: 'down', isAngleBeam: false
           };
-        case 'B': // E2375 Fig.7: From opposite flat face (for thick disks)
+        case 'B': // Straight beam from bottom (on side view)
           return {
-            x: centerX, y: centerY + diskRadius + 35,
-            symbolX: centerX, symbolY: centerY + diskRadius + 55,
-            labelX: centerX + 25, labelY: centerY + diskRadius + 50,
+            x: sideViewX, y: centerY + diskRadius + 35,
+            symbolX: sideViewX, symbolY: centerY + diskRadius + 55,
+            labelX: sideViewX + 25, labelY: centerY + diskRadius + 50,
             arrowDirection: 'up', isAngleBeam: false
           };
-        case 'C': // E2375 Fig.7: Radial from circumference (whenever practical)
+        case 'C': // Straight beam from side (on side view - left)
           return {
-            x: centerX - diskRadius - 35, y: centerY,
-            symbolX: centerX - diskRadius - 55, symbolY: centerY,
-            labelX: centerX - diskRadius - 50, labelY: centerY - 20,
+            x: sideViewX - sideWidth - 35, y: centerY,
+            symbolX: sideViewX - sideWidth - 55, symbolY: centerY,
+            labelX: sideViewX - sideWidth - 60, labelY: centerY - 20,
             arrowDirection: 'right', isAngleBeam: false
           };
-        case 'D': // Angle beam from top
+        case 'D': // Angle beam from top (on side view - left)
           return {
-            x: centerX + diskRadius * 0.6, y: centerY - diskRadius - 25,
-            symbolX: centerX + diskRadius * 0.6, symbolY: centerY - diskRadius - 25,
-            labelX: centerX + diskRadius * 0.6 + 20, labelY: centerY - diskRadius - 40,
+            x: sideViewX - 15, y: centerY - diskRadius - 25,
+            symbolX: sideViewX - 15, symbolY: centerY - diskRadius - 45,
+            labelX: sideViewX + 5, labelY: centerY - diskRadius - 40,
             arrowDirection: 'down', isAngleBeam: true
           };
-        case 'E': // Angle beam opposite
+        case 'E': // Angle beam from top (on side view - right)
           return {
-            x: centerX - diskRadius * 0.6, y: centerY - diskRadius - 25,
-            symbolX: centerX - diskRadius * 0.6, symbolY: centerY - diskRadius - 25,
-            labelX: centerX - diskRadius * 0.6 - 20, labelY: centerY - diskRadius - 40,
+            x: sideViewX + 15, y: centerY - diskRadius - 25,
+            symbolX: sideViewX + 15, symbolY: centerY - diskRadius - 45,
+            labelX: sideViewX + 35, labelY: centerY - diskRadius - 40,
             arrowDirection: 'down', isAngleBeam: true
           };
         default: return null;
@@ -2049,6 +2065,305 @@ function drawIsometricDisk(
   ctx.beginPath();
   ctx.moveTo(cx - 28, labelY + 5);
   ctx.lineTo(cx + 28, labelY + 5);
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+/**
+ * Draw FORGED TUBE - Orthographic 2D Technical Drawing Style
+ * Based on standard NDT inspection diagrams:
+ * - LEFT: Front view (circular cross-section showing OD and ID)
+ * - RIGHT: Side view (rectangular showing wall thickness with hatching)
+ * - Includes scan direction symbols per standard
+ */
+function drawForgedTubeOrthographic(
+  ctx: CanvasRenderingContext2D,
+  centerX: number,
+  centerY: number,
+  bounds: DrawBounds,
+  dimensions: DrawDimensions
+) {
+  ctx.save();
+
+  // Get dimensions
+  const outerDiam = dimensions.outerDiameter || dimensions.diameter || 150;
+  const innerDiam = dimensions.innerDiameter || (outerDiam * 0.6);
+  const tubeLength = dimensions.length || dimensions.height || 250;
+  const wallThickness = (outerDiam - innerDiam) / 2;
+
+  // Scale calculations
+  const maxSize = Math.min(bounds.width * 0.4, bounds.height * 0.6);
+  const scale = maxSize / Math.max(outerDiam, tubeLength * 0.5);
+  
+  const outerRadius = (outerDiam / 2) * scale;
+  const innerRadius = (innerDiam / 2) * scale;
+  const length = tubeLength * scale * 0.6;
+  const wallScaled = wallThickness * scale;
+
+  // Position both views
+  const frontViewX = centerX - bounds.width * 0.18;
+  const sideViewX = centerX + bounds.width * 0.15;
+  const viewY = centerY + 10;
+
+  // ═══════════════════════════════════════════════════════════════════
+  // FRONT VIEW - Circular Cross Section (Left side)
+  // ═══════════════════════════════════════════════════════════════════
+  
+  // Outer circle
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.arc(frontViewX, viewY, outerRadius, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // Inner circle (bore)
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(frontViewX, viewY, innerRadius, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // Centerlines (chain-dash)
+  ctx.strokeStyle = '#64748b';
+  ctx.lineWidth = 0.8;
+  ctx.setLineDash([15, 3, 3, 3]);
+  
+  // Horizontal centerline
+  ctx.beginPath();
+  ctx.moveTo(frontViewX - outerRadius - 30, viewY);
+  ctx.lineTo(frontViewX + outerRadius + 30, viewY);
+  ctx.stroke();
+
+  // Vertical centerline  
+  ctx.beginPath();
+  ctx.moveTo(frontViewX, viewY - outerRadius - 30);
+  ctx.lineTo(frontViewX, viewY + outerRadius + 30);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // ═══════════════════════════════════════════════════════════════════
+  // SIDE VIEW - Rectangular Cross Section (Right side)
+  // ═══════════════════════════════════════════════════════════════════
+  
+  const sideWidth = length;
+  const sideHeight = outerRadius * 2;
+  const sideX = sideViewX - sideWidth / 2;
+  const sideY = viewY - sideHeight / 2;
+
+  // Outer rectangle
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 2.5;
+  ctx.strokeRect(sideX, sideY, sideWidth, sideHeight);
+
+  // Top wall hatching area
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(sideX, sideY, sideWidth, wallScaled);
+  ctx.clip();
+  
+  ctx.strokeStyle = '#64748b';
+  ctx.lineWidth = 0.8;
+  const spacing = 4;
+  for (let i = -sideWidth; i < sideWidth + sideHeight; i += spacing) {
+    ctx.beginPath();
+    ctx.moveTo(sideX + i, sideY);
+    ctx.lineTo(sideX + i + wallScaled * 2, sideY + wallScaled);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // Bottom wall hatching area
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(sideX, sideY + sideHeight - wallScaled, sideWidth, wallScaled);
+  ctx.clip();
+  
+  ctx.strokeStyle = '#64748b';
+  ctx.lineWidth = 0.8;
+  for (let i = -sideWidth; i < sideWidth + sideHeight; i += spacing) {
+    ctx.beginPath();
+    ctx.moveTo(sideX + i, sideY + sideHeight - wallScaled);
+    ctx.lineTo(sideX + i + wallScaled * 2, sideY + sideHeight);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // Inner bore lines (hollow space)
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(sideX, sideY + wallScaled);
+  ctx.lineTo(sideX + sideWidth, sideY + wallScaled);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(sideX, sideY + sideHeight - wallScaled);
+  ctx.lineTo(sideX + sideWidth, sideY + sideHeight - wallScaled);
+  ctx.stroke();
+
+  // Centerline for side view (horizontal through center)
+  ctx.strokeStyle = '#64748b';
+  ctx.lineWidth = 0.8;
+  ctx.setLineDash([15, 3, 3, 3]);
+  ctx.beginPath();
+  ctx.moveTo(sideX - 30, viewY);
+  ctx.lineTo(sideX + sideWidth + 30, viewY);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // ═══════════════════════════════════════════════════════════════════
+  // TITLE
+  // ═══════════════════════════════════════════════════════════════════
+  ctx.fillStyle = '#1a1a2e';
+  ctx.font = 'bold 14px Arial';
+  ctx.textAlign = 'center';
+  ctx.fillText('Forged Tube', centerX, viewY - outerRadius - 60);
+  
+  // Underline
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(centerX - 50, viewY - outerRadius - 55);
+  ctx.lineTo(centerX + 50, viewY - outerRadius - 55);
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+/**
+ * Draw FORGED RING AND DISC - Orthographic 2D Technical Drawing Style
+ * Based on standard NDT inspection diagrams:
+ * - LEFT: Front view (circular cross-section showing OD and ID for ring)
+ * - RIGHT: Side view (thin rectangular showing thickness with hatching)
+ * - Includes scan direction symbols per standard
+ */
+function drawForgedRingAndDiscOrthographic(
+  ctx: CanvasRenderingContext2D,
+  centerX: number,
+  centerY: number,
+  bounds: DrawBounds,
+  dimensions: DrawDimensions,
+  isRing: boolean = true
+) {
+  ctx.save();
+
+  // Get dimensions
+  const outerDiam = dimensions.outerDiameter || dimensions.diameter || 180;
+  const innerDiam = isRing ? (dimensions.innerDiameter || (outerDiam * 0.5)) : 0;
+  const thickness = dimensions.thickness || dimensions.height || 35;
+
+  // Scale calculations
+  const maxSize = Math.min(bounds.width * 0.4, bounds.height * 0.65);
+  const scale = maxSize / outerDiam;
+  
+  const outerRadius = (outerDiam / 2) * scale;
+  const innerRadius = (innerDiam / 2) * scale;
+  const thicknessScaled = Math.max(thickness * scale * 0.8, 25); // Minimum visible thickness
+
+  // Position both views
+  const frontViewX = centerX - bounds.width * 0.18;
+  const sideViewX = centerX + bounds.width * 0.18;
+  const viewY = centerY + 10;
+
+  // ═══════════════════════════════════════════════════════════════════
+  // FRONT VIEW - Circular Cross Section (Left side)
+  // ═══════════════════════════════════════════════════════════════════
+  
+  // Outer circle
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.arc(frontViewX, viewY, outerRadius, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // Inner circle (bore) - only for ring
+  if (isRing && innerRadius > 0) {
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(frontViewX, viewY, innerRadius, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+
+  // Centerlines (chain-dash)
+  ctx.strokeStyle = '#64748b';
+  ctx.lineWidth = 0.8;
+  ctx.setLineDash([15, 3, 3, 3]);
+  
+  // Horizontal centerline
+  ctx.beginPath();
+  ctx.moveTo(frontViewX - outerRadius - 30, viewY);
+  ctx.lineTo(frontViewX + outerRadius + 30, viewY);
+  ctx.stroke();
+
+  // Vertical centerline  
+  ctx.beginPath();
+  ctx.moveTo(frontViewX, viewY - outerRadius - 30);
+  ctx.lineTo(frontViewX, viewY + outerRadius + 30);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // ═══════════════════════════════════════════════════════════════════
+  // SIDE VIEW - Thin Rectangular Cross Section (Right side)
+  // ═══════════════════════════════════════════════════════════════════
+  
+  const sideWidth = thicknessScaled;
+  const sideHeight = outerRadius * 2;
+  const sideX = sideViewX - sideWidth / 2;
+  const sideY = viewY - sideHeight / 2;
+
+  // Full rectangle with hatching
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(sideX, sideY, sideWidth, sideHeight);
+  ctx.clip();
+  
+  ctx.strokeStyle = '#64748b';
+  ctx.lineWidth = 0.8;
+  const spacing = 4;
+  for (let i = -sideHeight; i < sideWidth + sideHeight; i += spacing) {
+    ctx.beginPath();
+    ctx.moveTo(sideX + i, sideY + sideHeight);
+    ctx.lineTo(sideX + i + sideHeight, sideY);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // Outer rectangle outline
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 2.5;
+  ctx.strokeRect(sideX, sideY, sideWidth, sideHeight);
+
+  // Centerline for side view (horizontal through center)
+  ctx.strokeStyle = '#64748b';
+  ctx.lineWidth = 0.8;
+  ctx.setLineDash([15, 3, 3, 3]);
+  ctx.beginPath();
+  ctx.moveTo(sideX - 30, viewY);
+  ctx.lineTo(sideX + sideWidth + 30, viewY);
+  ctx.stroke();
+
+  // Vertical centerline on side view
+  ctx.beginPath();
+  ctx.moveTo(sideViewX, sideY - 30);
+  ctx.lineTo(sideViewX, sideY + sideHeight + 30);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // ═══════════════════════════════════════════════════════════════════
+  // TITLE
+  // ═══════════════════════════════════════════════════════════════════
+  ctx.fillStyle = '#1a1a2e';
+  ctx.font = 'bold 14px Arial';
+  ctx.textAlign = 'center';
+  const title = isRing ? 'Forged Ring and Disc' : 'Forged Disc';
+  ctx.fillText(title, centerX, viewY - outerRadius - 60);
+  
+  // Underline
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 1.5;
+  const titleWidth = isRing ? 85 : 55;
+  ctx.beginPath();
+  ctx.moveTo(centerX - titleWidth, viewY - outerRadius - 55);
+  ctx.lineTo(centerX + titleWidth, viewY - outerRadius - 55);
   ctx.stroke();
 
   ctx.restore();

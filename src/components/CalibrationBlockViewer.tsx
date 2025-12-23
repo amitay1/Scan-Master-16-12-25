@@ -1,7 +1,41 @@
+import React, { Component, ErrorInfo, ReactNode } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, PerspectiveCamera, Html } from "@react-three/drei";
 import { CalibrationRecommendation } from "@/types/techniqueSheet";
 import * as THREE from "three";
+
+/**
+ * Error boundary for 3D viewer - prevents app crashes
+ */
+interface ErrorBoundaryState {
+  hasError: boolean;
+}
+
+class Viewer3DErrorBoundary extends Component<{ children: ReactNode }, ErrorBoundaryState> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(): ErrorBoundaryState {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.warn('CalibrationBlockViewer error caught:', error.message);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-muted/30 to-muted/10 rounded-lg border border-border text-muted-foreground">
+          <p className="text-sm">3D Preview unavailable</p>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 interface CalibrationBlockViewerProps {
   recommendation: CalibrationRecommendation;
@@ -68,32 +102,34 @@ const CalibrationBlock = ({ recommendation }: CalibrationBlockViewerProps) => {
 
 export const CalibrationBlockViewer = ({ recommendation }: CalibrationBlockViewerProps) => {
   return (
-    <div className="w-full h-full bg-gradient-to-br from-muted/30 to-muted/10 rounded-lg border border-border overflow-hidden">
-      <Canvas shadows>
-        <PerspectiveCamera makeDefault position={[3, 2, 3]} />
-        <OrbitControls 
-          enableDamping
-          dampingFactor={0.05}
-          minDistance={1}
-          maxDistance={8}
-        />
-        
-        {/* Lighting */}
-        <ambientLight intensity={0.5} />
-        <directionalLight
-          position={[5, 5, 5]}
-          intensity={1}
-          castShadow
-        />
-        <directionalLight position={[-5, 5, 5]} intensity={0.4} />
-        {/* Environment preset "studio" removed because remote HDR may return 404 and cause crashes */}
+    <Viewer3DErrorBoundary>
+      <div className="w-full h-full bg-gradient-to-br from-muted/30 to-muted/10 rounded-lg border border-border overflow-hidden">
+        <Canvas shadows>
+          <PerspectiveCamera makeDefault position={[3, 2, 3]} />
+          <OrbitControls 
+            enableDamping
+            dampingFactor={0.05}
+            minDistance={1}
+            maxDistance={8}
+          />
+          
+          {/* Lighting */}
+          <ambientLight intensity={0.5} />
+          <directionalLight
+            position={[5, 5, 5]}
+            intensity={1}
+            castShadow
+          />
+          <directionalLight position={[-5, 5, 5]} intensity={0.4} />
+          {/* Environment preset "studio" removed because remote HDR may return 404 and cause crashes */}
 
-        {/* Grid */}
-        <gridHelper args={[5, 10, "#3b82f6", "#94a3b8"]} position={[0, -1, 0]} />
-        
-        {/* Calibration block */}
-        <CalibrationBlock recommendation={recommendation} />
-      </Canvas>
-    </div>
+          {/* Grid */}
+          <gridHelper args={[5, 10, "#3b82f6", "#94a3b8"]} position={[0, -1, 0]} />
+          
+          {/* Calibration block */}
+          <CalibrationBlock recommendation={recommendation} />
+        </Canvas>
+      </div>
+    </Viewer3DErrorBoundary>
   );
 };

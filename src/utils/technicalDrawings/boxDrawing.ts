@@ -11,7 +11,11 @@ export function drawBoxTechnicalDrawing(
   dimensions: Dimensions,
   layout: LayoutConfig
 ): void {
-  const { length, width, thickness, isHollow, innerLength, innerWidth, wallThickness } = dimensions;
+  // Ensure valid dimensions to prevent division by zero
+  const length = Math.max(dimensions.length || 100, 1);
+  const width = Math.max(dimensions.width || 50, 1);
+  const thickness = Math.max(dimensions.thickness || 25, 1);
+  const { isHollow, innerLength, innerWidth, wallThickness } = dimensions;
 
   // FRONT VIEW (Length × Thickness)
   drawFrontView(generator, length, thickness, isHollow, innerLength, wallThickness, layout.frontView);

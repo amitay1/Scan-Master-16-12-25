@@ -10,7 +10,7 @@ export const cspConfig = {
     styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
     fontSrc: ["'self'", "https://fonts.gstatic.com"],
     imgSrc: ["'self'", "data:", "blob:", "https:"],
-    connectSrc: ["'self'", "https://*.supabase.co", "https://*.neon.tech", "wss://*.supabase.co"],
+    connectSrc: ["'self'", "https://*.supabase.co", "https://*.neon.tech", "wss://*.supabase.co", "https://raw.githack.com"],
     objectSrc: ["'none'"],
     mediaSrc: ["'self'"],
     frameSrc: ["'none'"],
@@ -34,18 +34,32 @@ export const corsOptions = {
       return callback(null, true);
     }
 
-    const allowedOrigins = (process.env.CORS_ORIGINS || '').split(',').map(o => o.trim());
+    // Allow localhost and Docker internal network
+    if (origin.includes('localhost') || origin.includes('127.0.0.1') || origin.includes('172.') || origin.includes('192.168.')) {
+      return callback(null, true);
+    }
+
+    const allowedOrigins = (process.env.CORS_ORIGINS || '').split(',').map(o => o.trim()).filter(o => o);
     
-    // In development, allow localhost
-    if (process.env.NODE_ENV !== 'production') {
-      allowedOrigins.push('http://localhost:3000', 'http://localhost:5000', 'http://localhost:5173', 'http://localhost:8080');
+    // In development or Docker, allow localhost variants
+    if (process.env.NODE_ENV !== 'production' || process.env.DOCKER_ENV === 'true') {
+      allowedOrigins.push(
+        'http://localhost:3000', 
+        'http://localhost:5000', 
+        'http://localhost:5173', 
+        'http://localhost:8080',
+        'http://127.0.0.1:3000',
+        'http://127.0.0.1:5000',
+        'http://127.0.0.1:5173',
+        'http://127.0.0.1:8080'
+      );
     }
 
     if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      // In development, allow all origins (for easier testing)
-      if (process.env.NODE_ENV !== 'production') {
+      // In development or Docker environment, allow all origins (for easier testing)
+      if (process.env.NODE_ENV !== 'production' || process.env.DOCKER_ENV === 'true' || process.env.ALLOW_ALL_ORIGINS === 'true') {
         callback(null, true);
       } else {
         callback(new Error('Not allowed by CORS'));

@@ -329,25 +329,64 @@ export function SavedCardsProvider({ children }: { children: ReactNode }) {
     return JSON.stringify(cards, null, 2);
   }, [cards]);
 
-  // Import cards
+  // Import cards - supports both local SavedCard format and server TechniqueSheetRecord format
   const importCards = useCallback((json: string): number => {
     try {
       const imported = JSON.parse(json);
       const cardsToImport = Array.isArray(imported) ? imported : [imported];
-      
-      const validCards = cardsToImport.filter((c: unknown): c is SavedCard => 
-        typeof c === 'object' && c !== null && 'name' in c && 'type' in c
-      );
-      
-      // Generate new IDs to avoid conflicts
       const now = new Date().toISOString();
-      const newCards = validCards.map(c => ({
-        ...c,
-        id: generateId(),
-        createdAt: now,
-        updatedAt: now,
-      }));
-      
+
+      const newCards: SavedCard[] = [];
+
+      for (const item of cardsToImport) {
+        if (typeof item !== 'object' || item === null) continue;
+
+        // Check if it's already a SavedCard format (local export)
+        if ('name' in item && 'type' in item && 'inspectionSetup' in item) {
+          newCards.push({
+            ...item,
+            id: generateId(),
+            createdAt: now,
+            updatedAt: now,
+          });
+        }
+        // Check if it's a TechniqueSheetRecord format (server export)
+        else if ('sheetName' in item && 'data' in item && typeof item.data === 'object') {
+          const data = item.data;
+          newCards.push({
+            id: generateId(),
+            name: item.sheetName || 'Imported Card',
+            description: '',
+            type: data.reportMode === 'Report' ? 'report' : 'technique',
+            standard: (item.standard || data.standard || 'AMS-STD-2154E') as StandardType,
+            createdAt: now,
+            updatedAt: now,
+            completionPercent: 0,
+            tags: [],
+            isFavorite: false,
+            isArchived: false,
+            isSplitMode: data.isSplitMode || false,
+            inspectionSetup: data.partA?.inspectionSetup || {},
+            equipment: data.partA?.equipment || {},
+            calibration: data.partA?.calibration || {},
+            scanParameters: data.partA?.scanParameters || {},
+            acceptanceCriteria: data.partA?.acceptanceCriteria || {},
+            documentation: data.partA?.documentation || {},
+            inspectionSetupB: data.partB?.inspectionSetup,
+            equipmentB: data.partB?.equipment,
+            calibrationB: data.partB?.calibration,
+            scanParametersB: data.partB?.scanParameters,
+            acceptanceCriteriaB: data.partB?.acceptanceCriteria,
+            documentationB: data.partB?.documentation,
+          } as SavedCard);
+        }
+      }
+
+      if (newCards.length === 0) {
+        console.warn('No valid cards found in import. Expected format: SavedCard or TechniqueSheetRecord');
+        return 0;
+      }
+
       setCards(prev => [...newCards, ...prev]);
       return newCards.length;
     } catch (error) {
