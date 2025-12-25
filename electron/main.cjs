@@ -10,7 +10,7 @@ let serverProcess;
 const isDev = process.env.NODE_ENV !== 'production';
 
 // Auto-updater configuration
-autoUpdater.autoDownload = false;
+autoUpdater.autoDownload = true;
 autoUpdater.autoInstallOnAppQuit = true;
 
 // Auto-updater event handlers
