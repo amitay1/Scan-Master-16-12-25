@@ -1108,18 +1108,18 @@ class TechniqueSheetPDFBuilder {
 
     const sd = this.data.scanDetails;
 
-    // Scan directions table
-    const directions = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
+    // Scan directions table - filter only enabled directions
     const directionRows: string[][] = [];
 
-    directions.forEach((dir) => {
-      const key = `direction${dir}` as keyof ScanDetailsData;
-      const dirData = sd[key] as { enabled?: boolean; description?: string; angle?: number } | undefined;
-      if (dirData && dirData.enabled) {
+    sd.scanDetails?.forEach((detail) => {
+      if (detail.enabled) {
         directionRows.push([
-          dir,
-          dirData.description || '-',
-          dirData.angle !== undefined ? `${dirData.angle}°` : '-',
+          detail.scanningDirection,
+          detail.waveMode || '-',
+          detail.angle !== undefined ? `${detail.angle}°` : '-',
+          detail.frequency ? `${detail.frequency} MHz` : '-',
+          detail.make || '-',
+          detail.probe || '-',
         ]);
       }
     });
@@ -1127,15 +1127,18 @@ class TechniqueSheetPDFBuilder {
     if (directionRows.length > 0) {
       autoTable(this.pdf, {
         startY: y,
-        head: [['Direction', 'Description', 'Angle']],
+        head: [['Dir.', 'Wave Mode', 'Angle', 'Frequency', 'Make', 'Probe']],
         body: directionRows,
         theme: 'grid',
-        styles: { fontSize: 9, cellPadding: 3 },
-        headStyles: { fillColor: COLORS.primary, textColor: [255, 255, 255] },
+        styles: { fontSize: 8, cellPadding: 2 },
+        headStyles: { fillColor: COLORS.primary, textColor: [255, 255, 255], fontSize: 9 },
         columnStyles: {
-          0: { fontStyle: 'bold', cellWidth: 25, halign: 'center' },
-          1: { cellWidth: 'auto' },
-          2: { cellWidth: 30, halign: 'center' },
+          0: { fontStyle: 'bold', cellWidth: 18, halign: 'center' },
+          1: { cellWidth: 50 },
+          2: { cellWidth: 20, halign: 'center' },
+          3: { cellWidth: 28, halign: 'center' },
+          4: { cellWidth: 35 },
+          5: { cellWidth: 35 },
         },
         margin: { left: PAGE.marginLeft, right: PAGE.marginRight },
       });

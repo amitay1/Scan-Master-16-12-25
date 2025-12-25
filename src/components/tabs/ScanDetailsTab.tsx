@@ -222,7 +222,7 @@ export const ScanDetailsTab = ({ data, onChange, partType, dimensions = {} }: Sc
       {/* Inspection Plan Visual Preview */}
       <InspectionPlanViewer
         partType={partType}
-        scanDetails={scanDetails.filter(d => d.enabled)}
+        scanDetails={scanDetails}
         highlightedDirection={highlightedDirection}
         dimensions={dimensions}
       />
@@ -248,7 +248,7 @@ export const ScanDetailsTab = ({ data, onChange, partType, dimensions = {} }: Sc
             <table className="w-full border-collapse">
               <thead>
                 <tr className="border-b">
-                  <th className="text-center p-2 font-semibold text-sm w-16">Select</th>
+                  <th className="text-center p-2 font-semibold text-sm w-16">Export</th>
                   <th className="text-center p-2 font-semibold text-sm w-20">Direction</th>
                   <th className="text-left p-2 font-semibold text-sm">Wave Mode</th>
                   <th className="text-left p-2 font-semibold text-sm">Frequency (MHz)</th>
@@ -262,7 +262,7 @@ export const ScanDetailsTab = ({ data, onChange, partType, dimensions = {} }: Sc
                   <tr
                     key={detail.scanningDirection}
                     className={`border-b transition-all ${detail.enabled ? 'bg-blue-50/50' : 'hover:bg-muted/30'}`}
-                    onMouseEnter={() => detail.enabled && setHighlightedDirection(detail.scanningDirection)}
+                    onMouseEnter={() => setHighlightedDirection(detail.scanningDirection)}
                     onMouseLeave={() => setHighlightedDirection(null)}
                   >
                     <td className="p-2 text-center">
@@ -290,7 +290,6 @@ export const ScanDetailsTab = ({ data, onChange, partType, dimensions = {} }: Sc
                         onChange={(e) => updateScanDetail(index, "frequency", e.target.value)}
                         placeholder="e.g., 5.0"
                         className="h-9"
-                        disabled={!detail.enabled}
                         data-testid={`input-frequency-${index}`}
                       />
                     </td>
@@ -301,7 +300,6 @@ export const ScanDetailsTab = ({ data, onChange, partType, dimensions = {} }: Sc
                         onChange={(e) => updateScanDetail(index, "make", e.target.value)}
                         placeholder="Manufacturer"
                         className="h-9"
-                        disabled={!detail.enabled}
                         data-testid={`input-make-${index}`}
                       />
                     </td>
@@ -312,7 +310,6 @@ export const ScanDetailsTab = ({ data, onChange, partType, dimensions = {} }: Sc
                         onChange={(e) => updateScanDetail(index, "probe", e.target.value)}
                         placeholder="Probe model"
                         className="h-9"
-                        disabled={!detail.enabled}
                         data-testid={`input-probe-${index}`}
                       />
                     </td>
@@ -323,7 +320,6 @@ export const ScanDetailsTab = ({ data, onChange, partType, dimensions = {} }: Sc
                         onChange={(e) => updateScanDetail(index, "remarkDetails", e.target.value)}
                         placeholder="Additional notes"
                         className="h-9"
-                        disabled={!detail.enabled}
                         data-testid={`input-remarks-${index}`}
                       />
                     </td>
@@ -334,7 +330,7 @@ export const ScanDetailsTab = ({ data, onChange, partType, dimensions = {} }: Sc
           </div>
 
           <div className="text-xs text-muted-foreground mt-4 p-3 bg-muted/30 rounded-lg">
-            <p>💡 <strong>Tip:</strong> Check the box next to each scanning direction you want to include. The direction letter and wave mode are fixed for each row. Only enabled rows will appear in the inspection plan drawing.</p>
+            <p>💡 <strong>Tip:</strong> All scanning directions are displayed in the visual preview above. Check the box next to each direction you want to include in the exported document. The direction letter and wave mode are fixed for each row.</p>
           </div>
         </div>
       </Card>
