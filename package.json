@@ -1,7 +1,10 @@
 {
   "name": "scan-master-inspection-pro",
   "description": "Professional ultrasonic inspection technique sheet generator for NDT",
-  "author": "Amitay Levi",
+  "author": {
+    "name": "Amitay Levi",
+    "email": "amitay1@gmail.com"
+  },
   "private": true,
   "version": "1.0.0",
   "type": "module",
