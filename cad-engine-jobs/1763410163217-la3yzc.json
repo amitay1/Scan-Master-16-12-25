@@ -1,0 +1,16 @@
+{
+  "jobId": "1763410163217-la3yzc",
+  "engine": "ScanMaster CAD Engine v3.0",
+  "shapeType": "box",
+  "parameters": {
+    "material": "aluminum",
+    "quality": "high",
+    "source": "ScanMaster TechnicalDrawingTest",
+    "geometry_type": "box",
+    "length": 200,
+    "width": 150,
+    "height": 80
+  },
+  "outputFormat": "step",
+  "outputPath": "D:\\Scan-Master-Replit_NEW\\Scan-Master\\cad-3d-output\\00000000-0000-0000-0000-000000000000\\1763410163217-la3yzc.step"
+}

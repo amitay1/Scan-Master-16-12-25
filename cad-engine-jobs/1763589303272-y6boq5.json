@@ -1,0 +1,32 @@
+{
+  "jobId": "1763589303272-y6boq5",
+  "engine": "ScanMaster CAD Engine v3.0",
+  "shapeType": "cylinder",
+  "parameters": {
+    "diameter": 50,
+    "length": 100
+  },
+  "calibrationData": {
+    "fbhSizes": "2/64, 3/64, 5/64",
+    "metalTravelDistance": 25.4,
+    "blockDimensions": {
+      "L": 100,
+      "W": 50,
+      "H": 37.5
+    },
+    "standardType": "MIL-STD-2154",
+    "material": "aluminum",
+    "partThickness": 25,
+    "partType": "cylinder",
+    "acceptanceClass": "AAA",
+    "probeType": "contact",
+    "frequency": 5
+  },
+  "metadata": {
+    "userId": "current-user",
+    "projectId": "current-project",
+    "partName": "Calibration_Block_1763589302959"
+  },
+  "outputFormat": "step",
+  "outputPath": "D:\\Scan-Master-Replit_NEW\\Scan-Master\\cad-3d-output\\current-user\\1763589303272-y6boq5.step"
+}

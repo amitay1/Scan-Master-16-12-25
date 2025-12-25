@@ -1,0 +1,35 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cat:*)",
+      "Bash(npm run dev:*)",
+      "Bash(netstat:*)",
+      "Bash(taskkill:*)",
+      "Bash(python -c:*)",
+      "Bash(python scanmaster_cli.py:*)",
+      "Bash(python:*)",
+      "Bash(tee:*)",
+      "Bash(findstr:*)",
+      "Bash(npm run build:*)",
+      "Bash(curl:*)",
+      "Bash(find:*)",
+      "Bash(npm run lint)",
+      "Bash(npm run lint:*)",
+      "Bash(npx tsc:*)",
+      "Bash(python3:*)",
+      "Bash(powershell -Command \"\n$content = Get-Content -Path ''src/components/InspectionPlanViewer.tsx'' -Raw\n\n# Define the old text pattern (unique enough to match)\n$oldPattern = @''\n/\\*\\*\n \\* ASTM E2375 Scan Direction Symbol \\(.\\)\n \\* Small outlined square indicating scan/index direction\n \\* Can have an optional diagonal line showing scan path\n \\*/\nfunction drawScanDirectionSymbol\\(\n  ctx: CanvasRenderingContext2D,\n  x: number,\n  y: number,\n  hasDiagonal: boolean = false,\n  diagonalAngle: number = 45 // degrees\n\\) \\{\n  ctx\\.save\\(\\);\n  ctx\\.strokeStyle = ''#000000'';\n  ctx\\.fillStyle = ''#000000'';\n  ctx\\.lineWidth = 1\\.5;\n\n  const size = 8;\n\n  // Draw outlined square \\(not filled\\)\n  ctx\\.strokeRect\\(x - size/2, y - size/2, size, size\\);\n''@\n\nWrite-Output ''Checking if pattern exists in file...''\nif ($content -match ''ASTM E2375 Scan Direction Symbol'') {\n    Write-Output ''Found pattern!''\n} else {\n    Write-Output ''Pattern not found''\n}\n\")",
+      "Bash(node fix-symbols.mjs:*)",
+      "Bash(git -C \"d:/Scan-Master-Replit_NEW/Scan-Master\" checkout -- \"src/components/InspectionPlanViewer.tsx\")",
+      "Bash(npx eslint:*)",
+      "Bash(mkdir:*)",
+      "Bash(git checkout:*)",
+      "Bash(powershell -Command \"\n$content = Get-Content ''src/components/tabs/unified/ProceduresStandardsTab.tsx'' -Raw\n\n$oldText = @''\nconst roughnessRequirements = [\n  \"\"Ra 3.2 µm\"\",\n  \"\"Ra 6.3 µm\"\",\n  \"\"Ra 12.5 µm\"\",\n  \"\"Ra 25 µm\"\",\n  \"\"N7 (Ra 1.6)\"\",\n  \"\"N8 (Ra 3.2)\"\",\n  \"\"N9 (Ra 6.3)\"\",\n  \"\"No Requirement\"\",\n];\n\nconst temperatureRanges = [\n''@\n\n$newText = @''\n// Surface roughness options with metric and imperial values per various standards\nconst roughnessRequirements = [\n  { value: \"\"Ra 1.6 µm (63 µin)\"\", label: \"\"Ra 1.6 µm (63 µin) - N7\"\", standard: \"\"precision\"\" },\n  { value: \"\"Ra 3.2 µm (125 µin)\"\", label: \"\"Ra 3.2 µm (125 µin) - N8\"\", standard: \"\"high\"\" },\n  { value: \"\"Ra 6.3 µm (250 µin)\"\", label: \"\"Ra 6.3 µm (250 µin) - N9 [AMS-STD-2154 Max]\"\", standard: \"\"AMS-STD-2154\"\" },\n  { value: \"\"Ra 12.5 µm (500 µin)\"\", label: \"\"Ra 12.5 µm (500 µin) - N10\"\", standard: \"\"BS-EN-10228\"\" },\n  { value: \"\"Ra 25 µm (1000 µin)\"\", label: \"\"Ra 25 µm (1000 µin) - N11\"\", standard: \"\"rough\"\" },\n  { value: \"\"No Requirement\"\", label: \"\"No Requirement\"\", standard: \"\"none\"\" },\n];\n\n// Standard-specific surface roughness limits per applicable UT standards\nconst standardRoughnessLimits: Record<string, { maxRa: number; maxMicroinch: number; description: string }> = {\n  \"\"AMS-STD-2154\"\": { maxRa: 6.3, maxMicroinch: 250, description: \"\"Per AMS-STD-2154 Section 5.4.6: Surface texture shall not be rougher than 250 microinches (6.3 µm)\"\" },\n  \"\"ASTM-A388\"\": { maxRa: 6.3, maxMicroinch: 250, description: \"\"Per ASTM A388: Surface roughness shall not exceed 250 µin (6 µm)\"\" },\n  \"\"BS-EN-10228-3\"\": { maxRa: 12.5, maxMicroinch: 500, description: \"\"Per BS EN 10228-3: Surface roughness Ra ≤ 12.5 µm\"\" },\n  \"\"BS-EN-10228-4\"\": { maxRa: 6.3, maxMicroinch: 250, description: \"\"Per BS EN 10228-4: Surface roughness Ra ≤ 6.3 µm preferred\"\" },\n  \"\"ASME\"\": { maxRa: 6.3, maxMicroinch: 250, description: \"\"Per ASME Section V: Surface finish suitable for UT examination\"\" },\n  \"\"default\"\": { maxRa: 6.3, maxMicroinch: 250, description: \"\"General recommendation: Ra ≤ 6.3 µm (250 µin)\"\" },\n};\n\n// Helper function to extract Ra value from roughness string\nconst extractRaValue = (roughnessStr: string): number => {\n  const match = roughnessStr.match(/Ra\\s*([\\d.]+)\\s*µm/);\n  return match ? parseFloat(match[1]) : 0;\n};\n\n// Check if roughness exceeds standard limit\nconst isRoughnessExceeded = (roughnessStr: string, standardKey: string): boolean => {\n  if (!roughnessStr || roughnessStr === \"\"No Requirement\"\") return false;\n  const raValue = extractRaValue(roughnessStr);\n  const limit = standardRoughnessLimits[standardKey] || standardRoughnessLimits[\"\"default\"\"];\n  return raValue > limit.maxRa;\n};\n\n// Get recommended roughness for a standard\nconst getRecommendedRoughness = (standardKey: string): string => {\n  const limit = standardRoughnessLimits[standardKey] || standardRoughnessLimits[\"\"default\"\"];\n  const matching = roughnessRequirements.find(r => extractRaValue(r.value) === limit.maxRa);\n  return matching?.value || \"\"Ra 6.3 µm (250 µin)\"\";\n};\n\n// Get standard key from standard name\nconst getStandardKey = (standardName: string): string => {\n  const normalizedName = standardName.toUpperCase();\n  if (normalizedName.includes(\"\"AMS\"\") || normalizedName.includes(\"\"2154\"\")) return \"\"AMS-STD-2154\"\";\n  if (normalizedName.includes(\"\"A388\"\") || normalizedName.includes(\"\"ASTM A388\"\")) return \"\"ASTM-A388\"\";\n  if (normalizedName.includes(\"\"10228-3\"\")) return \"\"BS-EN-10228-3\"\";\n  if (normalizedName.includes(\"\"10228-4\"\")) return \"\"BS-EN-10228-4\"\";\n  if (normalizedName.includes(\"\"ASME\"\")) return \"\"ASME\"\";\n  return \"\"default\"\";\n};\n\nconst temperatureRanges = [\n''@\n\n$content = $content.Replace($oldText, $newText)\nSet-Content ''src/components/tabs/unified/ProceduresStandardsTab.tsx'' -Value $content -NoNewline\nWrite-Output ''Roughness definitions updated successfully''\n\")",
+      "Bash(node:*)",
+      "Bash(xxd:*)",
+      "Bash(grep:*)",
+      "Bash(node -e:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

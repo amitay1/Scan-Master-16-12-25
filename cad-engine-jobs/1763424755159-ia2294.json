@@ -1,0 +1,15 @@
+{
+  "jobId": "1763424755159-ia2294",
+  "engine": "ScanMaster CAD Engine v3.0",
+  "shapeType": "cylinder",
+  "parameters": {
+    "material": "steel",
+    "quality": "high",
+    "source": "WebTest",
+    "geometry_type": "cylinder",
+    "diameter": 50,
+    "height": 100
+  },
+  "outputFormat": "step",
+  "outputPath": "D:\\Scan-Master-Replit_NEW\\Scan-Master\\cad-3d-output\\00000000-0000-0000-0000-000000000000\\1763424755159-ia2294.step"
+}

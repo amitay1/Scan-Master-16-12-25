@@ -1,0 +1,14 @@
+{
+  "shapeType": "i-profile",
+  "parameters": {
+    "flangeWidth": 120.0,
+    "flangeThickness": 12.0,
+    "webThickness": 8.0,
+    "profileHeight": 200.0,
+    "length": 1000.0
+  },
+  "outputPath": "D:\\Scan-Master-Replit_NEW\\Scan-Master\\cad-3d-output\\current-user\\test-i-profile.step",
+  "metadata": {
+    "partName": "Test I-Profile"
+  }
+}

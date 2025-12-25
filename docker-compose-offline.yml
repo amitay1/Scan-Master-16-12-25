@@ -1,0 +1,103 @@
+version: '3.8'
+
+# Docker Compose for Air-Gapped / Offline Factory Deployment
+# No internet access required - all images pre-loaded
+
+services:
+  app:
+    image: scanmaster-app:v1.0.0
+    container_name: scanmaster-app
+    ports:
+      - "5000:5000"
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://scanmaster:${DB_PASSWORD:-SecurePassword123}@postgres:5432/scanmaster
+      JWT_SECRET: ${JWT_SECRET}
+      SESSION_SECRET: ${SESSION_SECRET}
+      OFFLINE_MODE: "true"
+      LOCAL_AUTH: "true"
+      LICENSE_KEY: ${LICENSE_KEY}
+      FACTORY_NAME: ${FACTORY_NAME:-Factory}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - scanmaster-local
+    volumes:
+      - ./logs:/app/logs
+      - ./exports:/app/exports
+      - ./backups:/app/backups
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:5000/health', (r) => {r.statusCode === 200 ? process.exit(0) : process.exit(1)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: scanmaster-postgres
+    environment:
+      POSTGRES_DB: scanmaster
+      POSTGRES_USER: scanmaster
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-SecurePassword123}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      # Initial database setup scripts
+      - ./database/01-schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./database/02-standards-data.sql:/docker-entrypoint-initdb.d/02-standards-data.sql:ro
+      - ./database/03-calibration-blocks.sql:/docker-entrypoint-initdb.d/03-calibration-blocks.sql:ro
+    restart: unless-stopped
+    networks:
+      - scanmaster-local
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U scanmaster -d scanmaster"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  nginx:
+    image: nginx:alpine
+    container_name: scanmaster-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx-offline.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro  # Optional: for HTTPS
+    depends_on:
+      - app
+    restart: unless-stopped
+    networks:
+      - scanmaster-local
+
+  # Optional: Backup service that runs daily
+  backup:
+    image: postgres:15-alpine
+    container_name: scanmaster-backup
+    environment:
+      PGPASSWORD: ${DB_PASSWORD:-SecurePassword123}
+    volumes:
+      - ./backups:/backups
+      - ./scripts/backup-cron.sh:/backup.sh:ro
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["while true; do sleep 86400; sh /backup.sh; done"]
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    networks:
+      - scanmaster-local
+
+networks:
+  scanmaster-local:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
+
+volumes:
+  postgres_data:
+    driver: local

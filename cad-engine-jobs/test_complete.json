@@ -1,0 +1,34 @@
+{
+  "jobId": "test-complete-all-features",
+  "engine": "ScanMaster CAD Engine v3.0",
+  "shapeType": "cylinder",
+  "parameters": {
+    "diameter": 50,
+    "length": 100
+  },
+  "calibrationData": {
+    "fbhSizes": "2/64, 3/64, 5/64",
+    "metalTravelDistance": 25,
+    "blockDimensions": {
+      "L": 100,
+      "W": 50,
+      "H": 37.5
+    },
+    "standardType": "MIL-STD-2154",
+    "material": "aluminum",
+    "partThickness": 25,
+    "partType": "cylinder",
+    "isHollow": true,
+    "acceptanceClass": "C",
+    "probeType": "contact",
+    "frequency": 5,
+    "includeScanDirections": true
+  },
+  "metadata": {
+    "userId": "test-user",
+    "projectId": "test-project",
+    "partName": "Complete_Hollow_Cylinder_With_Everything"
+  },
+  "outputFormat": "step",
+  "outputPath": "D:\\Scan-Master-Replit_NEW\\Scan-Master\\TestFile_COMPLETE.step"
+}

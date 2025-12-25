@@ -1,0 +1,11 @@
+{
+  "shapeType": "cylinder",
+  "parameters": {
+    "diameter": 50.0,
+    "length": 100.0
+  },
+  "outputPath": "D:\\Scan-Master-Replit_NEW\\Scan-Master\\cad-3d-output\\current-user\\test-cylinder.step",
+  "metadata": {
+    "partName": "Test Cylinder"
+  }
+}

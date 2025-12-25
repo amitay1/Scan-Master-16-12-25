@@ -1,0 +1,147 @@
+.shape-card{
+  width:280px;height:360px;border-radius:16px;
+  background: radial-gradient(120% 100% at 50% 0%, hsl(var(--card)) 0%, hsl(var(--background)) 60%, hsl(var(--background)) 100%);
+  box-shadow: 0 10px 40px hsl(var(--foreground) / 0.15);
+  transform-style: preserve-3d;
+  perspective: 900px;
+  position:relative; overflow:hidden;
+  border:1px solid hsl(var(--border));
+  cursor: pointer;
+}
+
+/* Allow overflow when hovering or active for 3D effects */
+.shape-card:hover,
+.shape-card.active {
+  overflow: visible;
+}
+
+.shape-card.active {
+  overflow: visible !important;
+}
+
+.stage{
+  position:absolute;
+  inset:20% 8% 22% 8%;
+  transform-style:preserve-3d;
+  overflow: visible; /* Allow 3D content to extend beyond */
+  pointer-events: none; /* Don't block clicks */
+}
+
+.shape-3d-container{
+  width:100%;
+  height:100%;
+  overflow: visible; /* Allow 3D shapes to fully extend */
+  pointer-events: none; /* Don't block clicks - 3D viewer handles this itself */
+}
+
+.layer{
+  position:absolute;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow: visible; /* Allow 3D shapes to extend */
+  pointer-events: none; /* Don't block clicks */
+}
+
+.shadow{ transform: translateZ(-60px); }
+.shadow-ellip{
+  width:80%; height:20%; border-radius:50%;
+  background: radial-gradient(ellipse at 50% 50%, hsl(var(--foreground)/.28) 0%, transparent 70%);
+  filter: blur(10px);
+}
+
+.z2{ transform: translateZ(0); }
+.z3{ transform: translateZ(20px); opacity:.92; }
+.z4{ transform: translateZ(40px); opacity:.92; }
+.z5{ transform: translateZ(60px); opacity:.92; }
+
+/* הילה/בוהק */
+.add-glow{ filter: drop-shadow(0 0 16px color-mix(in srgb, var(--halo) 70%, transparent)); }
+.shape-card:hover .add-glow{
+  filter:
+    drop-shadow(0 0 26px color-mix(in srgb, var(--halo) 80%, transparent))
+    drop-shadow(0 0 42px color-mix(in srgb, var(--halo) 40%, transparent));
+}
+.add-bloom{ mix-blend-mode: screen; filter: saturate(115%) brightness(1.02); }
+
+/* טקסטים */
+.card-title{
+  position:absolute;
+  left:50%;
+  bottom:12px;
+  padding:8px 14px;
+  border-radius:10px;
+  background:hsl(var(--card));
+  color:hsl(var(--card-foreground));
+  font:600 13px/1.2 Inter, system-ui;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--halo) 35%, transparent);
+  transform: translateX(-50%);
+  text-align: center;
+  white-space: nowrap;
+  pointer-events: none; /* Don't block clicks */
+}
+.card-description{
+  position:absolute;
+  left:50%;
+  bottom:46px;
+  padding:4px 10px;
+  border-radius:6px;
+  background:hsl(var(--muted)/.8);
+  color:hsl(var(--muted-foreground));
+  font-size:11px;
+  line-height:1.2;
+  opacity:0;
+  transform:translateX(-50%) translateY(4px);
+  transition: opacity .16s ease, transform .16s ease;
+  text-align: center;
+  white-space: nowrap;
+  pointer-events: none; /* Don't block clicks */
+}
+.shape-card:hover .card-description{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+/* Selected */
+.shape-card.selected{
+  border:2px solid var(--halo);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--halo) 35%, transparent), 0 30px 80px color-mix(in srgb, var(--halo) 35%, transparent);
+  transform: scale(1.02);
+}
+.selected-badge{
+  position:absolute; top:12px; right:12px; padding:4px 10px; border-radius:8px;
+  background: var(--halo); color:#0B0F1A; font:600 11px/1 Inter, system-ui;
+  pointer-events: none; /* Don't block clicks */
+}
+
+/* Active (interactive) mode */
+.shape-card.active{
+  border:3px solid var(--halo);
+  box-shadow: 
+    0 0 0 4px color-mix(in srgb, var(--halo) 50%, transparent), 
+    0 40px 120px color-mix(in srgb, var(--halo) 60%, transparent),
+    0 0 60px color-mix(in srgb, var(--halo) 40%, transparent);
+  transform: scale(1.08) translateZ(50px);
+  z-index: 100;
+  overflow: visible !important; /* Allow 3D shape to extend beyond card */
+}
+.active-badge{
+  position:absolute; top:12px; left:12px; right:12px;
+  padding:6px 12px; border-radius:10px;
+  background: linear-gradient(135deg, var(--halo), color-mix(in srgb, var(--halo) 80%, white));
+  color:#0B0F1A;
+  font:600 10px/1.3 Inter, system-ui;
+  text-align:center;
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--halo) 40%, transparent);
+  animation: pulse-glow 2s ease-in-out infinite;
+  pointer-events: none; /* Don't block clicks */
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 4px 12px color-mix(in srgb, var(--halo) 40%, transparent); }
+  50% { box-shadow: 0 4px 20px color-mix(in srgb, var(--halo) 60%, transparent); }
+}
+
+/* הנפשות עדינות בלבד */
+.shape-card,.layer{ will-change: transform; }
+@media (prefers-reduced-motion: reduce){
+  .shape-card,.layer{ transition:none !important; animation:none !important; }
+}

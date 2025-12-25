@@ -1,0 +1,34 @@
+{
+  "jobId": "1764098658547-nxt41j",
+  "engine": "ScanMaster CAD Engine v3.0",
+  "shapeType": "t_profile",
+  "parameters": {
+    "length": 100,
+    "width": 50,
+    "height": 37.5
+  },
+  "calibrationData": {
+    "fbhSizes": "2/64, 3/64, 5/64",
+    "metalTravelDistance": 25,
+    "blockDimensions": {
+      "L": 100,
+      "W": 50,
+      "H": 37.5
+    },
+    "standardType": "MIL-STD-2154",
+    "material": "steel",
+    "partThickness": 25,
+    "partType": "t_profile",
+    "acceptanceClass": "AAA",
+    "probeType": "contact",
+    "frequency": 5,
+    "includeScanDirections": true
+  },
+  "metadata": {
+    "userId": "current-user",
+    "projectId": "current-project",
+    "partName": "Calibration_Block_1764098658019"
+  },
+  "outputFormat": "step",
+  "outputPath": "D:\\Scan-Master-Replit_NEW\\Scan-Master\\cad-3d-output\\current-user\\1764098658547-nxt41j.step"
+}

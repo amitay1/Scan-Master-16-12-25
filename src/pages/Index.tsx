@@ -1,0 +1,1676 @@
+import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { StandardSelector } from "@/components/StandardSelector";
+import { ThreeDViewer } from "@/components/ThreeDViewer";
+import { MenuBar } from "@/components/MenuBar";
+import { Toolbar } from "@/components/Toolbar";
+import { StatusBar } from "@/components/StatusBar";
+import { UnifiedExportDialog } from "@/components/export/UnifiedExportDialog";
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { InspectionSetupTab } from "@/components/tabs/InspectionSetupTab";
+import { EquipmentTab } from "@/components/tabs/EquipmentTab";
+import { CalibrationTab } from "@/components/tabs/CalibrationTab";
+import { ScanParametersTab } from "@/components/tabs/ScanParametersTab";
+import { AcceptanceCriteriaTab } from "@/components/tabs/AcceptanceCriteriaTab";
+import { DocumentationTab } from "@/components/tabs/DocumentationTab";
+import { CoverPageTab } from "@/components/tabs/CoverPageTab";
+import { PartDiagramTab } from "@/components/tabs/PartDiagramTab";
+import { ProbeDetailsTab } from "@/components/tabs/ProbeDetailsTab";
+import { ScansTab } from "@/components/tabs/ScansTab";
+import { RemarksTab } from "@/components/tabs/RemarksTab";
+import { ScanDetailsTab } from "@/components/tabs/ScanDetailsTab";
+import type { ScanDetailsData } from "@/types/scanDetails";
+import { TechnicalDrawingTab } from "@/components/tabs/TechnicalDrawingTab";
+import { ProbeProgressGauge } from "@/components/ui/ProbeProgressGauge";
+import { HorizontalProgressBar } from "@/components/ui/HorizontalProgressBar";
+import { WebGLLiquidProgress } from "@/components/ui/WebGLLiquidProgress";
+import { Collapsible3DPanel } from "@/components/ui/ResizablePanel";
+import type { SavedCard } from "@/contexts/SavedCardsContext";
+import {
+  StandardType, 
+  InspectionSetupData, 
+  EquipmentData, 
+  CalibrationData,
+  ScanParametersData,
+  AcceptanceCriteriaData,
+  DocumentationData,
+  MaterialType
+} from "@/types/techniqueSheet";
+import { InspectionReportData } from "@/types/inspectionReport";
+import { standardRules, getRecommendedFrequency, getCouplantRecommendation, calculateMetalTravel } from "@/utils/autoFillLogic";
+import { useAuth } from "@/hooks/useAuth";
+import { logError, logInfo } from "@/lib/logger";
+import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react";
+import { fieldDependencyEngine } from "@/utils/standards/fieldDependencyEngine";
+import { validationEngine } from "@/utils/standards/validationEngine";
+import { techniqueSheetService } from "@/services/techniqueSheetService";
+import type { TechniqueSheetRecord, TechniqueSheetCardData } from "@/services/techniqueSheetService";
+import { FloatingDesignerButton } from "@/components/ui/FloatingDesignerButton";
+import { useInspectorProfile } from "@/contexts/InspectorProfileContext";
+import { ProfileSelectionDialog } from "@/components/inspector";
+import { useExportCaptures } from "@/hooks/useExportCaptures";
+import { testCards, type TestCard } from "@/data/testCards";
+import { CurrentShapeHeader } from "@/components/CurrentShapeHeader";
+import { useAutoSave } from "@/hooks/useAutoSave";
+
+const Index = () => {
+  const navigate = useNavigate();
+  const { user, loading, signOut } = useAuth();
+  const { needsProfileSelection, isLoading: profileLoading } = useInspectorProfile();
+  const [standard, setStandard] = useState<StandardType>("AMS-STD-2154E");
+  const [activeTab, setActiveTab] = useState("setup");
+  const [reportMode, setReportMode] = useState<"Technique" | "Report">("Technique");
+  const [isSplitMode, setIsSplitMode] = useState(false);
+  const [activePart, setActivePart] = useState<"A" | "B">("A");
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [capturedDrawing, setCapturedDrawing] = useState<string | undefined>();
+  const [calibrationBlockDiagram, setCalibrationBlockDiagram] = useState<string | undefined>();
+  const [viewer3DOpen, setViewer3DOpen] = useState(true);
+
+  // Smart capture system for export
+  const {
+    captures: exportCaptures,
+    captureTechnicalDrawing,
+    captureCalibrationBlock,
+    captureScanDirections,
+    isCapturing: isCaptureInProgress,
+  } = useExportCaptures();
+
+  // State for captured scan directions drawing
+  const [capturedScanDirections, setCapturedScanDirections] = useState<string | undefined>();
+
+  const [inspectionSetup, setInspectionSetup] = useState<InspectionSetupData>({
+    partNumber: "",
+    partName: "",
+    material: "",
+    materialSpec: "",
+    partType: "",
+    partThickness: 25.0,
+    partLength: 100.0,
+    partWidth: 50.0,
+    diameter: 0,
+  });
+
+  const [inspectionSetupB, setInspectionSetupB] = useState<InspectionSetupData>({
+    partNumber: "",
+    partName: "",
+    material: "",
+    materialSpec: "",
+    partType: "",
+    partThickness: 25.0,
+    partLength: 100.0,
+    partWidth: 50.0,
+    diameter: 0,
+  });
+
+  const [equipment, setEquipment] = useState<EquipmentData>({
+    manufacturer: "",
+    model: "",
+    serialNumber: "",
+    frequency: "5.0",
+    transducerType: "",
+    transducerDiameter: 0.5,
+    couplant: "",
+    verticalLinearity: 95,
+    horizontalLinearity: 85,
+    entrySurfaceResolution: 0.125,
+    backSurfaceResolution: 0.05,
+  });
+
+  const [equipmentB, setEquipmentB] = useState<EquipmentData>({
+    manufacturer: "",
+    model: "",
+    serialNumber: "",
+    frequency: "5.0",
+    transducerType: "",
+    transducerDiameter: 0.5,
+    couplant: "",
+    verticalLinearity: 95,
+    horizontalLinearity: 85,
+    entrySurfaceResolution: 0.125,
+    backSurfaceResolution: 0.05,
+  });
+
+  const [calibration, setCalibration] = useState<CalibrationData>({
+    standardType: "",
+    referenceMaterial: "",
+    fbhSizes: "",
+    metalTravelDistance: 0,
+    blockDimensions: "",
+    blockSerialNumber: "",
+    lastCalibrationDate: "",
+  });
+
+  const [calibrationB, setCalibrationB] = useState<CalibrationData>({
+    standardType: "",
+    referenceMaterial: "",
+    fbhSizes: "",
+    metalTravelDistance: 0,
+    blockDimensions: "",
+    blockSerialNumber: "",
+    lastCalibrationDate: "",
+  });
+
+  const [scanParameters, setScanParameters] = useState<ScanParametersData>({
+    scanMethod: "",
+    scanType: "",
+    scanSpeed: 100,
+    scanIndex: 70,
+    coverage: 100,
+    scanPattern: "",
+    waterPath: 0,
+    pulseRepetitionRate: 1000,
+    gainSettings: "",
+    alarmGateSettings: "",
+  });
+
+  const [scanParametersB, setScanParametersB] = useState<ScanParametersData>({
+    scanMethod: "",
+    scanType: "",
+    scanSpeed: 100,
+    scanIndex: 70,
+    coverage: 100,
+    scanPattern: "",
+    waterPath: 0,
+    pulseRepetitionRate: 1000,
+    gainSettings: "",
+    alarmGateSettings: "",
+  });
+
+  const [acceptanceCriteria, setAcceptanceCriteria] = useState<AcceptanceCriteriaData>({
+    acceptanceClass: "",
+    singleDiscontinuity: "",
+    multipleDiscontinuities: "",
+    linearDiscontinuity: "",
+    backReflectionLoss: 50,
+    noiseLevel: "",
+    specialRequirements: "",
+  });
+
+  const [acceptanceCriteriaB, setAcceptanceCriteriaB] = useState<AcceptanceCriteriaData>({
+    acceptanceClass: "",
+    singleDiscontinuity: "",
+    multipleDiscontinuities: "",
+    linearDiscontinuity: "",
+    backReflectionLoss: 50,
+    noiseLevel: "",
+    specialRequirements: "",
+  });
+
+  const [documentation, setDocumentation] = useState<DocumentationData>({
+    inspectorName: "",
+    inspectorCertification: "",
+    inspectorLevel: "",
+    certifyingOrganization: "",
+    inspectionDate: new Date().toISOString().split('T')[0],
+    procedureNumber: "",
+    drawingReference: "",
+    revision: "A",
+    additionalNotes: "",
+    approvalRequired: false,
+  });
+
+  const [documentationB, setDocumentationB] = useState<DocumentationData>({
+    inspectorName: "",
+    inspectorCertification: "",
+    inspectorLevel: "",
+    certifyingOrganization: "",
+    inspectionDate: new Date().toISOString().split('T')[0],
+    procedureNumber: "",
+    drawingReference: "",
+    revision: "A",
+    additionalNotes: "",
+    approvalRequired: false,
+  });
+
+  const [scanDetails, setScanDetails] = useState<ScanDetailsData>({
+    scanDetails: []
+  });
+
+  const [scanDetailsB, setScanDetailsB] = useState<ScanDetailsData>({
+    scanDetails: []
+  });
+
+  const [inspectionReport, setInspectionReport] = useState<InspectionReportData>({
+    documentNo: "",
+    currentRevision: "0",
+    revisionDate: new Date().toISOString().split('T')[0],
+    customerName: "",
+    poNumber: "",
+    itemDescription: "",
+    materialGrade: "",
+    workOrderNumber: "",
+    poSerialNumber: "",
+    quantity: "01 no",
+    samplePoSlNo: "",
+    sampleSerialNo: "01",
+    sampleQuantity: "01 No",
+    thickness: "",
+    typeOfScan: "Ring scan",
+    testingEquipment: "",
+    tcgApplied: "Yes",
+    testStandard: "",
+    observations: "",
+    results: "Accepted",
+    approvedBy: "",
+    partDiagramImage: undefined,
+    probeDetails: [],
+    scans: [],
+    remarks: [],
+  });
+
+  const [organizationId, setOrganizationId] = useState<string | null>(null);
+  const [savedSheets, setSavedSheets] = useState<TechniqueSheetRecord[]>([]);
+  const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
+  const [isSavedCardsDialogOpen, setIsSavedCardsDialogOpen] = useState(false);
+  const [sheetNameInput, setSheetNameInput] = useState("");
+  const [currentSheetId, setCurrentSheetId] = useState<string | null>(null);
+  const [currentSheetName, setCurrentSheetName] = useState("");
+
+  const [isSavingSheet, setIsSavingSheet] = useState(false);
+  const [isLoadingSheets, setIsLoadingSheets] = useState(false);
+  const [loadingSheetId, setLoadingSheetId] = useState<string | null>(null);
+  const [deletingSheetId, setDeletingSheetId] = useState<string | null>(null);
+  
+  // Auto-fill logic when standard changes
+  useEffect(() => {
+    if (standard && standardRules[standard]) {
+      const rules = standardRules[standard];
+      
+      if (!isSplitMode || activePart === "A") {
+        setAcceptanceCriteria(prev => ({
+          ...prev,
+          acceptanceClass: prev.acceptanceClass || rules.defaultAcceptanceClass
+        }));
+        setScanParameters(prev => ({
+          ...prev,
+          coverage: prev.coverage === 100 ? rules.scanCoverageDefault : prev.coverage
+        }));
+      } else {
+        setAcceptanceCriteriaB(prev => ({
+          ...prev,
+          acceptanceClass: prev.acceptanceClass || rules.defaultAcceptanceClass
+        }));
+        setScanParametersB(prev => ({
+          ...prev,
+          coverage: prev.coverage === 100 ? rules.scanCoverageDefault : prev.coverage
+        }));
+      }
+    }
+  }, [standard, isSplitMode, activePart]);
+
+  // Auto-capture technical drawing when visiting the drawing tab
+  useEffect(() => {
+    if (activeTab === 'drawing' && reportMode === 'Technique') {
+      const timer = setTimeout(async () => {
+        const success = await captureTechnicalDrawing();
+        if (success && exportCaptures.technicalDrawing) {
+          setCapturedDrawing(exportCaptures.technicalDrawing);
+        }
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [activeTab, reportMode, captureTechnicalDrawing, exportCaptures.technicalDrawing]);
+
+  // Auto-capture calibration block diagram when visiting the calibration tab
+  useEffect(() => {
+    if (activeTab === 'calibration' && reportMode === 'Technique') {
+      const timer = setTimeout(async () => {
+        const success = await captureCalibrationBlock();
+        if (success && exportCaptures.calibrationBlockDiagram) {
+          setCalibrationBlockDiagram(exportCaptures.calibrationBlockDiagram);
+        }
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [activeTab, reportMode, captureCalibrationBlock, exportCaptures.calibrationBlockDiagram]);
+
+  // Auto-capture scan directions drawing when visiting the scandetails tab
+  useEffect(() => {
+    if (activeTab === 'scandetails' && reportMode === 'Technique') {
+      const timer = setTimeout(async () => {
+        const success = await captureScanDirections();
+        if (success && exportCaptures.scanDirectionsView) {
+          setCapturedScanDirections(exportCaptures.scanDirectionsView);
+        }
+      }, 800); // Slightly longer delay to ensure arrows are rendered
+      return () => clearTimeout(timer);
+    }
+  }, [activeTab, reportMode, captureScanDirections, exportCaptures.scanDirectionsView]);
+
+  // CRITICAL: Reset captured drawings when part type or key dimensions change
+  // This ensures PDF export always uses drawings that match the current shape
+  useEffect(() => {
+    // Clear all captured drawings when geometry changes
+    setCapturedDrawing(undefined);
+    setCapturedScanDirections(undefined);
+    setCalibrationBlockDiagram(undefined);
+  }, [
+    inspectionSetup.partType,
+    inspectionSetup.diameter,
+    inspectionSetup.innerDiameter,
+    inspectionSetup.partThickness,
+    inspectionSetup.partLength,
+    inspectionSetup.partWidth,
+    inspectionSetup.isHollow,
+    inspectionSetup.coneTopDiameter,
+    inspectionSetup.coneBottomDiameter,
+    inspectionSetup.coneHeight,
+  ]);
+
+  // Also reset for Part B in split mode
+  useEffect(() => {
+    if (isSplitMode) {
+      // When Part B geometry changes, the drawings will be re-captured on export
+      // Note: We share the same captured drawings states, so they'll be updated
+      // based on the active part when export is triggered
+    }
+  }, [
+    isSplitMode,
+    inspectionSetupB.partType,
+    inspectionSetupB.diameter,
+    inspectionSetupB.innerDiameter,
+    inspectionSetupB.partThickness,
+    inspectionSetupB.partLength,
+    inspectionSetupB.partWidth,
+    inspectionSetupB.isHollow,
+  ]);
+
+  // Auto-fill logic when material changes - Part A
+  useEffect(() => {
+    if (inspectionSetup.material && inspectionSetup.partThickness) {
+      const recommendedFreq = getRecommendedFrequency(
+        inspectionSetup.partThickness, 
+        inspectionSetup.material as MaterialType
+      );
+      
+      if (equipment.frequency === "5.0" || !equipment.frequency) {
+        setEquipment(prev => ({
+          ...prev,
+          frequency: recommendedFreq
+        }));
+      }
+      
+      const metalTravel = calculateMetalTravel(inspectionSetup.partThickness);
+      setCalibration(prev => ({
+        ...prev,
+        metalTravelDistance: prev.metalTravelDistance === 0 ? metalTravel : prev.metalTravelDistance
+      }));
+    }
+  }, [inspectionSetup.material, inspectionSetup.partThickness, equipment.frequency]);
+  
+  // Auto-fill logic when material changes - Part B
+  useEffect(() => {
+    if (isSplitMode && inspectionSetupB.material && inspectionSetupB.partThickness) {
+      const recommendedFreq = getRecommendedFrequency(
+        inspectionSetupB.partThickness, 
+        inspectionSetupB.material as MaterialType
+      );
+      
+      if (equipmentB.frequency === "5.0" || !equipmentB.frequency) {
+        setEquipmentB(prev => ({
+          ...prev,
+          frequency: recommendedFreq
+        }));
+      }
+      
+      const metalTravel = calculateMetalTravel(inspectionSetupB.partThickness);
+      setCalibrationB(prev => ({
+        ...prev,
+        metalTravelDistance: prev.metalTravelDistance === 0 ? metalTravel : prev.metalTravelDistance
+      }));
+    }
+  }, [isSplitMode, inspectionSetupB.material, inspectionSetupB.partThickness, equipmentB.frequency]);
+  
+  // Auto-fill couplant when transducer type changes - Part A
+  useEffect(() => {
+    if (equipment.transducerType && inspectionSetup.material) {
+      const recommendedCouplant = getCouplantRecommendation(
+        equipment.transducerType,
+        inspectionSetup.material as MaterialType
+      );
+      
+      setEquipment(prev => ({
+        ...prev,
+        couplant: prev.couplant || recommendedCouplant
+      }));
+    }
+  }, [equipment.transducerType, inspectionSetup.material]);
+  
+  // Auto-fill couplant when transducer type changes - Part B
+  useEffect(() => {
+    if (isSplitMode && equipmentB.transducerType && inspectionSetupB.material) {
+      const recommendedCouplant = getCouplantRecommendation(
+        equipmentB.transducerType,
+        inspectionSetupB.material as MaterialType
+      );
+      
+      setEquipmentB(prev => ({
+        ...prev,
+        couplant: prev.couplant || recommendedCouplant
+      }));
+    }
+  }, [isSplitMode, equipmentB.transducerType, inspectionSetupB.material]);
+
+  // Copy Part A data to Part B
+  const copyPartAToB = () => {
+    setInspectionSetupB({ ...inspectionSetup });
+    setEquipmentB({ ...equipment });
+    setCalibrationB({ ...calibration });
+    setScanParametersB({ ...scanParameters });
+    setAcceptanceCriteriaB({ ...acceptanceCriteria });
+    setDocumentationB({ ...documentation });
+    setScanDetailsB({ ...scanDetails });
+    toast.success("Part A copied to Part B");
+  };
+
+  // Get current data based on active part - memoized to prevent unnecessary recalculations
+  const currentData = useMemo(() => {
+    if (!isSplitMode || activePart === "A") {
+      return {
+        inspectionSetup,
+        equipment,
+        calibration,
+        scanParameters,
+        acceptanceCriteria,
+        documentation,
+        scanDetails,
+        setInspectionSetup,
+        setEquipment,
+        setCalibration,
+        setScanParameters,
+        setAcceptanceCriteria,
+        setDocumentation,
+        setScanDetails,
+      };
+    } else {
+      return {
+        inspectionSetup: inspectionSetupB,
+        equipment: equipmentB,
+        calibration: calibrationB,
+        scanParameters: scanParametersB,
+        acceptanceCriteria: acceptanceCriteriaB,
+        documentation: documentationB,
+        scanDetails: scanDetailsB,
+        setInspectionSetup: setInspectionSetupB,
+        setEquipment: setEquipmentB,
+        setCalibration: setCalibrationB,
+        setScanParameters: setScanParametersB,
+        setAcceptanceCriteria: setAcceptanceCriteriaB,
+        setDocumentation: setDocumentationB,
+        setScanDetails: setScanDetailsB,
+      };
+    }
+  }, [
+    isSplitMode, activePart,
+    inspectionSetup, equipment, calibration, scanParameters, acceptanceCriteria, documentation, scanDetails,
+    inspectionSetupB, equipmentB, calibrationB, scanParametersB, acceptanceCriteriaB, documentationB, scanDetailsB
+  ]);
+
+  const buildTechniqueSheetPayload = (): TechniqueSheetCardData => ({
+    standard,
+    activeTab,
+    reportMode,
+    isSplitMode,
+    activePart,
+    partA: {
+      inspectionSetup,
+      equipment,
+      calibration,
+      scanParameters,
+      acceptanceCriteria,
+      documentation,
+      scanDetails,
+    },
+    partB: {
+      inspectionSetup: inspectionSetupB,
+      equipment: equipmentB,
+      calibration: calibrationB,
+      scanParameters: scanParametersB,
+      acceptanceCriteria: acceptanceCriteriaB,
+      documentation: documentationB,
+      scanDetails: scanDetailsB,
+    },
+    inspectionReport,
+  });
+
+  const applyLoadedSheet = (record: TechniqueSheetRecord) => {
+    const data = record.data;
+    if (!data) {
+      toast.error('Saved card is missing data.');
+      return;
+    }
+
+    setStandard(data.standard || "AMS-STD-2154E");
+    setActiveTab(data.activeTab || "setup");
+    setReportMode(data.reportMode || "Technique");
+    setIsSplitMode(Boolean(data.isSplitMode));
+    setActivePart(data.activePart || "A");
+
+    setInspectionSetup(data.partA?.inspectionSetup || inspectionSetup);
+    setEquipment(data.partA?.equipment || equipment);
+    setCalibration(data.partA?.calibration || calibration);
+    setScanParameters(data.partA?.scanParameters || scanParameters);
+    setAcceptanceCriteria(data.partA?.acceptanceCriteria || acceptanceCriteria);
+    setDocumentation(data.partA?.documentation || documentation);
+    setScanDetails(data.partA?.scanDetails || { scanDetails: [] });
+
+    setInspectionSetupB(data.partB?.inspectionSetup || inspectionSetupB);
+    setEquipmentB(data.partB?.equipment || equipmentB);
+    setCalibrationB(data.partB?.calibration || calibrationB);
+    setScanParametersB(data.partB?.scanParameters || scanParametersB);
+    setAcceptanceCriteriaB(data.partB?.acceptanceCriteria || acceptanceCriteriaB);
+    setDocumentationB(data.partB?.documentation || documentationB);
+    setScanDetailsB(data.partB?.scanDetails || { scanDetails: [] });
+
+    setInspectionReport(data.inspectionReport || inspectionReport);
+
+    setCurrentSheetId(record.id);
+    setCurrentSheetName(record.sheetName);
+    setSheetNameInput(record.sheetName);
+  };
+
+  // Handle loading a local saved card (from localStorage)
+  const handleLoadLocalCard = (card: SavedCard) => {
+    const data = card.data;
+    if (!data) {
+      toast.error('Saved card is missing data.');
+      return;
+    }
+
+    // Apply the card data to the form
+    if (data.standard) setStandard(data.standard as StandardType);
+    if (data.activeTab) setActiveTab(data.activeTab);
+    if (data.reportMode) setReportMode(data.reportMode);
+    setIsSplitMode(Boolean(data.isSplitMode));
+    if (data.activePart) setActivePart(data.activePart);
+
+    // Apply Part A data
+    if (data.partA?.inspectionSetup) setInspectionSetup(data.partA.inspectionSetup);
+    if (data.partA?.equipment) setEquipment(data.partA.equipment);
+    if (data.partA?.calibration) setCalibration(data.partA.calibration);
+    if (data.partA?.scanParameters) setScanParameters(data.partA.scanParameters);
+    if (data.partA?.acceptanceCriteria) setAcceptanceCriteria(data.partA.acceptanceCriteria);
+    if (data.partA?.documentation) setDocumentation(data.partA.documentation);
+    if (data.partA?.scanDetails) setScanDetails(data.partA.scanDetails);
+
+    // Apply Part B data
+    if (data.partB?.inspectionSetup) setInspectionSetupB(data.partB.inspectionSetup);
+    if (data.partB?.equipment) setEquipmentB(data.partB.equipment);
+    if (data.partB?.calibration) setCalibrationB(data.partB.calibration);
+    if (data.partB?.scanParameters) setScanParametersB(data.partB.scanParameters);
+    if (data.partB?.acceptanceCriteria) setAcceptanceCriteriaB(data.partB.acceptanceCriteria);
+    if (data.partB?.documentation) setDocumentationB(data.partB.documentation);
+    if (data.partB?.scanDetails) setScanDetailsB(data.partB.scanDetails);
+
+    // Apply inspection report if available
+    if (data.inspectionReport) setInspectionReport(data.inspectionReport);
+
+    toast.success(`Loaded local card: ${card.name}`);
+  };
+
+  const refreshSavedSheets = async () => {
+    if (!user || !organizationId) return;
+    setIsLoadingSheets(true);
+    try {
+      const sheets = await techniqueSheetService.loadTechniqueSheets(user.id, organizationId);
+      const sorted = [...sheets].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+      setSavedSheets(sorted);
+    } catch (error) {
+      logError('Failed to load saved technique cards', error);
+      toast.error('Unable to load saved cards.');
+    } finally {
+      setIsLoadingSheets(false);
+    }
+  };
+
+  const handleOpenSavedCards = () => {
+    if (!user) {
+      toast.error('You must be signed in to manage saved cards.');
+      return;
+    }
+    if (!organizationId) {
+      toast.error('Workspace is not ready yet. Please try again in a moment.');
+      return;
+    }
+    setIsSavedCardsDialogOpen(true);
+  };
+
+  const handleLoadSheet = async (sheetId: string) => {
+    if (!user || !organizationId) return;
+    setLoadingSheetId(sheetId);
+    try {
+      const sheet = await techniqueSheetService.loadTechniqueSheet({
+        sheetId,
+        userId: user.id,
+        orgId: organizationId,
+      });
+      applyLoadedSheet(sheet);
+      setIsSavedCardsDialogOpen(false);
+      toast.success(`Loaded card "${sheet.sheetName}"`);
+    } catch (error) {
+      logError('Failed to load technique card', error);
+      toast.error('Unable to load the selected card.');
+    } finally {
+      setLoadingSheetId(null);
+    }
+  };
+
+  const handleDeleteSheet = async (sheetId: string) => {
+    if (!user || !organizationId) return;
+    if (!confirm('Delete this saved card? This action cannot be undone.')) {
+      return;
+    }
+    setDeletingSheetId(sheetId);
+    try {
+      await techniqueSheetService.deleteTechniqueSheet(sheetId, user.id, organizationId);
+      if (currentSheetId === sheetId) {
+        setCurrentSheetId(null);
+        setCurrentSheetName("");
+      }
+      await refreshSavedSheets();
+      toast.success('Card deleted.');
+    } catch (error) {
+      logError('Failed to delete technique card', error);
+      toast.error('Unable to delete the selected card.');
+    } finally {
+      setDeletingSheetId(null);
+    }
+  };
+
+  const performSave = async (name: string, sheetId?: string) => {
+    if (!user || !organizationId) {
+      toast.error('You must be signed in to save.');
+      return;
+    }
+
+    setIsSavingSheet(true);
+    try {
+      const payload = buildTechniqueSheetPayload();
+      const saved = await techniqueSheetService.saveTechniqueSheet({
+        sheetId,
+        sheetName: name.trim(),
+        standard,
+        data: payload,
+        userId: user.id,
+        orgId: organizationId,
+      });
+      setCurrentSheetId(saved.id);
+      setCurrentSheetName(saved.sheetName);
+      setSheetNameInput(saved.sheetName);
+      setIsSaveDialogOpen(false);
+      await refreshSavedSheets();
+      toast.success(sheetId ? 'Technique card updated.' : 'Technique card saved.');
+    } catch (error) {
+      logError('Failed to save technique card', error);
+      toast.error('Unable to save the technique card.');
+    } finally {
+      setIsSavingSheet(false);
+    }
+  };
+
+  const handleSaveDialogConfirm = async () => {
+    const trimmedName = sheetNameInput.trim();
+    if (!trimmedName) {
+      toast.error('Please provide a name for the card.');
+      return;
+    }
+    await performSave(trimmedName, currentSheetId ?? undefined);
+  };
+
+  // Remove localStorage auto-save - now using database with manual save
+  // Keep localStorage only for temporary draft data
+  useEffect(() => {
+    const data = {
+      standard,
+      isSplitMode,
+      activePart,
+      inspectionSetup,
+      equipment,
+      calibration,
+      scanParameters,
+      acceptanceCriteria,
+      documentation,
+      scanDetails,
+      inspectionSetupB,
+      equipmentB,
+      calibrationB,
+      scanParametersB,
+      acceptanceCriteriaB,
+      documentationB,
+      scanDetailsB,
+    };
+    localStorage.setItem("techniqueSheet_draft", JSON.stringify(data));
+  }, [standard, isSplitMode, activePart, inspectionSetup, equipment, calibration, scanParameters, acceptanceCriteria, documentation, scanDetails, inspectionSetupB, equipmentB, calibrationB, scanParametersB, acceptanceCriteriaB, documentationB, scanDetailsB]);
+
+  // Load draft from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem("techniqueSheet_draft");
+    if (saved) {
+      try {
+        const data = JSON.parse(saved);
+        setStandard(data.standard || "AMS-STD-2154E");
+        setIsSplitMode(data.isSplitMode || false);
+        setActivePart(data.activePart || "A");
+        setInspectionSetup(data.inspectionSetup || inspectionSetup);
+        setEquipment(data.equipment || equipment);
+        setCalibration(data.calibration || calibration);
+        setScanParameters(data.scanParameters || scanParameters);
+        setAcceptanceCriteria(data.acceptanceCriteria || acceptanceCriteria);
+        setDocumentation(data.documentation || documentation);
+        setScanDetails(data.scanDetails || { scanDetails: [] });
+        setInspectionSetupB(data.inspectionSetupB || inspectionSetupB);
+        setEquipmentB(data.equipmentB || equipmentB);
+        setCalibrationB(data.calibrationB || calibrationB);
+        setScanParametersB(data.scanParametersB || scanParametersB);
+        setAcceptanceCriteriaB(data.acceptanceCriteriaB || acceptanceCriteriaB);
+        setDocumentationB(data.documentationB || documentationB);
+        setScanDetailsB(data.scanDetailsB || { scanDetails: [] });
+      } catch (error) {
+        logError("Failed to load draft data", error);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!user) return;
+
+    let cancelled = false;
+
+    const loadOrganizations = async () => {
+      try {
+        const organizations = await techniqueSheetService.fetchOrganizations(user.id);
+        if (cancelled) return;
+        if (organizations.length > 0) {
+          setOrganizationId(organizations[0].id);
+        } else {
+          setOrganizationId(null);
+          toast.error('No organizations available. Saving is disabled.');
+        }
+      } catch (error) {
+        if (!cancelled) {
+          logError('Failed to load organizations', error);
+          toast.error('Unable to load workspace information. Saving is temporarily unavailable.');
+        }
+      }
+    };
+
+    loadOrganizations();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
+  // Auto-save with debounce - saves to database 3 seconds after user stops editing
+  const autoSaveData = useMemo(() => buildTechniqueSheetPayload(), [
+    standard, activeTab, reportMode, isSplitMode, activePart,
+    inspectionSetup, equipment, calibration, scanParameters, acceptanceCriteria, documentation, scanDetails,
+    inspectionSetupB, equipmentB, calibrationB, scanParametersB, acceptanceCriteriaB, documentationB, scanDetailsB,
+    inspectionReport
+  ]);
+
+  const { status: autoSaveStatus, lastSaved, forceSave } = useAutoSave({
+    data: autoSaveData,
+    onSave: async (data) => {
+      if (!user || !organizationId) {
+        throw new Error('Not signed in or no organization');
+      }
+
+      // Generate automatic draft name based on timestamp and standard
+      const now = new Date();
+      const autoName = currentSheetName || `Draft - ${standard} - ${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
+
+      // Auto-save: create new sheet if none exists, or update existing one
+      const saved = await techniqueSheetService.saveTechniqueSheet({
+        sheetId: currentSheetId || undefined,
+        sheetName: autoName,
+        standard,
+        data,
+        userId: user.id,
+        orgId: organizationId,
+      });
+
+      // Update current sheet ID and name if this was a new save
+      if (!currentSheetId) {
+        setCurrentSheetId(saved.id);
+        setCurrentSheetName(saved.sheetName);
+        setSheetNameInput(saved.sheetName);
+      }
+    },
+    delay: 3000, // 3 seconds debounce
+    enabled: Boolean(user && organizationId), // Auto-save whenever signed in and has organization
+  });
+
+  useEffect(() => {
+    if (!isSavedCardsDialogOpen || !user || !organizationId) return;
+    refreshSavedSheets();
+  }, [isSavedCardsDialogOpen, user, organizationId]);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyboard = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        switch (e.key.toLowerCase()) {
+          case 's':
+            e.preventDefault();
+            handleSave();
+            break;
+          case 'e':
+            e.preventDefault();
+            setExportDialogOpen(true);
+            break;
+          case 'n':
+            e.preventDefault();
+            handleNewProject();
+            break;
+        }
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyboard);
+    return () => window.removeEventListener('keydown', handleKeyboard);
+  }, [inspectionSetup, equipment, calibration, scanParameters, acceptanceCriteria, documentation, inspectionReport, reportMode]);
+
+  // Calculate completion with weighted fields based on standard requirements
+  // Weights: CRITICAL=5, HIGH=3, MEDIUM=2, LOW=1 (per MIL-STD-2154E / AMS-STD-2154E)
+  // Memoized to prevent recalculation on every render
+  const completionPercent = useMemo(() => {
+    let score = 0;
+    const maxScore = 85; // Total possible points
+
+    // CRITICAL FIELDS (5 points each)
+    if (currentData.inspectionSetup.partNumber) score += 5;
+    if (currentData.inspectionSetup.material) score += 5;
+    if (currentData.inspectionSetup.partType) score += 5;
+    if (currentData.inspectionSetup.partThickness >= 6.35) score += 5;
+    if (currentData.acceptanceCriteria.acceptanceClass) score += 5;
+    if (currentData.equipment.frequency) score += 5;
+
+    // HIGH PRIORITY FIELDS (3 points each)
+    if (currentData.equipment.transducerType) score += 3;
+    if (currentData.equipment.transducerDiameter) score += 3;
+    if (currentData.equipment.verticalLinearity) score += 3;
+    if (currentData.equipment.horizontalLinearity) score += 3;
+    if (currentData.calibration.standardType) score += 3;
+    if (currentData.calibration.fbhSizes) score += 3;
+    if (currentData.calibration.metalTravelDistance) score += 3;
+    if (currentData.scanParameters.coverage) score += 3;
+
+    // MEDIUM PRIORITY FIELDS (2 points each)
+    if (currentData.scanParameters.scanMethod) score += 2;
+    if (currentData.scanParameters.scanType) score += 2;
+    if (currentData.scanParameters.scanSpeed) score += 2;
+    if (currentData.scanParameters.scanIndex) score += 2;
+    if (currentData.scanParameters.scanPattern) score += 2;
+    if (currentData.equipment.couplant) score += 2;
+    if (currentData.calibration.referenceMaterial) score += 2;
+    if (currentData.acceptanceCriteria.singleDiscontinuity) score += 2;
+    if (currentData.acceptanceCriteria.multipleDiscontinuities) score += 2;
+    if (currentData.acceptanceCriteria.linearDiscontinuity) score += 2;
+
+    // LOW PRIORITY FIELDS (1 point each)
+    if (currentData.inspectionSetup.partName) score += 1;
+    if (currentData.inspectionSetup.materialSpec) score += 1;
+    if (currentData.equipment.manufacturer) score += 1;
+    if (currentData.equipment.model) score += 1;
+    if (currentData.acceptanceCriteria.backReflectionLoss) score += 1;
+    if (currentData.acceptanceCriteria.noiseLevel) score += 1;
+    if (currentData.documentation.inspectorName) score += 1;
+    if (currentData.documentation.inspectorCertification) score += 1;
+    if (currentData.documentation.inspectorLevel) score += 1;
+    if (currentData.documentation.inspectionDate) score += 1;
+    if (currentData.documentation.revision) score += 1;
+
+    return (score / maxScore) * 100;
+  }, [currentData]);
+
+  // Memoized completed fields count
+  const completedFieldsCount = useMemo(() => {
+    const totalFields = reportMode === "Technique" ? 50 : 40;
+    return Math.round((completionPercent / 100) * totalFields);
+  }, [completionPercent, reportMode]);
+
+  const handleNewProject = useCallback(() => {
+    if (confirm('Start a new project? Unsaved changes will be lost.')) {
+      window.location.reload();
+    }
+  }, []);
+
+  const handleSave = async () => {
+    if (isSavingSheet) return;
+    if (!user) {
+      toast.error('You must be signed in to save your card.');
+      return;
+    }
+    if (!organizationId) {
+      toast.error('Workspace information is still loading. Please try again in a moment.');
+      return;
+    }
+
+    try {
+      const { validateTechniqueSheetData } = await import('@/lib/inputValidation');
+      
+      const techniqueData = {
+        standardName: standard,
+        inspectionSetup: currentData.inspectionSetup,
+        equipment: currentData.equipment,
+        calibration: currentData.calibration,
+        scanParameters: currentData.scanParameters,
+        acceptanceCriteria: currentData.acceptanceCriteria,
+        documentation: currentData.documentation,
+        scanDetails: currentData.scanDetails,
+      };
+
+      const validation = validateTechniqueSheetData(techniqueData);
+      if (!validation.valid) {
+        toast.error(`Validation failed: ${validation.error}`);
+        return;
+      }
+
+      if (!currentSheetName) {
+        const suggestedName =
+          currentData.inspectionSetup.partName ||
+          currentData.inspectionSetup.partNumber ||
+          `Technique Card ${new Date().toLocaleDateString()}`;
+        setSheetNameInput(suggestedName);
+        setIsSaveDialogOpen(true);
+        return;
+      }
+
+      await performSave(currentSheetName, currentSheetId ?? undefined);
+    } catch (error) {
+      console.error('Error saving technique sheet:', error);
+      toast.error('Error saving technique sheet');
+    }
+  };
+
+  const handleExportPDF = async () => {
+    if (reportMode === "Technique") {
+      // Show loading toast
+      toast.loading('Preparing drawings for export...', { id: 'export-prep' });
+
+      // Capture all drawings by visiting each tab temporarily
+      const originalTab = activeTab;
+
+      try {
+        // Step 1: Go to technical drawing tab and capture
+        setActiveTab('drawing');
+        await new Promise(resolve => setTimeout(resolve, 800)); // Longer wait for canvas to render
+
+        const drawingCanvas = document.getElementById('technical-drawing-canvas') as HTMLCanvasElement;
+        if (drawingCanvas) {
+          try {
+            // Create a high-resolution copy of the canvas for better print quality
+            const scale = 3; // 3x resolution for crisp printing
+            const highResCanvas = document.createElement('canvas');
+            highResCanvas.width = drawingCanvas.width * scale;
+            highResCanvas.height = drawingCanvas.height * scale;
+            const ctx = highResCanvas.getContext('2d');
+            if (ctx) {
+              // DON'T fill with white background - keep the dark background with white lines
+              // This preserves the original technical drawing appearance
+              ctx.scale(scale, scale);
+              ctx.drawImage(drawingCanvas, 0, 0);
+              const drawingImage = highResCanvas.toDataURL('image/png', 1.0);
+              if (drawingImage && drawingImage.length > 100) {
+                setCapturedDrawing(drawingImage);
+              }
+            }
+          } catch (error) {
+            console.warn('Could not capture technical drawing:', error);
+          }
+        }
+
+        // Step 2: Go to calibration tab and capture
+        setActiveTab('calibration');
+        await new Promise(resolve => setTimeout(resolve, 800)); // Wait for SVG to render
+
+        const captureResult = await captureCalibrationBlock();
+        if (captureResult && exportCaptures.calibrationBlockDiagram) {
+          setCalibrationBlockDiagram(exportCaptures.calibrationBlockDiagram);
+        }
+
+        // Step 3: Go to scan details tab and capture the inspection plan drawing
+        setActiveTab('scandetails');
+        await new Promise(resolve => setTimeout(resolve, 1200)); // Longer wait for canvas to fully render
+
+        // Capture the scan directions canvas directly for better quality
+        const scanDirectionsCanvas = document.getElementById('scan-directions-canvas') as HTMLCanvasElement;
+        if (scanDirectionsCanvas) {
+          try {
+            // Create a high-resolution copy for better print quality
+            const scale = 3;
+            const highResCanvas = document.createElement('canvas');
+            highResCanvas.width = scanDirectionsCanvas.width * scale;
+            highResCanvas.height = scanDirectionsCanvas.height * scale;
+            const ctx = highResCanvas.getContext('2d');
+            if (ctx) {
+              ctx.fillStyle = 'white';
+              ctx.fillRect(0, 0, highResCanvas.width, highResCanvas.height);
+              ctx.scale(scale, scale);
+              ctx.drawImage(scanDirectionsCanvas, 0, 0);
+              const scanImage = highResCanvas.toDataURL('image/png', 1.0);
+              if (scanImage && scanImage.length > 100) {
+                setCapturedScanDirections(scanImage);
+                console.log('Scan directions captured successfully (high-res)');
+              }
+            }
+          } catch (error) {
+            console.warn('Could not capture scan directions (high-res), trying fallback:', error);
+            // Fallback to hook-based capture
+            const scanResult = await captureScanDirections();
+            if (scanResult && exportCaptures.scanDirectionsView) {
+              setCapturedScanDirections(exportCaptures.scanDirectionsView);
+            }
+          }
+        } else {
+          // Fallback if canvas not found
+          const scanResult = await captureScanDirections();
+          if (scanResult && exportCaptures.scanDirectionsView) {
+            setCapturedScanDirections(exportCaptures.scanDirectionsView);
+          }
+        }
+
+        // Step 4: Return to original tab
+        setActiveTab(originalTab);
+
+        // CRITICAL: Wait for React state to update with new drawings
+        // This ensures the export dialog receives the freshly captured drawings
+        await new Promise(resolve => setTimeout(resolve, 300));
+
+        // Dismiss loading and open dialog
+        toast.dismiss('export-prep');
+        toast.success('Drawings captured successfully!');
+        setExportDialogOpen(true);
+
+      } catch (error) {
+        console.error('Error capturing drawings:', error);
+        toast.dismiss('export-prep');
+        toast.error('Some drawings could not be captured');
+        // Still open the dialog even if capture fails
+        setActiveTab(originalTab);
+        setExportDialogOpen(true);
+      }
+    } else {
+      // For inspection reports, open the export dialog
+      setExportDialogOpen(true);
+    }
+  };
+
+  const handleValidate = useCallback(() => {
+    const missing = [];
+    if (!inspectionSetup.partNumber) missing.push("Part Number");
+    if (!equipment.manufacturer) missing.push("Equipment Manufacturer");
+    if (!calibration.standardType) missing.push("Calibration Standard");
+    if (!acceptanceCriteria.acceptanceClass) missing.push("Acceptance Class");
+    if (!documentation.inspectorName) missing.push("Inspector Name");
+
+    if (missing.length > 0) {
+      toast.error(`Missing required fields: ${missing.join(", ")}`);
+    } else {
+      toast.success("All required fields complete!");
+    }
+  }, [inspectionSetup.partNumber, equipment.manufacturer, calibration.standardType, acceptanceCriteria.acceptanceClass, documentation.inspectorName]);
+
+  // Load test card function - for development/testing
+  const loadTestCard = useCallback((cardIndex: number) => {
+    const card = testCards[cardIndex - 1];
+    if (!card) {
+      toast.error(`Test card ${cardIndex} not found`);
+      return;
+    }
+
+    // Load all data from the test card
+    setStandard(card.standard);
+    setInspectionSetup(card.inspectionSetup);
+    setEquipment(card.equipment);
+    setCalibration(card.calibration);
+    setScanParameters(card.scanParameters);
+    setAcceptanceCriteria(card.acceptanceCriteria);
+    setDocumentation(card.documentation);
+    setScanDetails(card.scanDetails);
+
+    toast.success(`Loaded test card: ${card.name}`);
+    logInfo('Loaded test card', { cardId: card.id, cardName: card.name });
+  }, []);
+
+  // Load sample cards from JSON file
+  const handleLoadSampleCards = useCallback(async () => {
+    try {
+      const response = await fetch('/sample-cards.json');
+      if (!response.ok) {
+        throw new Error('Failed to fetch sample cards');
+      }
+      const cards = await response.json();
+
+      if (Array.isArray(cards) && cards.length > 0) {
+        // Load the first sample card
+        const card = cards[0];
+
+        setStandard(card.standard || 'AMS-STD-2154E');
+        setInspectionSetup(card.inspectionSetup || inspectionSetup);
+        setEquipment(card.equipment || equipment);
+        setCalibration(card.calibration || calibration);
+        setScanParameters(card.scanParameters || scanParameters);
+        setAcceptanceCriteria(card.acceptanceCriteria || acceptanceCriteria);
+        setDocumentation(card.documentation || documentation);
+
+        toast.success(`Loaded sample card: ${card.name}`, {
+          description: `${cards.length} sample cards available. Use Ctrl+Shift+1/2/3 to load others.`
+        });
+        logInfo('Loaded sample card', { cardName: card.name });
+      } else {
+        toast.error('No sample cards found');
+      }
+    } catch (error) {
+      console.error('Error loading sample cards:', error);
+      toast.error('Failed to load sample cards');
+    }
+  }, [inspectionSetup, equipment, calibration, scanParameters, acceptanceCriteria, documentation]);
+
+  // Keyboard shortcuts for loading test cards (Ctrl+Shift+1/2/3)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.shiftKey) {
+        if (e.key === '1') {
+          e.preventDefault();
+          loadTestCard(1);
+        } else if (e.key === '2') {
+          e.preventDefault();
+          loadTestCard(2);
+        } else if (e.key === '3') {
+          e.preventDefault();
+          loadTestCard(3);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Redirect to auth page if not authenticated
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate('/auth');
+    }
+  }, [user, loading, navigate]);
+
+  // Show loading screen while checking authentication
+  if (loading) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-background">
+        <div className="text-center space-y-4">
+          <Loader2 className="h-12 w-12 animate-spin mx-auto text-primary" />
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // If not authenticated, show loading while redirecting
+  if (!user) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-background">
+        <div className="text-center space-y-4">
+          <Loader2 className="h-12 w-12 animate-spin mx-auto text-primary" />
+          <p className="text-muted-foreground">Redirecting to login...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-screen flex flex-col overflow-hidden bg-background">
+      {/* Profile Selection Dialog */}
+      <ProfileSelectionDialog
+        open={needsProfileSelection && !profileLoading}
+        allowClose={false}
+      />
+
+      {/* Menu Bar - Hidden on Mobile */}
+      <div className="hidden md:block">
+        <MenuBar
+          onSave={handleSave}
+          onOpenSavedCards={handleOpenSavedCards}
+          onExport={() => setExportDialogOpen(true)}
+          onNew={handleNewProject}
+          onSignOut={signOut}
+          onOpenDrawingEngine={() => navigate("/drawing-test")}
+          onLoadSampleCards={handleLoadSampleCards}
+        />
+      </div>
+
+      {/* Toolbar */}
+      <Toolbar
+        onSave={handleSave}
+        onExport={() => setExportDialogOpen(true)}
+        onValidate={handleValidate}
+        reportMode={reportMode}
+        onReportModeChange={setReportMode}
+        isSplitMode={isSplitMode}
+        onSplitModeChange={setIsSplitMode}
+        activePart={activePart}
+        onActivePartChange={setActivePart}
+        onCopyAToB={copyPartAToB}
+        onOpenSavedCards={handleOpenSavedCards}
+        onLoadLocalCard={handleLoadLocalCard}
+      />
+
+      {/* Main Content Area - Responsive Layout */}
+      <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
+        {/* Mobile: Compact Header with Standard */}
+        <div className="md:hidden border-b border-border bg-card p-3">
+          <div className="flex items-center gap-3">
+            <div className="flex-1">
+              <h3 className="font-semibold text-xs mb-2">Standard</h3>
+              <StandardSelector
+                value={standard}
+                onChange={setStandard}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Desktop: Left Panel with Standard Selector */}
+        <div className="hidden md:block md:w-[15%] md:min-w-[200px] md:max-w-[250px]">
+          <ResizablePanelGroup direction="horizontal" className="h-full">
+            <ResizablePanel defaultSize={100}>
+              <div className="h-full app-panel flex flex-col">
+                <div className="p-3 border-b border-border">
+                  <h3 className="font-semibold text-sm mb-3">Standard</h3>
+                  <StandardSelector 
+                    value={standard} 
+                    onChange={setStandard} 
+                  />
+                </div>
+                <ScrollArea className="flex-1 p-3">
+                  <div className="space-y-4">
+                    {/* Additional sidebar content can go here */}
+                  </div>
+                </ScrollArea>
+              </div>
+            </ResizablePanel>
+            <ResizableHandle withHandle />
+          </ResizablePanelGroup>
+        </div>
+
+        {/* Center Panel: Main Form - Full width on mobile */}
+        <div className="flex-1 overflow-auto">
+          <div className="h-full">
+            <div className="p-2 md:p-4">
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                {reportMode === "Technique" ? (
+                  <>
+                    <div className="w-full overflow-x-auto scrollbar-hide md:overflow-visible">
+                      <TabsList className="inline-flex flex-nowrap h-10 items-center justify-start md:justify-center rounded-md bg-muted p-1 text-muted-foreground w-max md:w-full">
+                        <TabsTrigger value="setup" className="flex-shrink-0 px-3 text-xs md:text-sm">Setup</TabsTrigger>
+                        <TabsTrigger value="scandetails" className="flex-shrink-0 px-3 text-xs md:text-sm whitespace-nowrap">Scan Details</TabsTrigger>
+                        <TabsTrigger value="drawing" className="flex-shrink-0 px-3 text-xs md:text-sm whitespace-nowrap">Technical Drawing</TabsTrigger>
+                        <TabsTrigger value="equipment" className="flex-shrink-0 px-3 text-xs md:text-sm">Equipment</TabsTrigger>
+                        <TabsTrigger value="calibration" className="flex-shrink-0 px-3 text-xs md:text-sm whitespace-nowrap">Reference Standard</TabsTrigger>
+                        <TabsTrigger value="scan" className="flex-shrink-0 px-3 text-xs md:text-sm whitespace-nowrap">Scan Params</TabsTrigger>
+                        <TabsTrigger value="acceptance" className="flex-shrink-0 px-3 text-xs md:text-sm">Acceptance</TabsTrigger>
+                        <TabsTrigger value="docs" className="flex-shrink-0 px-3 text-xs md:text-sm">Documentation</TabsTrigger>
+                      </TabsList>
+                    </div>
+
+                    {/* WebGL Liquid Progress Bar - Below Tabs */}
+                    <div className="mt-3">
+                      <WebGLLiquidProgress
+                        value={completionPercent}
+                        completedFields={completedFieldsCount}
+                        totalFields={reportMode === "Technique" ? 50 : 40}
+                      />
+                    </div>
+
+                    {/* Current Shape Header - Shows selected part type */}
+                    <div className="mt-3">
+                      <CurrentShapeHeader partType={currentData.inspectionSetup.partType} />
+                    </div>
+
+                    <div className="mt-4 app-panel rounded-md">
+                      <TabsContent value="setup" className="m-0">
+                        <InspectionSetupTab 
+                          data={currentData.inspectionSetup} 
+                          onChange={currentData.setInspectionSetup}
+                          acceptanceClass={currentData.acceptanceCriteria.acceptanceClass}
+                        />
+                      </TabsContent>
+
+                      <TabsContent value="scandetails" className="m-0">
+                        <ScanDetailsTab
+                          data={currentData.scanDetails}
+                          onChange={currentData.setScanDetails}
+                          partType={currentData.inspectionSetup.partType}
+                          dimensions={{
+                            diameter: currentData.inspectionSetup.diameter,
+                            length: currentData.inspectionSetup.partLength,
+                            width: currentData.inspectionSetup.partWidth,
+                            height: currentData.inspectionSetup.partThickness,
+                            thickness: currentData.inspectionSetup.partThickness,
+                            outerDiameter: currentData.inspectionSetup.diameter,
+                            innerDiameter: currentData.inspectionSetup.innerDiameter,
+                            // Cone-specific dimensions
+                            coneTopDiameter: currentData.inspectionSetup.coneTopDiameter,
+                            coneBottomDiameter: currentData.inspectionSetup.coneBottomDiameter,
+                            coneHeight: currentData.inspectionSetup.coneHeight,
+                            wallThickness: currentData.inspectionSetup.wallThickness,
+                            isHollow: currentData.inspectionSetup.isHollow,
+                          }}
+                        />
+                      </TabsContent>
+
+                      <TabsContent value="drawing" className="m-0">
+                        {currentData.inspectionSetup.partType ? (
+                          <TechnicalDrawingTab
+                            partType={currentData.inspectionSetup.partType}
+                            dimensions={{
+                              length: currentData.inspectionSetup.partLength || 100,
+                              width: currentData.inspectionSetup.partWidth || 50,
+                              thickness: currentData.inspectionSetup.partThickness || 10,
+                              diameter: currentData.inspectionSetup.diameter || undefined,
+                              isHollow: currentData.inspectionSetup.isHollow,
+                              innerDiameter: currentData.inspectionSetup.innerDiameter,
+                              innerLength: currentData.inspectionSetup.innerLength,
+                              innerWidth: currentData.inspectionSetup.innerWidth,
+                              wallThickness: currentData.inspectionSetup.wallThickness,
+                            }}
+                            material={currentData.inspectionSetup.material as MaterialType}
+                          />
+                        ) : (
+                          <div className="p-6 text-center">
+                            <p className="text-muted-foreground">
+                              Please select a part type in the Setup tab to view the technical drawing.
+                            </p>
+                          </div>
+                        )}
+                      </TabsContent>
+
+                      <TabsContent value="equipment" className="m-0">
+                        <EquipmentTab
+                          data={currentData.equipment}
+                          onChange={currentData.setEquipment}
+                          partThickness={currentData.inspectionSetup.partThickness}
+                          standard={standard}
+                        />
+                      </TabsContent>
+
+                      <TabsContent value="calibration" className="m-0">
+                        <CalibrationTab
+                          data={currentData.calibration}
+                          onChange={currentData.setCalibration}
+                          inspectionSetup={currentData.inspectionSetup}
+                          acceptanceClass={currentData.acceptanceCriteria.acceptanceClass}
+                          equipmentData={{
+                            probeType: currentData.equipment.transducerType || "contact",
+                            frequency: currentData.equipment.frequency || 5.0,
+                            inspectionType: "straight_beam" // Can add this field to Equipment data
+                          }}
+                          userId="current-user" // Replace with actual user ID
+                          projectId="current-project" // Replace with actual project ID
+                          standard={standard}
+                        />
+                      </TabsContent>
+
+                      <TabsContent value="scan" className="m-0">
+                        <ScanParametersTab
+                          data={currentData.scanParameters}
+                          onChange={currentData.setScanParameters}
+                          standard={standard}
+                        />
+                      </TabsContent>
+
+                      <TabsContent value="acceptance" className="m-0">
+                        <AcceptanceCriteriaTab
+                          data={currentData.acceptanceCriteria}
+                          onChange={currentData.setAcceptanceCriteria}
+                          material={currentData.inspectionSetup.materialSpec || currentData.inspectionSetup.material}
+                          standard={standard}
+                        />
+                      </TabsContent>
+
+                      <TabsContent value="docs" className="m-0">
+                        <DocumentationTab
+                          data={currentData.documentation}
+                          onChange={currentData.setDocumentation}
+                        />
+                      </TabsContent>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="w-full overflow-x-auto scrollbar-hide md:overflow-visible">
+                      <TabsList className="inline-flex flex-nowrap h-10 items-center justify-start md:justify-center rounded-md bg-muted p-1 text-muted-foreground w-max md:w-full">
+                        <TabsTrigger value="cover" className="flex-shrink-0 px-4 text-xs md:text-sm whitespace-nowrap">Cover Page</TabsTrigger>
+                        <TabsTrigger value="diagram" className="flex-shrink-0 px-4 text-xs md:text-sm whitespace-nowrap">Part Diagram</TabsTrigger>
+                        <TabsTrigger value="probe" className="flex-shrink-0 px-4 text-xs md:text-sm whitespace-nowrap">Probe Details</TabsTrigger>
+                        <TabsTrigger value="scans" className="flex-shrink-0 px-4 text-xs md:text-sm">Scans</TabsTrigger>
+                        <TabsTrigger value="remarks" className="flex-shrink-0 px-4 text-xs md:text-sm">Remarks</TabsTrigger>
+                      </TabsList>
+                    </div>
+
+                    {/* WebGL Liquid Progress Bar - Below Tabs (Report Mode) */}
+                    <div className="mt-3">
+                      <WebGLLiquidProgress
+                        value={completionPercent}
+                        completedFields={completedFieldsCount}
+                        totalFields={reportMode === "Technique" ? 50 : 40}
+                      />
+                    </div>
+
+                    <div className="mt-4 app-panel rounded-md">
+                      <TabsContent value="cover" className="m-0">
+                        <CoverPageTab 
+                          data={inspectionReport} 
+                          onChange={(data) => setInspectionReport({ ...inspectionReport, ...data })}
+                        />
+                      </TabsContent>
+
+                      <TabsContent value="diagram" className="m-0">
+                        <PartDiagramTab 
+                          partDiagramImage={inspectionReport.partDiagramImage}
+                          onChange={(image) => setInspectionReport({ ...inspectionReport, partDiagramImage: image })}
+                          partType={inspectionSetup.partType}
+                          thickness={inspectionSetup.partThickness.toString()}
+                          diameter={inspectionSetup.diameter?.toString()}
+                          length={inspectionSetup.partLength.toString()}
+                        />
+                      </TabsContent>
+
+                      <TabsContent value="probe" className="m-0">
+                        <ProbeDetailsTab 
+                          probeDetails={inspectionReport.probeDetails}
+                          onChange={(probes) => setInspectionReport({ ...inspectionReport, probeDetails: probes })}
+                        />
+                      </TabsContent>
+
+                      <TabsContent value="scans" className="m-0">
+                        <ScansTab 
+                          scans={inspectionReport.scans}
+                          onChange={(scans) => setInspectionReport({ ...inspectionReport, scans })}
+                        />
+                      </TabsContent>
+
+                       <TabsContent value="remarks" className="m-0">
+                        <RemarksTab 
+                          remarks={inspectionReport.remarks}
+                          onChange={(remarks) => setInspectionReport({ ...inspectionReport, remarks })}
+                        />
+                      </TabsContent>
+                    </div>
+                  </>
+                )}
+              </Tabs>
+            </div>
+          </div>
+        </div>
+
+        {/* Desktop: Right Panel - 3D Viewer (Collapsible & Resizable) */}
+        <div className="hidden lg:flex lg:items-start lg:justify-end lg:p-4">
+          <Collapsible3DPanel
+            title="3D Part Viewer"
+            isOpen={viewer3DOpen}
+            onToggle={() => setViewer3DOpen(!viewer3DOpen)}
+          >
+            <ThreeDViewer
+              partType={currentData.inspectionSetup.partType || ""}
+              material={currentData.inspectionSetup.material as MaterialType || ""}
+              dimensions={{
+                length: currentData.inspectionSetup.partLength || 100,
+                width: currentData.inspectionSetup.partWidth || 50,
+                thickness: currentData.inspectionSetup.partThickness || 10,
+                diameter: currentData.inspectionSetup.diameter || 50,
+                isHollow: currentData.inspectionSetup.isHollow,
+                innerDiameter: currentData.inspectionSetup.innerDiameter,
+                innerLength: currentData.inspectionSetup.innerLength,
+                innerWidth: currentData.inspectionSetup.innerWidth,
+                wallThickness: currentData.inspectionSetup.wallThickness,
+                // Cone-specific dimensions
+                coneTopDiameter: currentData.inspectionSetup.coneTopDiameter,
+                coneBottomDiameter: currentData.inspectionSetup.coneBottomDiameter,
+                coneHeight: currentData.inspectionSetup.coneHeight,
+              }}
+              scanDirections={currentData.scanDetails.scanDetails.map(detail => ({
+                direction: detail.scanningDirection,
+                waveMode: detail.waveMode,
+                isVisible: detail.isVisible || false
+              }))}
+            />
+          </Collapsible3DPanel>
+        </div>
+      </div>
+
+      {/* Status Bar */}
+      <StatusBar
+        completionPercent={completionPercent}
+        requiredFieldsComplete={completedFieldsCount}
+        totalRequiredFields={reportMode === "Technique" ? 50 : 40}
+        autoSaveStatus={autoSaveStatus}
+        lastSaved={lastSaved}
+      />
+
+      {/* Export Dialog */}
+      <UnifiedExportDialog
+        open={exportDialogOpen}
+        onOpenChange={setExportDialogOpen}
+        standard={standard}
+        inspectionSetup={isSplitMode && activePart === "B" ? inspectionSetupB : inspectionSetup}
+        equipment={isSplitMode && activePart === "B" ? equipmentB : equipment}
+        calibration={isSplitMode && activePart === "B" ? calibrationB : calibration}
+        scanParameters={isSplitMode && activePart === "B" ? scanParametersB : scanParameters}
+        acceptanceCriteria={isSplitMode && activePart === "B" ? acceptanceCriteriaB : acceptanceCriteria}
+        documentation={isSplitMode && activePart === "B" ? documentationB : documentation}
+        inspectionReport={inspectionReport}
+        scanDetails={scanDetails}
+        capturedDrawing={capturedDrawing}
+        calibrationBlockDiagram={calibrationBlockDiagram}
+        scanDirectionsDrawing={capturedScanDirections}
+        onExport={(format, template) => {
+          toast.success(`Exported ${template.toUpperCase()} as ${format.toUpperCase()} successfully!`);
+        }}
+      />
+
+      <Dialog open={isSaveDialogOpen} onOpenChange={setIsSaveDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Save technique card</DialogTitle>
+            <DialogDescription>Give this card a clear name so you can find it later.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="card-name">Card name</Label>
+            <Input
+              id="card-name"
+              value={sheetNameInput}
+              onChange={(event) => setSheetNameInput(event.target.value)}
+              placeholder="e.g., AMS-STD-2154E - Part 123"
+              autoFocus
+            />
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setIsSaveDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveDialogConfirm} disabled={!sheetNameInput.trim() || isSavingSheet}>
+              {isSavingSheet && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Save Card
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isSavedCardsDialogOpen} onOpenChange={setIsSavedCardsDialogOpen}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Saved cards</DialogTitle>
+            <DialogDescription>Select a card to continue or manage previously saved work.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1">
+            {isLoadingSheets ? (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Loading saved cards...
+              </div>
+            ) : savedSheets.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                No cards saved yet. Use the Save action after naming your project to store your progress.
+              </p>
+            ) : (
+              savedSheets.map((sheet) => (
+                <div key={sheet.id} className="flex flex-col gap-3 rounded-lg border border-border bg-card/60 p-3 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <p className="text-sm font-semibold">{sheet.sheetName}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {(sheet.standard && `Standard: ${sheet.standard}`) || 'Standard not set'} · Updated {new Date(sheet.updatedAt).toLocaleString()}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {sheet.id === currentSheetId && (
+                      <span className="text-xs font-medium text-primary">Current</span>
+                    )}
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => handleLoadSheet(sheet.id)}
+                      disabled={loadingSheetId === sheet.id}
+                    >
+                      {loadingSheetId === sheet.id && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      Load
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => handleDeleteSheet(sheet.id)}
+                      disabled={deletingSheetId === sheet.id}
+                    >
+                      {deletingSheetId === sheet.id && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      Delete
+                    </Button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsSavedCardsDialogOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Floating Button for Block Designer */}
+      <FloatingDesignerButton />
+    </div>
+  );
+};
+
+export default Index;
