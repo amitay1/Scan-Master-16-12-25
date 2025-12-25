@@ -24,10 +24,10 @@
     "target": [
       {
         "target": "nsis",
-        "arch": ["x64", "ia32"]
+        "arch": ["x64"]
       }
     ],
-    "icon": "build/icon.ico"
+    "icon": "build/icon.png"
   },
   "linux": {
     "target": [
@@ -46,12 +46,11 @@
   "nsis": {
     "oneClick": false,
     "allowToChangeInstallationDirectory": true,
-    "installerIcon": "build/icon.ico",
-    "uninstallerIcon": "build/icon.ico",
-    "installerHeaderIcon": "build/icon.ico",
+    "installerIcon": "build/icon.png",
+    "uninstallerIcon": "build/icon.png",
+    "installerHeaderIcon": "build/icon.png",
     "createDesktopShortcut": true,
-    "createStartMenuShortcut": true,
-    "license": "LICENSE.txt"
+    "createStartMenuShortcut": true
   },
   "publish": {
     "provider": "github",
