@@ -286,6 +286,14 @@ function startEmbeddedServer() {
     const expressApp = express();
     const dataDir = path.join(app.getPath('userData'), 'data');
     
+    // Get the correct path for static files (works in both dev and packaged app)
+    const distPath = isDev 
+      ? path.join(__dirname, '../dist')
+      : path.join(process.resourcesPath, 'app', 'dist');
+    
+    console.log('Dist path:', distPath);
+    console.log('Dist exists:', fs.existsSync(distPath));
+    
     // Ensure data directory exists
     if (!fs.existsSync(dataDir)) {
       fs.mkdirSync(dataDir, { recursive: true });
@@ -294,7 +302,7 @@ function startEmbeddedServer() {
     expressApp.use(express.json({ limit: '10mb' }));
     
     // Serve static files from dist
-    expressApp.use(express.static(path.join(__dirname, '../dist')));
+    expressApp.use(express.static(distPath));
 
     // Simple file-based data storage for technique sheets
     const sheetsFile = path.join(dataDir, 'technique-sheets.json');
@@ -354,7 +362,10 @@ function startEmbeddedServer() {
 
     // Fallback to index.html for SPA routing
     expressApp.get('*', (req, res) => {
-      res.sendFile(path.join(__dirname, '../dist/index.html'));
+      const indexPath = isDev 
+        ? path.join(__dirname, '../dist/index.html')
+        : path.join(process.resourcesPath, 'app', 'dist', 'index.html');
+      res.sendFile(indexPath);
     });
 
     embeddedServer = expressApp.listen(5000, () => {
