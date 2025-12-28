@@ -409,10 +409,15 @@ function startEmbeddedServer() {
         res.json({ success: true });
       });
 
-      // Fallback to index.html for SPA routing
-      expressApp.get('*', (req, res) => {
-        const indexPath = path.join(distPath, 'index.html');
-        res.sendFile(indexPath);
+      // Fallback to index.html for SPA routing (use regex for Express 5 compatibility)
+      expressApp.use((req, res, next) => {
+        // Only handle GET requests that aren't API routes
+        if (req.method === 'GET' && !req.url.startsWith('/api/')) {
+          const indexPath = path.join(distPath, 'index.html');
+          res.sendFile(indexPath);
+        } else {
+          next();
+        }
       });
 
       embeddedServer = expressApp.listen(5000, () => {
