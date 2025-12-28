@@ -246,8 +246,10 @@ function createWindow() {
 
   // Set up Content Security Policy for security
   mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
-    // Both dev and production use localhost server
-    const cspPolicy = "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: http://localhost:* ws://localhost:* wss://localhost:*; script-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:*; style-src 'self' 'unsafe-inline' http://localhost:*; img-src 'self' data: blob: http://localhost:* https://storage.googleapis.com; connect-src 'self' http://localhost:* ws://localhost:* wss://localhost:* https:";
+    // Production uses file:// protocol, dev uses localhost
+    const cspPolicy = isDev 
+      ? "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: http://localhost:* ws://localhost:* wss://localhost:*; script-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:*; style-src 'self' 'unsafe-inline' http://localhost:*; img-src 'self' data: blob: http://localhost:* https://storage.googleapis.com; connect-src 'self' http://localhost:* ws://localhost:* wss://localhost:*"
+      : "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: file:; script-src 'self' 'unsafe-inline' 'unsafe-eval' file:; style-src 'self' 'unsafe-inline' file:; img-src 'self' data: blob: file: https://storage.googleapis.com https:; connect-src 'self' https: file:; font-src 'self' data: file:";
     
     callback({
       responseHeaders: {
@@ -262,8 +264,12 @@ function createWindow() {
     mainWindow.loadURL('http://localhost:5000');
     mainWindow.webContents.openDevTools();
   } else {
-    // In production, load through embedded server for API support
-    mainWindow.loadURL('http://localhost:5000');
+    // In production, load HTML file directly (works with relative paths from vite base: './')
+    const appPath = app.getAppPath();
+    const indexPath = path.join(appPath, 'dist', 'index.html');
+    console.log('App path:', appPath);
+    console.log('Loading:', indexPath);
+    mainWindow.loadFile(indexPath);
   }
 
   // Handle window closed
@@ -374,11 +380,7 @@ function startEmbeddedServer() {
 
 // App event handlers
 app.whenReady().then(async () => {
-  // Start embedded server for production to handle API calls
-  if (!isDev) {
-    await startEmbeddedServer();
-  }
-  
+  // Create window first - don't depend on server
   createWindow();
 
   // Check for updates on startup (production only)
