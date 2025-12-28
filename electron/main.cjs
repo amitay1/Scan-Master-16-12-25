@@ -2,9 +2,12 @@ const { app, BrowserWindow, Menu, shell, dialog, ipcMain } = require('electron')
 const path = require('path');
 const { spawn } = require('child_process');
 const { autoUpdater } = require('electron-updater');
+const express = require('express');
+const fs = require('fs');
 
 let mainWindow;
 let serverProcess;
+let embeddedServer;
 
 // Enable live reload for Electron in development
 // In packaged app, app.isPackaged is true
@@ -337,11 +340,98 @@ function startServer() {
   });
 }
 
+// Embedded Express server for production
+function startEmbeddedServer() {
+  return new Promise((resolve) => {
+    const expressApp = express();
+    const dataDir = path.join(app.getPath('userData'), 'data');
+    
+    // Ensure data directory exists
+    if (!fs.existsSync(dataDir)) {
+      fs.mkdirSync(dataDir, { recursive: true });
+    }
+
+    expressApp.use(express.json({ limit: '10mb' }));
+    
+    // Serve static files from dist
+    expressApp.use(express.static(path.join(__dirname, '../dist')));
+
+    // Simple file-based data storage for technique sheets
+    const sheetsFile = path.join(dataDir, 'technique-sheets.json');
+    const standardsFile = path.join(dataDir, 'standards.json');
+    const orgsFile = path.join(dataDir, 'organizations.json');
+
+    // Initialize files if they don't exist
+    if (!fs.existsSync(sheetsFile)) fs.writeFileSync(sheetsFile, '[]');
+    if (!fs.existsSync(standardsFile)) fs.writeFileSync(standardsFile, '[]');
+    if (!fs.existsSync(orgsFile)) fs.writeFileSync(orgsFile, '[]');
+
+    // API Routes
+    expressApp.get('/api/technique-sheets', (req, res) => {
+      try {
+        const data = JSON.parse(fs.readFileSync(sheetsFile, 'utf8'));
+        res.json(data);
+      } catch (e) {
+        res.json([]);
+      }
+    });
+
+    expressApp.post('/api/technique-sheets', (req, res) => {
+      try {
+        const sheets = JSON.parse(fs.readFileSync(sheetsFile, 'utf8'));
+        const newSheet = { ...req.body, id: Date.now() };
+        sheets.push(newSheet);
+        fs.writeFileSync(sheetsFile, JSON.stringify(sheets, null, 2));
+        res.json(newSheet);
+      } catch (e) {
+        res.status(500).json({ error: e.message });
+      }
+    });
+
+    expressApp.get('/api/standards/:code', (req, res) => {
+      try {
+        const data = JSON.parse(fs.readFileSync(standardsFile, 'utf8'));
+        const standard = data.find(s => s.code === req.params.code);
+        res.json(standard || {});
+      } catch (e) {
+        res.json({});
+      }
+    });
+
+    expressApp.get('/api/organizations', (req, res) => {
+      try {
+        const data = JSON.parse(fs.readFileSync(orgsFile, 'utf8'));
+        res.json(data);
+      } catch (e) {
+        res.json([]);
+      }
+    });
+
+    expressApp.post('/api/logs', (req, res) => {
+      // Just acknowledge logs without saving
+      res.json({ success: true });
+    });
+
+    // Fallback to index.html for SPA routing
+    expressApp.get('*', (req, res) => {
+      res.sendFile(path.join(__dirname, '../dist/index.html'));
+    });
+
+    embeddedServer = expressApp.listen(5000, () => {
+      console.log('Embedded server running on port 5000');
+      resolve();
+    });
+  });
+}
+
 // App event handlers
 app.whenReady().then(async () => {
-  // Only start server in development mode
   if (isDev) {
+    // In development, use external server
     await startServer();
+  } else {
+    // In production, start embedded Express server
+    await startEmbeddedServer();
   }
   createWindow();
 
@@ -363,6 +453,9 @@ app.on('window-all-closed', () => {
   if (serverProcess) {
     serverProcess.kill();
   }
+  if (embeddedServer) {
+    embeddedServer.close();
+  }
   if (process.platform !== 'darwin') {
     app.quit();
   }
@@ -371,6 +464,9 @@ app.on('window-all-closed', () => {
 app.on('before-quit', () => {
   if (serverProcess) {
     serverProcess.kill();
+  }
+  if (embeddedServer) {
+    embeddedServer.close();
   }
 });
 
