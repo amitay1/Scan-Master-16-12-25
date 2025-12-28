@@ -271,9 +271,9 @@ async function createWindow() {
     } catch (error) {
       console.error('Failed to start server, loading file directly:', error);
       // Fallback to direct file loading if server fails
-      // Use unpacked path for production
-      const appPath = app.getAppPath();
-      const indexPath = path.join(appPath + '.unpacked', 'dist', 'index.html');
+      const distPath = path.join(process.resourcesPath, 'app.asar.unpacked', 'dist');
+      const indexPath = path.join(distPath, 'index.html');
+      console.log('Fallback loading:', indexPath);
       mainWindow.loadFile(indexPath);
     }
   }
@@ -298,19 +298,24 @@ function startEmbeddedServer() {
       const dataDir = path.join(app.getPath('userData'), 'data');
       
       // Get the correct path for static files
-      // In production, dist is unpacked from asar to app.asar.unpacked
-      const appPath = app.getAppPath();
       let distPath;
       if (isDev) {
-        distPath = path.join(appPath, 'dist');
+        distPath = path.join(__dirname, '..', 'dist');
       } else {
-        // Use unpacked path for production (asarUnpack in electron-builder.json)
-        distPath = path.join(appPath + '.unpacked', 'dist');
+        // In production, dist is unpacked from asar
+        // process.resourcesPath = resources folder
+        // unpacked files are in app.asar.unpacked folder
+        distPath = path.join(process.resourcesPath, 'app.asar.unpacked', 'dist');
       }
       
-      console.log('App path:', appPath);
+      console.log('Resources path:', process.resourcesPath);
       console.log('Dist path:', distPath);
       console.log('Dist exists:', fs.existsSync(distPath));
+      
+      // List dist contents for debugging
+      if (fs.existsSync(distPath)) {
+        console.log('Dist contents:', fs.readdirSync(distPath));
+      }
       
       // Ensure data directory exists
       if (!fs.existsSync(dataDir)) {
