@@ -258,14 +258,16 @@ function createWindow() {
     });
   });
 
-  // Load the app - in development, load from localhost
-  // In production, load from embedded server
+  // Load the app
   if (isDev) {
     mainWindow.loadURL('http://localhost:5000');
     mainWindow.webContents.openDevTools();
   } else {
-    // Wait a moment for the embedded server to start, then load
-    mainWindow.loadURL('http://localhost:5000');
+    // In production, load the HTML file directly
+    const indexPath = path.join(__dirname, '..', 'dist', 'index.html');
+    console.log('Loading:', indexPath);
+    console.log('File exists:', fs.existsSync(indexPath));
+    mainWindow.loadFile(indexPath);
   }
 
   // Handle window closed
@@ -377,8 +379,7 @@ function startEmbeddedServer() {
 
 // App event handlers
 app.whenReady().then(async () => {
-  // Always start embedded server (works for both dev and production)
-  await startEmbeddedServer();
+  // Just create the window - no server needed for production
   createWindow();
 
   // Check for updates on startup (production only)
