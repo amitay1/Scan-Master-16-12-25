@@ -1,15 +1,12 @@
 const { app, BrowserWindow, Menu, shell, dialog, ipcMain } = require('electron');
 const path = require('path');
-const { spawn } = require('child_process');
 const { autoUpdater } = require('electron-updater');
 const express = require('express');
 const fs = require('fs');
 
 let mainWindow;
-let serverProcess;
 let embeddedServer;
 
-// Enable live reload for Electron in development
 // In packaged app, app.isPackaged is true
 const isDev = !app.isPackaged;
 
@@ -282,64 +279,6 @@ function createWindow() {
   });
 }
 
-// Start the Express server
-function startServer() {
-  return new Promise((resolve, reject) => {
-    if (isDev) {
-      // In development, check if server is already running
-      const http = require('http');
-      http.get('http://localhost:5000/api/health', (res) => {
-        console.log('Development server already running');
-        resolve();
-      }).on('error', () => {
-        console.log('Starting development server...');
-        serverProcess = spawn('npm', ['run', 'dev'], {
-          cwd: path.join(__dirname, '..'),
-          shell: process.platform === 'win32',
-          env: { ...process.env, ELECTRON_DEV: 'true' }
-        });
-
-        serverProcess.stdout.on('data', (data) => {
-          console.log(`Server: ${data}`);
-          if (data.toString().includes('Server running on port')) {
-            setTimeout(resolve, 1000); // Give it a moment to stabilize
-          }
-        });
-
-        serverProcess.stderr.on('data', (data) => {
-          console.error(`Server Error: ${data}`);
-        });
-
-        // Fallback timeout
-        setTimeout(resolve, 8000);
-      });
-    } else {
-      // In production, start the Express server
-      console.log('Starting production server...');
-      // Use tsx to run TypeScript server files
-      serverProcess = spawn('npx', ['tsx', 'server/index.ts'], {
-        cwd: path.join(__dirname, '..'),
-        shell: process.platform === 'win32',
-        env: { ...process.env, NODE_ENV: 'production', PORT: '5000' }
-      });
-
-      serverProcess.stdout.on('data', (data) => {
-        console.log(`Server: ${data}`);
-        if (data.toString().includes('Server running')) {
-          setTimeout(resolve, 1000);
-        }
-      });
-
-      serverProcess.stderr.on('data', (data) => {
-        console.error(`Server Error: ${data}`);
-      });
-
-      // Fallback timeout for production
-      setTimeout(resolve, 5000);
-    }
-  });
-}
-
 // Embedded Express server for production
 function startEmbeddedServer() {
   return new Promise((resolve) => {
@@ -426,13 +365,8 @@ function startEmbeddedServer() {
 
 // App event handlers
 app.whenReady().then(async () => {
-  if (isDev) {
-    // In development, use external server
-    await startServer();
-  } else {
-    // In production, start embedded Express server
-    await startEmbeddedServer();
-  }
+  // Always start embedded server (works for both dev and production)
+  await startEmbeddedServer();
   createWindow();
 
   // Check for updates on startup (production only)
@@ -450,9 +384,6 @@ app.whenReady().then(async () => {
 });
 
 app.on('window-all-closed', () => {
-  if (serverProcess) {
-    serverProcess.kill();
-  }
   if (embeddedServer) {
     embeddedServer.close();
   }
@@ -462,9 +393,6 @@ app.on('window-all-closed', () => {
 });
 
 app.on('before-quit', () => {
-  if (serverProcess) {
-    serverProcess.kill();
-  }
   if (embeddedServer) {
     embeddedServer.close();
   }
