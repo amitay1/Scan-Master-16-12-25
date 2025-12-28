@@ -246,9 +246,8 @@ function createWindow() {
 
   // Set up Content Security Policy for security
   mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
-    const cspPolicy = isDev 
-      ? "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: http://localhost:* ws://localhost:* wss://localhost:*; script-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:*; style-src 'self' 'unsafe-inline' http://localhost:*; img-src 'self' data: blob: http://localhost:* https://storage.googleapis.com; connect-src 'self' http://localhost:* ws://localhost:* wss://localhost:*"
-      : "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://storage.googleapis.com; connect-src 'self'";
+    // Both dev and production use localhost server
+    const cspPolicy = "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: http://localhost:* ws://localhost:* wss://localhost:*; script-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:*; style-src 'self' 'unsafe-inline' http://localhost:*; img-src 'self' data: blob: http://localhost:* https://storage.googleapis.com; connect-src 'self' http://localhost:* ws://localhost:* wss://localhost:* https:";
     
     callback({
       responseHeaders: {
@@ -263,11 +262,8 @@ function createWindow() {
     mainWindow.loadURL('http://localhost:5000');
     mainWindow.webContents.openDevTools();
   } else {
-    // In production, load the HTML file directly
-    const indexPath = path.join(__dirname, '..', 'dist', 'index.html');
-    console.log('Loading:', indexPath);
-    console.log('File exists:', fs.existsSync(indexPath));
-    mainWindow.loadFile(indexPath);
+    // In production, load through embedded server for API support
+    mainWindow.loadURL('http://localhost:5000');
   }
 
   // Handle window closed
@@ -288,11 +284,12 @@ function startEmbeddedServer() {
     const expressApp = express();
     const dataDir = path.join(app.getPath('userData'), 'data');
     
-    // Get the correct path for static files (works in both dev and packaged app)
-    const distPath = isDev 
-      ? path.join(__dirname, '../dist')
-      : path.join(process.resourcesPath, 'app', 'dist');
+    // Get the correct path for static files using app.getAppPath()
+    // This works correctly inside asar archives
+    const appPath = app.getAppPath();
+    const distPath = path.join(appPath, 'dist');
     
+    console.log('App path:', appPath);
     console.log('Dist path:', distPath);
     console.log('Dist exists:', fs.existsSync(distPath));
     
@@ -364,9 +361,7 @@ function startEmbeddedServer() {
 
     // Fallback to index.html for SPA routing
     expressApp.get('*', (req, res) => {
-      const indexPath = isDev 
-        ? path.join(__dirname, '../dist/index.html')
-        : path.join(process.resourcesPath, 'app', 'dist', 'index.html');
+      const indexPath = path.join(appPath, 'dist', 'index.html');
       res.sendFile(indexPath);
     });
 
@@ -379,7 +374,11 @@ function startEmbeddedServer() {
 
 // App event handlers
 app.whenReady().then(async () => {
-  // Just create the window - no server needed for production
+  // Start embedded server for production to handle API calls
+  if (!isDev) {
+    await startEmbeddedServer();
+  }
+  
   createWindow();
 
   // Check for updates on startup (production only)

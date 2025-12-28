@@ -24,6 +24,8 @@ const mediapipeStubPlugin = (): Plugin => ({
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
+  // Use relative paths for Electron file:// protocol
+  base: './',
   server: {
     host: "0.0.0.0",
     allowedHosts: true, // Allow all Replit preview URLs
