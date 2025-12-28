@@ -104,7 +104,7 @@ ipcMain.handle('get-app-version', () => {
   return app.getVersion();
 });
 
-function createWindow() {
+async function createWindow() {
   // Create the browser window
   mainWindow = new BrowserWindow({
     width: 1400,
@@ -246,10 +246,8 @@ function createWindow() {
 
   // Set up Content Security Policy for security
   mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
-    // Production uses file:// protocol, dev uses localhost
-    const cspPolicy = isDev 
-      ? "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: http://localhost:* ws://localhost:* wss://localhost:*; script-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:*; style-src 'self' 'unsafe-inline' http://localhost:*; img-src 'self' data: blob: http://localhost:* https://storage.googleapis.com; connect-src 'self' http://localhost:* ws://localhost:* wss://localhost:*"
-      : "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: file:; script-src 'self' 'unsafe-inline' 'unsafe-eval' file:; style-src 'self' 'unsafe-inline' file:; img-src 'self' data: blob: file: https://storage.googleapis.com https:; connect-src 'self' https: file:; font-src 'self' data: file:";
+    // Allow both localhost (for embedded server) and file:// (for fallback)
+    const cspPolicy = "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: http://localhost:* file:; script-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:* file:; style-src 'self' 'unsafe-inline' http://localhost:* file:; img-src 'self' data: blob: http://localhost:* file: https://storage.googleapis.com https:; connect-src 'self' http://localhost:* https: file:; font-src 'self' data: file:";
     
     callback({
       responseHeaders: {
@@ -264,12 +262,19 @@ function createWindow() {
     mainWindow.loadURL('http://localhost:5000');
     mainWindow.webContents.openDevTools();
   } else {
-    // In production, load HTML file directly (works with relative paths from vite base: './')
-    const appPath = app.getAppPath();
-    const indexPath = path.join(appPath, 'dist', 'index.html');
-    console.log('App path:', appPath);
-    console.log('Loading:', indexPath);
-    mainWindow.loadFile(indexPath);
+    // In production, start embedded server then load through it
+    // This provides API support for saving/loading data
+    try {
+      await startEmbeddedServer();
+      console.log('Loading from embedded server...');
+      mainWindow.loadURL('http://localhost:5000');
+    } catch (error) {
+      console.error('Failed to start server, loading file directly:', error);
+      // Fallback to direct file loading if server fails
+      const appPath = app.getAppPath();
+      const indexPath = path.join(appPath, 'dist', 'index.html');
+      mainWindow.loadFile(indexPath);
+    }
   }
 
   // Handle window closed
@@ -286,102 +291,112 @@ function createWindow() {
 
 // Embedded Express server for production
 function startEmbeddedServer() {
-  return new Promise((resolve) => {
-    const expressApp = express();
-    const dataDir = path.join(app.getPath('userData'), 'data');
-    
-    // Get the correct path for static files using app.getAppPath()
-    // This works correctly inside asar archives
-    const appPath = app.getAppPath();
-    const distPath = path.join(appPath, 'dist');
-    
-    console.log('App path:', appPath);
-    console.log('Dist path:', distPath);
-    console.log('Dist exists:', fs.existsSync(distPath));
-    
-    // Ensure data directory exists
-    if (!fs.existsSync(dataDir)) {
-      fs.mkdirSync(dataDir, { recursive: true });
+  return new Promise((resolve, reject) => {
+    try {
+      const expressApp = express();
+      const dataDir = path.join(app.getPath('userData'), 'data');
+      
+      // Get the correct path for static files using app.getAppPath()
+      // This works correctly inside asar archives
+      const appPath = app.getAppPath();
+      const distPath = path.join(appPath, 'dist');
+      
+      console.log('App path:', appPath);
+      console.log('Dist path:', distPath);
+      console.log('Dist exists:', fs.existsSync(distPath));
+      
+      // Ensure data directory exists
+      if (!fs.existsSync(dataDir)) {
+        fs.mkdirSync(dataDir, { recursive: true });
+      }
+
+      expressApp.use(express.json({ limit: '10mb' }));
+      
+      // Serve static files from dist
+      expressApp.use(express.static(distPath));
+
+      // Simple file-based data storage for technique sheets
+      const sheetsFile = path.join(dataDir, 'technique-sheets.json');
+      const standardsFile = path.join(dataDir, 'standards.json');
+      const orgsFile = path.join(dataDir, 'organizations.json');
+
+      // Initialize files if they don't exist
+      if (!fs.existsSync(sheetsFile)) fs.writeFileSync(sheetsFile, '[]');
+      if (!fs.existsSync(standardsFile)) fs.writeFileSync(standardsFile, '[]');
+      if (!fs.existsSync(orgsFile)) fs.writeFileSync(orgsFile, '[]');
+
+      // API Routes
+      expressApp.get('/api/technique-sheets', (req, res) => {
+        try {
+          const data = JSON.parse(fs.readFileSync(sheetsFile, 'utf8'));
+          res.json(data);
+        } catch (e) {
+          res.json([]);
+        }
+      });
+
+      expressApp.post('/api/technique-sheets', (req, res) => {
+        try {
+          const sheets = JSON.parse(fs.readFileSync(sheetsFile, 'utf8'));
+          const newSheet = { ...req.body, id: Date.now() };
+          sheets.push(newSheet);
+          fs.writeFileSync(sheetsFile, JSON.stringify(sheets, null, 2));
+          res.json(newSheet);
+        } catch (e) {
+          res.status(500).json({ error: e.message });
+        }
+      });
+
+      expressApp.get('/api/standards/:code', (req, res) => {
+        try {
+          const data = JSON.parse(fs.readFileSync(standardsFile, 'utf8'));
+          const standard = data.find(s => s.code === req.params.code);
+          res.json(standard || {});
+        } catch (e) {
+          res.json({});
+        }
+      });
+
+      expressApp.get('/api/organizations', (req, res) => {
+        try {
+          const data = JSON.parse(fs.readFileSync(orgsFile, 'utf8'));
+          res.json(data);
+        } catch (e) {
+          res.json([]);
+        }
+      });
+
+      expressApp.post('/api/logs', (req, res) => {
+        // Just acknowledge logs without saving
+        res.json({ success: true });
+      });
+
+      // Fallback to index.html for SPA routing
+      expressApp.get('*', (req, res) => {
+        const indexPath = path.join(appPath, 'dist', 'index.html');
+        res.sendFile(indexPath);
+      });
+
+      embeddedServer = expressApp.listen(5000, () => {
+        console.log('Embedded server running on port 5000');
+        resolve();
+      });
+      
+      embeddedServer.on('error', (err) => {
+        console.error('Server error:', err);
+        reject(err);
+      });
+    } catch (error) {
+      console.error('Failed to create server:', error);
+      reject(error);
     }
-
-    expressApp.use(express.json({ limit: '10mb' }));
-    
-    // Serve static files from dist
-    expressApp.use(express.static(distPath));
-
-    // Simple file-based data storage for technique sheets
-    const sheetsFile = path.join(dataDir, 'technique-sheets.json');
-    const standardsFile = path.join(dataDir, 'standards.json');
-    const orgsFile = path.join(dataDir, 'organizations.json');
-
-    // Initialize files if they don't exist
-    if (!fs.existsSync(sheetsFile)) fs.writeFileSync(sheetsFile, '[]');
-    if (!fs.existsSync(standardsFile)) fs.writeFileSync(standardsFile, '[]');
-    if (!fs.existsSync(orgsFile)) fs.writeFileSync(orgsFile, '[]');
-
-    // API Routes
-    expressApp.get('/api/technique-sheets', (req, res) => {
-      try {
-        const data = JSON.parse(fs.readFileSync(sheetsFile, 'utf8'));
-        res.json(data);
-      } catch (e) {
-        res.json([]);
-      }
-    });
-
-    expressApp.post('/api/technique-sheets', (req, res) => {
-      try {
-        const sheets = JSON.parse(fs.readFileSync(sheetsFile, 'utf8'));
-        const newSheet = { ...req.body, id: Date.now() };
-        sheets.push(newSheet);
-        fs.writeFileSync(sheetsFile, JSON.stringify(sheets, null, 2));
-        res.json(newSheet);
-      } catch (e) {
-        res.status(500).json({ error: e.message });
-      }
-    });
-
-    expressApp.get('/api/standards/:code', (req, res) => {
-      try {
-        const data = JSON.parse(fs.readFileSync(standardsFile, 'utf8'));
-        const standard = data.find(s => s.code === req.params.code);
-        res.json(standard || {});
-      } catch (e) {
-        res.json({});
-      }
-    });
-
-    expressApp.get('/api/organizations', (req, res) => {
-      try {
-        const data = JSON.parse(fs.readFileSync(orgsFile, 'utf8'));
-        res.json(data);
-      } catch (e) {
-        res.json([]);
-      }
-    });
-
-    expressApp.post('/api/logs', (req, res) => {
-      // Just acknowledge logs without saving
-      res.json({ success: true });
-    });
-
-    // Fallback to index.html for SPA routing
-    expressApp.get('*', (req, res) => {
-      const indexPath = path.join(appPath, 'dist', 'index.html');
-      res.sendFile(indexPath);
-    });
-
-    embeddedServer = expressApp.listen(5000, () => {
-      console.log('Embedded server running on port 5000');
-      resolve();
-    });
   });
 }
 
 // App event handlers
 app.whenReady().then(async () => {
-  // Create window first - don't depend on server
-  createWindow();
+  // Create window (will start embedded server inside)
+  await createWindow();
 
   // Check for updates on startup (production only)
   if (!isDev) {
@@ -390,9 +405,9 @@ app.whenReady().then(async () => {
     }, 3000);
   }
 
-  app.on('activate', () => {
+  app.on('activate', async () => {
     if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
+      await createWindow();
     }
   });
 });
