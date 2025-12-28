@@ -7,7 +7,8 @@ let mainWindow;
 let serverProcess;
 
 // Enable live reload for Electron in development
-const isDev = process.env.NODE_ENV !== 'production';
+// In packaged app, app.isPackaged is true
+const isDev = !app.isPackaged;
 
 // Auto-updater configuration
 autoUpdater.autoDownload = true;
