@@ -271,8 +271,9 @@ async function createWindow() {
     } catch (error) {
       console.error('Failed to start server, loading file directly:', error);
       // Fallback to direct file loading if server fails
+      // Use unpacked path for production
       const appPath = app.getAppPath();
-      const indexPath = path.join(appPath, 'dist', 'index.html');
+      const indexPath = path.join(appPath + '.unpacked', 'dist', 'index.html');
       mainWindow.loadFile(indexPath);
     }
   }
@@ -296,10 +297,16 @@ function startEmbeddedServer() {
       const expressApp = express();
       const dataDir = path.join(app.getPath('userData'), 'data');
       
-      // Get the correct path for static files using app.getAppPath()
-      // This works correctly inside asar archives
+      // Get the correct path for static files
+      // In production, dist is unpacked from asar to app.asar.unpacked
       const appPath = app.getAppPath();
-      const distPath = path.join(appPath, 'dist');
+      let distPath;
+      if (isDev) {
+        distPath = path.join(appPath, 'dist');
+      } else {
+        // Use unpacked path for production (asarUnpack in electron-builder.json)
+        distPath = path.join(appPath + '.unpacked', 'dist');
+      }
       
       console.log('App path:', appPath);
       console.log('Dist path:', distPath);
@@ -373,7 +380,7 @@ function startEmbeddedServer() {
 
       // Fallback to index.html for SPA routing
       expressApp.get('*', (req, res) => {
-        const indexPath = path.join(appPath, 'dist', 'index.html');
+        const indexPath = path.join(distPath, 'index.html');
         res.sendFile(indexPath);
       });
 
