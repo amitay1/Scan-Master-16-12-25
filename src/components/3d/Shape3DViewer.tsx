@@ -308,9 +308,9 @@ function Shape3DViewerInner({
     };
   }, []);
 
-  // Only show 3D when hovered or active to reduce GPU load
-  // This prevents WebGL context loss from too many active canvases
-  const shouldRender3D = isVisible && (isHovered || isActive);
+  // Always show 3D when visible - shapes should display their geometry
+  // The frameloop will be reduced to 'demand' when not hovered to save GPU
+  const shouldRender3D = isVisible;
 
   // Force re-render when container becomes visible
   useEffect(() => {
@@ -334,26 +334,7 @@ function Shape3DViewerInner({
         pointerEvents: isActive ? 'auto' : 'none'
       }}
     >
-      {/* Show placeholder when not rendering 3D */}
-      {!shouldRender3D && (
-        <div style={{
-          width: '100%',
-          height: '100%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: `linear-gradient(135deg, ${safeColor}15 0%, ${safeColor}05 100%)`,
-          borderRadius: '8px',
-        }}>
-          <div style={{
-            width: '60px',
-            height: '60px',
-            background: `linear-gradient(135deg, ${safeColor}40 0%, ${safeColor}20 100%)`,
-            borderRadius: '12px',
-            boxShadow: `0 4px 20px ${safeColor}30`,
-          }} />
-        </div>
-      )}
+      {/* 3D shape is now always rendered when visible */}
       {shouldRender3D && (
         <Canvas
           key={`${currentPartType}-${resetKey}`}
@@ -368,7 +349,7 @@ function Shape3DViewerInner({
           }}
           shadows="soft"
           dpr={1}
-          frameloop="always"
+          frameloop={isHovered || isActive ? "always" : "demand"}
           resize={{ scroll: false, debounce: { scroll: 50, resize: 0 } }}
           camera={{ position: [0, 0, 5], fov: 50 }}
           onCreated={({ gl }) => {
