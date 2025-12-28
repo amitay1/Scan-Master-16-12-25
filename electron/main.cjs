@@ -6,6 +6,9 @@ const fs = require('fs');
 
 let mainWindow;
 let embeddedServer;
+let updateAvailable = false;
+let updateVersion = null;
+let updateDownloaded = false;
 
 // In packaged app, app.isPackaged is true
 const isDev = !app.isPackaged;
@@ -24,20 +27,11 @@ autoUpdater.on('checking-for-update', () => {
 
 autoUpdater.on('update-available', (info) => {
   console.log('Update available:', info.version);
+  updateAvailable = true;
+  updateVersion = info.version;
+  updateMenu(); // Refresh menu to show update indicator
   if (mainWindow) {
     mainWindow.webContents.send('update-status', { status: 'available', version: info.version });
-    dialog.showMessageBox(mainWindow, {
-      type: 'info',
-      title: 'עדכון זמין',
-      message: `גרסה חדשה זמינה: ${info.version}`,
-      detail: 'האם תרצה להוריד את העדכון עכשיו?',
-      buttons: ['הורד עכשיו', 'אחר כך'],
-      defaultId: 0
-    }).then(result => {
-      if (result.response === 0) {
-        autoUpdater.downloadUpdate();
-      }
-    });
   }
 });
 
@@ -60,20 +54,11 @@ autoUpdater.on('download-progress', (progress) => {
 
 autoUpdater.on('update-downloaded', (info) => {
   console.log('Update downloaded:', info.version);
+  updateDownloaded = true;
+  updateVersion = info.version;
+  updateMenu(); // Refresh menu to show "Install Update" option
   if (mainWindow) {
     mainWindow.webContents.send('update-status', { status: 'downloaded', version: info.version });
-    dialog.showMessageBox(mainWindow, {
-      type: 'info',
-      title: 'העדכון מוכן',
-      message: 'העדכון הורד בהצלחה!',
-      detail: 'האפליקציה תופעל מחדש כדי להתקין את העדכון.',
-      buttons: ['התקן והפעל מחדש', 'התקן בסגירה'],
-      defaultId: 0
-    }).then(result => {
-      if (result.response === 0) {
-        autoUpdater.quitAndInstall();
-      }
-    });
   }
 });
 
@@ -104,28 +89,43 @@ ipcMain.handle('get-app-version', () => {
   return app.getVersion();
 });
 
-async function createWindow() {
-  // Create the browser window
-  mainWindow = new BrowserWindow({
-    width: 1400,
-    height: 900,
-    minWidth: 1024,
-    minHeight: 768,
-    icon: path.join(__dirname, '../public/favicon.ico'),
-    webPreferences: {
-      nodeIntegration: false,
-      contextIsolation: true,
-      preload: path.join(__dirname, 'preload.cjs'),
-      webSecurity: true,
-      // Disable service workers in development
-      enablePreferredSizeMode: false
-    },
-    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
-    title: 'Scan Master Inspection Pro'
-  });
+// Build menu template with dynamic update status
+function buildMenuTemplate() {
+  // Determine update menu item text and action
+  let updateMenuItem;
+  if (updateDownloaded) {
+    updateMenuItem = {
+      label: '🔴 Install Update (v' + updateVersion + ')',
+      click: () => {
+        autoUpdater.quitAndInstall();
+      }
+    };
+  } else if (updateAvailable) {
+    updateMenuItem = {
+      label: '🟡 Download Update (v' + updateVersion + ')',
+      click: () => {
+        autoUpdater.downloadUpdate();
+      }
+    };
+  } else {
+    updateMenuItem = {
+      label: 'Check for Updates',
+      click: () => {
+        if (!isDev) {
+          autoUpdater.checkForUpdates();
+        } else {
+          dialog.showMessageBox(mainWindow, {
+            type: 'info',
+            title: 'Development Mode',
+            message: 'Auto-update is disabled in development mode.',
+            buttons: ['OK']
+          });
+        }
+      }
+    };
+  }
 
-  // Create application menu
-  const template = [
+  return [
     {
       label: 'File',
       submenu: [
@@ -186,23 +186,9 @@ async function createWindow() {
       ]
     },
     {
-      label: 'Help',
+      label: updateAvailable || updateDownloaded ? '❗ Help' : 'Help',
       submenu: [
-        {
-          label: 'Check for Updates',
-          click: () => {
-            if (!isDev) {
-              autoUpdater.checkForUpdates();
-            } else {
-              dialog.showMessageBox(mainWindow, {
-                type: 'info',
-                title: 'Development Mode',
-                message: 'Auto-update is disabled in development mode.',
-                buttons: ['OK']
-              });
-            }
-          }
-        },
+        updateMenuItem,
         { type: 'separator' },
         {
           label: 'About Scan Master',
@@ -225,9 +211,36 @@ async function createWindow() {
       ]
     }
   ];
+}
 
-  const menu = Menu.buildFromTemplate(template);
+// Update the application menu
+function updateMenu() {
+  const menu = Menu.buildFromTemplate(buildMenuTemplate());
   Menu.setApplicationMenu(menu);
+}
+
+async function createWindow() {
+  // Create the browser window
+  mainWindow = new BrowserWindow({
+    width: 1400,
+    height: 900,
+    minWidth: 1024,
+    minHeight: 768,
+    icon: path.join(__dirname, '../public/favicon.ico'),
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true,
+      preload: path.join(__dirname, 'preload.cjs'),
+      webSecurity: true,
+      // Disable service workers in development
+      enablePreferredSizeMode: false
+    },
+    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
+    title: 'Scan Master Inspection Pro'
+  });
+
+  // Create application menu
+  updateMenu();
 
   // Clear all browser data in development to remove cached service workers
   if (isDev) {
