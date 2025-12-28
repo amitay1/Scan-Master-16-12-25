@@ -338,7 +338,10 @@ function startServer() {
 
 // App event handlers
 app.whenReady().then(async () => {
-  await startServer();
+  // Only start server in development mode
+  if (isDev) {
+    await startServer();
+  }
   createWindow();
 
   // Check for updates on startup (production only)
