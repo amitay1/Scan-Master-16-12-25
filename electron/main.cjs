@@ -262,19 +262,19 @@ async function createWindow() {
     mainWindow.loadURL('http://localhost:5000');
     mainWindow.webContents.openDevTools();
   } else {
-    // In production, start embedded server then load through it
-    // This provides API support for saving/loading data
+    // In production, start embedded server first, then load through it
     try {
       await startEmbeddedServer();
-      console.log('Loading from embedded server...');
+      console.log('Server started, loading from http://localhost:5000');
+      
+      // Wait a moment for server to be ready
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       mainWindow.loadURL('http://localhost:5000');
     } catch (error) {
-      console.error('Failed to start server, loading file directly:', error);
-      // Fallback to direct file loading if server fails
-      const distPath = path.join(process.resourcesPath, 'app.asar.unpacked', 'dist');
-      const indexPath = path.join(distPath, 'index.html');
-      console.log('Fallback loading:', indexPath);
-      mainWindow.loadFile(indexPath);
+      console.error('Server failed:', error);
+      // If server fails, show error
+      mainWindow.loadURL(`data:text/html,<h1>Error starting server: ${error.message}</h1>`);
     }
   }
 
@@ -303,18 +303,38 @@ function startEmbeddedServer() {
         distPath = path.join(__dirname, '..', 'dist');
       } else {
         // In production, dist is unpacked from asar
-        // process.resourcesPath = resources folder
-        // unpacked files are in app.asar.unpacked folder
         distPath = path.join(process.resourcesPath, 'app.asar.unpacked', 'dist');
       }
       
+      console.log('=== SERVER STARTUP DEBUG ===');
+      console.log('isDev:', isDev);
       console.log('Resources path:', process.resourcesPath);
       console.log('Dist path:', distPath);
       console.log('Dist exists:', fs.existsSync(distPath));
       
+      // Check if dist exists, if not try alternative paths
+      if (!fs.existsSync(distPath)) {
+        console.log('Dist not found at expected path, trying alternatives...');
+        
+        // Try direct app.asar path (Electron can read from asar)
+        const asarDistPath = path.join(process.resourcesPath, 'app.asar', 'dist');
+        console.log('Trying asar path:', asarDistPath);
+        console.log('Asar path exists:', fs.existsSync(asarDistPath));
+        
+        if (fs.existsSync(asarDistPath)) {
+          distPath = asarDistPath;
+        }
+      }
+      
       // List dist contents for debugging
       if (fs.existsSync(distPath)) {
         console.log('Dist contents:', fs.readdirSync(distPath));
+        const indexExists = fs.existsSync(path.join(distPath, 'index.html'));
+        console.log('index.html exists:', indexExists);
+      } else {
+        console.error('ERROR: dist folder not found anywhere!');
+        // List resources folder to see what's there
+        console.log('Resources contents:', fs.readdirSync(process.resourcesPath));
       }
       
       // Ensure data directory exists
@@ -323,6 +343,12 @@ function startEmbeddedServer() {
       }
 
       expressApp.use(express.json({ limit: '10mb' }));
+      
+      // Log all requests for debugging
+      expressApp.use((req, res, next) => {
+        console.log('Request:', req.method, req.url);
+        next();
+      });
       
       // Serve static files from dist
       expressApp.use(express.static(distPath));
