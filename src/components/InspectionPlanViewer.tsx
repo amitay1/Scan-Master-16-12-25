@@ -110,20 +110,19 @@ export const InspectionPlanViewer: React.FC<InspectionPlanViewerProps> = ({
     // Draw ISO standard dimension lines
     drawISODimensionLines(ctx, partType, crossSectionBounds, dimensions);
 
-    // RAFAEL 5036 style: Draw arrows for ALL ENABLED scan directions (checkbox checked)
+    // Draw arrows for ALL scan directions regardless of checkbox state
+    // The checkbox only controls export, not display
     // Plus highlight the hovered one with extra emphasis
     scanDetails.forEach((detail) => {
-      if (detail.enabled) {
-        const isHighlighted = detail.scanningDirection === highlightedDirection;
-        drawSelectedScanDirectionArrow(
-          ctx,
-          partType,
-          detail.scanningDirection,
-          crossSectionBounds,
-          dimensions,
-          isHighlighted
-        );
-      }
+      const isHighlighted = detail.scanningDirection === highlightedDirection;
+      drawSelectedScanDirectionArrow(
+        ctx,
+        partType,
+        detail.scanningDirection,
+        crossSectionBounds,
+        dimensions,
+        isHighlighted
+      );
     });
 
     // LEVEL 9: Professional title block with all metadata
@@ -809,7 +808,7 @@ interface ScanDirectionPosition {
 
 /**
  * Draw RAFAEL 5036 scan direction symbol at the correct position
- * Called for ALL enabled directions, with optional highlight for hovered direction
+ * Called for ALL scan directions, with optional highlight for hovered direction
  */
 function drawSelectedScanDirectionArrow(
   ctx: CanvasRenderingContext2D,
