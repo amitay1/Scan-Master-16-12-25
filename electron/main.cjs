@@ -259,12 +259,13 @@ function createWindow() {
   });
 
   // Load the app - in development, load from localhost
-  // In production, load from built files
+  // In production, load from embedded server
   if (isDev) {
     mainWindow.loadURL('http://localhost:5000');
     mainWindow.webContents.openDevTools();
   } else {
-    mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
+    // Wait a moment for the embedded server to start, then load
+    mainWindow.loadURL('http://localhost:5000');
   }
 
   // Handle window closed
