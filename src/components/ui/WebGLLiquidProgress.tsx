@@ -1,6 +1,88 @@
-import { useRef, useMemo, useEffect } from 'react';
+import { useRef, useMemo, useEffect, useState } from 'react';
 import { Canvas, useFrame, useThree, invalidate } from '@react-three/fiber';
 import * as THREE from 'three';
+
+// Check if WebGL is supported
+function isWebGLSupported(): boolean {
+  try {
+    const canvas = document.createElement('canvas');
+    const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+    return gl !== null;
+  } catch (e) {
+    return false;
+  }
+}
+
+// CSS-based fallback progress bar
+const CSSFallbackProgress = ({ progress, completedFields, totalFields, className = '' }: {
+  progress: number;
+  completedFields: number;
+  totalFields: number;
+  className?: string;
+}) => (
+  <div className={`w-full bg-slate-950 border-y border-slate-800 shadow-xl ${className}`}>
+    <div className="max-w-full mx-auto px-3 py-2">
+      {/* Header */}
+      <div className="flex justify-between items-center mb-2">
+        <div className="flex items-center gap-4">
+          <span className="text-xs font-bold text-slate-300 tracking-widest">PROGRESS</span>
+          <span className="text-xs text-slate-500">{completedFields}/{totalFields} fields</span>
+        </div>
+        <div className="flex items-center gap-4">
+          <span className="text-[10px] text-slate-600">ScanMaster</span>
+          <div className="flex items-center gap-2">
+            <div className={`w-2 h-2 rounded-full ${
+              progress === 100 ? 'bg-green-500' :
+              progress > 0 ? 'bg-orange-500 animate-pulse' : 'bg-slate-700'
+            }`} />
+            <span className="text-xs text-slate-400">
+              {progress === 100 ? 'Complete' : progress > 0 ? 'Active' : 'Ready'}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* CSS Progress Bar */}
+      <div className="relative h-20 md:h-24 rounded-md overflow-hidden bg-slate-900 border-2 border-slate-700">
+        {/* Progress fill */}
+        <div 
+          className="absolute inset-y-0 left-0 transition-all duration-500 ease-out"
+          style={{ 
+            width: `${progress}%`,
+            background: progress === 100 
+              ? 'linear-gradient(90deg, #059669, #10b981, #34d399)'
+              : 'linear-gradient(90deg, #065f46, #059669, #10b981)'
+          }}
+        >
+          {/* Animated wave effect */}
+          <div className="absolute inset-0 opacity-30" style={{
+            background: 'repeating-linear-gradient(90deg, transparent, transparent 10px, rgba(255,255,255,0.1) 10px, rgba(255,255,255,0.1) 20px)',
+            animation: 'wave 2s linear infinite'
+          }} />
+        </div>
+
+        {/* Percentage badge */}
+        <div className="absolute right-3 top-1/2 -translate-y-1/2 z-20 bg-slate-900/90 backdrop-blur px-4 py-2 rounded border border-slate-700">
+          <span className={`text-2xl font-bold font-mono ${
+            progress === 100 ? 'text-green-400' : 'text-white'
+          }`}>
+            {Math.round(progress)}%
+          </span>
+        </div>
+
+        {/* Scale */}
+        <div className="absolute bottom-2 left-3 right-20 flex justify-between z-20">
+          {[0, 25, 50, 75, 100].map((mark) => (
+            <div key={mark} className="flex flex-col items-center">
+              <div className="w-px h-2 bg-slate-600" />
+              <span className="text-[9px] text-slate-500 font-mono">{mark}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  </div>
+);
 
 // Vertex Shader
 const vertexShader = `
@@ -284,6 +366,12 @@ export const WebGLLiquidProgress = ({
   className = '',
 }: WebGLLiquidProgressProps) => {
   const progress = Math.max(0, Math.min(100, value));
+  const [webglSupported] = useState(() => isWebGLSupported());
+
+  // If WebGL is not supported, use CSS fallback
+  if (!webglSupported) {
+    return <CSSFallbackProgress progress={progress} completedFields={completedFields} totalFields={totalFields} className={className} />;
+  }
 
   return (
     <div className={`w-full bg-slate-950 border-y border-slate-800 shadow-xl ${className}`}>

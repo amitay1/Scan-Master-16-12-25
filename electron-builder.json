@@ -28,6 +28,10 @@
       {
         "target": "nsis",
         "arch": ["x64"]
+      },
+      {
+        "target": "portable",
+        "arch": ["x64"]
       }
     ]
   },
@@ -46,10 +50,14 @@
     "icon": "build"
   },
   "nsis": {
-    "oneClick": false,
-    "allowToChangeInstallationDirectory": true,
+    "oneClick": true,
+    "allowToChangeInstallationDirectory": false,
     "createDesktopShortcut": true,
-    "createStartMenuShortcut": true
+    "createStartMenuShortcut": true,
+    "differentialPackage": true
+  },
+  "portable": {
+    "artifactName": "${productName}-Portable-${version}.${ext}"
   },
   "publish": {
     "provider": "github",

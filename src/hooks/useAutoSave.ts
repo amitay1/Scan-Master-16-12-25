@@ -20,9 +20,19 @@ export function useAutoSave<T>({
   const timeoutRef = useRef<NodeJS.Timeout>();
   const isFirstRender = useRef(true);
   const lastDataRef = useRef<T>(data);
+  const enabledRef = useRef(enabled);
+  
+  // Keep enabled ref in sync
+  useEffect(() => {
+    enabledRef.current = enabled;
+  }, [enabled]);
 
   const save = useCallback(async () => {
-    if (!enabled) return;
+    // Check the ref to get the latest enabled value
+    if (!enabledRef.current) {
+      console.log('Auto-save skipped: not enabled');
+      return;
+    }
 
     setStatus('saving');
     try {
@@ -44,7 +54,7 @@ export function useAutoSave<T>({
         setStatus('idle');
       }, 5000);
     }
-  }, [data, onSave, enabled]);
+  }, [data, onSave]);
 
   useEffect(() => {
     // Skip on first render
@@ -53,7 +63,15 @@ export function useAutoSave<T>({
       return;
     }
 
-    if (!enabled) return;
+    // Don't schedule if not enabled
+    if (!enabled) {
+      // Clear any pending save when disabled
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        setStatus('idle');
+      }
+      return;
+    }
 
     // Clear existing timeout
     if (timeoutRef.current) {
@@ -76,6 +94,10 @@ export function useAutoSave<T>({
   }, [data, delay, enabled, save]);
 
   const forceSave = useCallback(() => {
+    if (!enabledRef.current) {
+      console.log('Force save skipped: not enabled');
+      return;
+    }
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }

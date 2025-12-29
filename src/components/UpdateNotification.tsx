@@ -5,9 +5,8 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Download, CheckCircle, RefreshCw, Sparkles, Loader2, X, Rocket } from 'lucide-react';
+import { Download, RefreshCw, Sparkles, X, Rocket } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
 
 interface UpdateStatus {
   status: 'checking' | 'available' | 'downloading' | 'downloaded' | 'not-available' | 'error';
@@ -16,8 +15,25 @@ interface UpdateStatus {
   error?: string;
 }
 
+// Electron API type for window object
+interface ElectronBridge {
+  getAppVersion?: () => Promise<string>;
+  checkForUpdates?: () => Promise<void>;
+  installUpdate?: () => void;
+  onUpdateStatus?: (callback: (event: unknown, status: UpdateStatus) => void) => void;
+  removeUpdateListener?: (callback: (event: unknown, status: UpdateStatus) => void) => void;
+}
+
+// Safe access to electron API
+const getElectron = (): ElectronBridge | undefined => {
+  if (typeof window !== 'undefined' && 'electron' in window) {
+    return (window as unknown as { electron: ElectronBridge }).electron;
+  }
+  return undefined;
+};
+
 // Check if we're in Electron
-const isElectron = typeof window !== 'undefined' && window.electron;
+const isElectron = typeof window !== 'undefined' && 'electron' in window;
 
 export function UpdateNotification() {
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus | null>(null);
@@ -27,31 +43,34 @@ export function UpdateNotification() {
   useEffect(() => {
     if (!isElectron) return;
 
+    const electron = getElectron();
+    if (!electron) return;
+
     // Get current version
-    window.electron?.getAppVersion?.().then((version: string) => {
+    electron.getAppVersion?.().then((version: string) => {
       setCurrentVersion(version);
     });
 
     // Listen for update status from main process
-    const handleUpdateStatus = (_event: any, status: UpdateStatus) => {
+    const handleUpdateStatus = (_event: unknown, status: UpdateStatus) => {
       setUpdateStatus(status);
       if (status.status === 'available' || status.status === 'downloaded') {
         setDismissed(false); // Show notification for important updates
       }
     };
 
-    window.electron?.onUpdateStatus?.(handleUpdateStatus);
+    electron.onUpdateStatus?.(handleUpdateStatus);
 
     // Check for updates on mount
-    window.electron?.checkForUpdates?.();
+    electron.checkForUpdates?.();
 
     return () => {
-      window.electron?.removeUpdateListener?.(handleUpdateStatus);
+      electron.removeUpdateListener?.(handleUpdateStatus);
     };
   }, []);
 
   const handleInstallUpdate = () => {
-    window.electron?.installUpdate?.();
+    getElectron()?.installUpdate?.();
   };
 
   const handleDismiss = () => {

@@ -143,6 +143,109 @@ export function registerRoutes(app: Express) {
     res.json({ role: "owner" });
   });
 
+  // Inspector Profiles Routes
+  app.get("/api/inspector-profiles", mockAuth, async (req, res) => {
+    try {
+      const { userId, orgId } = getAuthContext(req);
+      logger.info('Fetching inspector profiles for user:', userId, 'org:', orgId || '(none)');
+      const profiles = await storage.getInspectorProfilesByUserId(userId, orgId);
+      res.json(profiles);
+    } catch (error: any) {
+      logger.error('Failed to fetch inspector profiles:', error);
+      // Return empty array for any database issues
+      // This allows the client to fallback to localStorage gracefully
+      logger.warn('Database error, returning empty array for profiles');
+      return res.json([]);
+    }
+  });
+
+  app.get("/api/inspector-profiles/:id", mockAuth, async (req, res) => {
+    try {
+      const { userId, orgId } = getAuthContext(req);
+      const profile = await storage.getInspectorProfileById(req.params.id, orgId);
+      if (!profile) {
+        return res.status(404).json({ error: "Inspector profile not found" });
+      }
+      // Check user access
+      if (profile.userId !== userId) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+      if (orgId && profile.orgId !== orgId) {
+        return res.status(403).json({ error: "Forbidden - wrong organization" });
+      }
+      res.json(profile);
+    } catch (error: any) {
+      logger.error('Failed to fetch inspector profile:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/inspector-profiles", mockAuth, async (req, res) => {
+    try {
+      const { userId, orgId } = getAuthContext(req);
+
+      logger.info('Creating inspector profile:', {
+        userId,
+        orgId,
+        body: req.body,
+      });
+
+      const profile = await storage.createInspectorProfile({
+        ...req.body,
+        userId,
+        orgId,
+      });
+      res.status(201).json(profile);
+    } catch (error: any) {
+      logger.error('Failed to create inspector profile:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.patch("/api/inspector-profiles/:id", mockAuth, async (req, res) => {
+    try {
+      const { userId, orgId } = getAuthContext(req);
+      const existing = await storage.getInspectorProfileById(req.params.id, orgId);
+      if (!existing) {
+        return res.status(404).json({ error: "Inspector profile not found" });
+      }
+      if (existing.userId !== userId) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+      if (orgId && existing.orgId !== orgId) {
+        return res.status(403).json({ error: "Forbidden - wrong organization" });
+      }
+
+      const profile = await storage.updateInspectorProfile(req.params.id, req.body, orgId);
+      res.json(profile);
+    } catch (error: any) {
+      logger.error('Failed to update inspector profile:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/inspector-profiles/:id", mockAuth, async (req, res) => {
+    try {
+      const { userId, orgId } = getAuthContext(req);
+      const existing = await storage.getInspectorProfileById(req.params.id, orgId);
+      if (!existing) {
+        return res.status(404).json({ error: "Inspector profile not found" });
+      }
+      if (existing.userId !== userId) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+      if (orgId && existing.orgId !== orgId) {
+        return res.status(403).json({ error: "Forbidden - wrong organization" });
+      }
+
+      await storage.deleteInspectorProfile(req.params.id, orgId);
+      res.status(204).send();
+    } catch (error: any) {
+      logger.error('Failed to delete inspector profile:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Technique Sheets Routes
   app.get("/api/technique-sheets", mockAuth, async (req, res) => {
     try {
@@ -181,17 +284,29 @@ export function registerRoutes(app: Express) {
       // Debug logging
       logger.info('📥 Technique sheet POST request:');
       logger.info('  userId:', userId);
-      logger.info('  orgId:', orgId);
+      logger.info('  orgId from headers:', orgId || '(null - no organization)');
       logger.info('  body keys:', Object.keys(req.body));
+      logger.info('  body.orgId:', req.body.orgId || '(not in body)');
       logger.info('  sheetName:', req.body.sheetName);
       logger.info('  standard:', req.body.standard);
       logger.info('  data type:', typeof req.body.data);
       
-      const data = insertTechniqueSheetSchema.parse({
-        ...req.body,
+      // Prepare data - explicitly exclude any orgId from body, use only from headers
+      const { orgId: bodyOrgId, ...bodyWithoutOrgId } = req.body;
+      const sheetData: any = {
+        ...bodyWithoutOrgId,
         userId,
-        orgId, // Include org_id
-      });
+      };
+      
+      // Only include orgId if it's a valid UUID from headers
+      if (orgId) {
+        sheetData.orgId = orgId;
+      }
+      // If no orgId, don't include it at all (let it be null in DB)
+      
+      logger.info('  Final sheetData.orgId:', sheetData.orgId || '(not set)');
+      
+      const data = insertTechniqueSheetSchema.parse(sheetData);
       const sheet = await storage.createTechniqueSheet(data, orgId);
       res.status(201).json(sheet);
     } catch (error: any) {

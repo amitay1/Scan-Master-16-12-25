@@ -1,42 +1,110 @@
-import type { 
-  InsertTechniqueSheet, 
+import type {
+  InsertTechniqueSheet,
   TechniqueSheet,
   Standard,
   UserStandardAccess,
   InsertUserStandardAccess,
   PurchaseHistory,
-  InsertPurchaseHistory
+  InsertPurchaseHistory,
+  Profile,
+  InsertProfile
 } from "@shared/schema";
 
 export interface IStorage {
+  // Inspector Profiles - with org_id enforcement
+  getInspectorProfilesByUserId(userId: string, orgId?: string): Promise<Profile[]>;
+  getInspectorProfileById(id: string, orgId?: string): Promise<Profile | null>;
+  createInspectorProfile(profile: InsertProfile): Promise<Profile>;
+  updateInspectorProfile(id: string, profile: Partial<InsertProfile>, orgId?: string): Promise<Profile>;
+  deleteInspectorProfile(id: string, orgId?: string): Promise<void>;
+
   // Technique Sheets - with org_id enforcement
   getTechniqueSheetsByUserId(userId: string, orgId?: string): Promise<TechniqueSheet[]>;
   getTechniqueSheetById(id: string, orgId?: string): Promise<TechniqueSheet | null>;
   createTechniqueSheet(sheet: InsertTechniqueSheet, orgId?: string): Promise<TechniqueSheet>;
   updateTechniqueSheet(id: string, sheet: Partial<InsertTechniqueSheet>, orgId?: string): Promise<TechniqueSheet>;
   deleteTechniqueSheet(id: string, orgId?: string): Promise<void>;
-  
+
   // Standards
   getAllStandards(): Promise<Standard[]>;
   getStandardById(id: string): Promise<Standard | null>;
   getStandardByCode(code: string): Promise<Standard | null>;
-  
+
   // User Standard Access
   getUserStandardAccess(userId: string): Promise<(UserStandardAccess & { standard: Standard })[]>;
   hasStandardAccess(userId: string, standardCode: string): Promise<boolean>;
   grantStandardAccess(access: InsertUserStandardAccess): Promise<UserStandardAccess>;
   updateStandardAccess(id: string, access: Partial<InsertUserStandardAccess>): Promise<UserStandardAccess>;
-  
+
   // Purchase History
   createPurchaseHistory(purchase: InsertPurchaseHistory): Promise<PurchaseHistory>;
   getUserPurchaseHistory(userId: string): Promise<PurchaseHistory[]>;
 }
 
 import { db } from "./db";
-import { techniqueSheets, standards, userStandardAccess, purchaseHistory } from "@shared/schema";
+import { techniqueSheets, standards, userStandardAccess, purchaseHistory, profiles } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
 
 export class DbStorage implements IStorage {
+  // Inspector Profiles Methods
+  async getInspectorProfilesByUserId(userId: string, orgId?: string): Promise<Profile[]> {
+    const conditions = [eq(profiles.userId, userId)];
+    if (orgId) {
+      conditions.push(eq(profiles.orgId, orgId));
+    }
+
+    return await db.select().from(profiles)
+      .where(and(...conditions));
+  }
+
+  async getInspectorProfileById(id: string, orgId?: string): Promise<Profile | null> {
+    const conditions = [eq(profiles.id, id)];
+    if (orgId) {
+      conditions.push(eq(profiles.orgId, orgId));
+    }
+
+    const results = await db.select().from(profiles)
+      .where(and(...conditions));
+    return results[0] || null;
+  }
+
+  async createInspectorProfile(profile: InsertProfile): Promise<Profile> {
+    const results = await db.insert(profiles).values(profile).returning();
+    return results[0];
+  }
+
+  async updateInspectorProfile(id: string, profile: Partial<InsertProfile>, orgId?: string): Promise<Profile> {
+    // Filter out protected fields
+    const { userId: _, orgId: __, ...safeUpdates } = profile as any;
+
+    const conditions = [eq(profiles.id, id)];
+    if (orgId) {
+      conditions.push(eq(profiles.orgId, orgId));
+    }
+
+    const results = await db
+      .update(profiles)
+      .set({ ...safeUpdates, updatedAt: new Date() })
+      .where(and(...conditions))
+      .returning();
+
+    if (!results[0]) {
+      throw new Error("Inspector profile not found or access denied");
+    }
+
+    return results[0];
+  }
+
+  async deleteInspectorProfile(id: string, orgId?: string): Promise<void> {
+    const conditions = [eq(profiles.id, id)];
+    if (orgId) {
+      conditions.push(eq(profiles.orgId, orgId));
+    }
+
+    await db.delete(profiles).where(and(...conditions));
+  }
+
+  // Technique Sheets Methods
   async getTechniqueSheetsByUserId(userId: string, orgId?: string): Promise<TechniqueSheet[]> {
     // ALWAYS enforce org_id for multi-tenant security
     if (!orgId) {

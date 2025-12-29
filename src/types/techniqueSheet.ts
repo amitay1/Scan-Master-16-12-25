@@ -236,18 +236,33 @@ export interface TechniqueSheet {
   createdDate: string;
   modifiedDate: string;
   status: "draft" | "complete" | "approved";
-  
+
   inspectionSetup: InspectionSetupData;
   equipment: EquipmentData;
   calibration: CalibrationData;
   scanParameters: ScanParametersData;
   acceptanceCriteria: AcceptanceCriteriaData;
   documentation: DocumentationData;
-  
+
   calibrationRecommendation?: CalibrationRecommendation;
-  
+
   metadata: {
     completionPercent: number;
     lastModifiedBy: string;
   };
+}
+
+// Scan Plan Document Types
+export interface ScanPlanDocument {
+  id: string;
+  title: string;
+  description: string;
+  filePath: string; // Path to PDF file
+  category?: string;
+  order: number; // For custom ordering
+  isActive: boolean;
+}
+
+export interface ScanPlanData {
+  documents: ScanPlanDocument[];
 }

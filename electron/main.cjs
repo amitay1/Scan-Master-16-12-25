@@ -3,12 +3,17 @@ const path = require('path');
 const { autoUpdater } = require('electron-updater');
 const express = require('express');
 const fs = require('fs');
+const LicenseManager = require('./license-manager.cjs');
 
 let mainWindow;
 let embeddedServer;
 let updateAvailable = false;
 let updateVersion = null;
 let updateDownloaded = false;
+let licenseManager;
+
+// Initialize license manager
+licenseManager = new LicenseManager();
 
 // In packaged app, app.isPackaged is true
 const isDev = !app.isPackaged;
@@ -16,6 +21,37 @@ const isDev = !app.isPackaged;
 // Auto-updater configuration
 autoUpdater.autoDownload = true;
 autoUpdater.autoInstallOnAppQuit = true;
+autoUpdater.disableWebInstaller = false;  // Use delta updates when available
+autoUpdater.allowDowngrade = false;
+
+// Configure custom update server
+const UPDATE_SERVER_URL = process.env.UPDATE_SERVER_URL || 'https://updates.scanmaster.com';
+
+// Set custom feed URL for per-factory updates
+async function configureFeedURL() {
+  const license = licenseManager.getLicense();
+  if (license && license.factoryId) {
+    const feedURL = `${UPDATE_SERVER_URL}/api/updates/check`;
+
+    // Set the feed URL with custom headers for factory identification
+    autoUpdater.setFeedURL({
+      provider: 'generic',
+      url: feedURL,
+      useMultipleRangeRequest: false
+    });
+
+    // Add request headers with factory info
+    autoUpdater.requestHeaders = {
+      'X-Factory-Id': license.factoryId,
+      'X-License-Key': license.licenseKey || '',
+      'X-Platform': process.platform
+    };
+
+    console.log(`Update feed configured for factory: ${license.factoryId}`);
+  } else {
+    console.log('No license found, using default update channel');
+  }
+}
 
 // Auto-updater event handlers
 autoUpdater.on('checking-for-update', () => {
@@ -72,6 +108,7 @@ autoUpdater.on('error', (error) => {
 // IPC handlers for manual update control
 ipcMain.handle('check-for-updates', async () => {
   if (!isDev) {
+    await configureFeedURL(); // Reconfigure before checking
     return autoUpdater.checkForUpdates();
   }
   return { updateAvailable: false };
@@ -87,6 +124,32 @@ ipcMain.handle('install-update', () => {
 
 ipcMain.handle('get-app-version', () => {
   return app.getVersion();
+});
+
+// License Management IPC Handlers
+ipcMain.handle('license:check', () => {
+  return licenseManager.getLicense();
+});
+
+ipcMain.handle('license:activate', async (event, licenseKey) => {
+  return await licenseManager.activateLicense(licenseKey);
+});
+
+ipcMain.handle('license:getInfo', () => {
+  return licenseManager.getLicenseInfo();
+});
+
+ipcMain.handle('license:hasStandard', (event, standardCode) => {
+  return licenseManager.hasStandard(standardCode);
+});
+
+ipcMain.handle('license:getStandards', () => {
+  return licenseManager.getStandardsCatalog();
+});
+
+ipcMain.handle('license:deactivate', () => {
+  licenseManager.deactivate();
+  return { success: true };
 });
 
 // Build menu template with dynamic update status
@@ -371,10 +434,33 @@ function startEmbeddedServer() {
       const standardsFile = path.join(dataDir, 'standards.json');
       const orgsFile = path.join(dataDir, 'organizations.json');
 
+      // Default organization for Electron (offline) mode
+      const DEFAULT_ELECTRON_ORG = [{
+        id: "11111111-1111-1111-1111-111111111111",
+        name: "Local Workspace",
+        slug: "local",
+        plan: "free",
+        isActive: true,
+        userRole: "owner"
+      }];
+
       // Initialize files if they don't exist
       if (!fs.existsSync(sheetsFile)) fs.writeFileSync(sheetsFile, '[]');
       if (!fs.existsSync(standardsFile)) fs.writeFileSync(standardsFile, '[]');
-      if (!fs.existsSync(orgsFile)) fs.writeFileSync(orgsFile, '[]');
+      // Initialize orgs with default org (valid UUID) for Electron mode
+      if (!fs.existsSync(orgsFile)) {
+        fs.writeFileSync(orgsFile, JSON.stringify(DEFAULT_ELECTRON_ORG, null, 2));
+      } else {
+        // Fix existing empty organizations file
+        try {
+          const existingOrgs = JSON.parse(fs.readFileSync(orgsFile, 'utf8'));
+          if (!Array.isArray(existingOrgs) || existingOrgs.length === 0) {
+            fs.writeFileSync(orgsFile, JSON.stringify(DEFAULT_ELECTRON_ORG, null, 2));
+          }
+        } catch (e) {
+          fs.writeFileSync(orgsFile, JSON.stringify(DEFAULT_ELECTRON_ORG, null, 2));
+        }
+      }
 
       // API Routes
       expressApp.get('/api/technique-sheets', (req, res) => {
@@ -456,7 +542,9 @@ app.whenReady().then(async () => {
 
   // Check for updates on startup (production only)
   if (!isDev) {
-    setTimeout(() => {
+    // Configure feed URL with factory info, then check for updates
+    setTimeout(async () => {
+      await configureFeedURL();
       autoUpdater.checkForUpdates();
     }, 3000);
   }

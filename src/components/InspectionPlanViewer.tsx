@@ -896,44 +896,44 @@ function getScanDirectionPosition(
       switch (direction.toUpperCase()) {
         case 'A': // E2375 Fig.6: Primary - from top through thickness
           return {
-            x: centerX + 25, y: centerY - plateH - 30,
-            symbolX: centerX + 25, symbolY: centerY - plateH - 50,
-            labelX: centerX + 50, labelY: centerY - plateH - 35,
+            x: centerX + 40, y: centerY - plateH - 30,
+            symbolX: centerX + 40, symbolY: centerY - plateH - 50,
+            labelX: centerX + 65, labelY: centerY - plateH - 35,
             arrowDirection: 'down', isAngleBeam: false
           };
         case 'A₁': // Dual Element - Near-surface 0-20mm from top
           return {
-            x: centerX - 25, y: centerY - plateH - 30,
-            symbolX: centerX - 25, symbolY: centerY - plateH - 50,
-            labelX: centerX - 50, labelY: centerY - plateH - 35,
+            x: centerX - 40, y: centerY - plateH - 30,
+            symbolX: centerX - 40, symbolY: centerY - plateH - 50,
+            labelX: centerX - 65, labelY: centerY - plateH - 35,
             arrowDirection: 'down', isAngleBeam: false
           };
         case 'B': // E2375 Fig.6: Secondary - from adjacent side (required if W/T<5)
           return {
-            x: centerX - plateW - 30, y: centerY - 25,
-            symbolX: centerX - plateW - 50, symbolY: centerY - 25,
-            labelX: centerX - plateW - 45, labelY: centerY - 45,
+            x: centerX - plateW - 30, y: centerY - 40,
+            symbolX: centerX - plateW - 50, symbolY: centerY - 40,
+            labelX: centerX - plateW - 45, labelY: centerY - 60,
             arrowDirection: 'right', isAngleBeam: false
           };
         case 'B₁': // Dual Element - Near-surface 0-20mm from side
           return {
-            x: centerX - plateW - 30, y: centerY + 25,
-            symbolX: centerX - plateW - 50, symbolY: centerY + 25,
-            labelX: centerX - plateW - 45, labelY: centerY + 5,
+            x: centerX - plateW - 30, y: centerY + 40,
+            symbolX: centerX - plateW - 50, symbolY: centerY + 40,
+            labelX: centerX - plateW - 45, labelY: centerY + 20,
             arrowDirection: 'right', isAngleBeam: false
           };
         case 'C': // Opposite side (required if >9 inches)
           return {
-            x: centerX + 25, y: centerY + plateH + 30,
-            symbolX: centerX + 25, symbolY: centerY + plateH + 50,
-            labelX: centerX + 50, labelY: centerY + plateH + 45,
+            x: centerX + 40, y: centerY + plateH + 30,
+            symbolX: centerX + 40, symbolY: centerY + plateH + 50,
+            labelX: centerX + 65, labelY: centerY + plateH + 45,
             arrowDirection: 'up', isAngleBeam: false
           };
         case 'C₁': // Dual Element - Near-surface 0-20mm from opposite/third face
           return {
-            x: centerX - 25, y: centerY + plateH + 30,
-            symbolX: centerX - 25, symbolY: centerY + plateH + 50,
-            labelX: centerX - 50, labelY: centerY + plateH + 45,
+            x: centerX - 40, y: centerY + plateH + 30,
+            symbolX: centerX - 40, symbolY: centerY + plateH + 50,
+            labelX: centerX - 65, labelY: centerY + plateH + 45,
             arrowDirection: 'up', isAngleBeam: false
           };
         case 'J': // E2375 A1.3.4: SW 60° for thin sections (<1 inch)
@@ -974,44 +974,44 @@ function getScanDirectionPosition(
       switch (direction.toUpperCase()) {
         case 'A': // E2375 Fig.6: Radial from top (part rotates)
           return {
-            x: centerX + 20, y: centerY - barRadius - 35,
-            symbolX: centerX + 20, symbolY: centerY - barRadius - 55,
-            labelX: centerX + 50, labelY: centerY - barRadius - 40,
+            x: centerX + 30, y: centerY - barRadius - 35,
+            symbolX: centerX + 30, symbolY: centerY - barRadius - 55,
+            labelX: centerX + 60, labelY: centerY - barRadius - 40,
             arrowDirection: 'down', isAngleBeam: false
           };
         case 'A₁': // Dual Element - Near-surface 0-20mm from top
           return {
-            x: centerX - 20, y: centerY - barRadius - 35,
-            symbolX: centerX - 20, symbolY: centerY - barRadius - 55,
-            labelX: centerX - 50, labelY: centerY - barRadius - 40,
+            x: centerX - 30, y: centerY - barRadius - 35,
+            symbolX: centerX - 30, symbolY: centerY - barRadius - 55,
+            labelX: centerX - 60, labelY: centerY - barRadius - 40,
             arrowDirection: 'down', isAngleBeam: false
           };
         case 'B': // E2375 Fig.6: Radial from side (alternative position)
           return {
-            x: centerX - barRadius - 35, y: centerY - 20,
-            symbolX: centerX - barRadius - 55, symbolY: centerY - 20,
-            labelX: centerX - barRadius - 50, labelY: centerY - 40,
+            x: centerX - barRadius - 35, y: centerY - 30,
+            symbolX: centerX - barRadius - 55, symbolY: centerY - 30,
+            labelX: centerX - barRadius - 50, labelY: centerY - 50,
             arrowDirection: 'right', isAngleBeam: false
           };
         case 'B₁': // Dual Element - Near-surface 0-20mm from side
           return {
-            x: centerX - barRadius - 35, y: centerY + 20,
-            symbolX: centerX - barRadius - 55, symbolY: centerY + 20,
-            labelX: centerX - barRadius - 50, labelY: centerY,
+            x: centerX - barRadius - 35, y: centerY + 30,
+            symbolX: centerX - barRadius - 55, symbolY: centerY + 30,
+            labelX: centerX - barRadius - 50, labelY: centerY + 10,
             arrowDirection: 'right', isAngleBeam: false
           };
         case 'C': // Radial from OD (general radial access)
           return {
-            x: centerX + barRadius + 35, y: centerY - 20,
-            symbolX: centerX + barRadius + 55, symbolY: centerY - 20,
-            labelX: centerX + barRadius + 50, labelY: centerY - 40,
+            x: centerX + barRadius + 35, y: centerY - 30,
+            symbolX: centerX + barRadius + 55, symbolY: centerY - 30,
+            labelX: centerX + barRadius + 50, labelY: centerY - 50,
             arrowDirection: 'left', isAngleBeam: false
           };
         case 'C₁': // Dual Element - Near-surface 0-20mm from OD
           return {
-            x: centerX + barRadius + 35, y: centerY + 20,
-            symbolX: centerX + barRadius + 55, symbolY: centerY + 20,
-            labelX: centerX + barRadius + 50, labelY: centerY,
+            x: centerX + barRadius + 35, y: centerY + 30,
+            symbolX: centerX + barRadius + 55, symbolY: centerY + 30,
+            labelX: centerX + barRadius + 50, labelY: centerY + 10,
             arrowDirection: 'left', isAngleBeam: false
           };
         case 'D': // E2375 A1.3.2: Circumferential shear CW (angle ≤45°)
@@ -1057,44 +1057,44 @@ function getScanDirectionPosition(
       switch (direction.toUpperCase()) {
         case 'A': // Straight beam from top (on side view)
           return {
-            x: sideViewX + 20, y: centerY - tubeRadius - 35,
-            symbolX: sideViewX + 20, symbolY: centerY - tubeRadius - 55,
-            labelX: sideViewX + 50, labelY: centerY - tubeRadius - 40,
+            x: sideViewX + 30, y: centerY - tubeRadius - 35,
+            symbolX: sideViewX + 30, symbolY: centerY - tubeRadius - 55,
+            labelX: sideViewX + 60, labelY: centerY - tubeRadius - 40,
             arrowDirection: 'down', isAngleBeam: false
           };
         case 'A₁': // Dual Element - Near-surface 0-20mm from top
           return {
-            x: sideViewX - 20, y: centerY - tubeRadius - 35,
-            symbolX: sideViewX - 20, symbolY: centerY - tubeRadius - 55,
-            labelX: sideViewX - 50, labelY: centerY - tubeRadius - 40,
+            x: sideViewX - 30, y: centerY - tubeRadius - 35,
+            symbolX: sideViewX - 30, symbolY: centerY - tubeRadius - 55,
+            labelX: sideViewX - 60, labelY: centerY - tubeRadius - 40,
             arrowDirection: 'down', isAngleBeam: false
           };
         case 'B': // Straight beam from left end (on side view)
           return {
-            x: sideViewX - sideWidth / 2 - 35, y: centerY - 20,
-            symbolX: sideViewX - sideWidth / 2 - 55, symbolY: centerY - 20,
-            labelX: sideViewX - sideWidth / 2 - 60, labelY: centerY - 40,
+            x: sideViewX - sideWidth / 2 - 35, y: centerY - 30,
+            symbolX: sideViewX - sideWidth / 2 - 55, symbolY: centerY - 30,
+            labelX: sideViewX - sideWidth / 2 - 60, labelY: centerY - 50,
             arrowDirection: 'right', isAngleBeam: false
           };
         case 'B₁': // Dual Element - Near-surface 0-20mm from left end
           return {
-            x: sideViewX - sideWidth / 2 - 35, y: centerY + 20,
-            symbolX: sideViewX - sideWidth / 2 - 55, symbolY: centerY + 20,
-            labelX: sideViewX - sideWidth / 2 - 60, labelY: centerY,
+            x: sideViewX - sideWidth / 2 - 35, y: centerY + 30,
+            symbolX: sideViewX - sideWidth / 2 - 55, symbolY: centerY + 30,
+            labelX: sideViewX - sideWidth / 2 - 60, labelY: centerY + 10,
             arrowDirection: 'right', isAngleBeam: false
           };
         case 'C': // Straight beam from right end (on side view)
           return {
-            x: sideViewX + sideWidth / 2 + 35, y: centerY - 20,
-            symbolX: sideViewX + sideWidth / 2 + 55, symbolY: centerY - 20,
-            labelX: sideViewX + sideWidth / 2 + 60, labelY: centerY - 40,
+            x: sideViewX + sideWidth / 2 + 35, y: centerY - 30,
+            symbolX: sideViewX + sideWidth / 2 + 55, symbolY: centerY - 30,
+            labelX: sideViewX + sideWidth / 2 + 60, labelY: centerY - 50,
             arrowDirection: 'left', isAngleBeam: false
           };
         case 'C₁': // Dual Element - Near-surface 0-20mm from right end
           return {
-            x: sideViewX + sideWidth / 2 + 35, y: centerY + 20,
-            symbolX: sideViewX + sideWidth / 2 + 55, symbolY: centerY + 20,
-            labelX: sideViewX + sideWidth / 2 + 60, labelY: centerY,
+            x: sideViewX + sideWidth / 2 + 35, y: centerY + 30,
+            symbolX: sideViewX + sideWidth / 2 + 55, symbolY: centerY + 30,
+            labelX: sideViewX + sideWidth / 2 + 60, labelY: centerY + 10,
             arrowDirection: 'left', isAngleBeam: false
           };
         case 'D': // Angle beam from top (on side view - left side)

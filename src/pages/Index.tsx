@@ -27,20 +27,22 @@ import { RemarksTab } from "@/components/tabs/RemarksTab";
 import { ScanDetailsTab } from "@/components/tabs/ScanDetailsTab";
 import type { ScanDetailsData } from "@/types/scanDetails";
 import { TechnicalDrawingTab } from "@/components/tabs/TechnicalDrawingTab";
+import { ScanPlanTab } from "@/components/tabs/ScanPlanTab";
 import { ProbeProgressGauge } from "@/components/ui/ProbeProgressGauge";
 import { HorizontalProgressBar } from "@/components/ui/HorizontalProgressBar";
 import { WebGLLiquidProgress } from "@/components/ui/WebGLLiquidProgress";
 import { Collapsible3DPanel } from "@/components/ui/ResizablePanel";
 import type { SavedCard } from "@/contexts/SavedCardsContext";
 import {
-  StandardType, 
-  InspectionSetupData, 
-  EquipmentData, 
+  StandardType,
+  InspectionSetupData,
+  EquipmentData,
   CalibrationData,
   ScanParametersData,
   AcceptanceCriteriaData,
   DocumentationData,
-  MaterialType
+  MaterialType,
+  ScanPlanData
 } from "@/types/techniqueSheet";
 import { InspectionReportData } from "@/types/inspectionReport";
 import { standardRules, getRecommendedFrequency, getCouplantRecommendation, calculateMetalTravel } from "@/utils/autoFillLogic";
@@ -236,6 +238,34 @@ const Index = () => {
 
   const [scanDetailsB, setScanDetailsB] = useState<ScanDetailsData>({
     scanDetails: []
+  });
+
+  const [scanPlan, setScanPlan] = useState<ScanPlanData>({
+    documents: [
+      {
+        id: "scan-plan-1",
+        title: "Scan Master - Scan Plan Guide",
+        description: "Complete guide for scan planning and execution",
+        filePath: "/documents/scan-plan-guide.pdf",
+        category: "Planning",
+        order: 1,
+        isActive: true,
+      }
+    ]
+  });
+
+  const [scanPlanB, setScanPlanB] = useState<ScanPlanData>({
+    documents: [
+      {
+        id: "scan-plan-1",
+        title: "Scan Master - Scan Plan Guide",
+        description: "Complete guide for scan planning and execution",
+        filePath: "/documents/scan-plan-guide.pdf",
+        category: "Planning",
+        order: 1,
+        isActive: true,
+      }
+    ]
   });
 
   const [inspectionReport, setInspectionReport] = useState<InspectionReportData>({
@@ -482,6 +512,7 @@ const Index = () => {
         acceptanceCriteria,
         documentation,
         scanDetails,
+        scanPlan,
         setInspectionSetup,
         setEquipment,
         setCalibration,
@@ -489,6 +520,7 @@ const Index = () => {
         setAcceptanceCriteria,
         setDocumentation,
         setScanDetails,
+        setScanPlan,
       };
     } else {
       return {
@@ -499,6 +531,7 @@ const Index = () => {
         acceptanceCriteria: acceptanceCriteriaB,
         documentation: documentationB,
         scanDetails: scanDetailsB,
+        scanPlan: scanPlanB,
         setInspectionSetup: setInspectionSetupB,
         setEquipment: setEquipmentB,
         setCalibration: setCalibrationB,
@@ -506,12 +539,13 @@ const Index = () => {
         setAcceptanceCriteria: setAcceptanceCriteriaB,
         setDocumentation: setDocumentationB,
         setScanDetails: setScanDetailsB,
+        setScanPlan: setScanPlanB,
       };
     }
   }, [
     isSplitMode, activePart,
-    inspectionSetup, equipment, calibration, scanParameters, acceptanceCriteria, documentation, scanDetails,
-    inspectionSetupB, equipmentB, calibrationB, scanParametersB, acceptanceCriteriaB, documentationB, scanDetailsB
+    inspectionSetup, equipment, calibration, scanParameters, acceptanceCriteria, documentation, scanDetails, scanPlan,
+    inspectionSetupB, equipmentB, calibrationB, scanParametersB, acceptanceCriteriaB, documentationB, scanDetailsB, scanPlanB
   ]);
 
   const buildTechniqueSheetPayload = (): TechniqueSheetCardData => ({
@@ -1320,6 +1354,7 @@ const Index = () => {
                         <TabsTrigger value="scan" className="flex-shrink-0 px-3 text-xs md:text-sm whitespace-nowrap">Scan Params</TabsTrigger>
                         <TabsTrigger value="acceptance" className="flex-shrink-0 px-3 text-xs md:text-sm">Acceptance</TabsTrigger>
                         <TabsTrigger value="docs" className="flex-shrink-0 px-3 text-xs md:text-sm">Documentation</TabsTrigger>
+                        <TabsTrigger value="scanplan" className="flex-shrink-0 px-3 text-xs md:text-sm whitespace-nowrap">Scan Plan</TabsTrigger>
                       </TabsList>
                     </div>
 
@@ -1442,6 +1477,13 @@ const Index = () => {
                         <DocumentationTab
                           data={currentData.documentation}
                           onChange={currentData.setDocumentation}
+                        />
+                      </TabsContent>
+
+                      <TabsContent value="scanplan" className="m-0">
+                        <ScanPlanTab
+                          data={currentData.scanPlan}
+                          onChange={currentData.setScanPlan}
                         />
                       </TabsContent>
                     </div>

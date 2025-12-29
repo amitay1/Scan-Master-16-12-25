@@ -1,11 +1,13 @@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { StandardType } from "@/types/techniqueSheet";
-import { Lock, Check, AlertCircle, Info, Shield, Globe, Wrench, Beaker } from "lucide-react";
+import { Lock, Check, AlertCircle, Info, Shield, Globe, Wrench, Beaker, DollarSign } from "lucide-react";
 import { useStandardAccess } from "@/hooks/useStandardAccess";
+import { useLicense } from "@/contexts/LicenseContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 interface StandardSelectorProps {
   value: StandardType;
@@ -67,7 +69,48 @@ const standards = [
 export const StandardSelector = ({ value, onChange, showComparisonIndicator = false }: StandardSelectorProps) => {
   const navigate = useNavigate();
   const { hasAccess, isLoading } = useStandardAccess(value);
+  const { canUseStandard, getStandards, license, isElectron } = useLicense();
   const currentStandard = standards.find(s => s.value === value);
+
+  // Get standards catalog with license info
+  const standardsCatalog = getStandards();
+
+  // Check if current standard is purchased
+  const isStandardPurchased = (standardCode: string) => {
+    if (!isElectron) return true; // In web mode, all standards available
+    return canUseStandard(standardCode);
+  };
+
+  // Handle standard selection
+  const handleStandardChange = (newStandard: StandardType) => {
+    if (!isElectron) {
+      // Web mode - allow all standards
+      onChange(newStandard);
+      return;
+    }
+
+    if (!isStandardPurchased(newStandard)) {
+      // Standard is locked
+      toast.error(
+        "Standard Locked",
+        {
+          description: `${newStandard} is not included in your license. Contact Scan Master to purchase it.`,
+          action: {
+            label: "Contact Sales",
+            onClick: () => {
+              if (window.electron) {
+                // Open email client
+                window.open('mailto:sales@scanmaster.com?subject=Purchase Standard: ' + newStandard);
+              }
+            }
+          }
+        }
+      );
+      return;
+    }
+
+    onChange(newStandard);
+  };
 
   return (
     <TooltipProvider>
@@ -100,7 +143,7 @@ export const StandardSelector = ({ value, onChange, showComparisonIndicator = fa
           )}
         </div>
         
-        <Select value={value} onValueChange={onChange} disabled={isLoading}>
+        <Select value={value} onValueChange={handleStandardChange} disabled={isLoading}>
           <SelectTrigger className={`w-full bg-card border-border ${showComparisonIndicator ? 'ring-2 ring-primary/20' : ''}`}>
             <SelectValue placeholder="Select a standard...">
               {currentStandard && (
@@ -112,8 +155,9 @@ export const StandardSelector = ({ value, onChange, showComparisonIndicator = fa
             {standards.map((standard) => {
               const Icon = standard.icon;
               const isCurrentStandard = standard.value === value;
-              const isLocked = isCurrentStandard && !hasAccess && !isLoading;
-              const hasCurrentAccess = isCurrentStandard && hasAccess;
+              const isPurchased = isStandardPurchased(standard.value);
+              const isLocked = !isPurchased && isElectron;
+              const hasCurrentAccess = isCurrentStandard && isPurchased;
               
               return (
                 <SelectItem 
@@ -131,8 +175,26 @@ export const StandardSelector = ({ value, onChange, showComparisonIndicator = fa
                       <div className="flex items-center gap-2 mb-1">
                         <span className="font-medium text-[10px] sm:text-xs truncate flex-1">{standard.label}</span>
                         <div className="flex gap-1 shrink-0">
-                          {isLocked && <Lock className="h-3 w-3 text-muted-foreground" />}
-                          {hasCurrentAccess && <Check className="h-3 w-3 text-success" />}
+                          {isLocked && (
+                            <Tooltip>
+                              <TooltipTrigger>
+                                <Lock className="h-3 w-3 text-amber-500" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="text-xs">Not purchased - Contact sales</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
+                          {hasCurrentAccess && (
+                            <Tooltip>
+                              <TooltipTrigger>
+                                <Check className="h-3 w-3 text-green-500" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="text-xs">Included in your license</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
                         </div>
                       </div>
                       <p className="text-[9px] sm:text-[10px] text-muted-foreground mb-2 truncate">{standard.description}</p>
@@ -159,25 +221,33 @@ export const StandardSelector = ({ value, onChange, showComparisonIndicator = fa
           </SelectContent>
         </Select>
         
-        {!hasAccess && !isLoading && (
-          <div className="flex flex-col gap-2 p-3 bg-muted/50 rounded-md border mt-4 w-full">
+        {!isStandardPurchased(value) && isElectron && (
+          <div className="flex flex-col gap-2 p-3 bg-amber-50 dark:bg-amber-950 rounded-md border border-amber-200 dark:border-amber-800 mt-4 w-full">
             <div className="flex flex-col gap-2">
               <div className="flex items-center gap-2">
-                <Lock className="h-4 w-4 text-muted-foreground shrink-0" />
-                <span className="text-xs font-medium">Locked Standard</span>
+                <Lock className="h-4 w-4 text-amber-600 shrink-0" />
+                <span className="text-xs font-medium text-amber-900 dark:text-amber-100">Standard Not Purchased</span>
               </div>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                This standard is locked. Purchase it to use it.
+              <p className="text-xs text-amber-700 dark:text-amber-300 leading-relaxed">
+                This standard is not included in your license. Contact Scan Master to add it to your account.
               </p>
+              <div className="flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400">
+                <DollarSign className="h-3 w-3" />
+                <span className="font-medium">Starting from $500</span>
+              </div>
             </div>
-            <Button 
-              size="sm" 
+            <Button
+              size="sm"
               variant="default"
-              onClick={() => navigate('/standards')}
-              className="w-full text-xs"
-              data-testid="button-unlock-standard"
+              onClick={() => {
+                if (window.electron) {
+                  window.open(`mailto:sales@scanmaster.com?subject=Add Standard to License&body=Factory ID: ${license?.factoryId}%0A%0AStandard to add: ${value}`);
+                }
+              }}
+              className="w-full text-xs bg-amber-600 hover:bg-amber-700"
+              data-testid="button-purchase-standard"
             >
-              Unlock Standard
+              Contact Sales to Purchase
             </Button>
           </div>
         )}

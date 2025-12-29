@@ -48,3 +48,8 @@ coverage/
 # Temp files
 *.tmp
 *.temp
+# Large files and unrelated content
+*.rar
+*.zip
+*.7z
+Captain Hardcore*/

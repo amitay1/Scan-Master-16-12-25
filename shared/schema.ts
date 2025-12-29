@@ -42,17 +42,30 @@ export const insertOrgMemberSchema = createInsertSchema(orgMembers).omit({
 export type InsertOrgMember = typeof orgMembers.$inferInsert;
 export type OrgMember = typeof orgMembers.$inferSelect;
 
-// Profiles table
+// Inspector Profiles table - Enhanced schema for full inspector profile support
 export const profiles = pgTable("profiles", {
-  id: uuid("id").primaryKey(),
-  fullName: text("full_name"),
-  certificationLevel: text("certification_level"),
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull(), // Links to user/session (could be auth user ID or device ID)
+  name: text("name").notNull(),
+  initials: text("initials").notNull(),
+  certificationLevel: text("certification_level").notNull(),
+  certificationNumber: text("certification_number").notNull(),
+  certifyingOrganization: text("certifying_organization").notNull(),
+  employeeId: text("employee_id"),
+  department: text("department"),
+  email: text("email"),
+  phone: text("phone"),
+  signature: text("signature"), // Base64 encoded signature image
+  isDefault: boolean("is_default").default(false),
   orgId: uuid("org_id").references(() => organizations.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-export const insertProfileSchema = createInsertSchema(profiles).omit({
+export const insertProfileSchema = createInsertSchema(profiles, {
+  // Allow orgId to be null or undefined for local development
+  orgId: (schema) => schema.nullish(),
+}).omit({
   createdAt: true,
   updatedAt: true,
 });
@@ -74,7 +87,10 @@ export const techniqueSheets = pgTable("technique_sheets", {
   status: text("status").default("draft"),
 });
 
-export const insertTechniqueSheetSchema = createInsertSchema(techniqueSheets).omit({
+export const insertTechniqueSheetSchema = createInsertSchema(techniqueSheets, {
+  // Allow orgId to be null or undefined for local development
+  orgId: (schema) => schema.nullish(),
+}).omit({
   id: true,
   createdAt: true,
   updatedAt: true,

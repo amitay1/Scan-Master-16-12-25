@@ -2,12 +2,50 @@ import { Canvas } from "@react-three/fiber";
 import { OrbitControls, PerspectiveCamera } from "@react-three/drei";
 import { PartGeometry, MaterialType } from "@/types/techniqueSheet";
 import { Button } from "@/components/ui/button";
-import { RotateCcw, Navigation, Loader2 } from "lucide-react";
+import { RotateCcw, Navigation, Loader2, AlertTriangle } from "lucide-react";
 import { useRef, useMemo, useState, useEffect, memo, useCallback, Suspense } from "react";
 import * as THREE from "three";
 import { getMaterialByMaterialType } from "./3d/ShapeMaterials";
 import { getGeometryByType } from "./3d/ShapeGeometries";
 import { Skeleton } from "@/components/ui/skeleton";
+
+// Check if WebGL is supported
+function isWebGLSupported(): boolean {
+  try {
+    const canvas = document.createElement('canvas');
+    const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+    return gl !== null;
+  } catch (e) {
+    return false;
+  }
+}
+
+// Fallback component when WebGL is not available
+const WebGLFallback = memo(function WebGLFallback({ partType, material, dimensions }: {
+  partType: PartGeometry | "";
+  material?: MaterialType | "";
+  dimensions?: { thickness?: number };
+}) {
+  return (
+    <div className="relative w-full h-full bg-gradient-to-br from-muted/30 to-muted/10 rounded-lg border border-border overflow-hidden flex flex-col items-center justify-center p-4">
+      <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-4 max-w-sm text-center">
+        <AlertTriangle className="h-8 w-8 text-amber-500 mx-auto mb-2" />
+        <h3 className="text-sm font-medium text-foreground mb-1">3D Preview Unavailable</h3>
+        <p className="text-xs text-muted-foreground mb-3">
+          WebGL is not supported or disabled in your browser. The 3D visualization requires WebGL to render.
+        </p>
+        <div className="bg-card/50 rounded p-2 text-left">
+          <p className="text-xs font-medium text-foreground mb-1">Part Configuration:</p>
+          <p className="text-xs text-muted-foreground">
+            {partType ? `Type: ${partType}` : 'No part type selected'}
+          </p>
+          {material && <p className="text-xs text-muted-foreground">Material: {material}</p>}
+          {dimensions?.thickness && <p className="text-xs text-muted-foreground">Thickness: {dimensions.thickness}mm</p>}
+        </div>
+      </div>
+    </div>
+  );
+});
 
 // Debounce hook for smooth updates without flickering
 function useDebounce<T>(value: T, delay: number): T {
@@ -194,6 +232,7 @@ const CanvasLoader = () => (
 export const ThreeDViewer = memo(function ThreeDViewer(props: ThreeDViewerProps) {
   const controlsRef = useRef<any>();
   const [isLoading, setIsLoading] = useState(true);
+  const [webglSupported] = useState(() => isWebGLSupported());
 
   const handleReset = useCallback(() => {
     if (controlsRef.current) {
@@ -208,10 +247,17 @@ export const ThreeDViewer = memo(function ThreeDViewer(props: ThreeDViewerProps)
 
   // Show loading state briefly when part type changes
   useEffect(() => {
-    setIsLoading(true);
-    const timer = setTimeout(() => setIsLoading(false), 300);
-    return () => clearTimeout(timer);
-  }, [props.partType, props.material]);
+    if (webglSupported) {
+      setIsLoading(true);
+      const timer = setTimeout(() => setIsLoading(false), 300);
+      return () => clearTimeout(timer);
+    }
+  }, [props.partType, props.material, webglSupported]);
+
+  // If WebGL is not supported, show fallback
+  if (!webglSupported) {
+    return <WebGLFallback partType={props.partType} material={props.material} dimensions={props.dimensions} />;
+  }
 
   return (
     <div className="relative w-full h-full bg-gradient-to-br from-muted/30 to-muted/10 rounded-lg border border-border overflow-hidden transition-opacity duration-200">

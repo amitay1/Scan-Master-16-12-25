@@ -1,4 +1,5 @@
 /// <reference types="vite/client" />
+
 // Electron IPC Bridge Types
 interface ElectronAPI {
   getAppVersion: () => Promise<string>;
@@ -20,3 +21,5 @@ declare global {
     electron?: ElectronAPI;
   }
 }
+
+export {};

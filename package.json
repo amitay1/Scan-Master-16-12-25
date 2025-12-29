@@ -6,7 +6,7 @@
                    "email":  "amitay1@gmail.com"
                },
     "private":  true,
-    "version":  "1.0.21",
+    "version":  "1.0.24",
     "type":  "module",
     "scripts":  {
                     "dev":  "tsx watch --clear-screen=false --ignore \u0027**/*.timestamp-*.mjs\u0027 server/index.ts",
@@ -23,7 +23,10 @@
                     "dist:linux":  "npm run build \u0026\u0026 electron-builder --linux",
                     "release":  "powershell -ExecutionPolicy Bypass -File ./release.ps1",
                     "release:minor":  "powershell -ExecutionPolicy Bypass -File ./release.ps1 minor",
-                    "release:major":  "powershell -ExecutionPolicy Bypass -File ./release.ps1 major"
+                    "release:major":  "powershell -ExecutionPolicy Bypass -File ./release.ps1 major",
+                    "license:generate":  "node scripts/license-generator.js",
+                    "license:verify":  "node scripts/license-generator.js --verify",
+                    "license:examples":  "node scripts/example-licenses.bat"
                 },
     "main":  "electron/main.cjs",
     "dependencies":  {
@@ -99,11 +102,13 @@
                          "next-themes":  "^0.3.0",
                          "opentype.js":  "^1.3.4",
                          "paper":  "^0.12.18",
+                         "pdfjs-dist":  "^5.4.530",
                          "pg":  "^8.16.3",
                          "react":  "^18.3.1",
                          "react-day-picker":  "^8.10.1",
                          "react-dom":  "^18.3.1",
                          "react-hook-form":  "^7.61.1",
+                         "react-pdf":  "^10.2.0",
                          "react-resizable-panels":  "^2.1.9",
                          "react-router-dom":  "^6.30.1",
                          "recharts":  "^2.15.4",

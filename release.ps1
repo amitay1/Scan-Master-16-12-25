@@ -98,6 +98,17 @@ if (-not $SkipBuild) {
     Write-Host "========================================" -ForegroundColor Yellow
     Write-Host ""
     
+    # Try to close ScanMaster if running
+    Write-Info "Closing ScanMaster if running..."
+    Get-Process | Where-Object { $_.ProcessName -like "*Scan*Master*" -or $_.MainWindowTitle -like "*ScanMaster*" } | Stop-Process -Force -ErrorAction SilentlyContinue
+    Start-Sleep -Seconds 2
+    
+    # Clean dist-electron folder
+    if (Test-Path "dist-electron") {
+        Write-Info "Cleaning dist-electron folder..."
+        Remove-Item -Path "dist-electron" -Recurse -Force -ErrorAction SilentlyContinue
+    }
+    
     npm run dist:win
     
     if ($LASTEXITCODE -ne 0) {

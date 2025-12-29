@@ -7,6 +7,8 @@ import { OrganizationProvider } from "@/contexts/OrganizationContext";
 import { SettingsProvider } from "@/contexts/SettingsContext";
 import { SavedCardsProvider } from "@/contexts/SavedCardsContext";
 import { InspectorProfileProvider } from "@/contexts/InspectorProfileContext";
+import { LicenseProvider, useLicense } from "@/contexts/LicenseContext";
+import { LicenseActivationScreen } from "@/components/LicenseActivation";
 import { SettingsSync } from "@/components/SettingsSync";
 import { useServiceWorker } from "@/hooks/useServiceWorker";
 import { UpdateNotification } from "@/components/UpdateNotification";
@@ -25,6 +27,7 @@ const queryClient = new QueryClient();
 const AppContent = () => {
   const { isOffline } = useServiceWorker();
   const [showSplash, setShowSplash] = useState(true);
+  const { license, loading: licenseLoading, isElectron } = useLicense();
 
   useEffect(() => {
     if (isOffline) {
@@ -32,8 +35,16 @@ const AppContent = () => {
     }
   }, [isOffline]);
 
+  // Show splash screen
   if (showSplash) {
     return <SplashScreen onComplete={() => setShowSplash(false)} />;
+  }
+
+  // Check license (only in Electron)
+  if (isElectron && !licenseLoading) {
+    if (!license || !license.activated || !license.valid) {
+      return <LicenseActivationScreen />;
+    }
   }
 
   return (
@@ -62,16 +73,18 @@ const AppContent = () => {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <SettingsProvider>
-      <SettingsSync />
-      <SavedCardsProvider>
-        <InspectorProfileProvider>
-          <OrganizationProvider>
-            <AppContent />
-          </OrganizationProvider>
-        </InspectorProfileProvider>
-      </SavedCardsProvider>
-    </SettingsProvider>
+    <LicenseProvider>
+      <SettingsProvider>
+        <SettingsSync />
+        <SavedCardsProvider>
+          <InspectorProfileProvider>
+            <OrganizationProvider>
+              <AppContent />
+            </OrganizationProvider>
+          </InspectorProfileProvider>
+        </SavedCardsProvider>
+      </SettingsProvider>
+    </LicenseProvider>
   </QueryClientProvider>
 );
 

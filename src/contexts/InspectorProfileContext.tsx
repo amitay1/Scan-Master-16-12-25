@@ -7,6 +7,7 @@ import {
 } from '@/types/inspectorProfile';
 
 const STORAGE_KEY = 'scanmaster_inspector_profiles';
+const API_BASE_URL = '/api/inspector-profiles';
 
 interface InspectorProfileContextValue {
   profiles: InspectorProfile[];
@@ -68,25 +69,103 @@ export function InspectorProfileProvider({ children }: InspectorProfileProviderP
   const [currentProfileId, setCurrentProfileId] = useState<string | null>(null);
   const [rememberSelection, setRememberSelectionState] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [useServerSync, setUseServerSync] = useState(true); // Enable server sync by default
 
-  // Load from storage on mount
-  useEffect(() => {
-    const stored = loadFromStorage();
-    setProfiles(stored.profiles);
-    setRememberSelectionState(stored.rememberSelection);
+  // Fetch profiles from server
+  const fetchProfilesFromServer = useCallback(async () => {
+    try {
+      const response = await fetch(API_BASE_URL, {
+        headers: {
+          'x-user-id': getUserId(),
+        },
+      });
 
-    // Only auto-select if remember is enabled
-    if (stored.rememberSelection && stored.currentProfileId) {
-      const profileExists = stored.profiles.some(p => p.id === stored.currentProfileId);
-      if (profileExists) {
-        setCurrentProfileId(stored.currentProfileId);
+      if (!response.ok) {
+        throw new Error('Failed to fetch profiles from server');
       }
-    }
 
-    setIsLoading(false);
+      const serverProfiles = await response.json();
+      return serverProfiles;
+    } catch (error) {
+      console.error('Failed to fetch profiles from server:', error);
+      return null;
+    }
   }, []);
 
-  // Save to storage whenever data changes
+  // Get or create user ID for anonymous users
+  function getUserId(): string {
+    let userId = localStorage.getItem('scanmaster_user_id');
+    if (!userId) {
+      userId = generateUUID();
+      localStorage.setItem('scanmaster_user_id', userId);
+    }
+    return userId;
+  }
+
+  // Load from server or localStorage on mount
+  useEffect(() => {
+    const loadProfiles = async () => {
+      if (useServerSync) {
+        // Try to load from server first
+        const serverProfiles = await fetchProfilesFromServer();
+
+        if (serverProfiles && Array.isArray(serverProfiles)) {
+          // Successfully loaded from server
+          setProfiles(serverProfiles);
+
+          // Load remember selection from localStorage
+          const stored = loadFromStorage();
+          setRememberSelectionState(stored.rememberSelection);
+
+          // Only auto-select if remember is enabled
+          if (stored.rememberSelection && stored.currentProfileId) {
+            const profileExists = serverProfiles.some((p: InspectorProfile) => p.id === stored.currentProfileId);
+            if (profileExists) {
+              setCurrentProfileId(stored.currentProfileId);
+            }
+          }
+
+          // Also save to localStorage as backup
+          saveToStorage({
+            profiles: serverProfiles,
+            currentProfileId: stored.currentProfileId,
+            rememberSelection: stored.rememberSelection,
+          });
+        } else {
+          // Fallback to localStorage if server fails
+          console.log('Falling back to localStorage');
+          const stored = loadFromStorage();
+          setProfiles(stored.profiles);
+          setRememberSelectionState(stored.rememberSelection);
+
+          if (stored.rememberSelection && stored.currentProfileId) {
+            const profileExists = stored.profiles.some(p => p.id === stored.currentProfileId);
+            if (profileExists) {
+              setCurrentProfileId(stored.currentProfileId);
+            }
+          }
+        }
+      } else {
+        // Use localStorage only
+        const stored = loadFromStorage();
+        setProfiles(stored.profiles);
+        setRememberSelectionState(stored.rememberSelection);
+
+        if (stored.rememberSelection && stored.currentProfileId) {
+          const profileExists = stored.profiles.some(p => p.id === stored.currentProfileId);
+          if (profileExists) {
+            setCurrentProfileId(stored.currentProfileId);
+          }
+        }
+      }
+
+      setIsLoading(false);
+    };
+
+    loadProfiles();
+  }, [useServerSync, fetchProfilesFromServer]);
+
+  // Save to localStorage whenever data changes (for offline backup)
   useEffect(() => {
     if (!isLoading) {
       saveToStorage({
@@ -127,30 +206,102 @@ export function InspectorProfileProvider({ children }: InspectorProfileProviderP
       isDefault: profiles.length === 0, // First profile is default
     };
 
+    // Save to server if sync is enabled
+    if (useServerSync) {
+      fetch(API_BASE_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': getUserId(),
+        },
+        body: JSON.stringify(newProfile),
+      })
+        .then(response => {
+          if (!response.ok) {
+            console.error('Failed to save profile to server');
+          }
+          return response.json();
+        })
+        .then(serverProfile => {
+          console.log('Profile saved to server:', serverProfile);
+        })
+        .catch(error => {
+          console.error('Error saving profile to server:', error);
+        });
+    }
+
     setProfiles(prev => [...prev, newProfile]);
     return newProfile;
-  }, [profiles.length]);
+  }, [profiles.length, useServerSync]);
 
   const updateProfile = useCallback((id: string, data: InspectorProfileFormData) => {
+    const updatedData = {
+      name: data.name.trim(),
+      initials: generateInitials(data.name),
+      certificationLevel: data.certificationLevel,
+      certificationNumber: data.certificationNumber.trim(),
+      certifyingOrganization: data.certifyingOrganization.trim(),
+      employeeId: data.employeeId?.trim() || undefined,
+      department: data.department?.trim() || undefined,
+      email: data.email?.trim() || undefined,
+      phone: data.phone?.trim() || undefined,
+      updatedAt: new Date().toISOString(),
+    };
+
+    // Update on server if sync is enabled
+    if (useServerSync) {
+      fetch(`${API_BASE_URL}/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': getUserId(),
+        },
+        body: JSON.stringify(updatedData),
+      })
+        .then(response => {
+          if (!response.ok) {
+            console.error('Failed to update profile on server');
+          }
+          return response.json();
+        })
+        .then(serverProfile => {
+          console.log('Profile updated on server:', serverProfile);
+        })
+        .catch(error => {
+          console.error('Error updating profile on server:', error);
+        });
+    }
+
     setProfiles(prev => prev.map(profile => {
       if (profile.id !== id) return profile;
       return {
         ...profile,
-        name: data.name.trim(),
-        initials: generateInitials(data.name),
-        certificationLevel: data.certificationLevel,
-        certificationNumber: data.certificationNumber.trim(),
-        certifyingOrganization: data.certifyingOrganization.trim(),
-        employeeId: data.employeeId?.trim() || undefined,
-        department: data.department?.trim() || undefined,
-        email: data.email?.trim() || undefined,
-        phone: data.phone?.trim() || undefined,
-        updatedAt: new Date().toISOString(),
+        ...updatedData,
       };
     }));
-  }, []);
+  }, [useServerSync]);
 
   const deleteProfile = useCallback((id: string) => {
+    // Delete from server if sync is enabled
+    if (useServerSync) {
+      fetch(`${API_BASE_URL}/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'x-user-id': getUserId(),
+        },
+      })
+        .then(response => {
+          if (!response.ok) {
+            console.error('Failed to delete profile from server');
+          } else {
+            console.log('Profile deleted from server');
+          }
+        })
+        .catch(error => {
+          console.error('Error deleting profile from server:', error);
+        });
+    }
+
     setProfiles(prev => {
       const newProfiles = prev.filter(p => p.id !== id);
 
@@ -166,7 +317,7 @@ export function InspectorProfileProvider({ children }: InspectorProfileProviderP
     if (currentProfileId === id) {
       setCurrentProfileId(null);
     }
-  }, [currentProfileId]);
+  }, [currentProfileId, useServerSync]);
 
   const setDefaultProfile = useCallback((id: string) => {
     setProfiles(prev => prev.map(profile => ({
