@@ -474,6 +474,52 @@ function startEmbeddedServer() {
         }
       });
 
+      expressApp.get('/api/technique-sheets/:id', (req, res) => {
+        try {
+          const sheets = JSON.parse(fs.readFileSync(sheetsFile, 'utf8'));
+          const sheet = sheets.find(s => String(s.id) === String(req.params.id));
+          if (sheet) {
+            res.json(sheet);
+          } else {
+            res.status(404).json({ error: 'Technique sheet not found' });
+          }
+        } catch (e) {
+          res.status(500).json({ error: e.message });
+        }
+      });
+
+      expressApp.patch('/api/technique-sheets/:id', (req, res) => {
+        try {
+          const sheets = JSON.parse(fs.readFileSync(sheetsFile, 'utf8'));
+          const index = sheets.findIndex(s => String(s.id) === String(req.params.id));
+          if (index !== -1) {
+            sheets[index] = { ...sheets[index], ...req.body, id: sheets[index].id };
+            fs.writeFileSync(sheetsFile, JSON.stringify(sheets, null, 2));
+            res.json(sheets[index]);
+          } else {
+            res.status(404).json({ error: 'Technique sheet not found' });
+          }
+        } catch (e) {
+          res.status(500).json({ error: e.message });
+        }
+      });
+
+      expressApp.delete('/api/technique-sheets/:id', (req, res) => {
+        try {
+          const sheets = JSON.parse(fs.readFileSync(sheetsFile, 'utf8'));
+          const index = sheets.findIndex(s => String(s.id) === String(req.params.id));
+          if (index !== -1) {
+            sheets.splice(index, 1);
+            fs.writeFileSync(sheetsFile, JSON.stringify(sheets, null, 2));
+            res.json({ success: true });
+          } else {
+            res.status(404).json({ error: 'Technique sheet not found' });
+          }
+        } catch (e) {
+          res.status(500).json({ error: e.message });
+        }
+      });
+
       expressApp.get('/api/standards/:code', (req, res) => {
         try {
           const data = JSON.parse(fs.readFileSync(standardsFile, 'utf8'));
