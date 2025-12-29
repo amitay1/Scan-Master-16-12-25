@@ -8,13 +8,15 @@
 
 param(
     [string]$BumpType = "patch",
-    [string]$Message = ""
+    [string]$Message = "",
+    [switch]$SkipBuild = $false
 )
 
 # Colors for output
 function Write-Success { param($msg) Write-Host $msg -ForegroundColor Green }
 function Write-Info { param($msg) Write-Host $msg -ForegroundColor Cyan }
 function Write-Warning { param($msg) Write-Host $msg -ForegroundColor Yellow }
+function Write-Error { param($msg) Write-Host $msg -ForegroundColor Red }
 
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Magenta
@@ -88,6 +90,22 @@ git tag "v$newVersion"
 Write-Info "Pushing to origin..."
 git push origin main --tags
 
+# Build Electron app for Windows (unless skipped)
+if (-not $SkipBuild) {
+    Write-Host ""
+    Write-Host "========================================" -ForegroundColor Yellow
+    Write-Info "Building Electron app for Windows..."
+    Write-Host "========================================" -ForegroundColor Yellow
+    Write-Host ""
+    
+    npm run dist:win
+    
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "Build failed! Release created but without installer files."
+        Write-Warning "You can manually build later with: npm run dist:win"
+    }
+}
+
 # Check if GitHub CLI is available for creating releases
 $ghAvailable = $null -ne (Get-Command "gh" -ErrorAction SilentlyContinue)
 
@@ -103,9 +121,37 @@ if ($ghAvailable) {
     }
     $releaseNotes += "`n**Full Changelog**: https://github.com/amitay1/Scan-Master-16-12-25/compare/v$currentVersion...v$newVersion"
     
+    # Create the release
     gh release create "v$newVersion" --title "$releaseTitle" --notes "$releaseNotes"
     
-    Write-Success "GitHub Release created! Auto-update will work on other computers."
+    # Upload installer files if they exist
+    $distFolder = "dist-electron"
+    if (Test-Path $distFolder) {
+        Write-Info "Uploading installer files to release..."
+        
+        # Find and upload all installer files
+        $installerFiles = @(
+            "$distFolder/*.exe",
+            "$distFolder/*.msi", 
+            "$distFolder/*.dmg",
+            "$distFolder/*.AppImage",
+            "$distFolder/*.deb",
+            "$distFolder/*.rpm",
+            "$distFolder/*.zip",
+            "$distFolder/latest*.yml",
+            "$distFolder/*.blockmap"
+        )
+        
+        foreach ($pattern in $installerFiles) {
+            $files = Get-ChildItem -Path $pattern -ErrorAction SilentlyContinue
+            foreach ($file in $files) {
+                Write-Info "  Uploading: $($file.Name)"
+                gh release upload "v$newVersion" $file.FullName --clobber
+            }
+        }
+    }
+    
+    Write-Success "GitHub Release created with installer files!"
 } else {
     Write-Host ""
     Write-Warning "GitHub CLI (gh) not installed - skipping GitHub Release creation."
@@ -120,7 +166,7 @@ Write-Success "Released v$newVersion successfully!"
 Write-Host "========================================" -ForegroundColor Green
 Write-Host ""
 
-if ($ghAvailable) {
+if ($ghAvailable -and -not $SkipBuild) {
     Write-Host "Other computers will auto-update when they open the app!" -ForegroundColor Green
 } else {
     Write-Host "To update other computers manually, run:" -ForegroundColor Yellow
