@@ -6,7 +6,7 @@
                    "email":  "amitay1@gmail.com"
                },
     "private":  true,
-    "version":  "1.0.28",
+    "version":  "1.0.29",
     "type":  "module",
     "scripts":  {
                     "dev":  "tsx watch --clear-screen=false --ignore \u0027**/*.timestamp-*.mjs\u0027 server/index.ts",
@@ -163,7 +163,7 @@
                   "publish":  {
                                   "provider":  "github",
                                   "owner":  "amitay1",
-                                  "repo":  "scan-master"
+                                  "repo":  "Scan-Master-16-12-25"
                               },
                   "win":  {
                               "target":  [
