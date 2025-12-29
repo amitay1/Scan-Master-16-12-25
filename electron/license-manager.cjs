@@ -5,7 +5,6 @@
  * Works offline-first with optional online verification
  */
 
-const { app } = require('electron');
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
@@ -23,9 +22,9 @@ const AVAILABLE_STANDARDS = {
 };
 
 class LicenseManager {
-  constructor() {
-    this.licenseFile = path.join(app.getPath('userData'), 'license.dat');
-    this.licenseBackupFile = path.join(app.getPath('userData'), 'license.bak');
+  constructor(userDataPath) {
+    this.licenseFile = path.join(userDataPath, 'license.dat');
+    this.licenseBackupFile = path.join(userDataPath, 'license.bak');
     this.secret = LICENSE_SECRET;
     this.cachedLicense = null;
   }

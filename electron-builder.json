@@ -2,7 +2,11 @@
   "appId": "com.scanmaster.inspectionpro",
   "productName": "Scan Master Inspection Pro",
   "directories": {
-    "output": "dist-electron"
+    "output": "release"
+  },
+  "extraMetadata": {
+    "main": "electron/main.cjs",
+    "type": "commonjs"
   },
   "files": [
     "dist/**/*",

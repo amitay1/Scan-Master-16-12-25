@@ -1,6 +1,5 @@
 const { app, BrowserWindow, Menu, shell, dialog, ipcMain } = require('electron');
 const path = require('path');
-const { autoUpdater } = require('electron-updater');
 const express = require('express');
 const fs = require('fs');
 const LicenseManager = require('./license-manager.cjs');
@@ -11,119 +10,133 @@ let updateAvailable = false;
 let updateVersion = null;
 let updateDownloaded = false;
 let licenseManager;
+let autoUpdater;
+let isDev;
 
-// Initialize license manager
-licenseManager = new LicenseManager();
+// Initialize autoUpdater after app is ready
+function initAutoUpdater() {
+  const { autoUpdater: updater } = require('electron-updater');
+  autoUpdater = updater;
 
-// In packaged app, app.isPackaged is true
-const isDev = !app.isPackaged;
+  // Auto-updater configuration
+  autoUpdater.autoDownload = true;
+  autoUpdater.autoInstallOnAppQuit = true;
+  autoUpdater.disableWebInstaller = false;  // Use delta updates when available
+  autoUpdater.allowDowngrade = false;
 
-// Auto-updater configuration
-autoUpdater.autoDownload = true;
-autoUpdater.autoInstallOnAppQuit = true;
-autoUpdater.disableWebInstaller = false;  // Use delta updates when available
-autoUpdater.allowDowngrade = false;
+  // GitHub releases are configured in electron-builder.json
+  // No custom feed URL configuration needed
 
-// GitHub releases are configured in electron-builder.json
-// No custom feed URL configuration needed
+  setupAutoUpdaterHandlers();
+}
 
 // Auto-updater event handlers
-autoUpdater.on('checking-for-update', () => {
-  console.log('Checking for updates...');
-  if (mainWindow) {
-    mainWindow.webContents.send('update-status', { status: 'checking' });
-  }
-});
+function setupAutoUpdaterHandlers() {
+  autoUpdater.on('checking-for-update', () => {
+    console.log('Checking for updates...');
+    if (mainWindow) {
+      mainWindow.webContents.send('update-status', { status: 'checking' });
+    }
+  });
 
-autoUpdater.on('update-available', (info) => {
-  console.log('Update available:', info.version);
-  updateAvailable = true;
-  updateVersion = info.version;
-  updateMenu(); // Refresh menu to show update indicator
-  if (mainWindow) {
-    mainWindow.webContents.send('update-status', { status: 'available', version: info.version });
-  }
-});
+  autoUpdater.on('update-available', (info) => {
+    console.log('Update available:', info.version);
+    updateAvailable = true;
+    updateVersion = info.version;
+    updateMenu(); // Refresh menu to show update indicator
+    if (mainWindow) {
+      mainWindow.webContents.send('update-status', { status: 'available', version: info.version });
+    }
+  });
 
-autoUpdater.on('update-not-available', () => {
-  console.log('No updates available');
-  if (mainWindow) {
-    mainWindow.webContents.send('update-status', { status: 'not-available' });
-  }
-});
+  autoUpdater.on('update-not-available', () => {
+    console.log('No updates available');
+    if (mainWindow) {
+      mainWindow.webContents.send('update-status', { status: 'not-available' });
+    }
+  });
 
-autoUpdater.on('download-progress', (progress) => {
-  console.log(`Download progress: ${progress.percent.toFixed(1)}%`);
-  if (mainWindow) {
-    mainWindow.webContents.send('update-status', { 
-      status: 'downloading', 
-      percent: progress.percent 
-    });
-  }
-});
+  autoUpdater.on('download-progress', (progress) => {
+    console.log(`Download progress: ${progress.percent.toFixed(1)}%`);
+    if (mainWindow) {
+      mainWindow.webContents.send('update-status', {
+        status: 'downloading',
+        percent: progress.percent
+      });
+    }
+  });
 
-autoUpdater.on('update-downloaded', (info) => {
-  console.log('Update downloaded:', info.version);
-  updateDownloaded = true;
-  updateVersion = info.version;
-  updateMenu(); // Refresh menu to show "Install Update" option
-  if (mainWindow) {
-    mainWindow.webContents.send('update-status', { status: 'downloaded', version: info.version });
-  }
-});
+  autoUpdater.on('update-downloaded', (info) => {
+    console.log('Update downloaded:', info.version);
+    updateDownloaded = true;
+    updateVersion = info.version;
+    updateMenu(); // Refresh menu to show "Install Update" option
+    if (mainWindow) {
+      mainWindow.webContents.send('update-status', { status: 'downloaded', version: info.version });
+    }
+  });
 
-autoUpdater.on('error', (error) => {
-  console.error('Auto-updater error:', error);
-  if (mainWindow) {
-    mainWindow.webContents.send('update-status', { status: 'error', error: error.message });
-  }
-});
+  autoUpdater.on('error', (error) => {
+    console.error('Auto-updater error:', error);
+    if (mainWindow) {
+      mainWindow.webContents.send('update-status', { status: 'error', error: error.message });
+    }
+  });
+}
 
-// IPC handlers for manual update control
-ipcMain.handle('check-for-updates', async () => {
-  if (!isDev) {
-    return autoUpdater.checkForUpdates();
-  }
-  return { updateAvailable: false };
-});
+// Setup IPC handlers
+function setupIPCHandlers() {
+  // IPC handlers for manual update control
+  ipcMain.handle('check-for-updates', async () => {
+    if (!isDev && autoUpdater) {
+      return autoUpdater.checkForUpdates();
+    }
+    return { updateAvailable: false };
+  });
 
-ipcMain.handle('download-update', async () => {
-  return autoUpdater.downloadUpdate();
-});
+  ipcMain.handle('download-update', async () => {
+    if (autoUpdater) {
+      return autoUpdater.downloadUpdate();
+    }
+    return null;
+  });
 
-ipcMain.handle('install-update', () => {
-  autoUpdater.quitAndInstall();
-});
+  ipcMain.handle('install-update', () => {
+    if (autoUpdater) {
+      autoUpdater.quitAndInstall();
+    }
+  });
 
-ipcMain.handle('get-app-version', () => {
-  return app.getVersion();
-});
+  ipcMain.handle('get-app-version', () => {
+    return app.getVersion();
+  });
 
-// License Management IPC Handlers
-ipcMain.handle('license:check', () => {
-  return licenseManager.getLicense();
-});
+  // License Management IPC Handlers
+  ipcMain.handle('license:check', () => {
+    return licenseManager.getLicense();
+  });
 
-ipcMain.handle('license:activate', async (event, licenseKey) => {
-  return await licenseManager.activateLicense(licenseKey);
-});
+  ipcMain.handle('license:activate', async (event, licenseKey) => {
+    return await licenseManager.activateLicense(licenseKey);
+  });
 
-ipcMain.handle('license:getInfo', () => {
-  return licenseManager.getLicenseInfo();
-});
+  ipcMain.handle('license:getInfo', () => {
+    return licenseManager.getLicenseInfo();
+  });
 
-ipcMain.handle('license:hasStandard', (event, standardCode) => {
-  return licenseManager.hasStandard(standardCode);
-});
+  ipcMain.handle('license:hasStandard', (event, standardCode) => {
+    return licenseManager.hasStandard(standardCode);
+  });
 
-ipcMain.handle('license:getStandards', () => {
-  return licenseManager.getStandardsCatalog();
-});
+  ipcMain.handle('license:getStandards', () => {
+    return licenseManager.getStandardsCatalog();
+  });
 
-ipcMain.handle('license:deactivate', () => {
-  licenseManager.deactivate();
-  return { success: true };
-});
+  ipcMain.handle('license:deactivate', () => {
+    licenseManager.deactivate();
+    return { success: true };
+  });
+}
 
 // Build menu template with dynamic update status
 function buildMenuTemplate() {
@@ -133,21 +146,25 @@ function buildMenuTemplate() {
     updateMenuItem = {
       label: '🔴 Install Update (v' + updateVersion + ')',
       click: () => {
-        autoUpdater.quitAndInstall();
+        if (autoUpdater) {
+          autoUpdater.quitAndInstall();
+        }
       }
     };
   } else if (updateAvailable) {
     updateMenuItem = {
       label: '🟡 Download Update (v' + updateVersion + ')',
       click: () => {
-        autoUpdater.downloadUpdate();
+        if (autoUpdater) {
+          autoUpdater.downloadUpdate();
+        }
       }
     };
   } else {
     updateMenuItem = {
       label: 'Check for Updates',
       click: () => {
-        if (!isDev) {
+        if (!isDev && autoUpdater) {
           autoUpdater.checkForUpdates();
         } else {
           dialog.showMessageBox(mainWindow, {
@@ -510,6 +527,20 @@ function startEmbeddedServer() {
 
 // App event handlers
 app.whenReady().then(async () => {
+  // In packaged app, app.isPackaged is true
+  isDev = !app.isPackaged;
+
+  // Initialize license manager with app data path
+  licenseManager = new LicenseManager(app.getPath('userData'));
+
+  // Setup IPC handlers
+  setupIPCHandlers();
+
+  // Initialize autoUpdater
+  if (!isDev) {
+    initAutoUpdater();
+  }
+
   // Create window (will start embedded server inside)
   await createWindow();
 

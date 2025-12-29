@@ -6,7 +6,7 @@
                    "email":  "amitay1@gmail.com"
                },
     "private":  true,
-    "version":  "1.0.27",
+    "version":  "1.0.28",
     "type":  "module",
     "scripts":  {
                     "dev":  "tsx watch --clear-screen=false --ignore \u0027**/*.timestamp-*.mjs\u0027 server/index.ts",
@@ -15,8 +15,8 @@
                     "db:push":  "drizzle-kit push",
                     "lint":  "eslint .",
                     "preview":  "vite preview",
-                    "electron":  "electron electron/main.js",
-                    "electron:dev":  "NODE_ENV=development electron electron/main.js",
+                    "electron":  "electron electron/main.cjs",
+                    "electron:dev":  "NODE_ENV=development electron electron/main.cjs",
                     "electron:build":  "npm run build \u0026\u0026 electron-builder",
                     "dist:win":  "npm run build \u0026\u0026 electron-builder --win",
                     "dist:mac":  "npm run build \u0026\u0026 electron-builder --mac",
@@ -28,7 +28,7 @@
                     "license:verify":  "node scripts/license-generator.js --verify",
                     "license:examples":  "node scripts/example-licenses.bat"
                 },
-    "main":  "electron/main.js",
+    "main":  "electron/main.cjs",
     "dependencies":  {
                          "@hookform/resolvers":  "^3.10.0",
                          "@jscad/modeling":  "^2.12.6",
