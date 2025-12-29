@@ -24,34 +24,8 @@ autoUpdater.autoInstallOnAppQuit = true;
 autoUpdater.disableWebInstaller = false;  // Use delta updates when available
 autoUpdater.allowDowngrade = false;
 
-// Configure custom update server
-const UPDATE_SERVER_URL = process.env.UPDATE_SERVER_URL || 'https://updates.scanmaster.com';
-
-// Set custom feed URL for per-factory updates
-async function configureFeedURL() {
-  const license = licenseManager.getLicense();
-  if (license && license.factoryId) {
-    const feedURL = `${UPDATE_SERVER_URL}/api/updates/check`;
-
-    // Set the feed URL with custom headers for factory identification
-    autoUpdater.setFeedURL({
-      provider: 'generic',
-      url: feedURL,
-      useMultipleRangeRequest: false
-    });
-
-    // Add request headers with factory info
-    autoUpdater.requestHeaders = {
-      'X-Factory-Id': license.factoryId,
-      'X-License-Key': license.licenseKey || '',
-      'X-Platform': process.platform
-    };
-
-    console.log(`Update feed configured for factory: ${license.factoryId}`);
-  } else {
-    console.log('No license found, using default update channel');
-  }
-}
+// GitHub releases are configured in electron-builder.json
+// No custom feed URL configuration needed
 
 // Auto-updater event handlers
 autoUpdater.on('checking-for-update', () => {
@@ -108,7 +82,6 @@ autoUpdater.on('error', (error) => {
 // IPC handlers for manual update control
 ipcMain.handle('check-for-updates', async () => {
   if (!isDev) {
-    await configureFeedURL(); // Reconfigure before checking
     return autoUpdater.checkForUpdates();
   }
   return { updateAvailable: false };
@@ -542,9 +515,7 @@ app.whenReady().then(async () => {
 
   // Check for updates on startup (production only)
   if (!isDev) {
-    // Configure feed URL with factory info, then check for updates
-    setTimeout(async () => {
-      await configureFeedURL();
+    setTimeout(() => {
       autoUpdater.checkForUpdates();
     }, 3000);
   }

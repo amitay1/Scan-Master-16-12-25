@@ -136,28 +136,31 @@ if ($ghAvailable) {
     gh release create "v$newVersion" --title "$releaseTitle" --notes "$releaseNotes"
     
     # Upload installer files if they exist
-    $distFolder = "dist-electron"
-    if (Test-Path $distFolder) {
+    $releaseFolder = "release"
+    if (Test-Path $releaseFolder) {
         Write-Info "Uploading installer files to release..."
         
         # Find and upload all installer files
         $installerFiles = @(
-            "$distFolder/*.exe",
-            "$distFolder/*.msi", 
-            "$distFolder/*.dmg",
-            "$distFolder/*.AppImage",
-            "$distFolder/*.deb",
-            "$distFolder/*.rpm",
-            "$distFolder/*.zip",
-            "$distFolder/latest*.yml",
-            "$distFolder/*.blockmap"
+            "$releaseFolder/*.exe",
+            "$releaseFolder/*.msi", 
+            "$releaseFolder/*.dmg",
+            "$releaseFolder/*.AppImage",
+            "$releaseFolder/*.deb",
+            "$releaseFolder/*.rpm",
+            "$releaseFolder/*.zip",
+            "$releaseFolder/latest*.yml",
+            "$releaseFolder/*.blockmap"
         )
         
         foreach ($pattern in $installerFiles) {
             $files = Get-ChildItem -Path $pattern -ErrorAction SilentlyContinue
             foreach ($file in $files) {
-                Write-Info "  Uploading: $($file.Name)"
-                gh release upload "v$newVersion" $file.FullName --clobber
+                # Only upload files for current version
+                if ($file.Name -match $newVersion -or $file.Name -eq "latest.yml") {
+                    Write-Info "  Uploading: $($file.Name)"
+                    gh release upload "v$newVersion" $file.FullName --clobber
+                }
             }
         }
     }
