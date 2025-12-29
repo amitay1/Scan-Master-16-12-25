@@ -1338,13 +1338,13 @@ const Index = () => {
         </div>
 
         {/* Center Panel: Main Form - Full width on mobile */}
-        <div className="flex-1 overflow-auto">
-          <div className="h-full">
-            <div className="p-2 md:p-4">
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <div className="flex-1 flex flex-col">
+            <div className="p-2 md:p-4 flex-shrink-0">
               <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                 {reportMode === "Technique" ? (
                   <>
-                    <div className="w-full overflow-x-auto scrollbar-hide md:overflow-visible">
+                    <div className="w-full overflow-x-auto scrollbar-hide md:overflow-visible sticky top-0 bg-background z-10 pb-2">
                       <TabsList className="inline-flex flex-nowrap h-10 items-center justify-start md:justify-center rounded-md bg-muted p-1 text-muted-foreground w-max md:w-full">
                         <TabsTrigger value="setup" className="flex-shrink-0 px-3 text-xs md:text-sm">Setup</TabsTrigger>
                         <TabsTrigger value="scandetails" className="flex-shrink-0 px-3 text-xs md:text-sm whitespace-nowrap">Scan Details</TabsTrigger>
@@ -1359,7 +1359,7 @@ const Index = () => {
                     </div>
 
                     {/* WebGL Liquid Progress Bar - Below Tabs */}
-                    <div className="mt-3">
+                    <div className="mt-3 sticky top-12 bg-background z-10">
                       <WebGLLiquidProgress
                         value={completionPercent}
                         completedFields={completedFieldsCount}
@@ -1368,11 +1368,40 @@ const Index = () => {
                     </div>
 
                     {/* Current Shape Header - Shows selected part type */}
-                    <div className="mt-3">
+                    <div className="mt-3 sticky top-24 bg-background z-10">
                       <CurrentShapeHeader partType={currentData.inspectionSetup.partType} />
                     </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="w-full overflow-x-auto scrollbar-hide md:overflow-visible sticky top-0 bg-background z-10 pb-2">
+                      <TabsList className="inline-flex flex-nowrap h-10 items-center justify-start md:justify-center rounded-md bg-muted p-1 text-muted-foreground w-max md:w-full">
+                        <TabsTrigger value="cover" className="flex-shrink-0 px-4 text-xs md:text-sm whitespace-nowrap">Cover Page</TabsTrigger>
+                        <TabsTrigger value="diagram" className="flex-shrink-0 px-4 text-xs md:text-sm whitespace-nowrap">Part Diagram</TabsTrigger>
+                        <TabsTrigger value="probe" className="flex-shrink-0 px-4 text-xs md:text-sm whitespace-nowrap">Probe Details</TabsTrigger>
+                        <TabsTrigger value="scans" className="flex-shrink-0 px-4 text-xs md:text-sm">Scans</TabsTrigger>
+                        <TabsTrigger value="remarks" className="flex-shrink-0 px-4 text-xs md:text-sm">Remarks</TabsTrigger>
+                      </TabsList>
+                    </div>
 
-                    <div className="mt-4 app-panel rounded-md">
+                    {/* WebGL Liquid Progress Bar - Below Tabs (Report Mode) */}
+                    <div className="mt-3 sticky top-12 bg-background z-10">
+                      <WebGLLiquidProgress
+                        value={completionPercent}
+                        completedFields={completedFieldsCount}
+                        totalFields={reportMode === "Technique" ? 50 : 40}
+                      />
+                    </div>
+                  </>
+                )}
+              </Tabs>
+            </div>
+
+            <div className="flex-1 overflow-auto px-2 md:px-4 pb-4">
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                {reportMode === "Technique" ? (
+                  <>
+                    <div className="app-panel rounded-md">
                       <TabsContent value="setup" className="m-0">
                         <InspectionSetupTab 
                           data={currentData.inspectionSetup} 
@@ -1490,26 +1519,7 @@ const Index = () => {
                   </>
                 ) : (
                   <>
-                    <div className="w-full overflow-x-auto scrollbar-hide md:overflow-visible">
-                      <TabsList className="inline-flex flex-nowrap h-10 items-center justify-start md:justify-center rounded-md bg-muted p-1 text-muted-foreground w-max md:w-full">
-                        <TabsTrigger value="cover" className="flex-shrink-0 px-4 text-xs md:text-sm whitespace-nowrap">Cover Page</TabsTrigger>
-                        <TabsTrigger value="diagram" className="flex-shrink-0 px-4 text-xs md:text-sm whitespace-nowrap">Part Diagram</TabsTrigger>
-                        <TabsTrigger value="probe" className="flex-shrink-0 px-4 text-xs md:text-sm whitespace-nowrap">Probe Details</TabsTrigger>
-                        <TabsTrigger value="scans" className="flex-shrink-0 px-4 text-xs md:text-sm">Scans</TabsTrigger>
-                        <TabsTrigger value="remarks" className="flex-shrink-0 px-4 text-xs md:text-sm">Remarks</TabsTrigger>
-                      </TabsList>
-                    </div>
-
-                    {/* WebGL Liquid Progress Bar - Below Tabs (Report Mode) */}
-                    <div className="mt-3">
-                      <WebGLLiquidProgress
-                        value={completionPercent}
-                        completedFields={completedFieldsCount}
-                        totalFields={reportMode === "Technique" ? 50 : 40}
-                      />
-                    </div>
-
-                    <div className="mt-4 app-panel rounded-md">
+                    <div className="app-panel rounded-md">
                       <TabsContent value="cover" className="m-0">
                         <CoverPageTab 
                           data={inspectionReport} 
