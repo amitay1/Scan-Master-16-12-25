@@ -61,7 +61,7 @@
     "allowToChangeInstallationDirectory": false,
     "createDesktopShortcut": true,
     "createStartMenuShortcut": true,
-    "differentialPackage": true
+    "differentialPackage": false
   },
   "portable": {
     "artifactName": "${productName}-Portable-${version}.${ext}"
