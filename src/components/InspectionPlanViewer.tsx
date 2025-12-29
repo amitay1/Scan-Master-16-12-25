@@ -464,14 +464,33 @@ function drawTubeCrossSection(
   bodyGradient.addColorStop(0.7, '#cbd5e1');
   bodyGradient.addColorStop(1, '#94a3b8');
 
-  // Draw outer cylinder body
+  // ═══════════════════════════════════════════════════════════════════
+  // SPLIT TUBE - Draw upper and lower parts with GAP for better visibility
+  // ═══════════════════════════════════════════════════════════════════
+  const gapSize = 15; // Gap between upper and lower parts for clarity
+
+  // UPPER PART (top half minus gap)
   ctx.fillStyle = bodyGradient;
   ctx.beginPath();
   ctx.moveTo(cx, cy - outerRadius);
   ctx.lineTo(backX, backY - outerRadius);
-  ctx.ellipse(backX, backY, outerRadius * 0.45, outerRadius, 0, -Math.PI/2, Math.PI/2, true);
+  ctx.ellipse(backX, backY, outerRadius * 0.45, outerRadius, 0, -Math.PI/2, 0);
+  ctx.lineTo(backX, backY - gapSize/2);
+  ctx.lineTo(cx, cy - gapSize/2);
+  ctx.lineTo(cx, cy - outerRadius);
+  ctx.closePath();
+  ctx.fill();
+
+  // LOWER PART (bottom half minus gap)
+  ctx.beginPath();
+  ctx.moveTo(cx, cy + gapSize/2);
+  ctx.lineTo(backX, backY + gapSize/2);
+  ctx.lineTo(backX, backY + outerRadius);
+  ctx.ellipse(backX, backY, outerRadius * 0.45, outerRadius, 0, Math.PI/2, 0, true);
+  ctx.lineTo(backX, backY + gapSize/2);
+  ctx.lineTo(cx, cy + gapSize/2);
   ctx.lineTo(cx, cy + outerRadius);
-  ctx.arc(cx, cy, outerRadius, Math.PI/2, -Math.PI/2, true);
+  ctx.arc(cx, cy, outerRadius, Math.PI/2, 0, true);
   ctx.closePath();
   ctx.fill();
 
@@ -479,11 +498,25 @@ function drawTubeCrossSection(
   ctx.strokeStyle = '#1a1a2e';
   ctx.lineWidth = 2.5;
 
+  // Upper edge
   ctx.beginPath();
   ctx.moveTo(cx, cy - outerRadius);
   ctx.lineTo(backX, backY - outerRadius);
   ctx.stroke();
 
+  // Upper gap edge
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - gapSize/2);
+  ctx.lineTo(backX, backY - gapSize/2);
+  ctx.stroke();
+
+  // Lower gap edge
+  ctx.beginPath();
+  ctx.moveTo(cx, cy + gapSize/2);
+  ctx.lineTo(backX, backY + gapSize/2);
+  ctx.stroke();
+
+  // Lower edge
   ctx.beginPath();
   ctx.moveTo(cx, cy + outerRadius);
   ctx.lineTo(backX, backY + outerRadius);
@@ -616,8 +649,9 @@ function drawRAFAEL_ScanDirectionSymbol(
   size: number = 12
 ) {
   ctx.save();
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 2.5;
+  // Enhanced scan direction symbol with stronger colors and thicker lines
+  ctx.strokeStyle = '#0f172a';  // Darker, more prominent color
+  ctx.lineWidth = 3.5;  // Thicker lines for better visibility
   // Outlined square only - NOT filled per RAFAEL 5036
   ctx.strokeRect(x - size/2, y - size/2, size, size);
   ctx.restore();
@@ -636,12 +670,13 @@ function drawRAFAEL_StraightBeamSymbol(
   length: number = 40
 ) {
   ctx.save();
-  ctx.strokeStyle = '#1e293b';
-  ctx.fillStyle = '#1e293b';
-  ctx.lineWidth = 2.5;
+  // Enhanced arrow with stronger colors and thicker lines
+  ctx.strokeStyle = '#0f172a';  // Darker, more prominent color
+  ctx.fillStyle = '#0f172a';
+  ctx.lineWidth = 3.5;  // Thicker lines for better visibility
 
-  const headSize = 10;
-  const tailWidth = 14;
+  const headSize = 14;  // Larger arrowhead
+  const tailWidth = 20;  // Wider tail bar
 
   // Calculate end point based on direction
   let endX = x, endY = y;
@@ -720,8 +755,9 @@ function drawRAFAEL_AngleBeamSymbol(
   size: number = 16
 ) {
   ctx.save();
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 2.5;
+  // Enhanced angle beam with stronger colors and thicker lines
+  ctx.strokeStyle = '#0f172a';  // Darker, more prominent color
+  ctx.lineWidth = 3.5;  // Thicker lines for better visibility
 
   ctx.beginPath();
   switch (direction) {
@@ -896,58 +932,58 @@ function getScanDirectionPosition(
       switch (direction.toUpperCase()) {
         case 'A': // E2375 Fig.6: Primary - from top through thickness
           return {
-            x: centerX + 40, y: centerY - plateH - 30,
-            symbolX: centerX + 40, symbolY: centerY - plateH - 50,
-            labelX: centerX + 65, labelY: centerY - plateH - 35,
+            x: centerX + 50, y: centerY - plateH - 35,  // Increased spacing
+            symbolX: centerX + 50, symbolY: centerY - plateH - 55,
+            labelX: centerX + 80, labelY: centerY - plateH - 40,
             arrowDirection: 'down', isAngleBeam: false
           };
         case 'A₁': // Dual Element - Near-surface 0-20mm from top
           return {
-            x: centerX - 40, y: centerY - plateH - 30,
-            symbolX: centerX - 40, symbolY: centerY - plateH - 50,
-            labelX: centerX - 65, labelY: centerY - plateH - 35,
+            x: centerX - 50, y: centerY - plateH - 35,  // Increased spacing
+            symbolX: centerX - 50, symbolY: centerY - plateH - 55,
+            labelX: centerX - 80, labelY: centerY - plateH - 40,
             arrowDirection: 'down', isAngleBeam: false
           };
         case 'B': // E2375 Fig.6: Secondary - from adjacent side (required if W/T<5)
           return {
-            x: centerX - plateW - 30, y: centerY - 40,
-            symbolX: centerX - plateW - 50, symbolY: centerY - 40,
-            labelX: centerX - plateW - 45, labelY: centerY - 60,
+            x: centerX - plateW - 35, y: centerY - 50,  // Increased spacing
+            symbolX: centerX - plateW - 55, symbolY: centerY - 50,
+            labelX: centerX - plateW - 60, labelY: centerY - 70,
             arrowDirection: 'right', isAngleBeam: false
           };
         case 'B₁': // Dual Element - Near-surface 0-20mm from side
           return {
-            x: centerX - plateW - 30, y: centerY + 40,
-            symbolX: centerX - plateW - 50, symbolY: centerY + 40,
-            labelX: centerX - plateW - 45, labelY: centerY + 20,
+            x: centerX - plateW - 35, y: centerY + 50,  // Increased spacing
+            symbolX: centerX - plateW - 55, symbolY: centerY + 50,
+            labelX: centerX - plateW - 60, labelY: centerY + 30,
             arrowDirection: 'right', isAngleBeam: false
           };
         case 'C': // Opposite side (required if >9 inches)
           return {
-            x: centerX + 40, y: centerY + plateH + 30,
-            symbolX: centerX + 40, symbolY: centerY + plateH + 50,
-            labelX: centerX + 65, labelY: centerY + plateH + 45,
+            x: centerX + 50, y: centerY + plateH + 35,  // Increased spacing
+            symbolX: centerX + 50, symbolY: centerY + plateH + 55,
+            labelX: centerX + 80, labelY: centerY + plateH + 50,
             arrowDirection: 'up', isAngleBeam: false
           };
         case 'C₁': // Dual Element - Near-surface 0-20mm from opposite/third face
           return {
-            x: centerX - 40, y: centerY + plateH + 30,
-            symbolX: centerX - 40, symbolY: centerY + plateH + 50,
-            labelX: centerX - 65, labelY: centerY + plateH + 45,
+            x: centerX - 50, y: centerY + plateH + 35,  // Increased spacing
+            symbolX: centerX - 50, symbolY: centerY + plateH + 55,
+            labelX: centerX - 80, labelY: centerY + plateH + 50,
             arrowDirection: 'up', isAngleBeam: false
           };
         case 'J': // E2375 A1.3.4: SW 60° for thin sections (<1 inch)
           return {
-            x: centerX + plateW * 0.5, y: centerY - plateH - 25,
-            symbolX: centerX + plateW * 0.5, symbolY: centerY - plateH - 25,
-            labelX: centerX + plateW * 0.5 + 20, labelY: centerY - plateH - 40,
+            x: centerX + plateW * 0.5, y: centerY - plateH - 30,  // Adjusted spacing
+            symbolX: centerX + plateW * 0.5, symbolY: centerY - plateH - 30,
+            labelX: centerX + plateW * 0.5 + 25, labelY: centerY - plateH - 50,
             arrowDirection: 'down', isAngleBeam: true
           };
         case 'K': // E2375 A1.3.4: SW 45° for thick sections (>1 inch)
           return {
-            x: centerX - plateW * 0.5, y: centerY - plateH - 25,
-            symbolX: centerX - plateW * 0.5, symbolY: centerY - plateH - 25,
-            labelX: centerX - plateW * 0.5 - 20, labelY: centerY - plateH - 40,
+            x: centerX - plateW * 0.5, y: centerY - plateH - 30,  // Adjusted spacing
+            symbolX: centerX - plateW * 0.5, symbolY: centerY - plateH - 30,
+            labelX: centerX - plateW * 0.5 - 25, labelY: centerY - plateH - 50,
             arrowDirection: 'down', isAngleBeam: true
           };
         case 'I': // Through-Transmission
@@ -1057,72 +1093,72 @@ function getScanDirectionPosition(
       switch (direction.toUpperCase()) {
         case 'A': // Straight beam from top (on side view)
           return {
-            x: sideViewX + 30, y: centerY - tubeRadius - 35,
-            symbolX: sideViewX + 30, symbolY: centerY - tubeRadius - 55,
-            labelX: sideViewX + 60, labelY: centerY - tubeRadius - 40,
+            x: sideViewX + 45, y: centerY - tubeRadius - 40,  // Moved right & up to avoid A₁
+            symbolX: sideViewX + 45, symbolY: centerY - tubeRadius - 60,
+            labelX: sideViewX + 75, labelY: centerY - tubeRadius - 45,
             arrowDirection: 'down', isAngleBeam: false
           };
         case 'A₁': // Dual Element - Near-surface 0-20mm from top
           return {
-            x: sideViewX - 30, y: centerY - tubeRadius - 35,
-            symbolX: sideViewX - 30, symbolY: centerY - tubeRadius - 55,
-            labelX: sideViewX - 60, labelY: centerY - tubeRadius - 40,
+            x: sideViewX - 45, y: centerY - tubeRadius - 40,  // Moved left & up to avoid A
+            symbolX: sideViewX - 45, symbolY: centerY - tubeRadius - 60,
+            labelX: sideViewX - 75, labelY: centerY - tubeRadius - 45,
             arrowDirection: 'down', isAngleBeam: false
           };
         case 'B': // Straight beam from left end (on side view)
           return {
-            x: sideViewX - sideWidth / 2 - 35, y: centerY - 30,
-            symbolX: sideViewX - sideWidth / 2 - 55, symbolY: centerY - 30,
-            labelX: sideViewX - sideWidth / 2 - 60, labelY: centerY - 50,
+            x: sideViewX - sideWidth / 2 - 40, y: centerY - 45,  // Moved up to avoid B₁
+            symbolX: sideViewX - sideWidth / 2 - 60, symbolY: centerY - 45,
+            labelX: sideViewX - sideWidth / 2 - 70, labelY: centerY - 65,
             arrowDirection: 'right', isAngleBeam: false
           };
         case 'B₁': // Dual Element - Near-surface 0-20mm from left end
           return {
-            x: sideViewX - sideWidth / 2 - 35, y: centerY + 30,
-            symbolX: sideViewX - sideWidth / 2 - 55, symbolY: centerY + 30,
-            labelX: sideViewX - sideWidth / 2 - 60, labelY: centerY + 10,
+            x: sideViewX - sideWidth / 2 - 40, y: centerY + 45,  // Moved down to avoid B
+            symbolX: sideViewX - sideWidth / 2 - 60, symbolY: centerY + 45,
+            labelX: sideViewX - sideWidth / 2 - 70, labelY: centerY + 25,
             arrowDirection: 'right', isAngleBeam: false
           };
         case 'C': // Straight beam from right end (on side view)
           return {
-            x: sideViewX + sideWidth / 2 + 35, y: centerY - 30,
-            symbolX: sideViewX + sideWidth / 2 + 55, symbolY: centerY - 30,
-            labelX: sideViewX + sideWidth / 2 + 60, labelY: centerY - 50,
+            x: sideViewX + sideWidth / 2 + 40, y: centerY - 45,  // Moved up to avoid C₁
+            symbolX: sideViewX + sideWidth / 2 + 60, symbolY: centerY - 45,
+            labelX: sideViewX + sideWidth / 2 + 70, labelY: centerY - 65,
             arrowDirection: 'left', isAngleBeam: false
           };
         case 'C₁': // Dual Element - Near-surface 0-20mm from right end
           return {
-            x: sideViewX + sideWidth / 2 + 35, y: centerY + 30,
-            symbolX: sideViewX + sideWidth / 2 + 55, symbolY: centerY + 30,
-            labelX: sideViewX + sideWidth / 2 + 60, labelY: centerY + 10,
+            x: sideViewX + sideWidth / 2 + 40, y: centerY + 45,  // Moved down to avoid C
+            symbolX: sideViewX + sideWidth / 2 + 60, symbolY: centerY + 45,
+            labelX: sideViewX + sideWidth / 2 + 70, labelY: centerY + 25,
             arrowDirection: 'left', isAngleBeam: false
           };
         case 'D': // Angle beam from top (on side view - left side)
           return {
-            x: sideViewX - 25, y: centerY - tubeRadius - 25,
-            symbolX: sideViewX - 25, symbolY: centerY - tubeRadius - 45,
-            labelX: sideViewX - 5, labelY: centerY - tubeRadius - 40,
+            x: sideViewX - 40, y: centerY - tubeRadius - 30,  // Adjusted to avoid A₁
+            symbolX: sideViewX - 40, symbolY: centerY - tubeRadius - 30,
+            labelX: sideViewX - 20, labelY: centerY - tubeRadius - 55,
             arrowDirection: 'down', isAngleBeam: true
           };
         case 'E': // Angle beam from top (on side view - right side)
           return {
-            x: sideViewX + 25, y: centerY - tubeRadius - 25,
-            symbolX: sideViewX + 25, symbolY: centerY - tubeRadius - 45,
-            labelX: sideViewX + 45, labelY: centerY - tubeRadius - 40,
+            x: sideViewX + 40, y: centerY - tubeRadius - 30,  // Adjusted to avoid A
+            symbolX: sideViewX + 40, symbolY: centerY - tubeRadius - 30,
+            labelX: sideViewX + 60, labelY: centerY - tubeRadius - 55,
             arrowDirection: 'down', isAngleBeam: true
           };
         case 'F': // Axial shear direction 1 (on front view)
           return {
-            x: frontViewX + tubeRadius + 35, y: centerY - tubeRadius * 0.4,
-            symbolX: frontViewX + tubeRadius + 55, symbolY: centerY - tubeRadius * 0.4,
-            labelX: frontViewX + tubeRadius + 60, labelY: centerY - tubeRadius * 0.4 - 15,
+            x: frontViewX + tubeRadius + 40, y: centerY - tubeRadius * 0.5,  // Increased spacing
+            symbolX: frontViewX + tubeRadius + 60, symbolY: centerY - tubeRadius * 0.5,
+            labelX: frontViewX + tubeRadius + 70, labelY: centerY - tubeRadius * 0.5 - 20,
             arrowDirection: 'left', isAngleBeam: true
           };
         case 'G': // Axial shear direction 2 (on front view)
           return {
-            x: frontViewX + tubeRadius + 35, y: centerY + tubeRadius * 0.4,
-            symbolX: frontViewX + tubeRadius + 55, symbolY: centerY + tubeRadius * 0.4,
-            labelX: frontViewX + tubeRadius + 60, labelY: centerY + tubeRadius * 0.4 + 15,
+            x: frontViewX + tubeRadius + 40, y: centerY + tubeRadius * 0.5,  // Increased spacing
+            symbolX: frontViewX + tubeRadius + 60, symbolY: centerY + tubeRadius * 0.5,
+            labelX: frontViewX + tubeRadius + 70, labelY: centerY + tubeRadius * 0.5 + 20,
             arrowDirection: 'left', isAngleBeam: true
           };
         case 'H': // From ID (on front view center)
@@ -1152,72 +1188,72 @@ function getScanDirectionPosition(
       switch (direction.toUpperCase()) {
         case 'A': // Straight beam from top (on side view)
           return {
-            x: sideViewX + 20, y: centerY - ringRadius - 35,
-            symbolX: sideViewX + 20, symbolY: centerY - ringRadius - 55,
-            labelX: sideViewX + 50, labelY: centerY - ringRadius - 40,
+            x: sideViewX + 35, y: centerY - ringRadius - 40,  // Increased spacing
+            symbolX: sideViewX + 35, symbolY: centerY - ringRadius - 60,
+            labelX: sideViewX + 65, labelY: centerY - ringRadius - 45,
             arrowDirection: 'down', isAngleBeam: false
           };
         case 'A₁': // Dual Element - Near-surface 0-20mm from top
           return {
-            x: sideViewX - 20, y: centerY - ringRadius - 35,
-            symbolX: sideViewX - 20, symbolY: centerY - ringRadius - 55,
-            labelX: sideViewX - 50, labelY: centerY - ringRadius - 40,
+            x: sideViewX - 35, y: centerY - ringRadius - 40,  // Increased spacing
+            symbolX: sideViewX - 35, symbolY: centerY - ringRadius - 60,
+            labelX: sideViewX - 65, labelY: centerY - ringRadius - 45,
             arrowDirection: 'down', isAngleBeam: false
           };
         case 'B': // Straight beam from side (on side view - left)
           return {
-            x: sideViewX - sideWidth - 35, y: centerY - 20,
-            symbolX: sideViewX - sideWidth - 55, symbolY: centerY - 20,
-            labelX: sideViewX - sideWidth - 60, labelY: centerY - 40,
+            x: sideViewX - sideWidth - 40, y: centerY - 40,  // Increased spacing
+            symbolX: sideViewX - sideWidth - 60, symbolY: centerY - 40,
+            labelX: sideViewX - sideWidth - 70, labelY: centerY - 60,
             arrowDirection: 'right', isAngleBeam: false
           };
         case 'B₁': // Dual Element - Near-surface 0-20mm from left side
           return {
-            x: sideViewX - sideWidth - 35, y: centerY + 20,
-            symbolX: sideViewX - sideWidth - 55, symbolY: centerY + 20,
-            labelX: sideViewX - sideWidth - 60, labelY: centerY,
+            x: sideViewX - sideWidth - 40, y: centerY + 40,  // Increased spacing
+            symbolX: sideViewX - sideWidth - 60, symbolY: centerY + 40,
+            labelX: sideViewX - sideWidth - 70, labelY: centerY + 20,
             arrowDirection: 'right', isAngleBeam: false
           };
         case 'C': // Straight beam from side (on side view - right)
           return {
-            x: sideViewX + sideWidth + 35, y: centerY - 20,
-            symbolX: sideViewX + sideWidth + 55, symbolY: centerY - 20,
-            labelX: sideViewX + sideWidth + 60, labelY: centerY - 40,
+            x: sideViewX + sideWidth + 40, y: centerY - 40,  // Increased spacing
+            symbolX: sideViewX + sideWidth + 60, symbolY: centerY - 40,
+            labelX: sideViewX + sideWidth + 70, labelY: centerY - 60,
             arrowDirection: 'left', isAngleBeam: false
           };
         case 'C₁': // Dual Element - Near-surface 0-20mm from right side
           return {
-            x: sideViewX + sideWidth + 35, y: centerY + 20,
-            symbolX: sideViewX + sideWidth + 55, symbolY: centerY + 20,
-            labelX: sideViewX + sideWidth + 60, labelY: centerY,
+            x: sideViewX + sideWidth + 40, y: centerY + 40,  // Increased spacing
+            symbolX: sideViewX + sideWidth + 60, symbolY: centerY + 40,
+            labelX: sideViewX + sideWidth + 70, labelY: centerY + 20,
             arrowDirection: 'left', isAngleBeam: false
           };
         case 'D': // Angle beam from top (on side view - left)
           return {
-            x: sideViewX - 15, y: centerY - ringRadius - 25,
-            symbolX: sideViewX - 15, symbolY: centerY - ringRadius - 45,
-            labelX: sideViewX + 5, labelY: centerY - ringRadius - 40,
+            x: sideViewX - 30, y: centerY - ringRadius - 30,  // Adjusted spacing
+            symbolX: sideViewX - 30, symbolY: centerY - ringRadius - 30,
+            labelX: sideViewX - 10, labelY: centerY - ringRadius - 55,
             arrowDirection: 'down', isAngleBeam: true
           };
         case 'E': // Angle beam from top (on side view - right)
           return {
-            x: sideViewX + 15, y: centerY - ringRadius - 25,
-            symbolX: sideViewX + 15, symbolY: centerY - ringRadius - 45,
-            labelX: sideViewX + 35, labelY: centerY - ringRadius - 40,
+            x: sideViewX + 30, y: centerY - ringRadius - 30,  // Adjusted spacing
+            symbolX: sideViewX + 30, symbolY: centerY - ringRadius - 30,
+            labelX: sideViewX + 50, labelY: centerY - ringRadius - 55,
             arrowDirection: 'down', isAngleBeam: true
           };
         case 'F': // Axial shear direction 1 (on front view)
           return {
-            x: frontViewX + ringRadius + 35, y: centerY - ringRadius * 0.4,
-            symbolX: frontViewX + ringRadius + 55, symbolY: centerY - ringRadius * 0.4,
-            labelX: frontViewX + ringRadius + 60, labelY: centerY - ringRadius * 0.4 - 15,
+            x: frontViewX + ringRadius + 40, y: centerY - ringRadius * 0.5,  // Increased spacing
+            symbolX: frontViewX + ringRadius + 60, symbolY: centerY - ringRadius * 0.5,
+            labelX: frontViewX + ringRadius + 70, labelY: centerY - ringRadius * 0.5 - 20,
             arrowDirection: 'left', isAngleBeam: true
           };
         case 'G': // Axial shear direction 2 (on front view)
           return {
-            x: frontViewX + ringRadius + 35, y: centerY + ringRadius * 0.4,
-            symbolX: frontViewX + ringRadius + 55, symbolY: centerY + ringRadius * 0.4,
-            labelX: frontViewX + ringRadius + 60, labelY: centerY + ringRadius * 0.4 + 15,
+            x: frontViewX + ringRadius + 40, y: centerY + ringRadius * 0.5,  // Increased spacing
+            symbolX: frontViewX + ringRadius + 60, symbolY: centerY + ringRadius * 0.5,
+            labelX: frontViewX + ringRadius + 70, labelY: centerY + ringRadius * 0.5 + 20,
             arrowDirection: 'left', isAngleBeam: true
           };
         case 'H': // From ID (on front view center)

@@ -6,7 +6,7 @@
                    "email":  "amitay1@gmail.com"
                },
     "private":  true,
-    "version":  "1.0.24",
+    "version":  "1.0.25",
     "type":  "module",
     "scripts":  {
                     "dev":  "tsx watch --clear-screen=false --ignore \u0027**/*.timestamp-*.mjs\u0027 server/index.ts",
@@ -15,8 +15,8 @@
                     "db:push":  "drizzle-kit push",
                     "lint":  "eslint .",
                     "preview":  "vite preview",
-                    "electron":  "electron electron/main.cjs",
-                    "electron:dev":  "NODE_ENV=development electron electron/main.cjs",
+                    "electron":  "electron electron/main.js",
+                    "electron:dev":  "NODE_ENV=development electron electron/main.js",
                     "electron:build":  "npm run build \u0026\u0026 electron-builder",
                     "dist:win":  "npm run build \u0026\u0026 electron-builder --win",
                     "dist:mac":  "npm run build \u0026\u0026 electron-builder --mac",
@@ -28,7 +28,7 @@
                     "license:verify":  "node scripts/license-generator.js --verify",
                     "license:examples":  "node scripts/example-licenses.bat"
                 },
-    "main":  "electron/main.cjs",
+    "main":  "electron/main.js",
     "dependencies":  {
                          "@hookform/resolvers":  "^3.10.0",
                          "@jscad/modeling":  "^2.12.6",
@@ -143,5 +143,45 @@
                             "typescript":  "^5.8.3",
                             "typescript-eslint":  "^8.38.0",
                             "vite":  "^7.0.5"
-                        }
+                        },
+    "build":  {
+                  "appId":  "com.scanmaster.inspection-pro",
+                  "productName":  "Scan Master Inspection Pro",
+                  "directories":  {
+                                      "output":  "release"
+                                  },
+                  "files":  [
+                                "dist/**/*",
+                                "electron/**/*",
+                                "server/**/*",
+                                "shared/**/*",
+                                "public/**/*",
+                                "package.json",
+                                "node_modules/**/*"
+                            ],
+                  "publish":  {
+                                  "provider":  "github",
+                                  "owner":  "amitay1",
+                                  "repo":  "scan-master"
+                              },
+                  "win":  {
+                              "target":  [
+                                             "nsis"
+                                         ],
+                              "icon":  "public/favicon.ico"
+                          },
+                  "mac":  {
+                              "target":  "dmg",
+                              "icon":  "public/favicon.ico",
+                              "category":  "public.app-category.productivity"
+                          },
+                  "linux":  {
+                                "target":  [
+                                               "AppImage",
+                                               "deb"
+                                           ],
+                                "icon":  "public/favicon.ico",
+                                "category":  "Utility"
+                            }
+              }
 }

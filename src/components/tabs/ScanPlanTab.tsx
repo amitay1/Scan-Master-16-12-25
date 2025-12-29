@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Document, Page, pdfjs } from "react-pdf";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -8,17 +7,10 @@ import {
   FileText,
   ExternalLink,
   ChevronRight,
-  ZoomIn,
-  ZoomOut,
   Download,
-  Maximize2
+  Maximize2,
+  RefreshCw
 } from "lucide-react";
-
-// Configure PDF.js worker - use the version that comes with react-pdf
-pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-  'pdfjs-dist/build/pdf.worker.min.mjs',
-  import.meta.url,
-).toString();
 
 interface ScanPlanTabProps {
   data: ScanPlanData;
@@ -29,28 +21,12 @@ export const ScanPlanTab = ({ data, onChange }: ScanPlanTabProps) => {
   const [selectedDocument, setSelectedDocument] = useState<ScanPlanDocument | null>(
     data.documents.length > 0 ? data.documents[0] : null
   );
-  const [numPages, setNumPages] = useState<number>(0);
-  const [pageNumber, setPageNumber] = useState<number>(1);
-  const [scale, setScale] = useState<number>(1.0);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
-
-  const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
-    setNumPages(numPages);
-    setPageNumber(1);
-  };
+  const [key, setKey] = useState<number>(0); // For forcing iframe reload
 
   const handleDocumentSelect = (doc: ScanPlanDocument) => {
     setSelectedDocument(doc);
-    setPageNumber(1);
-    setScale(1.0);
-  };
-
-  const handleZoomIn = () => {
-    setScale(prev => Math.min(prev + 0.2, 3.0));
-  };
-
-  const handleZoomOut = () => {
-    setScale(prev => Math.max(prev - 0.2, 0.5));
+    setKey(prev => prev + 1); // Force reload
   };
 
   const handleDownload = () => {
@@ -70,6 +46,10 @@ export const ScanPlanTab = ({ data, onChange }: ScanPlanTabProps) => {
 
   const toggleFullscreen = () => {
     setIsFullscreen(!isFullscreen);
+  };
+
+  const handleRefresh = () => {
+    setKey(prev => prev + 1);
   };
 
   // Filter only active documents and sort by order
@@ -152,64 +132,22 @@ export const ScanPlanTab = ({ data, onChange }: ScanPlanTabProps) => {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  {/* Zoom Controls */}
-                  <div className="flex items-center gap-1 border rounded-md">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleZoomOut}
-                      disabled={scale <= 0.5}
-                      className="h-8"
-                    >
-                      <ZoomOut className="h-4 w-4" />
-                    </Button>
-                    <span className="text-xs px-2 min-w-[4rem] text-center">
-                      {Math.round(scale * 100)}%
-                    </span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleZoomIn}
-                      disabled={scale >= 3.0}
-                      className="h-8"
-                    >
-                      <ZoomIn className="h-4 w-4" />
-                    </Button>
-                  </div>
-
-                  {/* Page Navigation */}
-                  {numPages > 0 && (
-                    <div className="flex items-center gap-1 border rounded-md">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setPageNumber(prev => Math.max(prev - 1, 1))}
-                        disabled={pageNumber <= 1}
-                        className="h-8"
-                      >
-                        Prev
-                      </Button>
-                      <span className="text-xs px-3">
-                        {pageNumber} / {numPages}
-                      </span>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setPageNumber(prev => Math.min(prev + 1, numPages))}
-                        disabled={pageNumber >= numPages}
-                        className="h-8"
-                      >
-                        Next
-                      </Button>
-                    </div>
-                  )}
-
                   {/* Action Buttons */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleRefresh}
+                    className="h-8"
+                    title="Refresh document"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                  </Button>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={toggleFullscreen}
                     className="h-8"
+                    title="Toggle fullscreen"
                   >
                     <Maximize2 className="h-4 w-4" />
                   </Button>
@@ -218,6 +156,7 @@ export const ScanPlanTab = ({ data, onChange }: ScanPlanTabProps) => {
                     size="sm"
                     onClick={handleDownload}
                     className="h-8"
+                    title="Download PDF"
                   >
                     <Download className="h-4 w-4" />
                   </Button>
@@ -226,6 +165,7 @@ export const ScanPlanTab = ({ data, onChange }: ScanPlanTabProps) => {
                     size="sm"
                     onClick={handleOpenExternal}
                     className="h-8"
+                    title="Open in new tab"
                   >
                     <ExternalLink className="h-4 w-4" />
                   </Button>
@@ -233,47 +173,21 @@ export const ScanPlanTab = ({ data, onChange }: ScanPlanTabProps) => {
               </div>
             </Card>
 
-            {/* PDF Viewer */}
+            {/* PDF Viewer using iframe */}
             <Card
               className={`flex-1 overflow-hidden ${
                 isFullscreen ? "fixed inset-4 z-50" : ""
               }`}
             >
-              <ScrollArea className="h-full">
-                <div className="flex justify-center p-4 bg-muted/30 min-h-full">
-                  <Document
-                    file={selectedDocument.filePath}
-                    onLoadSuccess={onDocumentLoadSuccess}
-                    loading={
-                      <div className="flex items-center justify-center h-96">
-                        <div className="text-center">
-                          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-                          <p className="text-sm text-muted-foreground">Loading document...</p>
-                        </div>
-                      </div>
-                    }
-                    error={
-                      <div className="flex items-center justify-center h-96">
-                        <div className="text-center">
-                          <FileText className="h-12 w-12 mx-auto mb-4 text-destructive opacity-50" />
-                          <p className="text-sm text-destructive font-medium">Failed to load document</p>
-                          <p className="text-xs text-muted-foreground mt-2">
-                            Please check if the file exists and is a valid PDF
-                          </p>
-                        </div>
-                      </div>
-                    }
-                  >
-                    <Page
-                      pageNumber={pageNumber}
-                      scale={scale}
-                      className="shadow-lg"
-                      renderTextLayer={false}
-                      renderAnnotationLayer={false}
-                    />
-                  </Document>
-                </div>
-              </ScrollArea>
+              <div className="h-full w-full bg-muted/10">
+                <iframe
+                  key={key}
+                  src={selectedDocument.filePath}
+                  className="w-full h-full border-0"
+                  title={selectedDocument.title}
+                  style={{ minHeight: '600px' }}
+                />
+              </div>
             </Card>
           </>
         ) : (

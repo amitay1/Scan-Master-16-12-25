@@ -10,7 +10,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.send(channel, data);
     }
   },
-  
+
   // Receive messages from main process
   on: (channel, callback) => {
     const validChannels = ['new-sheet', 'export-pdf', 'file-saved', 'file-opened'];
@@ -18,7 +18,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.on(channel, (event, ...args) => callback(...args));
     }
   },
-  
+
   // Remove listeners
   removeAllListeners: (channel) => {
     const validChannels = ['new-sheet', 'export-pdf', 'file-saved', 'file-opened'];
@@ -26,10 +26,32 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.removeAllListeners(channel);
     }
   },
-  
+
   // Platform information
   platform: process.platform,
-  
+
   // App version
   version: require('../package.json').version
+});
+
+// Expose update-related API separately as 'electron' to match UpdateNotification component
+contextBridge.exposeInMainWorld('electron', {
+  // Get app version
+  getAppVersion: () => ipcRenderer.invoke('get-app-version'),
+
+  // Check for updates
+  checkForUpdates: () => ipcRenderer.send('check-for-updates'),
+
+  // Install update
+  installUpdate: () => ipcRenderer.send('install-update'),
+
+  // Listen for update status
+  onUpdateStatus: (callback) => {
+    ipcRenderer.on('update-status', callback);
+  },
+
+  // Remove update listener
+  removeUpdateListener: (callback) => {
+    ipcRenderer.removeListener('update-status', callback);
+  }
 });
