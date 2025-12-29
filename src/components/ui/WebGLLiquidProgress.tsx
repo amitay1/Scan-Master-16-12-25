@@ -1,5 +1,5 @@
-import { useRef, useMemo } from 'react';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { useRef, useMemo, useEffect } from 'react';
+import { Canvas, useFrame, useThree, invalidate } from '@react-three/fiber';
 import * as THREE from 'three';
 
 // Vertex Shader
@@ -161,7 +161,7 @@ interface LiquidMeshProps {
 
 function LiquidMesh({ progress }: LiquidMeshProps) {
   const meshRef = useRef<THREE.Mesh>(null);
-  const { viewport } = useThree();
+  const { viewport, invalidate: invalidateFrame } = useThree();
 
   const uniforms = useMemo(
     () => ({
@@ -171,11 +171,20 @@ function LiquidMesh({ progress }: LiquidMeshProps) {
     []
   );
 
+  // Request a single render when progress changes
+  useEffect(() => {
+    invalidateFrame();
+  }, [progress, invalidateFrame]);
+
   useFrame((state) => {
     if (meshRef.current) {
       const material = meshRef.current.material as THREE.ShaderMaterial;
       material.uniforms.uTime.value = state.clock.elapsedTime;
       material.uniforms.uProgress.value = progress / 100;
+      // Only request next frame if progress is actively changing (0 < progress < 100)
+      if (progress > 0 && progress < 100) {
+        invalidateFrame();
+      }
     }
   });
 
@@ -195,7 +204,12 @@ function LiquidMesh({ progress }: LiquidMeshProps) {
 // Clean, visible probe marker
 function ProbeMarker({ progress }: { progress: number }) {
   const groupRef = useRef<THREE.Group>(null);
-  const { viewport } = useThree();
+  const { viewport, invalidate: invalidateFrame } = useThree();
+
+  // Request render when progress changes
+  useEffect(() => {
+    invalidateFrame();
+  }, [progress, invalidateFrame]);
 
   useFrame(() => {
     if (groupRef.current) {
@@ -308,8 +322,9 @@ export const WebGLLiquidProgress = ({
 
           <Canvas
             camera={{ position: [0, 0, 0.7], fov: 50 }}
-            gl={{ antialias: true, alpha: true }}
-            dpr={[1, 2]}
+            gl={{ antialias: true, alpha: true, powerPreference: 'default' }}
+            dpr={[1, 1.5]}
+            frameloop="demand"
           >
             <LiquidMesh progress={progress} />
             <ProbeMarker progress={progress} />

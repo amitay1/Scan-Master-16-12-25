@@ -96,13 +96,27 @@ function FBHHole({
 }) {
   const meshRef = useRef<THREE.Mesh>(null);
   const [hovered, setHovered] = useState(false);
+  const { invalidate } = useThree();
+
+  // Only request render when hover or highlight state changes
+  useEffect(() => {
+    invalidate();
+  }, [isHighlighted, hovered, invalidate]);
 
   useFrame(() => {
     if (meshRef.current) {
       // Smooth animation for highlighted hole
-      meshRef.current.scale.setScalar(
-        isHighlighted || hovered ? 1.1 : 1.0
-      );
+      const targetScale = isHighlighted || hovered ? 1.1 : 1.0;
+      const currentScale = meshRef.current.scale.x;
+      // Only update and request new frame if scale is changing
+      if (Math.abs(currentScale - targetScale) > 0.01) {
+        meshRef.current.scale.setScalar(
+          currentScale + (targetScale - currentScale) * 0.2
+        );
+        invalidate();
+      } else {
+        meshRef.current.scale.setScalar(targetScale);
+      }
     }
   });
 
@@ -119,8 +133,8 @@ function FBHHole({
       {/* The hole itself */}
       <mesh
         ref={meshRef}
-        onPointerOver={() => setHovered(true)}
-        onPointerOut={() => setHovered(false)}
+        onPointerOver={() => { setHovered(true); invalidate(); }}
+        onPointerOut={() => { setHovered(false); invalidate(); }}
       >
         <cylinderGeometry args={[diameter / 2, diameter / 2, depth, 16]} />
         <meshStandardMaterial 
@@ -418,6 +432,13 @@ export default function CalibrationBlock3D({
           shadows
           camera={{ position: [100, 100, 100], fov: 50 }}
           style={{ background: 'linear-gradient(to bottom, #f8fafc, #e2e8f0)' }}
+          frameloop="demand"
+          gl={{
+            antialias: true,
+            powerPreference: 'default',
+            preserveDrawingBuffer: false,
+          }}
+          dpr={[1, 1.5]}
         >
           {/* Lighting */}
           <ambientLight intensity={0.3} />

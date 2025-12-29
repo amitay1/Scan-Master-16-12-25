@@ -104,7 +104,16 @@ export const CalibrationBlockViewer = ({ recommendation }: CalibrationBlockViewe
   return (
     <Viewer3DErrorBoundary>
       <div className="w-full h-full bg-gradient-to-br from-muted/30 to-muted/10 rounded-lg border border-border overflow-hidden">
-        <Canvas shadows>
+        <Canvas 
+          shadows
+          frameloop="demand"
+          gl={{
+            antialias: true,
+            powerPreference: 'default',
+            preserveDrawingBuffer: false,
+          }}
+          dpr={[1, 1.5]}
+        >
           <PerspectiveCamera makeDefault position={[3, 2, 3]} />
           <OrbitControls 
             enableDamping

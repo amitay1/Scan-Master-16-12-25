@@ -510,6 +510,13 @@ export function Interactive3DCanvas() {
           style={{
             cursor: interactionMode === 'place' ? 'crosshair' : 'grab',
           }}
+          frameloop="demand"
+          gl={{
+            antialias: true,
+            powerPreference: 'default',
+            preserveDrawingBuffer: false,
+          }}
+          dpr={[1, 1.5]}
         >
           <SceneContent />
         </Canvas>
