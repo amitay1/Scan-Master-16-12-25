@@ -63,8 +63,10 @@ $packageJson | ConvertTo-Json -Depth 100 | Set-Content "package.json" -Encoding 
 # Create commit message
 if ($Message -eq "") {
     $commitMessage = "v$newVersion"
+    $releaseTitle = "v$newVersion"
 } else {
     $commitMessage = "v${newVersion}: $Message"
+    $releaseTitle = "v${newVersion}: $Message"
 }
 
 Write-Host ""
@@ -84,13 +86,42 @@ git tag "v$newVersion"
 Write-Info "Pushing to origin..."
 git push origin main --tags
 
+# Check if GitHub CLI is available for creating releases
+$ghAvailable = $null -ne (Get-Command "gh" -ErrorAction SilentlyContinue)
+
+if ($ghAvailable) {
+    Write-Host ""
+    Write-Info "Creating GitHub Release for auto-update..."
+    
+    $releaseNotes = "## What's New`n`n"
+    if ($Message -ne "") {
+        $releaseNotes += "- $Message`n"
+    } else {
+        $releaseNotes += "- Version bump to v$newVersion`n"
+    }
+    $releaseNotes += "`n**Full Changelog**: https://github.com/amitay1/Scan-Master-16-12-25/compare/v$currentVersion...v$newVersion"
+    
+    gh release create "v$newVersion" --title "$releaseTitle" --notes "$releaseNotes"
+    
+    Write-Success "GitHub Release created! Auto-update will work on other computers."
+} else {
+    Write-Host ""
+    Write-Warning "GitHub CLI (gh) not installed - skipping GitHub Release creation."
+    Write-Warning "Auto-update won't work without a GitHub Release."
+    Write-Warning "Install GitHub CLI: winget install GitHub.cli"
+    Write-Warning "Then run: gh auth login"
+}
+
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Green
 Write-Success "Released v$newVersion successfully!"
 Write-Host "========================================" -ForegroundColor Green
 Write-Host ""
 
-# Show what was released
-Write-Host "To update other computers, run:" -ForegroundColor Yellow
-Write-Host "  git pull origin main" -ForegroundColor White
+if ($ghAvailable) {
+    Write-Host "Other computers will auto-update when they open the app!" -ForegroundColor Green
+} else {
+    Write-Host "To update other computers manually, run:" -ForegroundColor Yellow
+    Write-Host "  git pull origin main" -ForegroundColor White
+}
 Write-Host ""
