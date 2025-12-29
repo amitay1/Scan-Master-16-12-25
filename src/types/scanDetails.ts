@@ -22,8 +22,11 @@ export interface ScanDetailsData {
 // Reference: ASTM E2375-16 "Standard Practice for Ultrasonic Testing of Wrought Products"
 export type ScanDirectionCode =
   | "A"   // Primary straight beam - typically from top/flat face (LW 0°)
+  | "A₁"  // Primary Dual Element - near-surface detection 0-20mm (LW 0°)
   | "B"   // Secondary straight beam - from adjacent/opposite surface (LW 0°)
+  | "B₁"  // Secondary Dual Element - near-surface detection 0-20mm (LW 0°)
   | "C"   // Tertiary straight beam - radial or third adjacent face (LW 0°)
+  | "C₁"  // Tertiary Dual Element - near-surface detection 0-20mm (LW 0°)
   | "D"   // Circumferential shear wave CLOCKWISE (SW 45° CW) - per E2375 Annex A1
   | "E"   // Circumferential shear wave COUNTER-CLOCKWISE (SW 45° CCW) - per E2375 Annex A1
   | "F"   // Axial shear wave direction 1 (SW 45°) - per E2375 Annex A1
@@ -60,6 +63,17 @@ export const SCAN_DIRECTION_DEFINITIONS: ScanDirectionDefinition[] = [
     applicableParts: ["plate", "rectangular_bar", "round_bar", "disk", "disk_forging", "billet", "cylinder", "hex_bar", "ring_forging"]
   },
   {
+    code: "A₁",
+    name: "Primary Dual Element",
+    nameHe: "קרן ישרה ראשית - אלמנט כפול",
+    waveMode: "LW 0° (Dual Element - Near Surface 0-20mm)",
+    description: "Dual element probe for near-surface detection (0-20mm depth) from primary flat surface",
+    entrySurface: "top",
+    angle: 0,
+    color: "#16a34a", // darker green
+    applicableParts: ["plate", "rectangular_bar", "round_bar", "disk", "disk_forging", "billet", "cylinder", "hex_bar", "ring_forging"]
+  },
+  {
     code: "B",
     name: "Secondary Straight Beam",
     nameHe: "קרן ישרה משנית (צד סמוך/נגדי)",
@@ -71,6 +85,17 @@ export const SCAN_DIRECTION_DEFINITIONS: ScanDirectionDefinition[] = [
     applicableParts: ["plate", "rectangular_bar", "round_bar", "disk", "disk_forging", "billet", "cylinder", "hex_bar"]
   },
   {
+    code: "B₁",
+    name: "Secondary Dual Element",
+    nameHe: "קרן ישרה משנית - אלמנט כפול",
+    waveMode: "LW 0° (Dual Element - Near Surface 0-20mm)",
+    description: "Dual element probe for near-surface detection (0-20mm depth) from adjacent/opposite surface",
+    entrySurface: "side",
+    angle: 0,
+    color: "#2563eb", // darker blue
+    applicableParts: ["plate", "rectangular_bar", "round_bar", "disk", "disk_forging", "billet", "cylinder", "hex_bar"]
+  },
+  {
     code: "C",
     name: "Tertiary/Radial Beam",
     nameHe: "קרן שלישית/רדיאלית",
@@ -79,6 +104,17 @@ export const SCAN_DIRECTION_DEFINITIONS: ScanDirectionDefinition[] = [
     entrySurface: "od",
     angle: 0,
     color: "#f59e0b", // amber
+    applicableParts: ["round_bar", "tube", "pipe", "cylinder", "ring", "ring_forging", "shaft", "sleeve", "hex_bar", "disk", "disk_forging"]
+  },
+  {
+    code: "C₁",
+    name: "Tertiary/Radial Dual Element",
+    nameHe: "קרן שלישית/רדיאלית - אלמנט כפול",
+    waveMode: "LW 0° (Dual Element - Near Surface 0-20mm)",
+    description: "Dual element probe for near-surface detection (0-20mm depth) from third face or radial from OD",
+    entrySurface: "od",
+    angle: 0,
+    color: "#d97706", // darker amber
     applicableParts: ["round_bar", "tube", "pipe", "cylinder", "ring", "ring_forging", "shaft", "sleeve", "hex_bar", "disk", "disk_forging"]
   },
   {

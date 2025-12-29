@@ -47,6 +47,16 @@ const FIXED_SCAN_DETAILS: ScanDetail[] = [
     angle: 0,
     color: "#22c55e"
   },
+  // A₁: PRIMARY DUAL ELEMENT - Near-surface detection 0-20mm
+  {
+    scanningDirection: "A₁",
+    waveMode: "LW 0° (Dual Element - Near Surface 0-20mm)",
+    frequency: "", make: "", probe: "", remarkDetails: "",
+    enabled: false,
+    entrySurface: "top",
+    angle: 0,
+    color: "#16a34a"
+  },
   // B: SECONDARY STRAIGHT BEAM - From adjacent side (bars/billets need 2 adjacent sides per E2375)
   {
     scanningDirection: "B",
@@ -57,6 +67,16 @@ const FIXED_SCAN_DETAILS: ScanDetail[] = [
     angle: 0,
     color: "#3b82f6"
   },
+  // B₁: SECONDARY DUAL ELEMENT - Near-surface detection 0-20mm
+  {
+    scanningDirection: "B₁",
+    waveMode: "LW 0° (Dual Element - Near Surface 0-20mm)",
+    frequency: "", make: "", probe: "", remarkDetails: "",
+    enabled: false,
+    entrySurface: "side",
+    angle: 0,
+    color: "#2563eb"
+  },
   // C: TERTIARY/RADIAL - Third face (hex bar) or radial from OD (cylindrical parts)
   {
     scanningDirection: "C",
@@ -66,6 +86,16 @@ const FIXED_SCAN_DETAILS: ScanDetail[] = [
     entrySurface: "od",
     angle: 0,
     color: "#f59e0b"
+  },
+  // C₁: TERTIARY/RADIAL DUAL ELEMENT - Near-surface detection 0-20mm
+  {
+    scanningDirection: "C₁",
+    waveMode: "LW 0° (Dual Element - Near Surface 0-20mm)",
+    frequency: "", make: "", probe: "", remarkDetails: "",
+    enabled: false,
+    entrySurface: "od",
+    angle: 0,
+    color: "#d97706"
   },
   // D: CIRCUMFERENTIAL SHEAR CW - Required for rings/tubes per E2375 Annex A1.3.1
   {
@@ -164,8 +194,11 @@ const getDirectionIcon = (direction: string, color?: string) => {
   const style = { color: color || "#6b7280" };
   switch(direction) {
     case "A": return <span title="From Top"><ArrowDown className="w-4 h-4" style={style} /></span>;
+    case "A₁": return <span title="Dual Element - From Top"><ArrowDown className="w-4 h-4" style={style} /></span>;
     case "B": return <span title="From Bottom"><ArrowUp className="w-4 h-4" style={style} /></span>;
+    case "B₁": return <span title="Dual Element - From Bottom"><ArrowUp className="w-4 h-4" style={style} /></span>;
     case "C": return <span title="From OD/Side"><ArrowLeft className="w-4 h-4" style={style} /></span>;
+    case "C₁": return <span title="Dual Element - From OD/Side"><ArrowLeft className="w-4 h-4" style={style} /></span>;
     case "D": return <span title="SW 45° CW"><RotateCw className="w-4 h-4" style={style} /></span>;
     case "E": return <span title="SW 45° CCW"><RotateCcw className="w-4 h-4" style={style} /></span>;
     case "F": return <span title="Circumferential"><Circle className="w-4 h-4" style={style} /></span>;

@@ -901,6 +901,13 @@ function getScanDirectionPosition(
             labelX: centerX + 25, labelY: centerY - plateH - 35,
             arrowDirection: 'down', isAngleBeam: false
           };
+        case 'A₁': // Dual Element - Near-surface 0-20mm from top
+          return {
+            x: centerX - 30, y: centerY - plateH - 30,
+            symbolX: centerX - 30, symbolY: centerY - plateH - 50,
+            labelX: centerX - 5, labelY: centerY - plateH - 35,
+            arrowDirection: 'down', isAngleBeam: false
+          };
         case 'B': // E2375 Fig.6: Secondary - from adjacent side (required if W/T<5)
           return {
             x: centerX - plateW - 30, y: centerY,
@@ -908,11 +915,25 @@ function getScanDirectionPosition(
             labelX: centerX - plateW - 45, labelY: centerY - 20,
             arrowDirection: 'right', isAngleBeam: false
           };
+        case 'B₁': // Dual Element - Near-surface 0-20mm from side
+          return {
+            x: centerX - plateW - 30, y: centerY - 30,
+            symbolX: centerX - plateW - 50, symbolY: centerY - 30,
+            labelX: centerX - plateW - 45, labelY: centerY - 50,
+            arrowDirection: 'right', isAngleBeam: false
+          };
         case 'C': // Opposite side (required if >9 inches)
           return {
             x: centerX, y: centerY + plateH + 30,
             symbolX: centerX, symbolY: centerY + plateH + 50,
             labelX: centerX + 25, labelY: centerY + plateH + 45,
+            arrowDirection: 'up', isAngleBeam: false
+          };
+        case 'C₁': // Dual Element - Near-surface 0-20mm from opposite/third face
+          return {
+            x: centerX + 30, y: centerY + plateH + 30,
+            symbolX: centerX + 30, symbolY: centerY + plateH + 50,
+            labelX: centerX + 55, labelY: centerY + plateH + 45,
             arrowDirection: 'up', isAngleBeam: false
           };
         case 'J': // E2375 A1.3.4: SW 60° for thin sections (<1 inch)
@@ -958,6 +979,13 @@ function getScanDirectionPosition(
             labelX: centerX + 25, labelY: centerY - barRadius - 40,
             arrowDirection: 'down', isAngleBeam: false
           };
+        case 'A₁': // Dual Element - Near-surface 0-20mm from top
+          return {
+            x: centerX - 30, y: centerY - barRadius - 35,
+            symbolX: centerX - 30, symbolY: centerY - barRadius - 55,
+            labelX: centerX - 5, labelY: centerY - barRadius - 40,
+            arrowDirection: 'down', isAngleBeam: false
+          };
         case 'B': // E2375 Fig.6: Radial from side (alternative position)
           return {
             x: centerX - barRadius - 35, y: centerY,
@@ -965,11 +993,25 @@ function getScanDirectionPosition(
             labelX: centerX - barRadius - 50, labelY: centerY - 20,
             arrowDirection: 'right', isAngleBeam: false
           };
+        case 'B₁': // Dual Element - Near-surface 0-20mm from side
+          return {
+            x: centerX - barRadius - 35, y: centerY - 30,
+            symbolX: centerX - barRadius - 55, symbolY: centerY - 30,
+            labelX: centerX - barRadius - 50, labelY: centerY - 50,
+            arrowDirection: 'right', isAngleBeam: false
+          };
         case 'C': // Radial from OD (general radial access)
           return {
             x: centerX + barRadius + 35, y: centerY,
             symbolX: centerX + barRadius + 55, symbolY: centerY,
             labelX: centerX + barRadius + 50, labelY: centerY - 20,
+            arrowDirection: 'left', isAngleBeam: false
+          };
+        case 'C₁': // Dual Element - Near-surface 0-20mm from OD
+          return {
+            x: centerX + barRadius + 35, y: centerY + 30,
+            symbolX: centerX + barRadius + 55, symbolY: centerY + 30,
+            labelX: centerX + barRadius + 50, labelY: centerY + 50,
             arrowDirection: 'left', isAngleBeam: false
           };
         case 'D': // E2375 A1.3.2: Circumferential shear CW (angle ≤45°)
@@ -1020,6 +1062,13 @@ function getScanDirectionPosition(
             labelX: sideViewX + 30, labelY: centerY - tubeRadius - 40,
             arrowDirection: 'down', isAngleBeam: false
           };
+        case 'A₁': // Dual Element - Near-surface 0-20mm from top
+          return {
+            x: sideViewX - 30, y: centerY - tubeRadius - 35,
+            symbolX: sideViewX - 30, symbolY: centerY - tubeRadius - 55,
+            labelX: sideViewX, labelY: centerY - tubeRadius - 40,
+            arrowDirection: 'down', isAngleBeam: false
+          };
         case 'B': // Straight beam from left end (on side view)
           return {
             x: sideViewX - sideWidth / 2 - 35, y: centerY,
@@ -1027,11 +1076,25 @@ function getScanDirectionPosition(
             labelX: sideViewX - sideWidth / 2 - 60, labelY: centerY - 20,
             arrowDirection: 'right', isAngleBeam: false
           };
+        case 'B₁': // Dual Element - Near-surface 0-20mm from left end
+          return {
+            x: sideViewX - sideWidth / 2 - 35, y: centerY - 30,
+            symbolX: sideViewX - sideWidth / 2 - 55, symbolY: centerY - 30,
+            labelX: sideViewX - sideWidth / 2 - 60, labelY: centerY - 50,
+            arrowDirection: 'right', isAngleBeam: false
+          };
         case 'C': // Straight beam from right end (on side view)
           return {
             x: sideViewX + sideWidth / 2 + 35, y: centerY,
             symbolX: sideViewX + sideWidth / 2 + 55, symbolY: centerY,
             labelX: sideViewX + sideWidth / 2 + 60, labelY: centerY - 20,
+            arrowDirection: 'left', isAngleBeam: false
+          };
+        case 'C₁': // Dual Element - Near-surface 0-20mm from right end
+          return {
+            x: sideViewX + sideWidth / 2 + 35, y: centerY + 30,
+            symbolX: sideViewX + sideWidth / 2 + 55, symbolY: centerY + 30,
+            labelX: sideViewX + sideWidth / 2 + 60, labelY: centerY + 50,
             arrowDirection: 'left', isAngleBeam: false
           };
         case 'D': // Angle beam from top (on side view - left side)
@@ -1094,6 +1157,13 @@ function getScanDirectionPosition(
             labelX: sideViewX + 25, labelY: centerY - ringRadius - 40,
             arrowDirection: 'down', isAngleBeam: false
           };
+        case 'A₁': // Dual Element - Near-surface 0-20mm from top
+          return {
+            x: sideViewX - 30, y: centerY - ringRadius - 35,
+            symbolX: sideViewX - 30, symbolY: centerY - ringRadius - 55,
+            labelX: sideViewX - 5, labelY: centerY - ringRadius - 40,
+            arrowDirection: 'down', isAngleBeam: false
+          };
         case 'B': // Straight beam from side (on side view - left)
           return {
             x: sideViewX - sideWidth - 35, y: centerY,
@@ -1101,11 +1171,25 @@ function getScanDirectionPosition(
             labelX: sideViewX - sideWidth - 60, labelY: centerY - 20,
             arrowDirection: 'right', isAngleBeam: false
           };
+        case 'B₁': // Dual Element - Near-surface 0-20mm from left side
+          return {
+            x: sideViewX - sideWidth - 35, y: centerY - 30,
+            symbolX: sideViewX - sideWidth - 55, symbolY: centerY - 30,
+            labelX: sideViewX - sideWidth - 60, labelY: centerY - 50,
+            arrowDirection: 'right', isAngleBeam: false
+          };
         case 'C': // Straight beam from side (on side view - right)
           return {
             x: sideViewX + sideWidth + 35, y: centerY,
             symbolX: sideViewX + sideWidth + 55, symbolY: centerY,
             labelX: sideViewX + sideWidth + 60, labelY: centerY - 20,
+            arrowDirection: 'left', isAngleBeam: false
+          };
+        case 'C₁': // Dual Element - Near-surface 0-20mm from right side
+          return {
+            x: sideViewX + sideWidth + 35, y: centerY + 30,
+            symbolX: sideViewX + sideWidth + 55, symbolY: centerY + 30,
+            labelX: sideViewX + sideWidth + 60, labelY: centerY + 50,
             arrowDirection: 'left', isAngleBeam: false
           };
         case 'D': // Angle beam from top (on side view - left)
@@ -1167,6 +1251,13 @@ function getScanDirectionPosition(
             labelX: sideViewX + 25, labelY: centerY - diskRadius - 40,
             arrowDirection: 'down', isAngleBeam: false
           };
+        case 'A₁': // Dual Element - Near-surface 0-20mm from top
+          return {
+            x: sideViewX - 30, y: centerY - diskRadius - 35,
+            symbolX: sideViewX - 30, symbolY: centerY - diskRadius - 55,
+            labelX: sideViewX - 5, labelY: centerY - diskRadius - 40,
+            arrowDirection: 'down', isAngleBeam: false
+          };
         case 'B': // Straight beam from bottom (on side view)
           return {
             x: sideViewX, y: centerY + diskRadius + 35,
@@ -1174,11 +1265,25 @@ function getScanDirectionPosition(
             labelX: sideViewX + 25, labelY: centerY + diskRadius + 50,
             arrowDirection: 'up', isAngleBeam: false
           };
+        case 'B₁': // Dual Element - Near-surface 0-20mm from bottom
+          return {
+            x: sideViewX + 30, y: centerY + diskRadius + 35,
+            symbolX: sideViewX + 30, symbolY: centerY + diskRadius + 55,
+            labelX: sideViewX + 55, labelY: centerY + diskRadius + 50,
+            arrowDirection: 'up', isAngleBeam: false
+          };
         case 'C': // Straight beam from side (on side view - left)
           return {
             x: sideViewX - sideWidth - 35, y: centerY,
             symbolX: sideViewX - sideWidth - 55, symbolY: centerY,
             labelX: sideViewX - sideWidth - 60, labelY: centerY - 20,
+            arrowDirection: 'right', isAngleBeam: false
+          };
+        case 'C₁': // Dual Element - Near-surface 0-20mm from side
+          return {
+            x: sideViewX - sideWidth - 35, y: centerY - 30,
+            symbolX: sideViewX - sideWidth - 55, symbolY: centerY - 30,
+            labelX: sideViewX - sideWidth - 60, labelY: centerY - 50,
             arrowDirection: 'right', isAngleBeam: false
           };
         case 'D': // Angle beam from top (on side view - left)
@@ -1215,6 +1320,13 @@ function getScanDirectionPosition(
             labelX: centerX + 25, labelY: centerY - hexR - 40,
             arrowDirection: 'down', isAngleBeam: false
           };
+        case 'A₁': // Dual Element - Near-surface 0-20mm from top face
+          return {
+            x: centerX - 30, y: centerY - hexR - 35,
+            symbolX: centerX - 30, symbolY: centerY - hexR - 55,
+            labelX: centerX - 5, labelY: centerY - hexR - 40,
+            arrowDirection: 'down', isAngleBeam: false
+          };
         case 'B': // E2375 Fig.7: Second adjacent face (upper-left, 60° from A)
           return {
             x: centerX - hexR * 0.87 - 30, y: centerY - hexR * 0.5 - 15,
@@ -1222,11 +1334,25 @@ function getScanDirectionPosition(
             labelX: centerX - hexR * 0.87 - 45, labelY: centerY - hexR * 0.5 - 35,
             arrowDirection: 'right', isAngleBeam: false
           };
+        case 'B₁': // Dual Element - Near-surface 0-20mm from upper-left face
+          return {
+            x: centerX - hexR * 0.87 - 30, y: centerY - hexR * 0.5 - 45,
+            symbolX: centerX - hexR * 0.87 - 50, symbolY: centerY - hexR * 0.5 - 45,
+            labelX: centerX - hexR * 0.87 - 45, labelY: centerY - hexR * 0.5 - 65,
+            arrowDirection: 'right', isAngleBeam: false
+          };
         case 'C': // E2375 Fig.7: Third adjacent face (upper-right, 60° from A other side)
           return {
             x: centerX + hexR * 0.87 + 30, y: centerY - hexR * 0.5 - 15,
             symbolX: centerX + hexR * 0.87 + 50, symbolY: centerY - hexR * 0.5 - 15,
             labelX: centerX + hexR * 0.87 + 45, labelY: centerY - hexR * 0.5 - 35,
+            arrowDirection: 'left', isAngleBeam: false
+          };
+        case 'C₁': // Dual Element - Near-surface 0-20mm from upper-right face
+          return {
+            x: centerX + hexR * 0.87 + 30, y: centerY - hexR * 0.5 + 15,
+            symbolX: centerX + hexR * 0.87 + 50, symbolY: centerY - hexR * 0.5 + 15,
+            labelX: centerX + hexR * 0.87 + 45, labelY: centerY - hexR * 0.5 - 5,
             arrowDirection: 'left', isAngleBeam: false
           };
         case 'D': // Angle beam if needed
@@ -1349,6 +1475,13 @@ function getScanDirectionPosition(
             labelX: centerX + 25, labelY: centerY - sphereR - 40,
             arrowDirection: 'down', isAngleBeam: false
           };
+        case 'A₁': // Dual Element - Near-surface 0-20mm from top
+          return {
+            x: centerX - 30, y: centerY - sphereR - 35,
+            symbolX: centerX - 30, symbolY: centerY - sphereR - 55,
+            labelX: centerX - 5, labelY: centerY - sphereR - 40,
+            arrowDirection: 'down', isAngleBeam: false
+          };
         case 'B': // From left side
           return {
             x: centerX - sphereR - 35, y: centerY,
@@ -1356,11 +1489,25 @@ function getScanDirectionPosition(
             labelX: centerX - sphereR - 50, labelY: centerY - 20,
             arrowDirection: 'right', isAngleBeam: false
           };
+        case 'B₁': // Dual Element - Near-surface 0-20mm from left
+          return {
+            x: centerX - sphereR - 35, y: centerY - 30,
+            symbolX: centerX - sphereR - 55, symbolY: centerY - 30,
+            labelX: centerX - sphereR - 50, labelY: centerY - 50,
+            arrowDirection: 'right', isAngleBeam: false
+          };
         case 'C': // From right side
           return {
             x: centerX + sphereR + 35, y: centerY,
             symbolX: centerX + sphereR + 55, symbolY: centerY,
             labelX: centerX + sphereR + 50, labelY: centerY - 20,
+            arrowDirection: 'left', isAngleBeam: false
+          };
+        case 'C₁': // Dual Element - Near-surface 0-20mm from right
+          return {
+            x: centerX + sphereR + 35, y: centerY + 30,
+            symbolX: centerX + sphereR + 55, symbolY: centerY + 30,
+            labelX: centerX + sphereR + 50, labelY: centerY + 50,
             arrowDirection: 'left', isAngleBeam: false
           };
         case 'D': // Angle beam
@@ -1386,6 +1533,13 @@ function getScanDirectionPosition(
             labelX: centerX + 25, labelY: centerY - coneH - 40,
             arrowDirection: 'down', isAngleBeam: false
           };
+        case 'A₁': // Dual Element - Near-surface 0-20mm from apex
+          return {
+            x: centerX - 30, y: centerY - coneH - 35,
+            symbolX: centerX - 30, symbolY: centerY - coneH - 55,
+            labelX: centerX - 5, labelY: centerY - coneH - 40,
+            arrowDirection: 'down', isAngleBeam: false
+          };
         case 'B': // From left side
           return {
             x: centerX - coneW - 35, y: centerY,
@@ -1393,11 +1547,25 @@ function getScanDirectionPosition(
             labelX: centerX - coneW - 50, labelY: centerY - 20,
             arrowDirection: 'right', isAngleBeam: false
           };
+        case 'B₁': // Dual Element - Near-surface 0-20mm from left side
+          return {
+            x: centerX - coneW - 35, y: centerY - 30,
+            symbolX: centerX - coneW - 55, symbolY: centerY - 30,
+            labelX: centerX - coneW - 50, labelY: centerY - 50,
+            arrowDirection: 'right', isAngleBeam: false
+          };
         case 'C': // From base
           return {
             x: centerX, y: centerY + coneH + 35,
             symbolX: centerX, symbolY: centerY + coneH + 55,
             labelX: centerX + 25, labelY: centerY + coneH + 50,
+            arrowDirection: 'up', isAngleBeam: false
+          };
+        case 'C₁': // Dual Element - Near-surface 0-20mm from base
+          return {
+            x: centerX + 30, y: centerY + coneH + 35,
+            symbolX: centerX + 30, symbolY: centerY + coneH + 55,
+            labelX: centerX + 55, labelY: centerY + coneH + 50,
             arrowDirection: 'up', isAngleBeam: false
           };
         case 'D': // Angle beam
