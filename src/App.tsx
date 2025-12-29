@@ -9,6 +9,7 @@ import { SavedCardsProvider } from "@/contexts/SavedCardsContext";
 import { InspectorProfileProvider } from "@/contexts/InspectorProfileContext";
 import { SettingsSync } from "@/components/SettingsSync";
 import { useServiceWorker } from "@/hooks/useServiceWorker";
+import { UpdateNotification } from "@/components/UpdateNotification";
 import SplashScreen from "./components/SplashScreen";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
@@ -54,6 +55,7 @@ const AppContent = () => {
       </Routes>
       <UIToaster />
       <SonnerToaster />
+      <UpdateNotification />
     </BrowserRouter>
   );
 };

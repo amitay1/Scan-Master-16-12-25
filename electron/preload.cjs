@@ -1,5 +1,13 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
+// Store update status listeners
+const updateListeners = new Set();
+
+// Listen for update status from main process
+ipcRenderer.on('update-status', (event, status) => {
+  updateListeners.forEach(callback => callback(event, status));
+});
+
 // Expose protected methods that allow the renderer process to use
 // the ipcRenderer without exposing the entire object
 contextBridge.exposeInMainWorld('electronAPI', {
@@ -38,4 +46,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // App version (hardcoded to avoid path issues in Electron)
   version: '0.0.0'
+});
+
+// Also expose as 'electron' for easier access
+contextBridge.exposeInMainWorld('electron', {
+  getAppVersion: () => ipcRenderer.invoke('get-app-version'),
+  checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
+  installUpdate: () => ipcRenderer.invoke('install-update'),
+  onUpdateStatus: (callback) => {
+    updateListeners.add(callback);
+  },
+  removeUpdateListener: (callback) => {
+    updateListeners.delete(callback);
+  }
 });

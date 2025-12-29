@@ -56,9 +56,11 @@ switch ($BumpType.ToLower()) {
 $newVersion = "$major.$minor.$patch"
 Write-Success "New version: v$newVersion"
 
-# Update package.json
+# Update package.json (without BOM to prevent build errors)
 $packageJson.version = $newVersion
-$packageJson | ConvertTo-Json -Depth 100 | Set-Content "package.json" -Encoding UTF8
+$jsonContent = $packageJson | ConvertTo-Json -Depth 100
+$utf8NoBOM = New-Object System.Text.UTF8Encoding $false
+[System.IO.File]::WriteAllText((Resolve-Path "package.json").Path, $jsonContent, $utf8NoBOM)
 
 # Create commit message
 if ($Message -eq "") {
