@@ -156,3 +156,8 @@ DROP TRIGGER IF EXISTS update_technique_sheets_updated_at ON technique_sheets;
 CREATE TRIGGER update_technique_sheets_updated_at
     BEFORE UPDATE ON technique_sheets
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Create default mock organization for development/offline mode
+INSERT INTO organizations (id, name, slug, plan, is_active, max_users, max_sheets, settings)
+VALUES ('11111111-1111-1111-1111-111111111111', 'Default Organization', 'default', 'enterprise', true, 999, 99999, '{}')
+ON CONFLICT (id) DO NOTHING;

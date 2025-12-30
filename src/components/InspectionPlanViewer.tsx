@@ -5819,6 +5819,11 @@ function drawAnimatedScanArrows(
     // Parse wave mode to determine beam characteristics
     const beamConfig = parseWaveMode(detail.waveMode, partType);
 
+    // Override with custom color if specified in detail
+    if (detail.color) {
+      beamConfig.color = detail.color;
+    }
+
     // Calculate animation progress (0 to 1)
     const animProgress = ((frame + index * 30) % 120) / 120;
 
@@ -5892,7 +5897,7 @@ function parseWaveMode(waveMode: string, partType: PartGeometry): BeamConfig {
       penetrationDepth: 1.0,
       beamSpread: 12,
       scanPattern: 'perpendicular',
-      color: '#06b6d4' // Cyan
+      color: '#ff0000' // Red
     };
   }
 
@@ -5908,7 +5913,43 @@ function parseWaveMode(waveMode: string, partType: PartGeometry): BeamConfig {
     };
   }
 
-  // SW 45° (Clockwise) - Direction D: Red
+  // SW Circumferential CW - Direction D: Red
+  if (mode.includes('sw') && mode.includes('circumferential') && (mode.includes('cw') || mode.includes('clockwise')) && !mode.includes('ccw') && !mode.includes('counter')) {
+    return {
+      type: 'shear-45-cw',
+      angle: 45,
+      penetrationDepth: 0.85,
+      beamSpread: 20,
+      scanPattern: 'clockwise',
+      color: '#ff0000' // Red
+    };
+  }
+
+  // SW Circumferential CCW - Direction E: Red
+  if (mode.includes('sw') && mode.includes('circumferential') && (mode.includes('ccw') || mode.includes('counter'))) {
+    return {
+      type: 'shear-45-ccw',
+      angle: 45,
+      penetrationDepth: 0.85,
+      beamSpread: 20,
+      scanPattern: 'counter-clockwise',
+      color: '#ff0000' // Red
+    };
+  }
+
+  // SW Axial Direction 1 - Direction F: Red
+  if (mode.includes('sw') && mode.includes('axial') && mode.includes('dir')) {
+    return {
+      type: 'circumferential',
+      angle: 45,
+      penetrationDepth: 0.3,
+      beamSpread: 10,
+      scanPattern: 'circumferential',
+      color: '#ff0000' // Red
+    };
+  }
+
+  // SW 45° (Clockwise) - Legacy
   if (mode.includes('sw') && mode.includes('45') && mode.includes('clockwise') && !mode.includes('counter')) {
     return {
       type: 'shear-45-cw',
@@ -5916,11 +5957,11 @@ function parseWaveMode(waveMode: string, partType: PartGeometry): BeamConfig {
       penetrationDepth: 0.85,
       beamSpread: 20,
       scanPattern: 'clockwise',
-      color: '#ef4444' // Red
+      color: '#ff0000' // Red
     };
   }
 
-  // SW 45° (Counter-Clockwise) - Direction E: Pink
+  // SW 45° (Counter-Clockwise) - Legacy
   if (mode.includes('sw') && mode.includes('45') && mode.includes('counter')) {
     return {
       type: 'shear-45-ccw',
@@ -5928,11 +5969,11 @@ function parseWaveMode(waveMode: string, partType: PartGeometry): BeamConfig {
       penetrationDepth: 0.85,
       beamSpread: 20,
       scanPattern: 'counter-clockwise',
-      color: '#ec4899' // Pink
+      color: '#ff0000' // Red
     };
   }
 
-  // SW Circumferential - Direction F: Purple
+  // SW Circumferential - Legacy
   if (mode.includes('sw') && mode.includes('circumferential')) {
     return {
       type: 'circumferential',
@@ -5940,19 +5981,19 @@ function parseWaveMode(waveMode: string, partType: PartGeometry): BeamConfig {
       penetrationDepth: 0.3,
       beamSpread: 10,
       scanPattern: 'circumferential',
-      color: '#8b5cf6' // Purple
+      color: '#ff0000' // Red
     };
   }
 
-  // SW Axial 45° (from OD) - Direction G: Teal
-  if (mode.includes('sw') && mode.includes('axial') && mode.includes('od')) {
+  // SW Axial from OD - Direction G: Red
+  if (mode.includes('sw') && mode.includes('axial')) {
     return {
       type: 'shear-axial-od',
       angle: 45,
       penetrationDepth: 0.85,
       beamSpread: 18,
       scanPattern: 'axial',
-      color: '#14b8a6' // Teal
+      color: '#ff0000' // Red
     };
   }
 
@@ -6079,6 +6120,7 @@ interface DrawDimensions {
   height?: number;
   thickness?: number;
   length?: number;
+  depth?: number;
   flangeWidth?: number;
   flangeThickness?: number;
   webThickness?: number;

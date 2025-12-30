@@ -5,11 +5,56 @@ import { spawn } from "child_process";
 import { z } from "zod";
 import { DbStorage } from "./storage";
 import logger from "./utils/logger";
-import { insertTechniqueSheetSchema } from "../shared/schema";
+import { insertTechniqueSheetSchema, organizations } from "../shared/schema";
 import type { CadJobDTO } from "../shared/drawingSpec";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 // import { registerOrganizationRoutes } from "./routes/organizations"; // Disabled - tables don't exist yet
 
 const storage = new DbStorage();
+
+// Mock organization ID for development mode
+const MOCK_ORG_ID = "11111111-1111-1111-1111-111111111111";
+
+// Ensure the mock organization exists in the database for development
+async function ensureMockOrganization() {
+  try {
+    // Check if mock org already exists
+    const existing = await db.select().from(organizations).where(eq(organizations.id, MOCK_ORG_ID));
+    
+    if (existing.length === 0) {
+      // Create the mock organization with a specific ID
+      // Use ON CONFLICT on both id and slug to handle any constraint violations
+      await db.execute(`
+        INSERT INTO organizations (id, name, slug, plan, is_active, max_users, max_sheets, settings)
+        VALUES ('${MOCK_ORG_ID}', 'Default Organization', 'default', 'free', true, 999, 99999, '{}')
+        ON CONFLICT (id) DO UPDATE SET name = 'Default Organization'
+      `);
+      logger.info('✅ Created mock organization for development');
+    } else {
+      logger.info('✅ Mock organization already exists');
+    }
+  } catch (error: any) {
+    // If it's a unique constraint on slug, try to update instead
+    if (error.code === '23505') {
+      try {
+        await db.execute(`
+          UPDATE organizations SET id = '${MOCK_ORG_ID}' WHERE slug = 'default'
+        `);
+        logger.info('✅ Updated existing default organization');
+      } catch (updateError) {
+        logger.warn('⚠️ Could not update default organization:', updateError);
+      }
+    } else {
+      logger.warn('⚠️ Could not ensure mock organization (this is OK if migrations have not been run):', error.message || error);
+    }
+  }
+}
+
+// Initialize mock organization on module load
+ensureMockOrganization().catch(err => {
+  logger.warn('Mock organization setup deferred:', err.message);
+});
 
 // Minimal validation for CAD jobs coming from the client. We deliberately
 // keep this fairly generic – the Python side performs deeper validation
@@ -123,8 +168,7 @@ export function registerRoutes(app: Express) {
   });
 
   // Temporary mock organizations endpoint (until database migrations are run)
-  // Use a valid UUID format for the mock organization
-  const MOCK_ORG_ID = "11111111-1111-1111-1111-111111111111";
+  // Use the module-level MOCK_ORG_ID constant (ensured to exist in DB)
   
   app.get("/api/organizations", mockAuth, (req, res) => {
     res.json([
@@ -298,13 +342,14 @@ export function registerRoutes(app: Express) {
         userId,
       };
       
-      // Only include orgId if it's a valid UUID from headers
-      if (orgId) {
+      // Only include orgId if it's a valid UUID from headers (not empty string)
+      if (orgId && orgId.trim() !== '') {
         sheetData.orgId = orgId;
+      } else {
+        sheetData.orgId = null; // Explicitly set to null for empty/missing orgId
       }
-      // If no orgId, don't include it at all (let it be null in DB)
       
-      logger.info('  Final sheetData.orgId:', sheetData.orgId || '(not set)');
+      logger.info('  Final sheetData.orgId:', sheetData.orgId || '(null)');
       
       const data = insertTechniqueSheetSchema.parse(sheetData);
       const sheet = await storage.createTechniqueSheet(data, orgId);

@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ScanPlanData, ScanPlanDocument } from "@/types/techniqueSheet";
+import { PDFViewer } from "@/components/PDFViewer";
 import {
   FileText,
   ExternalLink,
@@ -23,10 +24,12 @@ export const ScanPlanTab = ({ data, onChange }: ScanPlanTabProps) => {
   );
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [key, setKey] = useState<number>(0); // For forcing iframe reload
+  const [loadError, setLoadError] = useState<boolean>(false);
 
   const handleDocumentSelect = (doc: ScanPlanDocument) => {
     setSelectedDocument(doc);
     setKey(prev => prev + 1); // Force reload
+    setLoadError(false); // Reset error state
   };
 
   const handleDownload = () => {
@@ -179,14 +182,39 @@ export const ScanPlanTab = ({ data, onChange }: ScanPlanTabProps) => {
                 isFullscreen ? "fixed inset-4 z-50" : ""
               }`}
             >
-              <div className="h-full w-full bg-muted/10">
-                <iframe
-                  key={key}
-                  src={selectedDocument.filePath}
-                  className="w-full h-full border-0"
-                  title={selectedDocument.title}
-                  style={{ minHeight: '600px' }}
-                />
+              <div className="h-full w-full">
+                {loadError ? (
+                  <div className="flex flex-col items-center justify-center h-full p-8 text-center">
+                    <FileText className="h-16 w-16 mb-4 text-destructive/50" />
+                    <h3 className="text-lg font-semibold mb-2 text-destructive">Failed to Load PDF</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      The PDF file could not be loaded. This might be due to browser restrictions.
+                    </p>
+                    <div className="flex gap-2">
+                      <Button onClick={handleDownload} variant="outline">
+                        <Download className="h-4 w-4 mr-2" />
+                        Download PDF
+                      </Button>
+                      <Button onClick={handleOpenExternal} variant="outline">
+                        <ExternalLink className="h-4 w-4 mr-2" />
+                        Open in New Tab
+                      </Button>
+                      <Button onClick={() => { setLoadError(false); setKey(prev => prev + 1); }} variant="outline">
+                        <RefreshCw className="h-4 w-4 mr-2" />
+                        Try Again
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-4">
+                      Path: {selectedDocument.filePath}
+                    </p>
+                  </div>
+                ) : (
+                  <PDFViewer
+                    key={key}
+                    file={selectedDocument.filePath}
+                    onLoadError={() => setLoadError(true)}
+                  />
+                )}
               </div>
             </Card>
           </>

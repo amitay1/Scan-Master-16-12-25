@@ -143,8 +143,26 @@ export class DbStorage implements IStorage {
       ...sheet,
       orgId, // Always use server-provided orgId
     };
-    const results = await db.insert(techniqueSheets).values(dataToInsert).returning();
-    return results[0];
+    
+    try {
+      console.log('🔵 Inserting technique sheet with data:', JSON.stringify({
+        userId: dataToInsert.userId,
+        orgId: dataToInsert.orgId,
+        sheetName: dataToInsert.sheetName,
+        standard: dataToInsert.standard,
+        status: dataToInsert.status,
+        dataKeys: Object.keys(dataToInsert.data || {})
+      }, null, 2));
+      
+      const results = await db.insert(techniqueSheets).values(dataToInsert).returning();
+      console.log('✅ Insert successful, id:', results[0]?.id);
+      return results[0];
+    } catch (error: any) {
+      console.error('❌ Insert failed:', error.message);
+      console.error('   Error code:', error.code);
+      console.error('   Error detail:', error.detail);
+      throw error;
+    }
   }
 
   async updateTechniqueSheet(id: string, sheet: Partial<InsertTechniqueSheet>, orgId?: string): Promise<TechniqueSheet> {

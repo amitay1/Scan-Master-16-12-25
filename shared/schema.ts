@@ -80,20 +80,23 @@ export const techniqueSheets = pgTable("technique_sheets", {
   sheetName: text("sheet_name").notNull(),
   standard: text("standard"),
   data: jsonb("data").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   createdBy: text("created_by"),
   modifiedBy: text("modified_by"),
   status: text("status").default("draft"),
 });
 
-export const insertTechniqueSheetSchema = createInsertSchema(techniqueSheets, {
-  // Allow orgId to be null or undefined for local development
-  orgId: (schema) => schema.nullish(),
-}).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
+// Simple validation schema that allows null orgId for local development
+export const insertTechniqueSheetSchema = z.object({
+  userId: z.string().uuid(),
+  orgId: z.string().uuid().nullable().optional(),
+  sheetName: z.string(),
+  standard: z.string().nullable().optional(),
+  data: z.any(),
+  createdBy: z.string().nullable().optional(),
+  modifiedBy: z.string().nullable().optional(),
+  status: z.string().optional().default("draft"),
 });
 export type InsertTechniqueSheet = typeof techniqueSheets.$inferInsert;
 export type TechniqueSheet = typeof techniqueSheets.$inferSelect;

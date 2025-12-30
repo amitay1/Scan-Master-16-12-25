@@ -11,12 +11,14 @@ services:
       NODE_ENV: production
       DOCKER_ENV: "true"
       ALLOW_ALL_ORIGINS: "true"
-      DATABASE_URL: ${DATABASE_URL}
+      DATABASE_URL: "postgresql://scanmaster:scanmaster_dev_password@postgres:5432/scanmaster"
       SUPABASE_URL: ${SUPABASE_URL}
       SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY}
       JWT_SECRET: ${JWT_SECRET}
       SESSION_SECRET: ${SESSION_SECRET}
     restart: unless-stopped
+    depends_on:
+      - postgres
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
       interval: 30s

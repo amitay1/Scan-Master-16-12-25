@@ -105,7 +105,7 @@ const FIXED_SCAN_DETAILS: ScanDetail[] = [
     enabled: false,
     entrySurface: "od",
     angle: 45,
-    color: "#ef4444"
+    color: "#ff0000"
   },
   // E: CIRCUMFERENTIAL SHEAR CCW - Both directions required per E2375 Annex A1.3.1
   {
@@ -115,7 +115,7 @@ const FIXED_SCAN_DETAILS: ScanDetail[] = [
     enabled: false,
     entrySurface: "od",
     angle: 45,
-    color: "#ec4899"
+    color: "#ff0000"
   },
   // F: AXIAL SHEAR DIRECTION 1 - For tubes per E2375 Annex A1.3.3
   {
@@ -125,7 +125,7 @@ const FIXED_SCAN_DETAILS: ScanDetail[] = [
     enabled: false,
     entrySurface: "od",
     angle: 45,
-    color: "#8b5cf6"
+    color: "#ff0000"
   },
   // G: AXIAL SHEAR DIRECTION 2 - Opposite direction per E2375 Annex A1.3.3
   {
@@ -135,7 +135,7 @@ const FIXED_SCAN_DETAILS: ScanDetail[] = [
     enabled: false,
     entrySurface: "od",
     angle: 45,
-    color: "#14b8a6"
+    color: "#ff0000"
   },
   // H: FROM ID SURFACE - For hollow parts (tubes, rings)
   {
@@ -145,7 +145,7 @@ const FIXED_SCAN_DETAILS: ScanDetail[] = [
     enabled: false,
     entrySurface: "id",
     angle: 0,
-    color: "#06b6d4"
+    color: "#ff0000"
   },
   // I: THROUGH-TRANSMISSION - Two-probe technique
   {
