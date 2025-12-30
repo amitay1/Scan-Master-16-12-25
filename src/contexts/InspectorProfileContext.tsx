@@ -69,7 +69,10 @@ export function InspectorProfileProvider({ children }: InspectorProfileProviderP
   const [currentProfileId, setCurrentProfileId] = useState<string | null>(null);
   const [rememberSelection, setRememberSelectionState] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [useServerSync, setUseServerSync] = useState(true); // Enable server sync by default
+  // Check if offline mode is enabled via env variable or if we're in Electron
+  const isOfflineMode = import.meta.env.VITE_ENABLE_OFFLINE_MODE === 'true' || 
+                        typeof window !== 'undefined' && (window as any).electronAPI;
+  const [useServerSync, setUseServerSync] = useState(!isOfflineMode); // Disable server sync in offline mode
 
   // Fetch profiles from server
   const fetchProfilesFromServer = useCallback(async () => {

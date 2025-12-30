@@ -32,7 +32,9 @@ import { ProbeProgressGauge } from "@/components/ui/ProbeProgressGauge";
 import { HorizontalProgressBar } from "@/components/ui/HorizontalProgressBar";
 import { WebGLLiquidProgress } from "@/components/ui/WebGLLiquidProgress";
 import { Collapsible3DPanel } from "@/components/ui/ResizablePanel";
+import { CollapsibleSidebar } from "@/components/CollapsibleSidebar";
 import type { SavedCard } from "@/contexts/SavedCardsContext";
+import { useSavedCards } from "@/hooks/useSavedCards";
 import {
   StandardType,
   InspectionSetupData,
@@ -66,6 +68,7 @@ const Index = () => {
   const navigate = useNavigate();
   const { user, loading, signOut } = useAuth();
   const { needsProfileSelection, isLoading: profileLoading } = useInspectorProfile();
+  const { saveCard, updateCard, getCard } = useSavedCards();
   const [standard, setStandard] = useState<StandardType>("AMS-STD-2154E");
   const [activeTab, setActiveTab] = useState("setup");
   const [reportMode, setReportMode] = useState<"Technique" | "Report">("Technique");
@@ -75,6 +78,7 @@ const Index = () => {
   const [capturedDrawing, setCapturedDrawing] = useState<string | undefined>();
   const [calibrationBlockDiagram, setCalibrationBlockDiagram] = useState<string | undefined>();
   const [viewer3DOpen, setViewer3DOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   // Smart capture system for export
   const {
@@ -303,6 +307,9 @@ const Index = () => {
   const [sheetNameInput, setSheetNameInput] = useState("");
   const [currentSheetId, setCurrentSheetId] = useState<string | null>(null);
   const [currentSheetName, setCurrentSheetName] = useState("");
+  
+  // Track local card for updates
+  const [currentLocalCardId, setCurrentLocalCardId] = useState<string | null>(null);
 
   const [isSavingSheet, setIsSavingSheet] = useState(false);
   const [isLoadingSheets, setIsLoadingSheets] = useState(false);
@@ -613,11 +620,15 @@ const Index = () => {
 
   // Handle loading a local saved card (from localStorage)
   const handleLoadLocalCard = (card: SavedCard) => {
-    const data = card.data;
+    const data = (card as any).data;
     if (!data) {
       toast.error('Saved card is missing data.');
       return;
     }
+
+    // Track this card ID for future saves
+    setCurrentLocalCardId(card.id);
+    setCurrentSheetName(card.name);
 
     // Apply the card data to the form
     if (data.standard) setStandard(data.standard as StandardType);
@@ -647,7 +658,7 @@ const Index = () => {
     // Apply inspection report if available
     if (data.inspectionReport) setInspectionReport(data.inspectionReport);
 
-    toast.success(`Loaded local card: ${card.name}`);
+    toast.success(`נטען כרטיס: ${card.name}`);
   };
 
   const refreshSavedSheets = async () => {
@@ -753,10 +764,11 @@ const Index = () => {
   const handleSaveDialogConfirm = async () => {
     const trimmedName = sheetNameInput.trim();
     if (!trimmedName) {
-      toast.error('Please provide a name for the card.');
+      toast.error('נא להזין שם לכרטיס.');
       return;
     }
-    await performSave(trimmedName, currentSheetId ?? undefined);
+    // Save locally to localStorage
+    performLocalSave(trimmedName);
   };
 
   // Remove localStorage auto-save - now using database with manual save
@@ -974,56 +986,109 @@ const Index = () => {
 
   const handleNewProject = useCallback(() => {
     if (confirm('Start a new project? Unsaved changes will be lost.')) {
+      setCurrentLocalCardId(null);
+      setCurrentSheetName('');
       window.location.reload();
     }
   }, []);
 
+  // Build the card data object for saving
+  const buildCardData = useCallback(() => {
+    return {
+      standard,
+      activeTab,
+      reportMode,
+      isSplitMode,
+      activePart,
+      partA: {
+        inspectionSetup,
+        equipment,
+        calibration,
+        scanParameters,
+        acceptanceCriteria,
+        documentation,
+        scanDetails,
+      },
+      partB: isSplitMode ? {
+        inspectionSetup: inspectionSetupB,
+        equipment: equipmentB,
+        calibration: calibrationB,
+        scanParameters: scanParametersB,
+        acceptanceCriteria: acceptanceCriteriaB,
+        documentation: documentationB,
+        scanDetails: scanDetailsB,
+      } : undefined,
+      inspectionReport: reportMode === 'Report' ? inspectionReport : undefined,
+    };
+  }, [
+    standard, activeTab, reportMode, isSplitMode, activePart,
+    inspectionSetup, equipment, calibration, scanParameters, acceptanceCriteria, documentation, scanDetails,
+    inspectionSetupB, equipmentB, calibrationB, scanParametersB, acceptanceCriteriaB, documentationB, scanDetailsB,
+    inspectionReport
+  ]);
+
   const handleSave = async () => {
     if (isSavingSheet) return;
-    if (!user) {
-      toast.error('You must be signed in to save your card.');
-      return;
-    }
-    if (!organizationId) {
-      toast.error('Workspace information is still loading. Please try again in a moment.');
-      return;
-    }
 
-    try {
-      const { validateTechniqueSheetData } = await import('@/lib/inputValidation');
-      
-      const techniqueData = {
-        standardName: standard,
-        inspectionSetup: currentData.inspectionSetup,
-        equipment: currentData.equipment,
-        calibration: currentData.calibration,
-        scanParameters: currentData.scanParameters,
-        acceptanceCriteria: currentData.acceptanceCriteria,
-        documentation: currentData.documentation,
-        scanDetails: currentData.scanDetails,
-      };
+    // Build the card data
+    const cardData = buildCardData();
 
-      const validation = validateTechniqueSheetData(techniqueData);
-      if (!validation.valid) {
-        toast.error(`Validation failed: ${validation.error}`);
+    // If we have a current local card, update it
+    if (currentLocalCardId) {
+      const existingCard = getCard(currentLocalCardId);
+      if (existingCard) {
+        updateCard(currentLocalCardId, {
+          data: cardData,
+          completionPercent,
+          standard,
+        } as any);
+        toast.success(`כרטיס "${existingCard.name}" עודכן בהצלחה!`);
         return;
       }
-
-      if (!currentSheetName) {
-        const suggestedName =
-          currentData.inspectionSetup.partName ||
-          currentData.inspectionSetup.partNumber ||
-          `Technique Card ${new Date().toLocaleDateString()}`;
-        setSheetNameInput(suggestedName);
-        setIsSaveDialogOpen(true);
-        return;
-      }
-
-      await performSave(currentSheetName, currentSheetId ?? undefined);
-    } catch (error) {
-      console.error('Error saving technique sheet:', error);
-      toast.error('Error saving technique sheet');
     }
+
+    // No existing card - ask for name
+    const suggestedName =
+      currentData.inspectionSetup.partName ||
+      currentData.inspectionSetup.partNumber ||
+      `כרטיס טכניקה ${new Date().toLocaleDateString('he-IL')}`;
+    setSheetNameInput(suggestedName);
+    setIsSaveDialogOpen(true);
+  };
+
+  // Actually save the local card with the given name
+  const performLocalSave = (name: string) => {
+    const cardData = buildCardData();
+    
+    const savedCard = saveCard({
+      name,
+      description: `${currentData.inspectionSetup.partName || ''} - ${standard}`,
+      type: reportMode === 'Report' ? 'report' : 'technique',
+      standard,
+      completionPercent,
+      tags: [],
+      isFavorite: false,
+      isArchived: false,
+      isSplitMode,
+      inspectionSetup: currentData.inspectionSetup,
+      equipment: currentData.equipment,
+      calibration: currentData.calibration,
+      scanParameters: currentData.scanParameters,
+      acceptanceCriteria: currentData.acceptanceCriteria,
+      documentation: currentData.documentation,
+      inspectionSetupB: isSplitMode ? inspectionSetupB : undefined,
+      equipmentB: isSplitMode ? equipmentB : undefined,
+      calibrationB: isSplitMode ? calibrationB : undefined,
+      scanParametersB: isSplitMode ? scanParametersB : undefined,
+      acceptanceCriteriaB: isSplitMode ? acceptanceCriteriaB : undefined,
+      documentationB: isSplitMode ? documentationB : undefined,
+      data: cardData,
+    } as any);
+    
+    setCurrentLocalCardId(savedCard.id);
+    setCurrentSheetName(name);
+    toast.success(`כרטיס "${name}" נשמר בהצלחה!`);
+    setIsSaveDialogOpen(false);
   };
 
   const handleExportPDF = async () => {
@@ -1314,28 +1379,17 @@ const Index = () => {
           </div>
         </div>
 
-        {/* Desktop: Left Panel with Standard Selector */}
-        <div className="hidden md:block md:w-[15%] md:min-w-[200px] md:max-w-[250px]">
-          <ResizablePanelGroup direction="horizontal" className="h-full">
-            <ResizablePanel defaultSize={100}>
-              <div className="h-full app-panel flex flex-col">
-                <div className="p-3 border-b border-border">
-                  <h3 className="font-semibold text-sm mb-3">Standard</h3>
-                  <StandardSelector 
-                    value={standard} 
-                    onChange={setStandard} 
-                  />
-                </div>
-                <ScrollArea className="flex-1 p-3">
-                  <div className="space-y-4">
-                    {/* Additional sidebar content can go here */}
-                  </div>
-                </ScrollArea>
-              </div>
-            </ResizablePanel>
-            <ResizableHandle withHandle />
-          </ResizablePanelGroup>
-        </div>
+        {/* Desktop: Left Panel with Standard Selector - Collapsible */}
+        <CollapsibleSidebar
+          isOpen={sidebarOpen}
+          onToggle={() => setSidebarOpen(!sidebarOpen)}
+          title="Standard"
+        >
+          <StandardSelector
+            value={standard}
+            onChange={setStandard}
+          />
+        </CollapsibleSidebar>
 
         {/* Center Panel: Main Form - Full width on mobile */}
         <div className="flex-1 flex flex-col min-h-0">
@@ -1630,26 +1684,26 @@ const Index = () => {
       <Dialog open={isSaveDialogOpen} onOpenChange={setIsSaveDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Save technique card</DialogTitle>
-            <DialogDescription>Give this card a clear name so you can find it later.</DialogDescription>
+            <DialogTitle>שמירת כרטיס</DialogTitle>
+            <DialogDescription>תן לכרטיס שם ברור כדי שתוכל למצוא אותו בקלות.</DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
-            <Label htmlFor="card-name">Card name</Label>
+            <Label htmlFor="card-name">שם הכרטיס</Label>
             <Input
               id="card-name"
               value={sheetNameInput}
               onChange={(event) => setSheetNameInput(event.target.value)}
-              placeholder="e.g., AMS-STD-2154E - Part 123"
+              placeholder="לדוגמה: AMS-STD-2154E - חלק 123"
               autoFocus
             />
           </div>
           <DialogFooter className="gap-2 sm:gap-0">
             <Button variant="outline" onClick={() => setIsSaveDialogOpen(false)}>
-              Cancel
+              ביטול
             </Button>
             <Button onClick={handleSaveDialogConfirm} disabled={!sheetNameInput.trim() || isSavingSheet}>
               {isSavingSheet && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Save Card
+              שמור כרטיס
             </Button>
           </DialogFooter>
         </DialogContent>

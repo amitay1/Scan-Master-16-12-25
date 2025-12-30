@@ -35,8 +35,8 @@ services:
     image: postgres:15-alpine
     environment:
       POSTGRES_DB: scanmaster
-      POSTGRES_USER: ${DB_USER:-scanmaster}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-scanmaster_dev_password}
+      POSTGRES_USER: scanmaster
+      POSTGRES_PASSWORD: scanmaster_dev_password
     ports:
       - "5433:5432"
     volumes:

@@ -423,6 +423,7 @@ function startEmbeddedServer() {
       const sheetsFile = path.join(dataDir, 'technique-sheets.json');
       const standardsFile = path.join(dataDir, 'standards.json');
       const orgsFile = path.join(dataDir, 'organizations.json');
+      const profilesFile = path.join(dataDir, 'inspector-profiles.json');
 
       // Default organization for Electron (offline) mode
       const DEFAULT_ELECTRON_ORG = [{
@@ -437,6 +438,7 @@ function startEmbeddedServer() {
       // Initialize files if they don't exist
       if (!fs.existsSync(sheetsFile)) fs.writeFileSync(sheetsFile, '[]');
       if (!fs.existsSync(standardsFile)) fs.writeFileSync(standardsFile, '[]');
+      if (!fs.existsSync(profilesFile)) fs.writeFileSync(profilesFile, '[]');
       // Initialize orgs with default org (valid UUID) for Electron mode
       if (!fs.existsSync(orgsFile)) {
         fs.writeFileSync(orgsFile, JSON.stringify(DEFAULT_ELECTRON_ORG, null, 2));
@@ -542,6 +544,75 @@ function startEmbeddedServer() {
       expressApp.post('/api/logs', (req, res) => {
         // Just acknowledge logs without saving
         res.json({ success: true });
+      });
+
+      // Inspector Profiles API Routes
+      expressApp.get('/api/inspector-profiles', (req, res) => {
+        try {
+          const data = JSON.parse(fs.readFileSync(profilesFile, 'utf8'));
+          res.json(data);
+        } catch (e) {
+          res.json([]);
+        }
+      });
+
+      expressApp.get('/api/inspector-profiles/:id', (req, res) => {
+        try {
+          const profiles = JSON.parse(fs.readFileSync(profilesFile, 'utf8'));
+          const profile = profiles.find(p => String(p.id) === String(req.params.id));
+          if (profile) {
+            res.json(profile);
+          } else {
+            res.status(404).json({ error: 'Profile not found' });
+          }
+        } catch (e) {
+          res.status(500).json({ error: e.message });
+        }
+      });
+
+      expressApp.post('/api/inspector-profiles', (req, res) => {
+        try {
+          const profiles = JSON.parse(fs.readFileSync(profilesFile, 'utf8'));
+          const newProfile = { ...req.body };
+          profiles.push(newProfile);
+          fs.writeFileSync(profilesFile, JSON.stringify(profiles, null, 2));
+          console.log('Profile saved:', newProfile.name);
+          res.json(newProfile);
+        } catch (e) {
+          res.status(500).json({ error: e.message });
+        }
+      });
+
+      expressApp.patch('/api/inspector-profiles/:id', (req, res) => {
+        try {
+          const profiles = JSON.parse(fs.readFileSync(profilesFile, 'utf8'));
+          const index = profiles.findIndex(p => String(p.id) === String(req.params.id));
+          if (index !== -1) {
+            profiles[index] = { ...profiles[index], ...req.body };
+            fs.writeFileSync(profilesFile, JSON.stringify(profiles, null, 2));
+            res.json(profiles[index]);
+          } else {
+            res.status(404).json({ error: 'Profile not found' });
+          }
+        } catch (e) {
+          res.status(500).json({ error: e.message });
+        }
+      });
+
+      expressApp.delete('/api/inspector-profiles/:id', (req, res) => {
+        try {
+          const profiles = JSON.parse(fs.readFileSync(profilesFile, 'utf8'));
+          const index = profiles.findIndex(p => String(p.id) === String(req.params.id));
+          if (index !== -1) {
+            profiles.splice(index, 1);
+            fs.writeFileSync(profilesFile, JSON.stringify(profiles, null, 2));
+            res.json({ success: true });
+          } else {
+            res.status(404).json({ error: 'Profile not found' });
+          }
+        } catch (e) {
+          res.status(500).json({ error: e.message });
+        }
       });
 
       // Fallback to index.html for SPA routing (use regex for Express 5 compatibility)

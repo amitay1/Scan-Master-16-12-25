@@ -1,13 +1,17 @@
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { ScanPlanData, ScanPlanDocument } from "@/types/techniqueSheet";
 import { PDFViewer } from "@/components/PDFViewer";
 import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
   FileText,
   ExternalLink,
-  ChevronRight,
+  ChevronDown,
   Download,
   Maximize2,
   RefreshCw
@@ -19,31 +23,39 @@ interface ScanPlanTabProps {
 }
 
 export const ScanPlanTab = ({ data, onChange }: ScanPlanTabProps) => {
-  const [selectedDocument, setSelectedDocument] = useState<ScanPlanDocument | null>(
-    data.documents.length > 0 ? data.documents[0] : null
-  );
+  const [expandedDocId, setExpandedDocId] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
-  const [key, setKey] = useState<number>(0); // For forcing iframe reload
+  const [key, setKey] = useState<number>(0);
   const [loadError, setLoadError] = useState<boolean>(false);
 
-  const handleDocumentSelect = (doc: ScanPlanDocument) => {
-    setSelectedDocument(doc);
-    setKey(prev => prev + 1); // Force reload
-    setLoadError(false); // Reset error state
+  const handleToggleDoc = (doc: ScanPlanDocument) => {
+    if (expandedDocId === doc.id) {
+      setExpandedDocId(null);
+    } else {
+      setExpandedDocId(doc.id);
+      setKey(prev => prev + 1);
+      setLoadError(false);
+    }
+  };
+
+  const getSelectedDocument = () => {
+    return data.documents.find(d => d.id === expandedDocId) || null;
   };
 
   const handleDownload = () => {
-    if (selectedDocument) {
+    const doc = getSelectedDocument();
+    if (doc) {
       const link = document.createElement('a');
-      link.href = selectedDocument.filePath;
-      link.download = selectedDocument.title + '.pdf';
+      link.href = doc.filePath;
+      link.download = doc.title + '.pdf';
       link.click();
     }
   };
 
   const handleOpenExternal = () => {
-    if (selectedDocument) {
-      window.open(selectedDocument.filePath, '_blank');
+    const doc = getSelectedDocument();
+    if (doc) {
+      window.open(doc.filePath, '_blank');
     }
   };
 
@@ -61,175 +73,141 @@ export const ScanPlanTab = ({ data, onChange }: ScanPlanTabProps) => {
     .sort((a, b) => a.order - b.order);
 
   return (
-    <div className="flex h-full gap-4 p-4">
-      {/* Left Sidebar - Document List */}
-      <div className="w-80 flex-shrink-0">
-        <Card className="p-4 h-full">
-          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <FileText className="h-5 w-5" />
-            Scan Plan Documents
-          </h3>
-
-          <ScrollArea className="h-[calc(100%-3rem)]">
-            <div className="space-y-2">
-              {activeDocuments.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <FileText className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">No documents available</p>
+    <div className="flex flex-col gap-4 p-4">
+      {/* Document Sections */}
+      {activeDocuments.length === 0 ? (
+        <Card className="p-8 text-center">
+          <FileText className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
+          <h3 className="text-lg font-semibold mb-2">No Documents Available</h3>
+          <p className="text-sm text-muted-foreground">
+            No scan plan documents have been configured
+          </p>
+        </Card>
+      ) : (
+        activeDocuments.map((doc) => (
+          <Collapsible
+            key={doc.id}
+            open={expandedDocId === doc.id}
+            onOpenChange={() => handleToggleDoc(doc)}
+          >
+            <Card className="overflow-hidden">
+              {/* Document Header - Clickable */}
+              <CollapsibleTrigger className="w-full">
+                <div className="flex items-center justify-between p-4 hover:bg-accent/50 transition-colors cursor-pointer">
+                  <div className="flex items-center gap-3">
+                    <FileText className="h-5 w-5 text-primary" />
+                    <div className="text-left">
+                      <h3 className="font-semibold">{doc.title}</h3>
+                      {doc.description && (
+                        <p className="text-sm text-muted-foreground">
+                          {doc.description}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {doc.category && (
+                      <span className="px-2 py-1 text-xs bg-secondary rounded-full">
+                        {doc.category}
+                      </span>
+                    )}
+                    <ChevronDown
+                      className={`h-5 w-5 transition-transform duration-200 ${
+                        expandedDocId === doc.id ? "rotate-180" : ""
+                      }`}
+                    />
+                  </div>
                 </div>
-              ) : (
-                activeDocuments.map((doc) => (
-                  <button
-                    key={doc.id}
-                    onClick={() => handleDocumentSelect(doc)}
-                    className={`w-full text-left p-3 rounded-lg transition-all hover:bg-accent/50 ${
-                      selectedDocument?.id === doc.id
-                        ? "bg-primary/10 border-2 border-primary"
-                        : "border border-border"
+              </CollapsibleTrigger>
+
+              {/* Document Content - PDF Viewer */}
+              <CollapsibleContent>
+                <div className="border-t">
+                  {/* Toolbar */}
+                  <div className="flex items-center justify-end gap-2 p-2 bg-muted/30 border-b">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={(e) => { e.stopPropagation(); handleRefresh(); }}
+                      className="h-8"
+                      title="Refresh document"
+                    >
+                      <RefreshCw className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={(e) => { e.stopPropagation(); toggleFullscreen(); }}
+                      className="h-8"
+                      title="Toggle fullscreen"
+                    >
+                      <Maximize2 className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={(e) => { e.stopPropagation(); handleDownload(); }}
+                      className="h-8"
+                      title="Download PDF"
+                    >
+                      <Download className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={(e) => { e.stopPropagation(); handleOpenExternal(); }}
+                      className="h-8"
+                      title="Open in new tab"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                    </Button>
+                  </div>
+
+                  {/* PDF Viewer */}
+                  <div
+                    className={`h-[calc(100vh-280px)] min-h-[500px] ${
+                      isFullscreen ? "fixed inset-2 z-50 bg-background h-auto" : ""
                     }`}
                   >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-medium text-sm truncate">
-                          {doc.title}
-                        </h4>
-                        {doc.description && (
-                          <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                            {doc.description}
-                          </p>
-                        )}
-                        {doc.category && (
-                          <span className="inline-block mt-2 px-2 py-0.5 text-xs bg-secondary rounded-full">
-                            {doc.category}
-                          </span>
-                        )}
+                    {loadError ? (
+                      <div className="flex flex-col items-center justify-center h-full p-8 text-center">
+                        <FileText className="h-16 w-16 mb-4 text-destructive/50" />
+                        <h3 className="text-lg font-semibold mb-2 text-destructive">Failed to Load PDF</h3>
+                        <p className="text-sm text-muted-foreground mb-4">
+                          The PDF file could not be loaded. This might be due to browser restrictions.
+                        </p>
+                        <div className="flex gap-2">
+                          <Button onClick={handleDownload} variant="outline">
+                            <Download className="h-4 w-4 mr-2" />
+                            Download PDF
+                          </Button>
+                          <Button onClick={handleOpenExternal} variant="outline">
+                            <ExternalLink className="h-4 w-4 mr-2" />
+                            Open in New Tab
+                          </Button>
+                          <Button onClick={() => { setLoadError(false); setKey(prev => prev + 1); }} variant="outline">
+                            <RefreshCw className="h-4 w-4 mr-2" />
+                            Try Again
+                          </Button>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-4">
+                          Path: {doc.filePath}
+                        </p>
                       </div>
-                      <ChevronRight
-                        className={`h-4 w-4 flex-shrink-0 transition-transform ${
-                          selectedDocument?.id === doc.id ? "rotate-90" : ""
-                        }`}
+                    ) : (
+                      <PDFViewer
+                        key={key}
+                        file={doc.filePath}
+                        onLoadError={() => setLoadError(true)}
                       />
-                    </div>
-                  </button>
-                ))
-              )}
-            </div>
-          </ScrollArea>
-        </Card>
-      </div>
-
-      {/* Right Side - PDF Viewer */}
-      <div className="flex-1 flex flex-col">
-        {selectedDocument ? (
-          <>
-            {/* Toolbar */}
-            <Card className="p-3 mb-4">
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <h3 className="font-semibold text-sm">{selectedDocument.title}</h3>
-                  {selectedDocument.description && (
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {selectedDocument.description}
-                    </p>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-2">
-                  {/* Action Buttons */}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleRefresh}
-                    className="h-8"
-                    title="Refresh document"
-                  >
-                    <RefreshCw className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={toggleFullscreen}
-                    className="h-8"
-                    title="Toggle fullscreen"
-                  >
-                    <Maximize2 className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleDownload}
-                    className="h-8"
-                    title="Download PDF"
-                  >
-                    <Download className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleOpenExternal}
-                    className="h-8"
-                    title="Open in new tab"
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            </Card>
-
-            {/* PDF Viewer using iframe */}
-            <Card
-              className={`flex-1 overflow-hidden ${
-                isFullscreen ? "fixed inset-4 z-50" : ""
-              }`}
-            >
-              <div className="h-full w-full">
-                {loadError ? (
-                  <div className="flex flex-col items-center justify-center h-full p-8 text-center">
-                    <FileText className="h-16 w-16 mb-4 text-destructive/50" />
-                    <h3 className="text-lg font-semibold mb-2 text-destructive">Failed to Load PDF</h3>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      The PDF file could not be loaded. This might be due to browser restrictions.
-                    </p>
-                    <div className="flex gap-2">
-                      <Button onClick={handleDownload} variant="outline">
-                        <Download className="h-4 w-4 mr-2" />
-                        Download PDF
-                      </Button>
-                      <Button onClick={handleOpenExternal} variant="outline">
-                        <ExternalLink className="h-4 w-4 mr-2" />
-                        Open in New Tab
-                      </Button>
-                      <Button onClick={() => { setLoadError(false); setKey(prev => prev + 1); }} variant="outline">
-                        <RefreshCw className="h-4 w-4 mr-2" />
-                        Try Again
-                      </Button>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-4">
-                      Path: {selectedDocument.filePath}
-                    </p>
+                    )}
                   </div>
-                ) : (
-                  <PDFViewer
-                    key={key}
-                    file={selectedDocument.filePath}
-                    onLoadError={() => setLoadError(true)}
-                  />
-                )}
-              </div>
+                </div>
+              </CollapsibleContent>
             </Card>
-          </>
-        ) : (
-          <Card className="flex-1 flex items-center justify-center">
-            <div className="text-center">
-              <FileText className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-              <h3 className="text-lg font-semibold mb-2">No Document Selected</h3>
-              <p className="text-sm text-muted-foreground">
-                Select a document from the list to view it here
-              </p>
-            </div>
-          </Card>
-        )}
-      </div>
+          </Collapsible>
+        ))
+      )}
     </div>
   );
 };

@@ -1,6 +1,7 @@
 /**
  * Saved Cards Context
  * Manages saving, loading, and organizing technique/report cards
+ * Cards are stored per profile - each profile sees only its own cards
  */
 
 import React, { createContext, useState, useEffect, ReactNode, useCallback } from 'react';
@@ -27,6 +28,20 @@ const generateId = (): string => {
   });
 };
 
+// Get current profile ID from localStorage
+const getCurrentProfileId = (): string => {
+  try {
+    const stored = localStorage.getItem('scanmaster_inspector_profiles');
+    if (stored) {
+      const data = JSON.parse(stored);
+      return data.currentProfileId || 'default';
+    }
+  } catch (error) {
+    console.error('Failed to get current profile:', error);
+  }
+  return 'default';
+};
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -43,6 +58,9 @@ export interface SavedCard {
   tags: string[];
   isFavorite: boolean;
   isArchived: boolean;
+  
+  // Profile association
+  profileId: string;
   
   // Split mode data
   isSplitMode: boolean;
@@ -66,6 +84,7 @@ export interface SavedCard {
   // Additional metadata
   partDiagram?: string;
   lastEditedSection?: string;
+  data?: any; // Full card data for loading
 }
 
 export interface SavedCardsFilter {
@@ -132,8 +151,33 @@ const AUTO_SAVE_KEY = 'scanmaster_autosave';
 // ============================================================================
 
 export function SavedCardsProvider({ children }: { children: ReactNode }) {
-  const [cards, setCards] = useState<SavedCard[]>([]);
+  const [allCards, setAllCards] = useState<SavedCard[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [currentProfileId, setCurrentProfileId] = useState<string>(getCurrentProfileId());
+
+  // Listen for profile changes
+  useEffect(() => {
+    const checkProfileChange = () => {
+      const newProfileId = getCurrentProfileId();
+      if (newProfileId !== currentProfileId) {
+        setCurrentProfileId(newProfileId);
+      }
+    };
+
+    // Check periodically for profile changes
+    const interval = setInterval(checkProfileChange, 1000);
+    
+    // Also listen for storage events
+    window.addEventListener('storage', checkProfileChange);
+    
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('storage', checkProfileChange);
+    };
+  }, [currentProfileId]);
+
+  // Filter cards by current profile
+  const cards = allCards.filter(card => card.profileId === currentProfileId);
 
   // Load cards from localStorage on mount
   useEffect(() => {
@@ -141,7 +185,12 @@ export function SavedCardsProvider({ children }: { children: ReactNode }) {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
-        setCards(parsed);
+        // Migrate old cards without profileId
+        const migratedCards = parsed.map((card: SavedCard) => ({
+          ...card,
+          profileId: card.profileId || 'default',
+        }));
+        setAllCards(migratedCards);
       }
     } catch (error) {
       console.error('Failed to load saved cards:', error);
@@ -154,30 +203,32 @@ export function SavedCardsProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!isLoading) {
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(cards));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(allCards));
       } catch (error) {
         console.error('Failed to save cards:', error);
       }
     }
-  }, [cards, isLoading]);
+  }, [allCards, isLoading]);
 
-  // Save a new card
+  // Save a new card (with current profile)
   const saveCard = useCallback((cardData: Omit<SavedCard, 'id' | 'createdAt' | 'updatedAt'>): SavedCard => {
     const now = new Date().toISOString();
+    const profileId = getCurrentProfileId();
     const newCard: SavedCard = {
       ...cardData,
       id: generateId(),
+      profileId, // Associate with current profile
       createdAt: now,
       updatedAt: now,
     };
     
-    setCards(prev => [newCard, ...prev]);
+    setAllCards(prev => [newCard, ...prev]);
     return newCard;
   }, []);
 
   // Update existing card
   const updateCard = useCallback((id: string, updates: Partial<SavedCard>) => {
-    setCards(prev => prev.map(card => 
+    setAllCards(prev => prev.map(card => 
       card.id === id 
         ? { ...card, ...updates, updatedAt: new Date().toISOString() }
         : card
@@ -186,27 +237,27 @@ export function SavedCardsProvider({ children }: { children: ReactNode }) {
 
   // Delete a card
   const deleteCard = useCallback((id: string) => {
-    setCards(prev => prev.filter(card => card.id !== id));
+    setAllCards(prev => prev.filter(card => card.id !== id));
   }, []);
 
   // Duplicate a card
   const duplicateCard = useCallback((id: string, newName?: string): SavedCard | null => {
-    const original = cards.find(c => c.id === id);
+    const original = allCards.find(c => c.id === id);
     if (!original) return null;
     
     const now = new Date().toISOString();
     const duplicated: SavedCard = {
       ...original,
       id: generateId(),
-      name: newName || `${original.name} (Copy)`,
+      name: newName || `${original.name} (העתק)`,
       createdAt: now,
       updatedAt: now,
       isFavorite: false,
     };
     
-    setCards(prev => [duplicated, ...prev]);
+    setAllCards(prev => [duplicated, ...prev]);
     return duplicated;
-  }, [cards]);
+  }, [allCards]);
 
   // Get single card
   const getCard = useCallback((id: string): SavedCard | undefined => {
@@ -281,21 +332,21 @@ export function SavedCardsProvider({ children }: { children: ReactNode }) {
 
   // Toggle favorite
   const toggleFavorite = useCallback((id: string) => {
-    setCards(prev => prev.map(card =>
+    setAllCards(prev => prev.map(card =>
       card.id === id ? { ...card, isFavorite: !card.isFavorite } : card
     ));
   }, []);
 
   // Toggle archive
   const toggleArchive = useCallback((id: string) => {
-    setCards(prev => prev.map(card =>
+    setAllCards(prev => prev.map(card =>
       card.id === id ? { ...card, isArchived: !card.isArchived } : card
     ));
   }, []);
 
   // Add tag
   const addTag = useCallback((id: string, tag: string) => {
-    setCards(prev => prev.map(card =>
+    setAllCards(prev => prev.map(card =>
       card.id === id && !card.tags.includes(tag)
         ? { ...card, tags: [...card.tags, tag], updatedAt: new Date().toISOString() }
         : card
@@ -304,7 +355,7 @@ export function SavedCardsProvider({ children }: { children: ReactNode }) {
 
   // Remove tag
   const removeTag = useCallback((id: string, tag: string) => {
-    setCards(prev => prev.map(card =>
+    setAllCards(prev => prev.map(card =>
       card.id === id
         ? { ...card, tags: card.tags.filter(t => t !== tag), updatedAt: new Date().toISOString() }
         : card
@@ -335,6 +386,7 @@ export function SavedCardsProvider({ children }: { children: ReactNode }) {
       const imported = JSON.parse(json);
       const cardsToImport = Array.isArray(imported) ? imported : [imported];
       const now = new Date().toISOString();
+      const profileId = getCurrentProfileId();
 
       const newCards: SavedCard[] = [];
 
@@ -346,6 +398,7 @@ export function SavedCardsProvider({ children }: { children: ReactNode }) {
           newCards.push({
             ...item,
             id: generateId(),
+            profileId, // Associate with current profile
             createdAt: now,
             updatedAt: now,
           });
@@ -355,7 +408,8 @@ export function SavedCardsProvider({ children }: { children: ReactNode }) {
           const data = item.data;
           newCards.push({
             id: generateId(),
-            name: item.sheetName || 'Imported Card',
+            profileId, // Associate with current profile
+            name: item.sheetName || 'כרטיס מיובא',
             description: '',
             type: data.reportMode === 'Report' ? 'report' : 'technique',
             standard: (item.standard || data.standard || 'AMS-STD-2154E') as StandardType,
@@ -387,7 +441,7 @@ export function SavedCardsProvider({ children }: { children: ReactNode }) {
         return 0;
       }
 
-      setCards(prev => [...newCards, ...prev]);
+      setAllCards(prev => [...newCards, ...prev]);
       return newCards.length;
     } catch (error) {
       console.error('Failed to import cards:', error);

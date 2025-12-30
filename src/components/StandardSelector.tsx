@@ -16,9 +16,9 @@ interface StandardSelectorProps {
 }
 
 const standards = [
-  { 
-    value: "AMS-STD-2154E" as StandardType, 
-    label: "AMS-STD-2154E (Revision E)", 
+  {
+    value: "AMS-STD-2154E" as StandardType,
+    label: "AMS-STD-2154E (Revision E)",
     description: "Aerospace Materials Specification - Ultrasonic Inspection",
     stringency: "Most Stringent",
     badge: "Aerospace",
@@ -26,11 +26,11 @@ const standards = [
     color: "text-red-500",
     bgColor: "bg-red-50",
     borderColor: "border-red-200",
-    features: ["5 classes (AAA-C)", "Smallest FBH", "30% overlap", "90% linearity"]
+    features: ["5 classes (AAA-C)", "#1 FBH (0.8mm)", "30% overlap", "90% linearity"]
   },
-  { 
-    value: "ASTM-A388" as StandardType, 
-    label: "ASTM A388/A388M", 
+  {
+    value: "ASTM-A388" as StandardType,
+    label: "ASTM A388/A388M",
     description: "Ultrasonic Examination of Heavy Steel Forgings",
     stringency: "Standard",
     badge: "Industrial",
@@ -38,7 +38,7 @@ const standards = [
     color: "text-blue-500",
     bgColor: "bg-blue-50",
     borderColor: "border-blue-200",
-    features: ["4 quality levels", "DGS method", "10-15% overlap", "3 FBH sizes"]
+    features: ["4 quality levels", "DGS method", "10-15% overlap", "Heavy forgings"]
   },
   {
     value: "BS-EN-10228-3" as StandardType,
@@ -50,7 +50,7 @@ const standards = [
     color: "text-green-500",
     bgColor: "bg-green-50",
     borderColor: "border-green-200",
-    features: ["4 quality classes", "DAC curve", "10% overlap", "Transfer correction"]
+    features: ["4 quality classes", "DAC curve", "2-10 MHz", "Ferritic steel"]
   },
   {
     value: "BS-EN-10228-4" as StandardType,
@@ -62,7 +62,7 @@ const standards = [
     color: "text-purple-500",
     bgColor: "bg-purple-50",
     borderColor: "border-purple-200",
-    features: ["Coarse grain", "0.5-2 MHz", "20% overlap", "Noise assessment"]
+    features: ["Coarse grain", "0.5-2 MHz", "20% overlap", "Austenitic steel"]
   }
 ] as const;
 

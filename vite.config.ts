@@ -44,7 +44,7 @@ export default defineConfig(({ mode }) => ({
     dedupe: ["react", "react-dom", "react/jsx-runtime"],
   },
   optimizeDeps: {
-    include: ["react", "react-dom", "react/jsx-runtime"],
+    include: ["react", "react-dom", "react/jsx-runtime", "pdfjs-dist"],
     exclude: ["@mediapipe/tasks-vision"],
     esbuildOptions: {
       target: "esnext",

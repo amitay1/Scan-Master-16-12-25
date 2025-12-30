@@ -14,7 +14,9 @@ if (!process.env.DATABASE_URL) {
 
 // Check if using local database (no SSL needed) or cloud (SSL required)
 const isLocalDb = process.env.DATABASE_URL.includes('localhost') || 
-                  process.env.DATABASE_URL.includes('127.0.0.1');
+                  process.env.DATABASE_URL.includes('127.0.0.1') ||
+                  process.env.DATABASE_URL.includes('@postgres:') ||
+                  process.env.DOCKER_ENV === 'true';
 
 console.log('🔵 Database configuration:', {
   url: process.env.DATABASE_URL.replace(/:[^:@]+@/, ':****@'),
