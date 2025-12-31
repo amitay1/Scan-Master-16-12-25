@@ -38,7 +38,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Auto-updater API
   checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
   downloadUpdate: () => ipcRenderer.invoke('download-update'),
-  installUpdate: () => ipcRenderer.invoke('install-update'),
+  installUpdate: (silent = true) => ipcRenderer.invoke('install-update', silent),
   getAppVersion: () => ipcRenderer.invoke('get-app-version'),
 
   // Platform information
@@ -48,11 +48,31 @@ contextBridge.exposeInMainWorld('electronAPI', {
   version: '0.0.0'
 });
 
-// Also expose as 'electron' for easier access
+// Also expose as 'electron' for easier access with enhanced update capabilities
 contextBridge.exposeInMainWorld('electron', {
+  // Version info
   getAppVersion: () => ipcRenderer.invoke('get-app-version'),
+  
+  // Update checking
   checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
-  installUpdate: () => ipcRenderer.invoke('install-update'),
+  forceCheckUpdates: () => ipcRenderer.invoke('force-check-updates'),
+  
+  // Update installation
+  installUpdate: (silent = true) => ipcRenderer.invoke('install-update', silent),
+  downloadUpdate: () => ipcRenderer.invoke('download-update'),
+  
+  // Update info
+  getUpdateInfo: () => ipcRenderer.invoke('get-update-info'),
+  
+  // Update settings
+  getUpdateSettings: () => ipcRenderer.invoke('get-update-settings'),
+  setUpdateSettings: (settings) => ipcRenderer.invoke('set-update-settings', settings),
+  
+  // Scheduled restart management
+  scheduleRestart: (delaySeconds) => ipcRenderer.invoke('schedule-restart', delaySeconds),
+  cancelScheduledRestart: () => ipcRenderer.invoke('cancel-scheduled-restart'),
+  
+  // Update status listeners
   onUpdateStatus: (callback) => {
     updateListeners.add(callback);
   },

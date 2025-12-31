@@ -61,7 +61,11 @@
     "allowToChangeInstallationDirectory": false,
     "createDesktopShortcut": true,
     "createStartMenuShortcut": true,
-    "differentialPackage": false
+    "differentialPackage": true,
+    "runAfterFinish": true,
+    "deleteAppDataOnUninstall": false,
+    "perMachine": false,
+    "allowElevation": true
   },
   "portable": {
     "artifactName": "${productName}-Portable-${version}.${ext}"

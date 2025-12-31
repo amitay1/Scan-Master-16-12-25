@@ -265,19 +265,23 @@ export const ShapeGeometries = {
   cone: (params?: ShapeParameters) => {
     // CONE IS ALWAYS HOLLOW - it's a tapered tube in ultrasonic inspection
     // Never a solid pointed cone - always has wall thickness
-    const bottomRadius = (params?.coneBottomDiameter || 100) / 100; // Scale to reasonable 3D size
-    // Default top diameter is 30% of bottom diameter for a nice frustum shape
-    const defaultTopDiameter = (params?.coneBottomDiameter || 100) * 0.3;
-    // Top diameter must be at least 1mm (never pointed)
-    const topRadius = Math.max((params?.coneTopDiameter ?? defaultTopDiameter) / 100, 0.01);
+    const bottomDiameter = params?.coneBottomDiameter || 100;
+    const bottomRadius = bottomDiameter / 100; // Scale to reasonable 3D size
+    // Default top diameter is 60% of bottom diameter for a nice truncated cone shape (not pointed!)
+    const defaultTopDiameter = bottomDiameter * 0.6;
+    // If coneTopDiameter is not provided or is 0, use default. Never allow pointed (minimum 30% of bottom)
+    const topDiameter = (params?.coneTopDiameter && params.coneTopDiameter > 0) 
+      ? params.coneTopDiameter 
+      : defaultTopDiameter;
+    const topRadius = Math.max(topDiameter / 100, bottomRadius * 0.3);
     const height = (params?.coneHeight || 150) / 100;
-    // Wall thickness defaults to 10mm if not specified
-    const wallThickness = (params?.wallThickness || 10) / 100;
+    // Wall thickness defaults to 15mm if not specified (thicker wall for better visibility)
+    const wallThickness = (params?.wallThickness || 15) / 100;
 
     // ALWAYS create hollow cone (tapered tube) using LatheGeometry
     const points: THREE.Vector2[] = [];
-    const innerBottomRadius = Math.max(bottomRadius - wallThickness, 0.01);
-    const innerTopRadius = Math.max(topRadius - wallThickness, 0.005);
+    const innerBottomRadius = Math.max(bottomRadius - wallThickness, bottomRadius * 0.5);
+    const innerTopRadius = Math.max(topRadius - wallThickness, topRadius * 0.5);
 
     // Create cross-section profile for hollow cone (clockwise from bottom-outer)
     points.push(new THREE.Vector2(bottomRadius, 0));           // Bottom outer

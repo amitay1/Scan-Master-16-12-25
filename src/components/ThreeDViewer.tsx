@@ -193,10 +193,10 @@ const Part = memo(function Part({ partType, material, dimensions }: ThreeDViewer
     innerLength: debouncedDimensions?.innerLength || 0,
     innerWidth: debouncedDimensions?.innerWidth || 0,
     wallThickness: debouncedDimensions?.wallThickness || 0,
-    // Cone-specific parameters
-    coneTopDiameter: debouncedDimensions?.coneTopDiameter || 0,
-    coneBottomDiameter: debouncedDimensions?.coneBottomDiameter || 0,
-    coneHeight: debouncedDimensions?.coneHeight || 0,
+    // Cone-specific parameters - use undefined if not set so geometry uses proper defaults
+    coneTopDiameter: debouncedDimensions?.coneTopDiameter || undefined,
+    coneBottomDiameter: debouncedDimensions?.coneBottomDiameter || undefined,
+    coneHeight: debouncedDimensions?.coneHeight || undefined,
   });
 
   // Use the same geometry as Shape3DViewer for consistency.

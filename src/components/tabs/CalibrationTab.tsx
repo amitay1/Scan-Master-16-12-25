@@ -197,19 +197,6 @@ export const CalibrationTab = ({
         </div>
       </div>
 
-      {/* Block Catalog */}
-      <div>
-        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          <Target className="h-5 w-5" />
-          Block Catalog
-        </h3>
-        <CalibrationCatalog
-          recommendedModel={selectedModelId}
-          onSelectModel={handleSelectModel}
-          selectedModel={data.standardType || undefined}
-        />
-      </div>
-
       {/* Block Settings */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <FieldWithHelp

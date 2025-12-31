@@ -9,79 +9,202 @@ let embeddedServer;
 let updateAvailable = false;
 let updateVersion = null;
 let updateDownloaded = false;
+let updateInfo = null;
 let licenseManager;
 let autoUpdater;
 let isDev;
+let silentUpdateTimer = null;
+let updateCheckInterval = null;
+
+// Update settings - can be configured per-factory
+const UPDATE_SETTINGS = {
+  // Check for updates every 30 minutes
+  checkInterval: 30 * 60 * 1000,
+  // Auto-restart after this many seconds (0 = disabled, let user decide)
+  autoRestartDelay: 0,
+  // Silent mode - minimal notifications to user
+  silentMode: true,
+  // Install on quit - always true for seamless updates
+  installOnQuit: true,
+  // Retry failed updates
+  maxRetries: 3,
+  retryDelay: 60 * 1000 // 1 minute
+};
+
+let updateRetryCount = 0;
 
 // Initialize autoUpdater after app is ready
 function initAutoUpdater() {
   const { autoUpdater: updater } = require('electron-updater');
   autoUpdater = updater;
 
-  // Auto-updater configuration
-  autoUpdater.autoDownload = true;
-  autoUpdater.autoInstallOnAppQuit = true;
-  autoUpdater.disableWebInstaller = false;  // Use delta updates when available
-  autoUpdater.allowDowngrade = false;
+  // Auto-updater configuration for seamless updates
+  autoUpdater.autoDownload = true;              // Download automatically
+  autoUpdater.autoInstallOnAppQuit = true;      // Install when user quits
+  autoUpdater.disableWebInstaller = false;      // Use delta updates when available
+  autoUpdater.allowDowngrade = false;           // Never downgrade
+  autoUpdater.allowPrerelease = false;          // Only stable releases
+  
+  // Set logger for debugging
+  autoUpdater.logger = require('electron-log');
+  autoUpdater.logger.transports.file.level = 'info';
 
   // GitHub releases are configured in electron-builder.json
   // No custom feed URL configuration needed
 
   setupAutoUpdaterHandlers();
+  
+  // Setup periodic update checks
+  setupPeriodicUpdateChecks();
+}
+
+// Setup periodic update checks
+function setupPeriodicUpdateChecks() {
+  // Clear existing interval if any
+  if (updateCheckInterval) {
+    clearInterval(updateCheckInterval);
+  }
+  
+  // Check for updates periodically
+  updateCheckInterval = setInterval(() => {
+    if (autoUpdater && !updateDownloaded) {
+      console.log('🔄 Periodic update check...');
+      autoUpdater.checkForUpdates().catch(err => {
+        console.log('Periodic update check failed:', err.message);
+      });
+    }
+  }, UPDATE_SETTINGS.checkInterval);
 }
 
 // Auto-updater event handlers
 function setupAutoUpdaterHandlers() {
   autoUpdater.on('checking-for-update', () => {
-    console.log('Checking for updates...');
-    if (mainWindow) {
+    console.log('🔍 Checking for updates...');
+    if (mainWindow && !UPDATE_SETTINGS.silentMode) {
       mainWindow.webContents.send('update-status', { status: 'checking' });
     }
   });
 
   autoUpdater.on('update-available', (info) => {
-    console.log('Update available:', info.version);
+    console.log('✅ Update available:', info.version);
     updateAvailable = true;
     updateVersion = info.version;
+    updateInfo = info;
+    updateRetryCount = 0; // Reset retry count for new update
     updateMenu(); // Refresh menu to show update indicator
+    
     if (mainWindow) {
-      mainWindow.webContents.send('update-status', { status: 'available', version: info.version });
+      mainWindow.webContents.send('update-status', { 
+        status: 'available', 
+        version: info.version,
+        releaseNotes: info.releaseNotes,
+        releaseDate: info.releaseDate,
+        silent: UPDATE_SETTINGS.silentMode
+      });
     }
   });
 
-  autoUpdater.on('update-not-available', () => {
-    console.log('No updates available');
-    if (mainWindow) {
+  autoUpdater.on('update-not-available', (info) => {
+    console.log('👍 App is up to date:', info.version);
+    if (mainWindow && !UPDATE_SETTINGS.silentMode) {
       mainWindow.webContents.send('update-status', { status: 'not-available' });
     }
   });
 
   autoUpdater.on('download-progress', (progress) => {
-    console.log(`Download progress: ${progress.percent.toFixed(1)}%`);
+    const percent = progress.percent.toFixed(1);
+    const speed = (progress.bytesPerSecond / 1024 / 1024).toFixed(2);
+    const transferred = (progress.transferred / 1024 / 1024).toFixed(2);
+    const total = (progress.total / 1024 / 1024).toFixed(2);
+    
+    console.log(`📥 Download: ${percent}% (${transferred}/${total} MB @ ${speed} MB/s)`);
+    
     if (mainWindow) {
       mainWindow.webContents.send('update-status', {
         status: 'downloading',
-        percent: progress.percent
+        percent: progress.percent,
+        bytesPerSecond: progress.bytesPerSecond,
+        transferred: progress.transferred,
+        total: progress.total
       });
     }
   });
 
   autoUpdater.on('update-downloaded', (info) => {
-    console.log('Update downloaded:', info.version);
+    console.log('✅ Update downloaded:', info.version);
     updateDownloaded = true;
     updateVersion = info.version;
+    updateInfo = info;
     updateMenu(); // Refresh menu to show "Install Update" option
+    
     if (mainWindow) {
-      mainWindow.webContents.send('update-status', { status: 'downloaded', version: info.version });
+      mainWindow.webContents.send('update-status', { 
+        status: 'downloaded', 
+        version: info.version,
+        releaseNotes: info.releaseNotes,
+        autoInstallOnQuit: UPDATE_SETTINGS.installOnQuit
+      });
+    }
+    
+    // If auto-restart is enabled, schedule restart
+    if (UPDATE_SETTINGS.autoRestartDelay > 0) {
+      scheduleAutoRestart(UPDATE_SETTINGS.autoRestartDelay);
     }
   });
 
   autoUpdater.on('error', (error) => {
-    console.error('Auto-updater error:', error);
-    if (mainWindow) {
-      mainWindow.webContents.send('update-status', { status: 'error', error: error.message });
+    console.error('❌ Auto-updater error:', error.message);
+    
+    // Retry logic
+    if (updateRetryCount < UPDATE_SETTINGS.maxRetries) {
+      updateRetryCount++;
+      console.log(`🔄 Retrying update check (${updateRetryCount}/${UPDATE_SETTINGS.maxRetries})...`);
+      setTimeout(() => {
+        autoUpdater.checkForUpdates().catch(err => {
+          console.error('Retry failed:', err.message);
+        });
+      }, UPDATE_SETTINGS.retryDelay);
+    } else if (mainWindow) {
+      mainWindow.webContents.send('update-status', { 
+        status: 'error', 
+        error: error.message,
+        canRetry: true 
+      });
     }
   });
+}
+
+// Schedule automatic restart for update installation
+function scheduleAutoRestart(delaySeconds) {
+  if (silentUpdateTimer) {
+    clearTimeout(silentUpdateTimer);
+  }
+  
+  console.log(`⏰ Auto-restart scheduled in ${delaySeconds} seconds`);
+  
+  if (mainWindow) {
+    mainWindow.webContents.send('update-status', {
+      status: 'restart-scheduled',
+      restartIn: delaySeconds,
+      version: updateVersion
+    });
+  }
+  
+  silentUpdateTimer = setTimeout(() => {
+    console.log('🔄 Auto-restarting for update...');
+    if (autoUpdater) {
+      autoUpdater.quitAndInstall(true, true); // isSilent: true, isForceRunAfter: true
+    }
+  }, delaySeconds * 1000);
+}
+
+// Cancel scheduled restart
+function cancelScheduledRestart() {
+  if (silentUpdateTimer) {
+    clearTimeout(silentUpdateTimer);
+    silentUpdateTimer = null;
+    console.log('⏹️ Auto-restart cancelled');
+  }
 }
 
 // Setup IPC handlers
@@ -101,14 +224,64 @@ function setupIPCHandlers() {
     return null;
   });
 
-  ipcMain.handle('install-update', () => {
+  ipcMain.handle('install-update', (event, silent = true) => {
     if (autoUpdater) {
-      autoUpdater.quitAndInstall();
+      // Cancel any scheduled restart
+      cancelScheduledRestart();
+      // isSilent: run installer without UI, isForceRunAfter: restart app after install
+      autoUpdater.quitAndInstall(silent, true);
     }
   });
 
   ipcMain.handle('get-app-version', () => {
     return app.getVersion();
+  });
+  
+  // New: Get update info
+  ipcMain.handle('get-update-info', () => {
+    return {
+      updateAvailable,
+      updateDownloaded,
+      updateVersion,
+      releaseNotes: updateInfo?.releaseNotes,
+      releaseDate: updateInfo?.releaseDate,
+      currentVersion: app.getVersion()
+    };
+  });
+  
+  // New: Get/Set update settings
+  ipcMain.handle('get-update-settings', () => {
+    return UPDATE_SETTINGS;
+  });
+  
+  ipcMain.handle('set-update-settings', (event, settings) => {
+    Object.assign(UPDATE_SETTINGS, settings);
+    // Re-setup periodic checks if interval changed
+    if (settings.checkInterval) {
+      setupPeriodicUpdateChecks();
+    }
+    return UPDATE_SETTINGS;
+  });
+  
+  // New: Schedule restart
+  ipcMain.handle('schedule-restart', (event, delaySeconds) => {
+    scheduleAutoRestart(delaySeconds);
+    return { scheduled: true, restartIn: delaySeconds };
+  });
+  
+  // New: Cancel scheduled restart
+  ipcMain.handle('cancel-scheduled-restart', () => {
+    cancelScheduledRestart();
+    return { cancelled: true };
+  });
+  
+  // New: Force check for updates (bypass cache)
+  ipcMain.handle('force-check-updates', async () => {
+    if (!isDev && autoUpdater) {
+      updateRetryCount = 0;
+      return autoUpdater.checkForUpdates();
+    }
+    return { updateAvailable: false };
   });
 
   // License Management IPC Handlers

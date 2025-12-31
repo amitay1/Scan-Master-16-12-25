@@ -176,52 +176,6 @@ export function AngleBeamDrawing({
             strokeDasharray="10,3,2,3"
           />
 
-          {/* Outer circle */}
-          <circle
-            cx={centerX}
-            cy={centerY}
-            r={scaledOD / 2}
-            fill="none"
-            stroke="#333"
-            strokeWidth={2}
-          />
-
-          {/* Material hatching (between outer and inner circles) */}
-          {isHollow && (
-            <g>
-              <clipPath id="ringClip">
-                <path d={`
-                  M ${centerX - scaledOD / 2} ${centerY}
-                  A ${scaledOD / 2} ${scaledOD / 2} 0 1 1 ${centerX + scaledOD / 2} ${centerY}
-                  A ${scaledOD / 2} ${scaledOD / 2} 0 1 1 ${centerX - scaledOD / 2} ${centerY}
-                  M ${centerX - scaledID / 2} ${centerY}
-                  A ${scaledID / 2} ${scaledID / 2} 0 1 0 ${centerX + scaledID / 2} ${centerY}
-                  A ${scaledID / 2} ${scaledID / 2} 0 1 0 ${centerX - scaledID / 2} ${centerY}
-                `} />
-              </clipPath>
-              <rect
-                x={centerX - scaledOD / 2 - 5}
-                y={centerY - scaledOD / 2 - 5}
-                width={scaledOD + 10}
-                height={scaledOD + 10}
-                fill="url(#sectionHatch)"
-                clipPath="url(#ringClip)"
-                opacity={0.4}
-              />
-            </g>
-          )}
-
-          {/* Inner circle (if hollow) */}
-          {isHollow && (
-            <circle
-              cx={centerX}
-              cy={centerY}
-              r={scaledID / 2}
-              fill="#fafafa"
-              stroke="#333"
-              strokeWidth={2}
-            />
-          )}
 
           {/* Angle beam probe position and beam path */}
           <g>

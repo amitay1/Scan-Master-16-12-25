@@ -1,27 +1,61 @@
 /**
  * Update Notification Component
  * Shows beautiful animated update notifications in the app
+ * Supports silent updates and automatic installation
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Download, RefreshCw, Sparkles, X, Rocket } from 'lucide-react';
+import { Download, RefreshCw, Sparkles, X, Rocket, Clock, CheckCircle2, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface UpdateStatus {
-  status: 'checking' | 'available' | 'downloading' | 'downloaded' | 'not-available' | 'error';
+  status: 'checking' | 'available' | 'downloading' | 'downloaded' | 'not-available' | 'error' | 'restart-scheduled';
   version?: string;
   percent?: number;
+  bytesPerSecond?: number;
+  transferred?: number;
+  total?: number;
   error?: string;
+  releaseNotes?: string;
+  autoInstallOnQuit?: boolean;
+  restartIn?: number;
+  silent?: boolean;
+  canRetry?: boolean;
 }
 
 // Electron API type for window object
 interface ElectronBridge {
   getAppVersion?: () => Promise<string>;
   checkForUpdates?: () => Promise<void>;
-  installUpdate?: () => void;
+  forceCheckUpdates?: () => Promise<void>;
+  installUpdate?: (silent?: boolean) => void;
+  downloadUpdate?: () => Promise<void>;
+  getUpdateInfo?: () => Promise<UpdateInfo>;
+  getUpdateSettings?: () => Promise<UpdateSettings>;
+  setUpdateSettings?: (settings: Partial<UpdateSettings>) => Promise<UpdateSettings>;
+  scheduleRestart?: (delaySeconds: number) => Promise<{ scheduled: boolean; restartIn: number }>;
+  cancelScheduledRestart?: () => Promise<{ cancelled: boolean }>;
   onUpdateStatus?: (callback: (event: unknown, status: UpdateStatus) => void) => void;
   removeUpdateListener?: (callback: (event: unknown, status: UpdateStatus) => void) => void;
+}
+
+interface UpdateInfo {
+  updateAvailable: boolean;
+  updateDownloaded: boolean;
+  updateVersion: string | null;
+  releaseNotes?: string;
+  releaseDate?: string;
+  currentVersion: string;
+}
+
+interface UpdateSettings {
+  checkInterval: number;
+  autoRestartDelay: number;
+  silentMode: boolean;
+  installOnQuit: boolean;
+  maxRetries: number;
+  retryDelay: number;
 }
 
 // Safe access to electron API
@@ -39,6 +73,8 @@ export function UpdateNotification() {
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus | null>(null);
   const [dismissed, setDismissed] = useState(false);
   const [currentVersion, setCurrentVersion] = useState<string>('');
+  const [countdown, setCountdown] = useState<number | null>(null);
+  const [showMinimal, setShowMinimal] = useState(false);
 
   useEffect(() => {
     if (!isElectron) return;
@@ -54,8 +90,20 @@ export function UpdateNotification() {
     // Listen for update status from main process
     const handleUpdateStatus = (_event: unknown, status: UpdateStatus) => {
       setUpdateStatus(status);
+      
+      // Handle restart scheduled countdown
+      if (status.status === 'restart-scheduled' && status.restartIn) {
+        setCountdown(status.restartIn);
+      }
+      
+      // Show notification for important updates (but respect silent mode)
       if (status.status === 'available' || status.status === 'downloaded') {
-        setDismissed(false); // Show notification for important updates
+        if (!status.silent) {
+          setDismissed(false);
+        } else {
+          // In silent mode, show minimal indicator
+          setShowMinimal(true);
+        }
       }
     };
 
@@ -68,30 +116,102 @@ export function UpdateNotification() {
       electron.removeUpdateListener?.(handleUpdateStatus);
     };
   }, []);
+  
+  // Countdown timer effect
+  useEffect(() => {
+    if (countdown === null || countdown <= 0) return;
+    
+    const timer = setInterval(() => {
+      setCountdown(prev => {
+        if (prev === null || prev <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    
+    return () => clearInterval(timer);
+  }, [countdown]);
 
-  const handleInstallUpdate = () => {
-    getElectron()?.installUpdate?.();
-  };
+  const handleInstallUpdate = useCallback((silent = true) => {
+    getElectron()?.installUpdate?.(silent);
+  }, []);
+  
+  const handleCancelRestart = useCallback(() => {
+    getElectron()?.cancelScheduledRestart?.();
+    setCountdown(null);
+    setUpdateStatus(prev => prev ? { ...prev, status: 'downloaded' } : null);
+  }, []);
+  
+  const handleScheduleRestart = useCallback((delaySeconds: number) => {
+    getElectron()?.scheduleRestart?.(delaySeconds);
+    setCountdown(delaySeconds);
+  }, []);
 
   const handleDismiss = () => {
     setDismissed(true);
+    setShowMinimal(true); // Show minimal indicator when dismissed
+  };
+  
+  const handleRetry = () => {
+    getElectron()?.forceCheckUpdates?.();
   };
 
-  // Don't show anything if not in Electron or dismissed
-  if (!isElectron || dismissed || !updateStatus) return null;
+  // Don't show anything if not in Electron
+  if (!isElectron) return null;
   
   // Don't show for non-important statuses
-  if (updateStatus.status === 'not-available' || updateStatus.status === 'checking') return null;
+  if (!updateStatus || updateStatus.status === 'not-available' || updateStatus.status === 'checking') {
+    return null;
+  }
+  
+  // Format bytes for display
+  const formatBytes = (bytes: number) => {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / 1024 / 1024).toFixed(1) + ' MB';
+  };
+  
+  // Format time for countdown
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+  };
+
+  // Minimal indicator (shows when update is ready but dismissed or in silent mode)
+  if ((dismissed || showMinimal) && updateStatus.status === 'downloaded') {
+    return (
+      <motion.div
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="fixed bottom-4 right-4 z-[9998]"
+      >
+        <Button
+          onClick={() => { setDismissed(false); setShowMinimal(false); }}
+          className="bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-full px-4 py-2 shadow-lg hover:shadow-xl transition-all"
+        >
+          <CheckCircle2 className="w-4 h-4 mr-2" />
+          Update Ready
+        </Button>
+      </motion.div>
+    );
+  }
+  
+  // Don't show full UI if dismissed
+  if (dismissed) return null;
 
   return (
     <AnimatePresence>
+      {/* Downloading State - Enhanced with speed and size info */}
       {updateStatus.status === 'downloading' && (
         <motion.div
           initial={{ opacity: 0, y: -100, scale: 0.9 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -100, scale: 0.9 }}
           transition={{ type: 'spring', damping: 20, stiffness: 300 }}
-          className="fixed top-4 left-1/2 -translate-x-1/2 z-[9999] w-[400px]"
+          className="fixed top-4 left-1/2 -translate-x-1/2 z-[9999] w-[420px]"
         >
           <div className="bg-gradient-to-br from-blue-600 to-purple-700 rounded-2xl shadow-2xl border border-white/20 overflow-hidden">
             {/* Animated background particles */}
@@ -160,11 +280,27 @@ export function UpdateNotification() {
                   transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
                 />
               </div>
+              
+              {/* Download stats */}
+              {updateStatus.transferred && updateStatus.total && (
+                <div className="mt-2 flex justify-between text-white/60 text-xs">
+                  <span>{formatBytes(updateStatus.transferred)} / {formatBytes(updateStatus.total)}</span>
+                  {updateStatus.bytesPerSecond && (
+                    <span>{formatBytes(updateStatus.bytesPerSecond)}/s</span>
+                  )}
+                </div>
+              )}
+              
+              {/* Silent mode indicator */}
+              <p className="text-white/50 text-xs mt-3 text-center">
+                🔇 Installing automatically when ready
+              </p>
             </div>
           </div>
         </motion.div>
       )}
 
+      {/* Update Available - Minimal notification */}
       {updateStatus.status === 'available' && (
         <motion.div
           initial={{ opacity: 0, x: 100 }}
@@ -202,13 +338,67 @@ export function UpdateNotification() {
               </div>
 
               <p className="text-white/70 text-xs mt-3">
-                The update will download automatically in the background.
+                🔇 Downloading automatically in the background...
               </p>
             </div>
           </div>
         </motion.div>
       )}
 
+      {/* Restart Scheduled - Countdown notification */}
+      {updateStatus.status === 'restart-scheduled' && countdown !== null && countdown > 0 && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8, y: 50 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.8, y: 50 }}
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm"
+        >
+          <motion.div 
+            className="bg-gradient-to-br from-amber-500 via-orange-600 to-red-600 rounded-3xl shadow-2xl border border-white/20 w-[450px] overflow-hidden"
+          >
+            <div className="relative p-8 text-center">
+              <motion.div
+                animate={{ scale: [1, 1.05, 1] }}
+                transition={{ duration: 1, repeat: Infinity }}
+                className="mx-auto w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mb-6"
+              >
+                <Clock className="w-10 h-10 text-white" />
+              </motion.div>
+
+              <h2 className="text-3xl font-bold text-white mb-2">
+                Restarting in {formatTime(countdown)}
+              </h2>
+              
+              <p className="text-white/80 text-lg mb-2">
+                Version {updateStatus.version} will be installed
+              </p>
+
+              <p className="text-white/60 text-sm mb-6">
+                Save your work now. The app will restart automatically.
+              </p>
+
+              <div className="flex gap-3 justify-center">
+                <Button
+                  variant="ghost"
+                  onClick={handleCancelRestart}
+                  className="text-white/70 hover:text-white hover:bg-white/10"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => handleInstallUpdate(true)}
+                  className="bg-white text-orange-600 hover:bg-white/90 font-bold px-6"
+                >
+                  <RefreshCw className="w-5 h-5 mr-2" />
+                  Restart Now
+                </Button>
+              </div>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+
+      {/* Update Downloaded - Ready to install */}
       {updateStatus.status === 'downloaded' && (
         <motion.div
           initial={{ opacity: 0, scale: 0.8, y: 50 }}
@@ -218,7 +408,7 @@ export function UpdateNotification() {
           className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm"
         >
           <motion.div 
-            className="bg-gradient-to-br from-green-500 via-emerald-600 to-teal-700 rounded-3xl shadow-2xl border border-white/20 w-[450px] overflow-hidden"
+            className="bg-gradient-to-br from-green-500 via-emerald-600 to-teal-700 rounded-3xl shadow-2xl border border-white/20 w-[480px] overflow-hidden"
             initial={{ rotateX: -20 }}
             animate={{ rotateX: 0 }}
             transition={{ type: 'spring', damping: 20 }}
@@ -233,12 +423,12 @@ export function UpdateNotification() {
                     background: ['#FFD700', '#FF6B6B', '#4ECDC4', '#A855F7', '#3B82F6'][i % 5],
                   }}
                   initial={{ 
-                    x: 225, 
+                    x: 240, 
                     y: 200,
                     scale: 0
                   }}
                   animate={{ 
-                    x: 225 + (Math.random() - 0.5) * 400,
+                    x: 240 + (Math.random() - 0.5) * 400,
                     y: 200 + (Math.random() - 0.5) * 300,
                     scale: [0, 1, 0],
                     opacity: [0, 1, 0]
@@ -286,30 +476,44 @@ export function UpdateNotification() {
                 Version {updateStatus.version} has been downloaded
               </motion.p>
 
-              <motion.p 
+              <motion.div 
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.5 }}
-                className="text-white/60 text-sm mb-6"
+                className="bg-white/10 rounded-lg p-3 mb-6"
               >
-                Restart the app to apply the update
-              </motion.p>
+                <p className="text-white/90 text-sm flex items-center justify-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-green-300" />
+                  {updateStatus.autoInstallOnQuit 
+                    ? "Will install automatically when you close the app"
+                    : "Ready to install now"
+                  }
+                </p>
+              </motion.div>
 
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.6 }}
-                className="flex gap-3 justify-center"
+                className="flex gap-3 justify-center flex-wrap"
               >
                 <Button
                   variant="ghost"
                   onClick={handleDismiss}
                   className="text-white/70 hover:text-white hover:bg-white/10"
                 >
-                  Later
+                  Continue Working
                 </Button>
                 <Button
-                  onClick={handleInstallUpdate}
+                  variant="ghost"
+                  onClick={() => handleScheduleRestart(300)} // 5 minutes
+                  className="text-white/70 hover:text-white hover:bg-white/10"
+                >
+                  <Clock className="w-4 h-4 mr-2" />
+                  In 5 min
+                </Button>
+                <Button
+                  onClick={() => handleInstallUpdate(true)}
                   className="bg-white text-green-600 hover:bg-white/90 font-bold px-6 py-3 text-lg rounded-xl shadow-lg"
                 >
                   <RefreshCw className="w-5 h-5 mr-2" />
@@ -321,12 +525,13 @@ export function UpdateNotification() {
         </motion.div>
       )}
 
+      {/* Error State - With retry option */}
       {updateStatus.status === 'error' && (
         <motion.div
           initial={{ opacity: 0, x: 100 }}
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: 100 }}
-          className="fixed bottom-4 right-4 z-[9999] w-[350px]"
+          className="fixed bottom-4 right-4 z-[9999] w-[380px]"
         >
           <div className="bg-red-500/90 backdrop-blur rounded-2xl shadow-2xl border border-white/20 p-5">
             <button 
@@ -339,11 +544,21 @@ export function UpdateNotification() {
               <div className="p-2 bg-white/20 rounded-lg">
                 <X className="w-5 h-5 text-white" />
               </div>
-              <div>
+              <div className="flex-1">
                 <h3 className="text-white font-bold">Update Error</h3>
                 <p className="text-white/80 text-sm">{updateStatus.error}</p>
               </div>
             </div>
+            {updateStatus.canRetry && (
+              <Button
+                onClick={handleRetry}
+                variant="ghost"
+                className="mt-3 w-full text-white hover:bg-white/10"
+              >
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Try Again
+              </Button>
+            )}
           </div>
         </motion.div>
       )}

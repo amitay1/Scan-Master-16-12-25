@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, ReactNode, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Eye, Minimize2, Maximize2, GripHorizontal } from 'lucide-react';
+import { X, Eye, GripHorizontal } from 'lucide-react';
 import { useSettings } from '@/hooks/useSettings';
 
 interface ResizablePanelProps {
@@ -14,6 +14,23 @@ interface ResizablePanelProps {
   className?: string;
   presets?: { label: string; size: { width: number; height: number } }[];
 }
+
+// Helper function to clamp panel size within viewport bounds
+const clampSizeToViewport = (
+  size: { width: number; height: number },
+  minSize: { width: number; height: number },
+  maxSize: { width: number; height: number }
+) => {
+  // Account for some padding from the edges
+  const padding = 80;
+  const maxViewportWidth = Math.max(minSize.width, window.innerWidth - padding);
+  const maxViewportHeight = Math.max(minSize.height, window.innerHeight - padding);
+  
+  return {
+    width: Math.max(minSize.width, Math.min(maxSize.width, maxViewportWidth, size.width)),
+    height: Math.max(minSize.height, Math.min(maxSize.height, maxViewportHeight, size.height))
+  };
+};
 
 // Size presets configuration
 const SIZE_PRESETS = {
@@ -42,7 +59,7 @@ export const Collapsible3DPanel = ({
   const settingsDefaultSize = SIZE_PRESETS[settings.viewer.viewer3DDefaultSize] || SIZE_PRESETS.M;
   const initialSize = defaultSize || settingsDefaultSize;
   
-  const [size, setSize] = useState(initialSize);
+  const [size, setSize] = useState(() => clampSizeToViewport(initialSize, minSize, maxSize));
   const [isResizing, setIsResizing] = useState(false);
   const [activePreset, setActivePreset] = useState<string | null>(settings.viewer.viewer3DDefaultSize || "M");
   const panelRef = useRef<HTMLDivElement>(null);
@@ -52,10 +69,20 @@ export const Collapsible3DPanel = ({
   useEffect(() => {
     if (!defaultSize) {
       const newSize = SIZE_PRESETS[settings.viewer.viewer3DDefaultSize] || SIZE_PRESETS.M;
-      setSize(newSize);
+      setSize(clampSizeToViewport(newSize, minSize, maxSize));
       setActivePreset(settings.viewer.viewer3DDefaultSize || "M");
     }
-  }, [settings.viewer.viewer3DDefaultSize, defaultSize]);
+  }, [settings.viewer.viewer3DDefaultSize, defaultSize, minSize, maxSize]);
+
+  // Handle window resize to keep panel within bounds
+  useEffect(() => {
+    const handleWindowResize = () => {
+      setSize(prevSize => clampSizeToViewport(prevSize, minSize, maxSize));
+    };
+    
+    window.addEventListener('resize', handleWindowResize);
+    return () => window.removeEventListener('resize', handleWindowResize);
+  }, [minSize, maxSize]);
 
   const handleResizeStart = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -74,10 +101,11 @@ export const Collapsible3DPanel = ({
     const deltaX = startPos.current.x - e.clientX; // Reversed for right-side panel
     const deltaY = e.clientY - startPos.current.y;
 
-    const newWidth = Math.max(minSize.width, Math.min(maxSize.width, startPos.current.width + deltaX));
-    const newHeight = Math.max(minSize.height, Math.min(maxSize.height, startPos.current.height + deltaY));
+    const newWidth = startPos.current.width + deltaX;
+    const newHeight = startPos.current.height + deltaY;
 
-    setSize({ width: newWidth, height: newHeight });
+    // Clamp to both min/max and viewport bounds
+    setSize(clampSizeToViewport({ width: newWidth, height: newHeight }, minSize, maxSize));
     setActivePreset(null); // Clear preset when manually resizing
   }, [isResizing, minSize, maxSize]);
 
@@ -97,7 +125,8 @@ export const Collapsible3DPanel = ({
   }, [isResizing, handleResizeMove, handleResizeEnd]);
 
   const applyPreset = (preset: typeof presets[0]) => {
-    setSize(preset.size);
+    // Clamp preset size to viewport bounds
+    setSize(clampSizeToViewport(preset.size, minSize, maxSize));
     setActivePreset(preset.label);
   };
 
@@ -131,10 +160,14 @@ export const Collapsible3DPanel = ({
         animate={{ opacity: 1, x: 0 }}
         exit={{ opacity: 0, x: 50 }}
         transition={{ type: "spring", damping: 25, stiffness: 200 }}
-        className={`relative flex flex-col ${className}`}
+        className={`relative flex flex-col flex-shrink-0 ${className}`}
         style={{
           width: size.width,
           height: size.height,
+          minWidth: minSize.width,
+          minHeight: minSize.height,
+          maxWidth: '100%',
+          maxHeight: 'calc(100vh - 120px)',
           userSelect: isResizing ? 'none' : 'auto'
         }}
       >
