@@ -344,19 +344,20 @@ export const InspectionSetupTab = ({ data, onChange, acceptanceClass }: Inspecti
                       data.partType === "rectangular_bar" ||
                       data.partType === "plate" ||
                       data.partType === "billet" ||
-                      data.partType === "cone" ||
                       data.partType === "block";
 
-  // Check if it's a cone - needs special dimension fields
+  // Check if it's a cone - needs special dimension fields (cone is always hollow like a tube)
   const isCone = data.partType === "cone";
   
   // These shapes are typically hollow - show hint badge but allow toggle
+  // Cone is ALWAYS hollow (like a tapered tube)
   const isAlwaysHollow = data.partType === "tube" ||
                          data.partType === "pipe" ||
                          data.partType === "ring" ||
                          data.partType === "ring_forging" ||
                          data.partType === "sleeve" ||
-                         data.partType === "bushing";
+                         data.partType === "bushing" ||
+                         data.partType === "cone";
 
   // Auto-enable isHollow when selecting a typically hollow shape (but allow toggle off)
   React.useEffect(() => {
@@ -420,8 +421,8 @@ export const InspectionSetupTab = ({ data, onChange, acceptanceClass }: Inspecti
     undefined;
 
   return (
-    <div className="space-y-6 p-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div className="space-y-2 p-2">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2">
         <FieldWithHelp
           label="Part Number"
           fieldKey="partNumber"
@@ -510,230 +511,80 @@ export const InspectionSetupTab = ({ data, onChange, acceptanceClass }: Inspecti
           </Select>
         </FieldWithHelp>
 
-        <div className="md:col-span-2">
-          <FieldWithHelp
-            label="Part Type/Geometry"
-            fieldKey="partType"
-            required
-          >
-            <PartTypeVisualSelector
-              value={data.partType}
-              material={data.material}
-              onChange={(value) => {
-                onChange({ 
-                  ...data, 
-                  partType: value,
-                  customShapeDescription: value === "custom" ? data.customShapeDescription : undefined,
-                  customShapeParameters: value === "custom" ? data.customShapeParameters : undefined
-                });
-              }}
-            />
-          </FieldWithHelp>
-        </div>
+        <FieldWithHelp
+          label="Part Type"
+          fieldKey="partType"
+          required
+        >
+          <PartTypeVisualSelector
+            value={data.partType}
+            material={data.material}
+            onChange={(value) => {
+              onChange({ 
+                ...data, 
+                partType: value,
+                customShapeDescription: value === "custom" ? data.customShapeDescription : undefined,
+                customShapeParameters: value === "custom" ? data.customShapeParameters : undefined
+              });
+            }}
+          />
+        </FieldWithHelp>
 
         {data.partType === "custom" && (
           <>
-            <div className="md:col-span-2">
-              <FieldWithHelp
-                label="Custom Shape Description"
-                fieldKey="partType"
-                required
-              >
-                <Input
-                  value={data.customShapeDescription || ""}
-                  onChange={(e) => updateField("customShapeDescription", e.target.value)}
-                  placeholder="e.g., Complex dome with multiple radii and stepped wall thickness..."
-                  className="bg-background"
+            <FieldWithHelp
+              label="Custom Description"
+              fieldKey="partType"
+              required
+            >
+              <Input
+                value={data.customShapeDescription || ""}
+                onChange={(e) => updateField("customShapeDescription", e.target.value)}
+                placeholder="Complex dome with multiple radii..."
+                className="bg-background"
+              />
+            </FieldWithHelp>
+
+            <FieldWithHelp
+              label="Shape Image"
+              fieldKey="partType"
+            >
+              <div className="flex items-center gap-1">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-7"
+                  onClick={() => document.getElementById('custom-shape-image-upload')?.click()}
+                >
+                  <Upload className="h-3 w-3 mr-1" />
+                  {data.customShapeImage ? "Change" : "Upload"}
+                </Button>
+                <input
+                  id="custom-shape-image-upload"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleCustomShapeImageUpload}
                 />
-              </FieldWithHelp>
-            </div>
-
-            <div className="md:col-span-2">
-              <FieldWithHelp
-                label="Custom Shape Image"
-                fieldKey="partType"
-              >
-                <Card className="p-4">
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-4">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => document.getElementById('custom-shape-image-upload')?.click()}
-                      >
-                        <Upload className="h-4 w-4 mr-2" />
-                        Upload Shape Image
-                      </Button>
-                      <input
-                        id="custom-shape-image-upload"
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={handleCustomShapeImageUpload}
-                      />
-                      {data.customShapeImage && (
-                        <Button
-                          type="button"
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => updateField("customShapeImage", undefined)}
-                        >
-                          <X className="h-4 w-4 mr-2" />
-                          Remove Image
-                        </Button>
-                      )}
-                    </div>
-
-                    {data.customShapeImage ? (
-                      <div className="border rounded-lg p-4 bg-muted/30">
-                        <img 
-                          src={data.customShapeImage} 
-                          alt="Custom Shape" 
-                          className="w-full h-auto max-h-96 object-contain rounded"
-                        />
-                      </div>
-                    ) : (
-                      <div className="border-2 border-dashed rounded-lg p-8 text-center text-muted-foreground">
-                        <Upload className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                        <p className="text-sm">No image uploaded</p>
-                        <p className="text-xs">Upload a technical drawing or photo of the custom shape</p>
-                      </div>
-                    )}
-                  </div>
-                </Card>
-              </FieldWithHelp>
-            </div>
-
-            <div className="md:col-span-2 grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Custom Dimension 1</Label>
-                <div className="flex gap-2">
-                  <Input
-                    value={data.customShapeParameters?.dimension1?.label || ""}
-                    onChange={(e) => updateField("customShapeParameters", {
-                      ...data.customShapeParameters,
-                      dimension1: { 
-                        label: e.target.value, 
-                        value: data.customShapeParameters?.dimension1?.value || 0 
-                      }
-                    })}
-                    placeholder="Label (e.g., Top Diameter)"
-                    className="bg-background flex-1"
-                  />
-                  <Input
-                    type="number"
-                    value={data.customShapeParameters?.dimension1?.value || 0}
-                    onChange={(e) => updateField("customShapeParameters", {
-                      ...data.customShapeParameters,
-                      dimension1: { 
-                        label: data.customShapeParameters?.dimension1?.label || "", 
-                        value: parseFloat(e.target.value) || 0 
-                      }
-                    })}
-                    placeholder="Value (mm)"
-                    className="bg-background w-32"
-                  />
-                </div>
+                {data.customShapeImage && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-destructive"
+                    onClick={() => updateField("customShapeImage", undefined)}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                )}
               </div>
-
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Custom Dimension 2</Label>
-                <div className="flex gap-2">
-                  <Input
-                    value={data.customShapeParameters?.dimension2?.label || ""}
-                    onChange={(e) => updateField("customShapeParameters", {
-                      ...data.customShapeParameters,
-                      dimension2: { 
-                        label: e.target.value, 
-                        value: data.customShapeParameters?.dimension2?.value || 0 
-                      }
-                    })}
-                    placeholder="Label (e.g., Bottom Diameter)"
-                    className="bg-background flex-1"
-                  />
-                  <Input
-                    type="number"
-                    value={data.customShapeParameters?.dimension2?.value || 0}
-                    onChange={(e) => updateField("customShapeParameters", {
-                      ...data.customShapeParameters,
-                      dimension2: { 
-                        label: data.customShapeParameters?.dimension2?.label || "", 
-                        value: parseFloat(e.target.value) || 0 
-                      }
-                    })}
-                    placeholder="Value (mm)"
-                    className="bg-background w-32"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Custom Dimension 3</Label>
-                <div className="flex gap-2">
-                  <Input
-                    value={data.customShapeParameters?.dimension3?.label || ""}
-                    onChange={(e) => updateField("customShapeParameters", {
-                      ...data.customShapeParameters,
-                      dimension3: { 
-                        label: e.target.value, 
-                        value: data.customShapeParameters?.dimension3?.value || 0 
-                      }
-                    })}
-                    placeholder="Label (optional)"
-                    className="bg-background flex-1"
-                  />
-                  <Input
-                    type="number"
-                    value={data.customShapeParameters?.dimension3?.value || 0}
-                    onChange={(e) => updateField("customShapeParameters", {
-                      ...data.customShapeParameters,
-                      dimension3: { 
-                        label: data.customShapeParameters?.dimension3?.label || "", 
-                        value: parseFloat(e.target.value) || 0 
-                      }
-                    })}
-                    placeholder="Value (mm)"
-                    className="bg-background w-32"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Custom Dimension 4</Label>
-                <div className="flex gap-2">
-                  <Input
-                    value={data.customShapeParameters?.dimension4?.label || ""}
-                    onChange={(e) => updateField("customShapeParameters", {
-                      ...data.customShapeParameters,
-                      dimension4: { 
-                        label: e.target.value, 
-                        value: data.customShapeParameters?.dimension4?.value || 0 
-                      }
-                    })}
-                    placeholder="Label (optional)"
-                    className="bg-background flex-1"
-                  />
-                  <Input
-                    type="number"
-                    value={data.customShapeParameters?.dimension4?.value || 0}
-                    onChange={(e) => updateField("customShapeParameters", {
-                      ...data.customShapeParameters,
-                      dimension4: { 
-                        label: data.customShapeParameters?.dimension4?.label || "", 
-                        value: parseFloat(e.target.value) || 0 
-                      }
-                    })}
-                    placeholder="Value (mm)"
-                    className="bg-background w-32"
-                  />
-                </div>
-              </div>
-            </div>
+            </FieldWithHelp>
           </>
         )}
 
         <FieldWithHelp
-          label="Part Thickness (mm)"
+          label="Thickness (mm)"
           fieldKey="thickness"
           required
         >
@@ -753,7 +604,7 @@ export const InspectionSetupTab = ({ data, onChange, acceptanceClass }: Inspecti
         </FieldWithHelp>
 
         <FieldWithHelp
-          label="Part Length (mm)"
+          label="Length (mm)"
           fieldKey="thickness"
         >
           <Input
@@ -767,7 +618,7 @@ export const InspectionSetupTab = ({ data, onChange, acceptanceClass }: Inspecti
         </FieldWithHelp>
 
         <FieldWithHelp
-          label="Part Width (mm)"
+          label="Width (mm)"
           fieldKey="thickness"
         >
           <Input
@@ -781,68 +632,58 @@ export const InspectionSetupTab = ({ data, onChange, acceptanceClass }: Inspecti
         </FieldWithHelp>
 
         <FieldWithHelp
-          label="Drawing Number"
+          label="Drawing No."
           fieldKey="partNumber"
         >
           <Input
             value={data.drawingNumber || ""}
             onChange={(e) => updateField("drawingNumber", e.target.value)}
-            placeholder="DWG-12345-A"
+            placeholder="DWG-12345"
             className="bg-background"
           />
         </FieldWithHelp>
 
         <FieldWithHelp
-          label="Heat Treatment"
+          label="Heat Treat"
           fieldKey="material"
         >
           <Input
             value={data.heatTreatment || ""}
             onChange={(e) => updateField("heatTreatment", e.target.value)}
-            placeholder="e.g., Solution Treated, Annealed, T6"
+            placeholder="T6, Annealed..."
             className="bg-background"
           />
         </FieldWithHelp>
 
         <FieldWithHelp
-          label="Acoustic Velocity (m/s)"
+          label="Velocity (m/s)"
           fieldKey="material"
         >
           <Input
             type="number"
             value={data.acousticVelocity || ""}
             onChange={(e) => updateField("acousticVelocity", parseFloat(e.target.value) || undefined)}
-            placeholder={materialProps ? `Auto: ${materialProps.velocity * 1000}` : "Enter velocity"}
+            placeholder={materialProps ? `${materialProps.velocity * 1000}` : ""}
             className="bg-background"
           />
-          {materialProps && !data.acousticVelocity && (
-            <p className="text-xs text-muted-foreground mt-1">
-              Default for {data.material}: {materialProps.velocity * 1000} m/s
-            </p>
-          )}
         </FieldWithHelp>
 
         <FieldWithHelp
-          label="Material Density (kg/m³)"
+          label="Density (kg/m³)"
           fieldKey="material"
         >
           <Input
             type="number"
             value={data.materialDensity || ""}
             onChange={(e) => updateField("materialDensity", parseFloat(e.target.value) || undefined)}
-            placeholder={materialProps ? `Auto: ${materialProps.density * 1000}` : "Enter density"}
+            placeholder={materialProps ? `${materialProps.density * 1000}` : ""}
             className="bg-background"
           />
-          {materialProps && !data.materialDensity && (
-            <p className="text-xs text-muted-foreground mt-1">
-              Default for {data.material}: {materialProps.density * 1000} kg/m³
-            </p>
-          )}
         </FieldWithHelp>
 
         {showDiameter && (
           <FieldWithHelp
-            label="Outer Diameter (mm)"
+            label="OD (mm)"
             fieldKey="thickness"
             required={showDiameter}
           >
@@ -868,11 +709,11 @@ export const InspectionSetupTab = ({ data, onChange, acceptanceClass }: Inspecti
           </FieldWithHelp>
         )}
 
-        {/* Cone-specific dimensions */}
+        {/* Cone dimensions - Cone is always hollow (like a tapered tube) */}
         {isCone && (
           <>
             <FieldWithHelp
-              label="Bottom Diameter (mm)"
+              label="Base OD (mm)"
               fieldKey="thickness"
               required
             >
@@ -892,13 +733,13 @@ export const InspectionSetupTab = ({ data, onChange, acceptanceClass }: Inspecti
                 }}
                 min={0}
                 step={0.1}
-                placeholder="Base diameter (larger)"
+                placeholder="Base outer dia."
                 className="bg-background"
               />
             </FieldWithHelp>
 
             <FieldWithHelp
-              label="Top Diameter (mm)"
+              label="Top OD (mm)"
               fieldKey="thickness"
               required
             >
@@ -916,19 +757,16 @@ export const InspectionSetupTab = ({ data, onChange, acceptanceClass }: Inspecti
                     updateField("coneTopDiameter", numValue);
                   }
                 }}
-                min={0}
+                min={1}
                 max={data.coneBottomDiameter ? data.coneBottomDiameter - 0.1 : undefined}
                 step={0.1}
-                placeholder="Top diameter (smaller, 0 = pointed)"
+                placeholder="Top outer dia."
                 className="bg-background"
               />
-              <p className="text-xs text-muted-foreground mt-1">
-                Set to 0 for a pointed cone, or enter diameter for truncated cone
-              </p>
             </FieldWithHelp>
 
             <FieldWithHelp
-              label="Cone Height (mm)"
+              label="Height (mm)"
               fieldKey="thickness"
               required
             >
@@ -948,53 +786,62 @@ export const InspectionSetupTab = ({ data, onChange, acceptanceClass }: Inspecti
                 }}
                 min={0}
                 step={0.1}
-                placeholder="Height from base to top"
+                placeholder="Length"
+                className="bg-background"
+              />
+            </FieldWithHelp>
+
+            <FieldWithHelp
+              label="Wall (mm)"
+              fieldKey="thickness"
+              required
+            >
+              <Input
+                type="number"
+                value={data.wallThickness ?? ''}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value === '' || value === null) {
+                    updateField("wallThickness", undefined);
+                    return;
+                  }
+                  const numValue = parseFloat(value);
+                  if (!isNaN(numValue)) {
+                    updateField("wallThickness", numValue);
+                  }
+                }}
+                min={0}
+                step={0.1}
+                placeholder="Wall thickness"
                 className="bg-background"
               />
             </FieldWithHelp>
           </>
         )}
 
-        {/* Hollow/Solid Toggle - freely toggleable for all shapes */}
-        {(canBeHollow || isAlwaysHollow) && (
-          <div className="md:col-span-2">
-            <Card className="p-4 bg-muted/30">
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="isHollow"
-                    checked={data.isHollow ?? false}
-                    onChange={(e) => {
-                      // Just toggle - don't clear data so user can preview solid/hollow freely
-                      onChange({ ...data, isHollow: e.target.checked });
-                    }}
-                    className="w-4 h-4 cursor-pointer"
-                  />
-                  <Label htmlFor="isHollow" className="font-semibold cursor-pointer">
-                    Hollow Part (Has Internal Cavity/Hole)
-                  </Label>
-                </div>
-                {isAlwaysHollow && (
-                  <Badge variant="outline" className="text-xs text-muted-foreground">
-                    Typically Hollow
-                  </Badge>
-                )}
-                <div className="ml-auto text-xs text-muted-foreground">
-                  Toggle to show/hide internal cavity dimensions
-                </div>
-              </div>
-            </Card>
+        {/* Hollow/Solid Toggle - not shown for cone (always hollow) */}
+        {(canBeHollow || isAlwaysHollow) && !isCone && (
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="isHollow"
+              checked={data.isHollow ?? false}
+              onChange={(e) => onChange({ ...data, isHollow: e.target.checked })}
+              className="w-3 h-3 cursor-pointer"
+            />
+            <Label htmlFor="isHollow" className="text-xs cursor-pointer">
+              Hollow Part
+            </Label>
           </div>
         )}
 
-        {/* Hollow Dimensions - Only show when hollow checkbox is checked */}
+        {/* Hollow Dimensions */}
         {data.isHollow && (
           <>
             {showDiameter && (
               <>
                 <FieldWithHelp
-                  label="Inner Diameter (mm)"
+                  label="ID (mm)"
                   fieldKey="thickness"
                   required
                 >
@@ -1003,7 +850,6 @@ export const InspectionSetupTab = ({ data, onChange, acceptanceClass }: Inspecti
                     value={data.innerDiameter ?? ''}
                     onChange={(e) => {
                       const value = e.target.value;
-                      // Allow empty string for editing - don't force back to 0
                       if (value === '' || value === null) {
                         updateField("innerDiameter", undefined);
                         return;
@@ -1031,7 +877,7 @@ export const InspectionSetupTab = ({ data, onChange, acceptanceClass }: Inspecti
                 </FieldWithHelp>
 
                 <FieldWithHelp
-                  label="Wall Thickness (mm)"
+                  label="Wall (mm)"
                   fieldKey="thickness"
                 >
                   <Input
@@ -1043,9 +889,6 @@ export const InspectionSetupTab = ({ data, onChange, acceptanceClass }: Inspecti
                     className="bg-background"
                     disabled
                   />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Calculated: (OD - ID) / 2 = {data.wallThickness?.toFixed(2) || 0}mm
-                  </p>
                 </FieldWithHelp>
               </>
             )}
@@ -1053,7 +896,7 @@ export const InspectionSetupTab = ({ data, onChange, acceptanceClass }: Inspecti
             {!showDiameter && (data.partType === "box" || data.partType === "rectangular_tube" || data.partType === "square_bar" || data.partType === "rectangular_bar" || data.partType === "plate" || data.partType === "billet" || data.partType === "block") && (
               <>
                 <FieldWithHelp
-                  label="Inner Length (mm)"
+                  label="Inner L (mm)"
                   fieldKey="thickness"
                   required
                 >
@@ -1080,7 +923,7 @@ export const InspectionSetupTab = ({ data, onChange, acceptanceClass }: Inspecti
                 </FieldWithHelp>
 
                 <FieldWithHelp
-                  label="Inner Width (mm)"
+                  label="Inner W (mm)"
                   fieldKey="thickness"
                   required
                 >

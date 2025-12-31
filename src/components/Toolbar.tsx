@@ -89,7 +89,7 @@ export const Toolbar = ({
             title="Split to Part A & B"
           >
             <RefreshCw className="h-3 w-3 md:mr-1" />
-            <span className="hidden sm:inline">{isSplitMode ? "Part A+B" : "Single Part"}</span>
+            {isSplitMode && <span className="hidden sm:inline">Part A+B</span>}
           </Button>
           
           {isSplitMode && onActivePartChange && (

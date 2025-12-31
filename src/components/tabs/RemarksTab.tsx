@@ -23,10 +23,10 @@ export const RemarksTab = ({ remarks, onChange }: RemarksTabProps) => {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2 p-2">
       <div className="flex justify-between items-center">
         <div>
-          <h3 className="text-lg font-semibold">Remarks (Page 19)</h3>
+          <h3 className="text-xs font-semibold">Remarks (Page 19)</h3>
           <p className="text-sm text-muted-foreground">
             Add any additional notes or observations about the inspection.
           </p>

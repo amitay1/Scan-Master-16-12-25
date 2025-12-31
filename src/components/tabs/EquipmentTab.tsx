@@ -134,9 +134,9 @@ export const EquipmentTab = ({ data, onChange, partThickness, standard = "AMS-ST
   const showFrequencyWarning = !isFrequencyValid && data.frequency;
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-2 p-2">
       {/* Standard-specific header */}
-      <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 mb-4">
+      <div className="bg-primary/5 border border-primary/20 rounded p-2">
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-sm font-semibold text-foreground">Equipment Requirements</h3>
@@ -182,7 +182,7 @@ export const EquipmentTab = ({ data, onChange, partThickness, standard = "AMS-ST
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2">
         <FieldWithHelp
           label="Equipment Manufacturer"
           fieldKey="manufacturer"

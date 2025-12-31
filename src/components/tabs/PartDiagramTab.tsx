@@ -159,9 +159,9 @@ export const PartDiagramTab = ({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2 p-2">
       <div>
-        <h3 className="text-lg font-semibold">Part Diagram (Page 2)</h3>
+        <h3 className="text-xs font-semibold">Part Diagram (Page 2)</h3>
         <p className="text-sm text-muted-foreground">
           Upload a technical diagram showing the part with all scan locations and dimensions.
         </p>

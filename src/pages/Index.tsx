@@ -63,10 +63,12 @@ import { useExportCaptures } from "@/hooks/useExportCaptures";
 import { testCards, type TestCard } from "@/data/testCards";
 import { CurrentShapeHeader } from "@/components/CurrentShapeHeader";
 import { useAutoSave } from "@/hooks/useAutoSave";
+import { useLicense } from "@/contexts/LicenseContext";
 
 const Index = () => {
   const navigate = useNavigate();
   const { user, loading, signOut } = useAuth();
+  const { isElectron } = useLicense();
   const { needsProfileSelection, isLoading: profileLoading } = useInspectorProfile();
   const { saveCard, updateCard, getCard } = useSavedCards();
   const [standard, setStandard] = useState<StandardType>("AMS-STD-2154E");
@@ -1335,18 +1337,20 @@ const Index = () => {
         allowClose={false}
       />
 
-      {/* Menu Bar - Hidden on Mobile */}
-      <div className="hidden md:block">
-        <MenuBar
-          onSave={handleSave}
-          onOpenSavedCards={handleOpenSavedCards}
-          onExport={() => setExportDialogOpen(true)}
-          onNew={handleNewProject}
-          onSignOut={signOut}
-          onOpenDrawingEngine={() => navigate("/drawing-test")}
-          onLoadSampleCards={handleLoadSampleCards}
-        />
-      </div>
+      {/* Menu Bar - Hidden on Mobile and in Electron (uses native menu) */}
+      {!isElectron && (
+        <div className="hidden md:block">
+          <MenuBar
+            onSave={handleSave}
+            onOpenSavedCards={handleOpenSavedCards}
+            onExport={() => setExportDialogOpen(true)}
+            onNew={handleNewProject}
+            onSignOut={signOut}
+            onOpenDrawingEngine={() => navigate("/drawing-test")}
+            onLoadSampleCards={handleLoadSampleCards}
+          />
+        </div>
+      )}
 
       {/* Toolbar */}
       <Toolbar
@@ -1397,6 +1401,21 @@ const Index = () => {
             <div className="p-2 md:p-4 flex-shrink-0">
                 {reportMode === "Technique" ? (
                   <>
+                    {/* Compact header row with Part Type and Progress */}
+                    <div className="flex items-center gap-2 mb-2">
+                      {/* Compact Part Type Indicator */}
+                      <CurrentShapeHeader partType={currentData.inspectionSetup.partType} className="flex-shrink-0 max-w-[180px]" />
+                      
+                      {/* Compact Progress Bar - wider, shorter */}
+                      <div className="flex-1 min-w-[300px]">
+                        <WebGLLiquidProgress
+                          value={completionPercent}
+                          completedFields={completedFieldsCount}
+                          totalFields={reportMode === "Technique" ? 50 : 40}
+                        />
+                      </div>
+                    </div>
+
                     <div className="w-full overflow-x-auto scrollbar-hide md:overflow-visible sticky top-0 bg-background z-10 pb-2">
                       <TabsList className="inline-flex flex-nowrap h-10 items-center justify-start md:justify-center rounded-md bg-muted p-1 text-muted-foreground w-max md:w-full">
                         <TabsTrigger value="setup" className="flex-shrink-0 px-3 text-xs md:text-sm">Setup</TabsTrigger>
@@ -1410,23 +1429,20 @@ const Index = () => {
                         <TabsTrigger value="scanplan" className="flex-shrink-0 px-3 text-xs md:text-sm whitespace-nowrap">Scan Plan</TabsTrigger>
                       </TabsList>
                     </div>
-
-                    {/* WebGL Liquid Progress Bar - Below Tabs */}
-                    <div className="mt-3">
-                      <WebGLLiquidProgress
-                        value={completionPercent}
-                        completedFields={completedFieldsCount}
-                        totalFields={reportMode === "Technique" ? 50 : 40}
-                      />
-                    </div>
-
-                    {/* Current Shape Header - Shows selected part type */}
-                    <div className="mt-3">
-                      <CurrentShapeHeader partType={currentData.inspectionSetup.partType} />
-                    </div>
                   </>
                 ) : (
                   <>
+                    {/* Compact header row with Progress for Report mode */}
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="flex-1 min-w-0">
+                        <WebGLLiquidProgress
+                          value={completionPercent}
+                          completedFields={completedFieldsCount}
+                          totalFields={reportMode === "Technique" ? 50 : 40}
+                        />
+                      </div>
+                    </div>
+
                     <div className="w-full overflow-x-auto scrollbar-hide md:overflow-visible sticky top-0 bg-background z-10 pb-2">
                       <TabsList className="inline-flex flex-nowrap h-10 items-center justify-start md:justify-center rounded-md bg-muted p-1 text-muted-foreground w-max md:w-full">
                         <TabsTrigger value="cover" className="flex-shrink-0 px-4 text-xs md:text-sm whitespace-nowrap">Cover Page</TabsTrigger>
@@ -1435,15 +1451,6 @@ const Index = () => {
                         <TabsTrigger value="scans" className="flex-shrink-0 px-4 text-xs md:text-sm">Scans</TabsTrigger>
                         <TabsTrigger value="remarks" className="flex-shrink-0 px-4 text-xs md:text-sm">Remarks</TabsTrigger>
                       </TabsList>
-                    </div>
-
-                    {/* WebGL Liquid Progress Bar - Below Tabs (Report Mode) */}
-                    <div className="mt-3">
-                      <WebGLLiquidProgress
-                        value={completionPercent}
-                        completedFields={completedFieldsCount}
-                        totalFields={reportMode === "Technique" ? 50 : 40}
-                      />
                     </div>
                   </>
                 )}

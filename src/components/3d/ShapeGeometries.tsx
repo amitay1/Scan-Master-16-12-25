@@ -263,38 +263,30 @@ export const ShapeGeometries = {
   },
   
   cone: (params?: ShapeParameters) => {
-    // Get cone parameters with defaults
-    // Always create a truncated cone (frustum) with open top - never pointed
+    // CONE IS ALWAYS HOLLOW - it's a tapered tube in ultrasonic inspection
+    // Never a solid pointed cone - always has wall thickness
     const bottomRadius = (params?.coneBottomDiameter || 100) / 100; // Scale to reasonable 3D size
     // Default top diameter is 30% of bottom diameter for a nice frustum shape
     const defaultTopDiameter = (params?.coneBottomDiameter || 100) * 0.3;
-    const topRadius = (params?.coneTopDiameter ?? defaultTopDiameter) / 100;
+    // Top diameter must be at least 1mm (never pointed)
+    const topRadius = Math.max((params?.coneTopDiameter ?? defaultTopDiameter) / 100, 0.01);
     const height = (params?.coneHeight || 150) / 100;
-    const isHollow = params?.isHollow || false;
+    // Wall thickness defaults to 10mm if not specified
     const wallThickness = (params?.wallThickness || 10) / 100;
 
-    if (isHollow && wallThickness > 0) {
-      // Create hollow cone using LatheGeometry
-      const points: THREE.Vector2[] = [];
-      const innerBottomRadius = Math.max(bottomRadius - wallThickness, 0.01);
-      const innerTopRadius = Math.max(topRadius - wallThickness, 0);
+    // ALWAYS create hollow cone (tapered tube) using LatheGeometry
+    const points: THREE.Vector2[] = [];
+    const innerBottomRadius = Math.max(bottomRadius - wallThickness, 0.01);
+    const innerTopRadius = Math.max(topRadius - wallThickness, 0.005);
 
-      // Create cross-section profile for hollow cone (clockwise from bottom-outer)
-      points.push(new THREE.Vector2(bottomRadius, 0));           // Bottom outer
-      points.push(new THREE.Vector2(topRadius, height));          // Top outer
-      if (topRadius > 0.01) {
-        points.push(new THREE.Vector2(innerTopRadius, height));   // Top inner
-      }
-      points.push(new THREE.Vector2(innerBottomRadius, 0));       // Bottom inner
+    // Create cross-section profile for hollow cone (clockwise from bottom-outer)
+    points.push(new THREE.Vector2(bottomRadius, 0));           // Bottom outer
+    points.push(new THREE.Vector2(topRadius, height));          // Top outer
+    points.push(new THREE.Vector2(innerTopRadius, height));     // Top inner
+    points.push(new THREE.Vector2(innerBottomRadius, 0));       // Bottom inner
 
-      const geometry = new THREE.LatheGeometry(points, 64);
-      return perfectCenter(geometry);
-    } else {
-      // Solid cone - use CylinderGeometry with different radii for truncated cone
-      // CylinderGeometry(radiusTop, radiusBottom, height, radialSegments)
-      const geometry = new THREE.CylinderGeometry(topRadius, bottomRadius, height, 64);
-      return perfectCenter(geometry);
-    }
+    const geometry = new THREE.LatheGeometry(points, 64);
+    return perfectCenter(geometry);
   },
   
   // ============= LEGACY MAPPINGS (for backward compatibility) =============

@@ -38,10 +38,10 @@ export const CoverPageTab = ({ data, onChange }: CoverPageTabProps) => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-2 p-2">
       <div>
-        <h3 className="text-lg font-semibold mb-4">Document Information (Page 1)</h3>
-        <div className="grid grid-cols-2 gap-4">
+        <h3 className="text-xs font-semibold mb-1">Document Information (Page 1)</h3>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
           <div>
             <Label>Document No.</Label>
             <Input

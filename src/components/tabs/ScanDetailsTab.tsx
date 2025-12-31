@@ -251,7 +251,7 @@ export const ScanDetailsTab = ({ data, onChange, partType, dimensions = {} }: Sc
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-2 p-2">
       {/* Inspection Plan Visual Preview */}
       <InspectionPlanViewer
         partType={partType}

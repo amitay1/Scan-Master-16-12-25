@@ -56,10 +56,10 @@ export const ScansTab = ({ scans, onChange }: ScansTabProps) => {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2 p-2">
       <div className="flex justify-between items-center">
         <div>
-          <h3 className="text-lg font-semibold">Scan Data (Pages 4-18)</h3>
+          <h3 className="text-xs font-semibold">Scan Data (Pages 4-18)</h3>
           <p className="text-sm text-muted-foreground">
             Add up to 16 scans. Each scan will be a separate page in the report.
           </p>

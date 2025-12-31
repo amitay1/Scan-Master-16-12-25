@@ -45,10 +45,10 @@ export const DocumentationTab = ({ data, onChange }: DocumentationTabProps) => {
   }
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-2 p-2">
       {/* Profile Quick Fill Banner */}
       {currentProfile && (
-        <div className="flex items-center justify-between bg-primary/5 border border-primary/20 rounded-lg p-3">
+        <div className="flex items-center justify-between bg-primary/5 border border-primary/20 rounded p-2">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold">
               {currentProfile.initials}
@@ -67,7 +67,7 @@ export const DocumentationTab = ({ data, onChange }: DocumentationTabProps) => {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2">
         <FieldWithHelp
           label="Inspector Name"
           fieldKey="inspectorName"

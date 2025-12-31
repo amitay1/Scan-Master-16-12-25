@@ -2364,7 +2364,14 @@ function drawForgedTubeOrthographic(
   const sideX = sideViewX - sideWidth / 2;
   const sideY = viewY - sideHeight / 2;
 
-  // Outer rectangle
+  // Make wall thickness more visible - at least 25% of width on each side
+  const visibleWallWidth = Math.max(wallScaled, sideWidth * 0.25);
+
+  // First, fill the ENTIRE rectangle with white background
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(sideX, sideY, sideWidth, sideHeight);
+
+  // Outer rectangle border
   ctx.strokeStyle = '#1a1a2e';
   ctx.lineWidth = 2.5;
   ctx.strokeRect(sideX, sideY, sideWidth, sideHeight);
@@ -2374,8 +2381,12 @@ function drawForgedTubeOrthographic(
   // LEFT wall hatching area (tube wall on left side)
   ctx.save();
   ctx.beginPath();
-  ctx.rect(sideX, sideY, wallScaled, sideHeight);
+  ctx.rect(sideX, sideY, visibleWallWidth, sideHeight);
   ctx.clip();
+  
+  // Fill with light gray background first
+  ctx.fillStyle = '#f0f0f0';
+  ctx.fillRect(sideX, sideY, visibleWallWidth, sideHeight);
   
   ctx.strokeStyle = '#64748b';
   ctx.lineWidth = 0.8;
@@ -2390,8 +2401,12 @@ function drawForgedTubeOrthographic(
   // RIGHT wall hatching area (tube wall on right side)
   ctx.save();
   ctx.beginPath();
-  ctx.rect(sideX + sideWidth - wallScaled, sideY, wallScaled, sideHeight);
+  ctx.rect(sideX + sideWidth - visibleWallWidth, sideY, visibleWallWidth, sideHeight);
   ctx.clip();
+  
+  // Fill with light gray background first
+  ctx.fillStyle = '#f0f0f0';
+  ctx.fillRect(sideX + sideWidth - visibleWallWidth, sideY, visibleWallWidth, sideHeight);
   
   ctx.strokeStyle = '#64748b';
   ctx.lineWidth = 0.8;
@@ -2408,13 +2423,13 @@ function drawForgedTubeOrthographic(
   ctx.lineWidth = 1.5;
   // Left inner wall line
   ctx.beginPath();
-  ctx.moveTo(sideX + wallScaled, sideY);
-  ctx.lineTo(sideX + wallScaled, sideY + sideHeight);
+  ctx.moveTo(sideX + visibleWallWidth, sideY);
+  ctx.lineTo(sideX + visibleWallWidth, sideY + sideHeight);
   ctx.stroke();
   // Right inner wall line
   ctx.beginPath();
-  ctx.moveTo(sideX + sideWidth - wallScaled, sideY);
-  ctx.lineTo(sideX + sideWidth - wallScaled, sideY + sideHeight);
+  ctx.moveTo(sideX + sideWidth - visibleWallWidth, sideY);
+  ctx.lineTo(sideX + sideWidth - visibleWallWidth, sideY + sideHeight);
   ctx.stroke();
 
   // Centerline for side view (horizontal through center)

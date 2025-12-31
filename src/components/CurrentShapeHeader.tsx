@@ -125,6 +125,58 @@ export const CurrentShapeHeader: React.FC<CurrentShapeHeaderProps> = ({
 
   const IconComponent = shapeInfo.icon;
 
+  // Compact mode detection based on className
+  const isCompact = className.includes('max-w-');
+
+  if (isCompact) {
+    // Compact inline version for header row
+    return (
+      <div className={`relative ${className}`}>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={partType || "empty"}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.2 }}
+            className="relative"
+          >
+            <div
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg border bg-card/80"
+              style={{ borderColor: partType ? `${shapeInfo.color}50` : '#94A3B8' }}
+            >
+              <div
+                className="w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0"
+                style={{
+                  backgroundColor: `${shapeInfo.color}15`,
+                  border: `1.5px solid ${shapeInfo.color}30`,
+                }}
+              >
+                <IconComponent
+                  className="w-4 h-4"
+                  style={{ color: shapeInfo.color }}
+                  strokeWidth={2}
+                />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-[8px] font-medium text-muted-foreground uppercase tracking-wider leading-none">
+                  Part
+                </p>
+                <p
+                  className="text-xs font-semibold truncate leading-tight"
+                  style={{ color: partType ? shapeInfo.color : '#94A3B8' }}
+                >
+                  {shapeInfo.label}
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        </AnimatePresence>
+      </div>
+    );
+  }
+
+  // Full version (original)
   return (
     <div className={`relative overflow-hidden ${className}`}>
       <AnimatePresence mode="wait">

@@ -375,29 +375,26 @@ export const WebGLLiquidProgress = ({
 
   return (
     <div className={`w-full bg-slate-950 border-y border-slate-800 shadow-xl ${className}`}>
-      <div className="max-w-full mx-auto px-3 py-2">
+      <div className="max-w-full mx-auto px-2 py-1">
         {/* Header */}
-        <div className="flex justify-between items-center mb-2">
-          <div className="flex items-center gap-4">
-            <span className="text-xs font-bold text-slate-300 tracking-widest">PROGRESS</span>
-            <span className="text-xs text-slate-500">{completedFields}/{totalFields} fields</span>
+        <div className="flex justify-between items-center mb-1">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-bold text-slate-300 tracking-wider">PROGRESS</span>
+            <span className="text-[10px] text-slate-500">{completedFields}/{totalFields}</span>
           </div>
-          <div className="flex items-center gap-4">
-            <span className="text-[10px] text-slate-600">ScanMaster</span>
-            <div className="flex items-center gap-2">
-              <div className={`w-2 h-2 rounded-full ${
-                progress === 100 ? 'bg-green-500' :
-                progress > 0 ? 'bg-orange-500 animate-pulse' : 'bg-slate-700'
-              }`} />
-              <span className="text-xs text-slate-400">
-                {progress === 100 ? 'Complete' : progress > 0 ? 'Active' : 'Ready'}
-              </span>
-            </div>
+          <div className="flex items-center gap-2">
+            <div className={`w-1.5 h-1.5 rounded-full ${
+              progress === 100 ? 'bg-green-500' :
+              progress > 0 ? 'bg-orange-500 animate-pulse' : 'bg-slate-700'
+            }`} />
+            <span className="text-[10px] text-slate-400">
+              {progress === 100 ? 'Complete' : progress > 0 ? 'Active' : 'Ready'}
+            </span>
           </div>
         </div>
 
         {/* Tank container */}
-        <div className="relative h-20 md:h-24 rounded-md overflow-hidden bg-slate-950 border-2 border-slate-700">
+        <div className="relative h-10 rounded-md overflow-hidden bg-slate-950 border border-slate-700">
           {/* Glass effect overlay */}
           <div className="absolute inset-0 pointer-events-none z-10">
             {/* Top reflection */}

@@ -150,9 +150,9 @@ export const CalibrationTab = ({
   const isAngleBeamRequired = requiresAngleBeam(inspectionSetup.partType);
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-2 p-2">
       {/* Calibration Model Section - Dynamic based on geometry */}
-      <div className="space-y-6">
+      <div className="space-y-2">
         <h3 className="text-lg font-semibold flex items-center gap-2">
           <Target className="h-5 w-5" />
           {isAngleBeamRequired

@@ -114,7 +114,7 @@ export const TechnicalDrawingTab = ({
   };
 
   return (
-    <div className="space-y-4 p-6">
+    <div className="space-y-2 p-2">
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
