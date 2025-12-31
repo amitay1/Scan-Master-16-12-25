@@ -15,16 +15,27 @@ interface ResizablePanelProps {
   presets?: { label: string; size: { width: number; height: number } }[];
 }
 
+// Check if running in Electron (desktop app)
+const isElectron = () => {
+  return !!(window as any).electron || 
+         (typeof navigator === 'object' && 
+          typeof navigator.userAgent === 'string' && 
+          navigator.userAgent.indexOf('Electron') >= 0);
+};
+
 // Helper function to clamp panel size within viewport bounds
 const clampSizeToViewport = (
   size: { width: number; height: number },
   minSize: { width: number; height: number },
   maxSize: { width: number; height: number }
 ) => {
-  // Account for some padding from the edges
-  const padding = 80;
-  const maxViewportWidth = Math.max(minSize.width, window.innerWidth - padding);
-  const maxViewportHeight = Math.max(minSize.height, window.innerHeight - padding);
+  // More aggressive padding for Electron desktop app
+  const isDesktopApp = isElectron();
+  const horizontalPadding = isDesktopApp ? 150 : 80; // More padding in desktop mode
+  const verticalPadding = isDesktopApp ? 200 : 120;  // Account for title bar, status bar
+  
+  const maxViewportWidth = Math.max(minSize.width, window.innerWidth - horizontalPadding);
+  const maxViewportHeight = Math.max(minSize.height, window.innerHeight - verticalPadding);
   
   return {
     width: Math.max(minSize.width, Math.min(maxSize.width, maxViewportWidth, size.width)),
@@ -32,7 +43,24 @@ const clampSizeToViewport = (
   };
 };
 
-// Size presets configuration
+// Size presets configuration - smaller for desktop app
+const getPresetSizes = () => {
+  const isDesktopApp = isElectron();
+  if (isDesktopApp) {
+    return {
+      S: { width: 220, height: 250 },
+      M: { width: 320, height: 360 },
+      L: { width: 420, height: 450 },
+    };
+  }
+  return {
+    S: { width: 250, height: 280 },
+    M: { width: 400, height: 450 },
+    L: { width: 550, height: 550 },
+  };
+};
+
+// Static reference for initial load
 const SIZE_PRESETS = {
   S: { width: 250, height: 280 },
   M: { width: 400, height: 450 },
@@ -48,15 +76,19 @@ export const Collapsible3DPanel = ({
   minSize = { width: 200, height: 200 },
   maxSize = { width: 600, height: 600 },
   className = "",
-  presets = [
-    { label: "S", size: SIZE_PRESETS.S },
-    { label: "M", size: SIZE_PRESETS.M },
-    { label: "L", size: SIZE_PRESETS.L },
-  ]
+  presets: customPresets
 }: ResizablePanelProps) => {
+  // Get dynamic presets based on environment (desktop vs web)
+  const dynamicPresets = getPresetSizes();
+  const presets = customPresets || [
+    { label: "S", size: dynamicPresets.S },
+    { label: "M", size: dynamicPresets.M },
+    { label: "L", size: dynamicPresets.L },
+  ];
+  
   // Get default size from settings
   const { settings } = useSettings();
-  const settingsDefaultSize = SIZE_PRESETS[settings.viewer.viewer3DDefaultSize] || SIZE_PRESETS.M;
+  const settingsDefaultSize = dynamicPresets[settings.viewer.viewer3DDefaultSize as keyof typeof dynamicPresets] || dynamicPresets.M;
   const initialSize = defaultSize || settingsDefaultSize;
   
   const [size, setSize] = useState(() => clampSizeToViewport(initialSize, minSize, maxSize));
@@ -65,10 +97,11 @@ export const Collapsible3DPanel = ({
   const panelRef = useRef<HTMLDivElement>(null);
   const startPos = useRef({ x: 0, y: 0, width: 0, height: 0 });
 
-  // Update size when settings change
+  // Update size when settings change or component mounts
   useEffect(() => {
     if (!defaultSize) {
-      const newSize = SIZE_PRESETS[settings.viewer.viewer3DDefaultSize] || SIZE_PRESETS.M;
+      const currentPresets = getPresetSizes();
+      const newSize = currentPresets[settings.viewer.viewer3DDefaultSize as keyof typeof currentPresets] || currentPresets.M;
       setSize(clampSizeToViewport(newSize, minSize, maxSize));
       setActivePreset(settings.viewer.viewer3DDefaultSize || "M");
     }
@@ -81,6 +114,9 @@ export const Collapsible3DPanel = ({
     };
     
     window.addEventListener('resize', handleWindowResize);
+    // Also call immediately to ensure proper sizing on mount
+    handleWindowResize();
+    
     return () => window.removeEventListener('resize', handleWindowResize);
   }, [minSize, maxSize]);
 
