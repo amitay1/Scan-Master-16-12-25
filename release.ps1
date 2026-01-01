@@ -140,27 +140,30 @@ if ($ghAvailable) {
     if (Test-Path $releaseFolder) {
         Write-Info "Uploading installer files to release..."
         
-        # Find and upload all installer files
-        $installerFiles = @(
-            "$releaseFolder/*.exe",
-            "$releaseFolder/*.msi", 
-            "$releaseFolder/*.dmg",
-            "$releaseFolder/*.AppImage",
-            "$releaseFolder/*.deb",
-            "$releaseFolder/*.rpm",
-            "$releaseFolder/*.zip",
-            "$releaseFolder/latest*.yml",
-            "$releaseFolder/*.blockmap"
+        # First, always upload latest.yml (required for auto-update)
+        $latestYml = Join-Path $releaseFolder "latest.yml"
+        if (Test-Path $latestYml) {
+            Write-Info "  Uploading: latest.yml (required for auto-update)"
+            gh release upload "v$newVersion" $latestYml --clobber
+        }
+        
+        # Find and upload installer files for current version
+        $installerPatterns = @(
+            "*Setup*$newVersion*.exe",
+            "*Portable*$newVersion*.exe",
+            "*$newVersion*.exe.blockmap",
+            "*$newVersion*.dmg",
+            "*$newVersion*.AppImage",
+            "*$newVersion*.deb",
+            "*$newVersion*.rpm",
+            "*$newVersion*.zip"
         )
         
-        foreach ($pattern in $installerFiles) {
-            $files = Get-ChildItem -Path $pattern -ErrorAction SilentlyContinue
+        foreach ($pattern in $installerPatterns) {
+            $files = Get-ChildItem -Path (Join-Path $releaseFolder $pattern) -ErrorAction SilentlyContinue
             foreach ($file in $files) {
-                # Only upload files for current version
-                if ($file.Name -match $newVersion -or $file.Name -eq "latest.yml") {
-                    Write-Info "  Uploading: $($file.Name)"
-                    gh release upload "v$newVersion" $file.FullName --clobber
-                }
+                Write-Info "  Uploading: $($file.Name)"
+                gh release upload "v$newVersion" $file.FullName --clobber
             }
         }
     }

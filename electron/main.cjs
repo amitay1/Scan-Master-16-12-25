@@ -110,6 +110,17 @@ function setupAutoUpdaterHandlers() {
         silent: UPDATE_SETTINGS.silentMode
       });
     }
+    
+    // Force download if autoDownload didn't trigger automatically
+    // This ensures the update is downloaded even if there are network issues
+    setTimeout(() => {
+      if (!updateDownloaded && autoUpdater) {
+        console.log('🔄 Forcing update download...');
+        autoUpdater.downloadUpdate().catch(err => {
+          console.error('Failed to download update:', err.message);
+        });
+      }
+    }, 2000);
   });
 
   autoUpdater.on('update-not-available', (info) => {
@@ -162,6 +173,7 @@ function setupAutoUpdaterHandlers() {
 
   autoUpdater.on('error', (error) => {
     console.error('❌ Auto-updater error:', error.message);
+    console.error('Full error details:', error);
     
     // Retry logic
     if (updateRetryCount < UPDATE_SETTINGS.maxRetries) {

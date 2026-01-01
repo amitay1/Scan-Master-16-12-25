@@ -66,10 +66,10 @@
     "deleteAppDataOnUninstall": false,
     "perMachine": false,
     "allowElevation": true,
-    "artifactName": "${productName}-Setup-${version}.${ext}"
+    "artifactName": "Scan-Master-Inspection-Pro-Setup-${version}.${ext}"
   },
   "portable": {
-    "artifactName": "${productName}-Portable-${version}.${ext}"
+    "artifactName": "Scan-Master-Inspection-Pro-Portable-${version}.${ext}"
   },
   "publish": [
     {
