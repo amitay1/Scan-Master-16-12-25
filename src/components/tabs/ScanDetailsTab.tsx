@@ -12,6 +12,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import type { PartGeometry } from "@/types/techniqueSheet";
 import type { ScanDetail, ScanDetailsData } from "@/types/scanDetails";
 import { InspectionPlanViewer } from "@/components/InspectionPlanViewer";
+import { E2375DiagramViewer } from "@/components/E2375DiagramViewer";
 
 interface ScanDetailsTabProps {
   data: ScanDetailsData;
@@ -252,6 +253,11 @@ export const ScanDetailsTab = ({ data, onChange, partType, dimensions = {} }: Sc
 
   return (
     <div className="space-y-2 p-2">
+      {/* E2375 Standard Diagram Reference */}
+      {partType && (
+        <E2375DiagramViewer partType={partType} className="mb-4" />
+      )}
+
       {/* Inspection Plan Visual Preview */}
       {!partType ? (
         <Card className="p-8 flex flex-col items-center justify-center min-h-[400px] bg-muted/30">
