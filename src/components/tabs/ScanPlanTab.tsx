@@ -3,12 +3,18 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ScanPlanData } from "@/types/techniqueSheet";
 import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
   FileText,
   ExternalLink,
   Download,
   RefreshCw,
   Maximize2,
-  Minimize2
+  Minimize2,
+  ChevronDown
 } from "lucide-react";
 import mammoth from 'mammoth';
 
@@ -22,6 +28,7 @@ export const ScanPlanTab = ({ data, onChange }: ScanPlanTabProps) => {
   const [combinedHtml, setCombinedHtml] = useState<string>('');
   const [loadError, setLoadError] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isOpen, setIsOpen] = useState(true);
   const [key, setKey] = useState(0);
 
   // Filter only active documents and sort by order
@@ -118,135 +125,152 @@ export const ScanPlanTab = ({ data, onChange }: ScanPlanTabProps) => {
 
   return (
     <div className="flex flex-col gap-2 p-2">
-      <Card className={`overflow-hidden ${isFullscreen ? 'fixed inset-2 z-50' : ''}`}>
-        {/* Toolbar */}
-        <div className="flex items-center justify-between p-3 bg-muted/30 border-b">
-          <div className="flex items-center gap-2">
-            <FileText className="h-5 w-5 text-primary" />
-            <h3 className="font-semibold">Scan Plan Documents</h3>
-            <span className="text-sm text-muted-foreground">
-              ({activeDocuments.length} documents)
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleRefresh}
-              className="h-8"
-              title="Refresh documents"
-            >
-              <RefreshCw className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={toggleFullscreen}
-              className="h-8"
-              title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
-            >
-              {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleDownloadAll}
-              className="h-8"
-              title="Download all documents"
-            >
-              <Download className="h-4 w-4 mr-1" />
-              Download All
-            </Button>
-            {activeDocuments.map(doc => (
+      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+        <Card className={`overflow-hidden ${isFullscreen ? 'fixed inset-2 z-50' : ''}`}>
+          {/* Collapsible Header */}
+          <CollapsibleTrigger className="w-full">
+            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 transition-colors cursor-pointer border-b">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-blue-500 rounded-lg">
+                  <FileText className="h-5 w-5 text-white" />
+                </div>
+                <div className="text-left">
+                  <h3 className="font-semibold text-lg">Scan Plan Documents</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {activeDocuments.length} documents • Click to {isOpen ? 'collapse' : 'expand'}
+                  </p>
+                </div>
+              </div>
+              <ChevronDown
+                className={`h-6 w-6 text-muted-foreground transition-transform duration-300 ${
+                  isOpen ? "rotate-180" : ""
+                }`}
+              />
+            </div>
+          </CollapsibleTrigger>
+
+          <CollapsibleContent>
+            {/* Toolbar */}
+            <div className="flex items-center justify-end gap-2 p-2 bg-muted/30 border-b">
               <Button
-                key={doc.id}
                 variant="outline"
                 size="sm"
-                onClick={() => handleOpenExternal(doc.filePath)}
+                onClick={(e) => { e.stopPropagation(); handleRefresh(); }}
                 className="h-8"
-                title={`Open ${doc.title} externally`}
+                title="Refresh documents"
               >
-                <ExternalLink className="h-4 w-4 mr-1" />
-                {doc.title.substring(0, 15)}...
+                <RefreshCw className="h-4 w-4" />
               </Button>
-            ))}
-          </div>
-        </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={(e) => { e.stopPropagation(); toggleFullscreen(); }}
+                className="h-8"
+                title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+              >
+                {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={(e) => { e.stopPropagation(); handleDownloadAll(); }}
+                className="h-8"
+                title="Download all documents"
+              >
+                <Download className="h-4 w-4 mr-1" />
+                Download All
+              </Button>
+              {activeDocuments.map(doc => (
+                <Button
+                  key={doc.id}
+                  variant="outline"
+                  size="sm"
+                  onClick={(e) => { e.stopPropagation(); handleOpenExternal(doc.filePath); }}
+                  className="h-8"
+                  title={`Open ${doc.title} externally`}
+                >
+                  <ExternalLink className="h-4 w-4 mr-1" />
+                  {doc.title.length > 15 ? doc.title.substring(0, 15) + '...' : doc.title}
+                </Button>
+              ))}
+            </div>
 
-        {/* Document Content */}
-        <div className={`overflow-auto bg-white ${isFullscreen ? 'h-[calc(100vh-100px)]' : 'h-[calc(100vh-200px)] min-h-[600px]'}`}>
-          {isLoading ? (
-            <div className="flex flex-col items-center justify-center h-full">
-              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mb-3"></div>
-              <p className="text-sm text-muted-foreground">Loading documents...</p>
+            {/* Document Content */}
+            <div className={`overflow-auto bg-white ${isFullscreen ? 'h-[calc(100vh-150px)]' : 'h-[calc(100vh-300px)] min-h-[500px]'}`}>
+              {isLoading ? (
+                <div className="flex flex-col items-center justify-center h-full">
+                  <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mb-3"></div>
+                  <p className="text-sm text-muted-foreground">Loading documents...</p>
+                </div>
+              ) : loadError ? (
+                <div className="flex flex-col items-center justify-center h-full gap-4 p-8">
+                  <FileText className="h-16 w-16 text-muted-foreground/50" />
+                  <p className="text-lg font-medium text-destructive">Failed to Load Documents</p>
+                  <p className="text-sm text-muted-foreground text-center max-w-md">
+                    Could not load the documents. Try refreshing or download them directly.
+                  </p>
+                  <div className="flex gap-3">
+                    <Button onClick={handleRefresh} variant="outline">
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Try Again
+                    </Button>
+                    <Button onClick={handleDownloadAll} variant="default">
+                      <Download className="h-4 w-4 mr-2" />
+                      Download All
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div 
+                  className="p-8 prose prose-sm max-w-none"
+                  style={{ 
+                    backgroundColor: 'white',
+                    color: 'black',
+                    fontFamily: 'Arial, sans-serif'
+                  }}
+                >
+                  <style>{`
+                    .document-section {
+                      margin-bottom: 2rem;
+                    }
+                    .document-title {
+                      font-size: 1.5rem;
+                      font-weight: bold;
+                      color: #1e40af;
+                      padding-bottom: 0.5rem;
+                      border-bottom: 2px solid #3b82f6;
+                      margin-bottom: 1rem;
+                    }
+                    .document-content {
+                      line-height: 1.6;
+                    }
+                    .document-content table {
+                      width: 100%;
+                      border-collapse: collapse;
+                      margin: 1rem 0;
+                    }
+                    .document-content table td,
+                    .document-content table th {
+                      border: 1px solid #ccc;
+                      padding: 8px;
+                    }
+                    .document-content img {
+                      max-width: 100%;
+                      height: auto;
+                    }
+                    .document-separator {
+                      margin: 3rem 0;
+                      border: none;
+                      border-top: 3px dashed #3b82f6;
+                    }
+                  `}</style>
+                  <div dangerouslySetInnerHTML={{ __html: combinedHtml }} />
+                </div>
+              )}
             </div>
-          ) : loadError ? (
-            <div className="flex flex-col items-center justify-center h-full gap-4 p-8">
-              <FileText className="h-16 w-16 text-muted-foreground/50" />
-              <p className="text-lg font-medium text-destructive">Failed to Load Documents</p>
-              <p className="text-sm text-muted-foreground text-center max-w-md">
-                Could not load the documents. Try refreshing or download them directly.
-              </p>
-              <div className="flex gap-3">
-                <Button onClick={handleRefresh} variant="outline">
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Try Again
-                </Button>
-                <Button onClick={handleDownloadAll} variant="default">
-                  <Download className="h-4 w-4 mr-2" />
-                  Download All
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <div 
-              className="p-8 prose prose-sm max-w-none"
-              style={{ 
-                backgroundColor: 'white',
-                color: 'black',
-                fontFamily: 'Arial, sans-serif'
-              }}
-            >
-              <style>{`
-                .document-section {
-                  margin-bottom: 2rem;
-                }
-                .document-title {
-                  font-size: 1.5rem;
-                  font-weight: bold;
-                  color: #1e40af;
-                  padding-bottom: 0.5rem;
-                  border-bottom: 2px solid #3b82f6;
-                  margin-bottom: 1rem;
-                }
-                .document-content {
-                  line-height: 1.6;
-                }
-                .document-content table {
-                  width: 100%;
-                  border-collapse: collapse;
-                  margin: 1rem 0;
-                }
-                .document-content table td,
-                .document-content table th {
-                  border: 1px solid #ccc;
-                  padding: 8px;
-                }
-                .document-content img {
-                  max-width: 100%;
-                  height: auto;
-                }
-                .document-separator {
-                  margin: 3rem 0;
-                  border: none;
-                  border-top: 3px dashed #3b82f6;
-                }
-              `}</style>
-              <div dangerouslySetInnerHTML={{ __html: combinedHtml }} />
-            </div>
-          )}
-        </div>
-      </Card>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
     </div>
   );
 };
