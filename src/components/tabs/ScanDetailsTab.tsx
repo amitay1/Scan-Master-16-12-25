@@ -11,7 +11,7 @@ import { Info, Plus, Trash2, ArrowDown, ArrowUp, ArrowRight, ArrowLeft, RotateCw
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { PartGeometry } from "@/types/techniqueSheet";
 import type { ScanDetail, ScanDetailsData } from "@/types/scanDetails";
-import { E2375StandardDiagram } from "@/components/E2375StandardDiagram";
+import { E2375DiagramImage } from "@/components/E2375DiagramImage";
 
 interface ScanDetailsTabProps {
   data: ScanDetailsData;
@@ -266,7 +266,7 @@ export const ScanDetailsTab = ({ data, onChange, partType, dimensions = {} }: Sc
           </div>
         </Card>
       ) : (
-        <E2375StandardDiagram
+        <E2375DiagramImage
           partType={partType}
           scanDetails={scanDetails}
           highlightedDirection={highlightedDirection}

@@ -1,17 +1,14 @@
-import React, { useState, useCallback } from "react";
-import { Document, Page, pdfjs } from "react-pdf";
+import React, { useState, useEffect, useRef } from "react";
+import * as pdfjsLib from "pdfjs-dist";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Info, ZoomIn, ZoomOut, Maximize2, ExternalLink, RotateCw } from "lucide-react";
+import { Info, ZoomIn, ZoomOut, Maximize2, ExternalLink, RefreshCw, FileImage, AlertCircle } from "lucide-react";
 import type { PartGeometry } from "@/types/techniqueSheet";
 import type { ScanDetail } from "@/types/scanDetails";
-import "react-pdf/dist/Page/AnnotationLayer.css";
-import "react-pdf/dist/Page/TextLayer.css";
 
 // Configure PDF.js worker
-pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
+pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
 
 interface E2375StandardDiagramProps {
   partType: PartGeometry;
@@ -133,6 +130,183 @@ const DIRECTION_INFO: Record<string, { color: string; name: string; wave: string
   "L": { color: "#a855f7", name: "Rotational 360°", wave: "LW 0° Rot" },
 };
 
+// PDF Viewer Component - tries multiple methods
+const PDFViewer: React.FC<{
+  pdfPath: string;
+  pageNumber: number;
+  scale: number;
+  height?: string;
+}> = ({ pdfPath, pageNumber, scale, height = "550px" }) => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [renderMethod, setRenderMethod] = useState<'canvas' | 'object' | 'iframe' | 'error'>('canvas');
+  const [isLoading, setIsLoading] = useState(true);
+  const [canvasError, setCanvasError] = useState(false);
+  const renderTaskRef = useRef<any>(null);
+
+  // Try canvas rendering first
+  useEffect(() => {
+    if (renderMethod !== 'canvas') return;
+    
+    let isMounted = true;
+    
+    const renderPage = async () => {
+      if (!canvasRef.current) return;
+      
+      setIsLoading(true);
+
+      try {
+        if (renderTaskRef.current) {
+          try { renderTaskRef.current.cancel(); } catch (e) {}
+        }
+
+        const loadingTask = pdfjsLib.getDocument(pdfPath);
+        const pdf = await loadingTask.promise;
+        
+        if (!isMounted) return;
+
+        const page = await pdf.getPage(pageNumber);
+        
+        if (!isMounted) return;
+
+        const viewport = page.getViewport({ scale });
+        const canvas = canvasRef.current;
+        const context = canvas.getContext('2d');
+        
+        if (!context) throw new Error("No canvas context");
+
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+
+        renderTaskRef.current = page.render({
+          canvasContext: context,
+          viewport: viewport,
+          canvas: canvas,
+        } as any);
+        
+        await renderTaskRef.current.promise;
+        
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      } catch (err: any) {
+        console.error("Canvas PDF render failed:", err);
+        if (isMounted && err?.name !== 'RenderingCancelledException') {
+          setCanvasError(true);
+          setRenderMethod('object');
+        }
+      }
+    };
+
+    renderPage();
+
+    return () => {
+      isMounted = false;
+      if (renderTaskRef.current) {
+        try { renderTaskRef.current.cancel(); } catch (e) {}
+      }
+    };
+  }, [pdfPath, pageNumber, scale, renderMethod]);
+
+  // Canvas method
+  if (renderMethod === 'canvas' && !canvasError) {
+    return (
+      <div className="relative bg-white rounded-lg" style={{ minHeight: height }}>
+        {isLoading && (
+          <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
+            <div className="text-center">
+              <RefreshCw className="w-8 h-8 animate-spin text-blue-500 mx-auto mb-2" />
+              <p className="text-sm text-gray-500">Loading E2375 Figure {pageNumber === 11 ? '6' : '7'}...</p>
+            </div>
+          </div>
+        )}
+        <canvas 
+          ref={canvasRef} 
+          className={`mx-auto block ${isLoading ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}
+          style={{ maxWidth: '100%', height: 'auto' }}
+        />
+      </div>
+    );
+  }
+
+  // Object/Embed fallback
+  if (renderMethod === 'object') {
+    const pdfUrl = `${pdfPath}#page=${pageNumber}&view=FitH`;
+    
+    return (
+      <div className="relative bg-white rounded-lg overflow-hidden" style={{ height }}>
+        <object
+          data={pdfUrl}
+          type="application/pdf"
+          className="w-full h-full"
+          onError={() => setRenderMethod('iframe')}
+        >
+          {/* Fallback to iframe */}
+          <iframe
+            src={pdfUrl}
+            className="w-full h-full border-0"
+            title={`E2375 Page ${pageNumber}`}
+            onError={() => setRenderMethod('error')}
+          />
+        </object>
+      </div>
+    );
+  }
+
+  // Iframe fallback
+  if (renderMethod === 'iframe') {
+    const pdfUrl = `${pdfPath}#page=${pageNumber}`;
+    
+    return (
+      <div className="relative bg-white rounded-lg overflow-hidden" style={{ height }}>
+        <iframe
+          src={pdfUrl}
+          className="w-full h-full border-0"
+          title={`E2375 Page ${pageNumber}`}
+          onError={() => setRenderMethod('error')}
+        />
+      </div>
+    );
+  }
+
+  // Error state - show instructions
+  return (
+    <div className="flex flex-col items-center justify-center py-12 px-4 text-center bg-amber-50 rounded-lg border-2 border-amber-200" style={{ minHeight: height }}>
+      <AlertCircle className="w-16 h-16 text-amber-500 mb-4" />
+      <h3 className="text-lg font-semibold text-amber-800 mb-2">
+        Cannot Display PDF Inline
+      </h3>
+      <p className="text-sm text-amber-700 mb-4 max-w-md">
+        The E2375 standard diagram cannot be displayed directly. 
+        Please click the button below to open it in a separate window.
+      </p>
+      <div className="flex gap-3">
+        <Button 
+          onClick={() => window.open(pdfPath, '_blank')}
+          className="gap-2"
+        >
+          <ExternalLink className="w-4 h-4" />
+          Open PDF
+        </Button>
+        <Button 
+          variant="outline"
+          onClick={() => {
+            setRenderMethod('canvas');
+            setCanvasError(false);
+            setIsLoading(true);
+          }}
+          className="gap-2"
+        >
+          <RefreshCw className="w-4 h-4" />
+          Retry
+        </Button>
+      </div>
+      <p className="text-xs text-amber-600 mt-4">
+        View Page {pageNumber} for Figure {pageNumber === 11 ? '6' : '7'} diagrams
+      </p>
+    </div>
+  );
+};
+
 export const E2375StandardDiagram: React.FC<E2375StandardDiagramProps> = ({
   partType,
   scanDetails,
@@ -140,28 +314,15 @@ export const E2375StandardDiagram: React.FC<E2375StandardDiagramProps> = ({
   className = ""
 }) => {
   const [scale, setScale] = useState(1.5);
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
   const [showFullscreen, setShowFullscreen] = useState(false);
-  const [numPages, setNumPages] = useState<number | null>(null);
+  const [retryKey, setRetryKey] = useState(0);
 
   const pageInfo = getE2375PageInfo(partType);
   const pdfPath = "/standards/E2375.pdf";
   
-  const onDocumentLoadSuccess = useCallback(({ numPages }: { numPages: number }) => {
-    setNumPages(numPages);
-    setIsLoading(false);
-    setLoadError(null);
-  }, []);
-
-  const onDocumentLoadError = useCallback((error: Error) => {
-    console.error("PDF load error:", error);
-    setLoadError("Failed to load E2375 standard PDF");
-    setIsLoading(false);
-  }, []);
-
   const handleZoomIn = () => setScale(prev => Math.min(prev + 0.25, 3));
-  const handleZoomOut = () => setScale(prev => Math.max(prev - 0.25, 0.5));
+  const handleZoomOut = () => setScale(prev => Math.max(prev - 0.25, 0.75));
+  const handleRetry = () => setRetryKey(prev => prev + 1);
 
   const enabledDirections = scanDetails?.filter(d => d.enabled) || [];
 
@@ -175,48 +336,6 @@ export const E2375StandardDiagram: React.FC<E2375StandardDiagramProps> = ({
       </Card>
     );
   }
-
-  const PDFViewer = ({ fullscreen = false }: { fullscreen?: boolean }) => (
-    <div className={`bg-white rounded-lg overflow-hidden border-2 border-gray-200 shadow-sm ${fullscreen ? 'h-full' : ''}`}>
-      <Document
-        file={pdfPath}
-        onLoadSuccess={onDocumentLoadSuccess}
-        onLoadError={onDocumentLoadError}
-        loading={
-          <div className="flex items-center justify-center p-8">
-            <Skeleton className="w-[500px] h-[700px]" />
-          </div>
-        }
-        error={
-          <div className="flex flex-col items-center justify-center p-8 text-red-500">
-            <Info className="w-12 h-12 mb-2" />
-            <p>Error loading PDF</p>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="mt-2"
-              onClick={() => window.open(pdfPath, '_blank')}
-            >
-              Open PDF Externally
-            </Button>
-          </div>
-        }
-      >
-        <Page
-          pageNumber={pageInfo.page}
-          scale={fullscreen ? 2 : scale}
-          className="mx-auto"
-          renderTextLayer={true}
-          renderAnnotationLayer={true}
-          loading={
-            <div className="flex items-center justify-center p-8">
-              <Skeleton className="w-[500px] h-[700px]" />
-            </div>
-          }
-        />
-      </Document>
-    </div>
-  );
 
   return (
     <>
@@ -237,7 +356,8 @@ export const E2375StandardDiagram: React.FC<E2375StandardDiagramProps> = ({
                 variant="outline"
                 size="sm"
                 onClick={handleZoomOut}
-                disabled={scale <= 0.5}
+                disabled={scale <= 0.75}
+                title="Zoom Out"
               >
                 <ZoomOut className="w-4 h-4" />
               </Button>
@@ -246,13 +366,23 @@ export const E2375StandardDiagram: React.FC<E2375StandardDiagramProps> = ({
                 size="sm"
                 onClick={handleZoomIn}
                 disabled={scale >= 3}
+                title="Zoom In"
               >
                 <ZoomIn className="w-4 h-4" />
               </Button>
               <Button
                 variant="outline"
                 size="sm"
+                onClick={handleRetry}
+                title="Reload"
+              >
+                <RefreshCw className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => setShowFullscreen(true)}
+                title="Fullscreen"
               >
                 <Maximize2 className="w-4 h-4" />
               </Button>
@@ -260,6 +390,7 @@ export const E2375StandardDiagram: React.FC<E2375StandardDiagramProps> = ({
                 variant="outline"
                 size="sm"
                 onClick={() => window.open(pdfPath, '_blank')}
+                title="Open PDF"
               >
                 <ExternalLink className="w-4 h-4" />
               </Button>
@@ -268,20 +399,14 @@ export const E2375StandardDiagram: React.FC<E2375StandardDiagramProps> = ({
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* PDF Diagram */}
-            <div className="lg:col-span-2 overflow-auto max-h-[600px] bg-gray-50 rounded-lg p-2">
-              {loadError ? (
-                <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <Info className="w-16 h-16 text-amber-500 mb-4" />
-                  <p className="text-lg font-medium text-gray-700 mb-2">Cannot display PDF inline</p>
-                  <p className="text-sm text-gray-500 mb-4">{loadError}</p>
-                  <Button onClick={() => window.open(pdfPath, '_blank')}>
-                    <ExternalLink className="w-4 h-4 mr-2" />
-                    Open PDF in New Window
-                  </Button>
-                </div>
-              ) : (
-                <PDFViewer />
-              )}
+            <div className="lg:col-span-2 overflow-hidden bg-gray-50 rounded-lg p-2 border">
+              <PDFViewer
+                key={`${pageInfo.page}-${retryKey}`}
+                pdfPath={pdfPath}
+                pageNumber={pageInfo.page}
+                scale={scale}
+                height="550px"
+              />
             </div>
 
             {/* Legend & Info Panel */}
@@ -310,7 +435,7 @@ export const E2375StandardDiagram: React.FC<E2375StandardDiagramProps> = ({
                     <p className="text-xs opacity-70">Enable directions from the table below</p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 gap-2">
+                  <div className="grid grid-cols-1 gap-2 max-h-[300px] overflow-y-auto">
                     {enabledDirections.map(detail => {
                       const info = DIRECTION_INFO[detail.scanningDirection];
                       if (!info) return null;
@@ -373,7 +498,13 @@ export const E2375StandardDiagram: React.FC<E2375StandardDiagramProps> = ({
             </DialogTitle>
           </DialogHeader>
           <div className="flex-1 overflow-auto bg-gray-50 rounded-lg p-4">
-            <PDFViewer fullscreen />
+            <PDFViewer
+              key={`fullscreen-${pageInfo.page}-${retryKey}`}
+              pdfPath={pdfPath}
+              pageNumber={pageInfo.page}
+              scale={2.5}
+              height="100%"
+            />
           </div>
         </DialogContent>
       </Dialog>
