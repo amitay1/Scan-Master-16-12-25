@@ -503,6 +503,7 @@ async function createWindow() {
     height: 900,
     minWidth: 1024,
     minHeight: 768,
+    show: false, // Don't show until maximized
     icon: path.join(__dirname, '../public/favicon.ico'),
     webPreferences: {
       nodeIntegration: false,
@@ -515,6 +516,10 @@ async function createWindow() {
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
     title: 'Scan Master Inspection Pro'
   });
+
+  // Always open maximized (fullscreen) on first launch
+  mainWindow.maximize();
+  mainWindow.show();
 
   // Create application menu
   updateMenu();
