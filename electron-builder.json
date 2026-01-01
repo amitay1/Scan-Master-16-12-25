@@ -1,6 +1,7 @@
 {
   "appId": "com.scanmaster.inspectionpro",
   "productName": "Scan Master Inspection Pro",
+  "artifactName": "ScanMaster-Setup-${version}.${ext}",
   "directories": {
     "output": "release"
   },
@@ -66,10 +67,10 @@
     "deleteAppDataOnUninstall": false,
     "perMachine": false,
     "allowElevation": true,
-    "artifactName": "Scan-Master-Inspection-Pro-Setup-${version}.${ext}"
+    "artifactName": "ScanMaster-Setup-${version}.${ext}"
   },
   "portable": {
-    "artifactName": "Scan-Master-Inspection-Pro-Portable-${version}.${ext}"
+    "artifactName": "ScanMaster-Portable-${version}.${ext}"
   },
   "publish": [
     {
