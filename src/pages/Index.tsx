@@ -1621,41 +1621,40 @@ const Index = () => {
                 )}
             </div>
           </Tabs>
-        </div>
-      </div>
 
-      {/* Desktop: Right Panel - 3D Viewer (Fixed position, independent of sidebar) */}
-      <div className="hidden lg:block fixed right-2 top-[120px] z-20">
-        <Collapsible3DPanel
-          title="3D Part Viewer"
-          isOpen={viewer3DOpen}
-          onToggle={() => setViewer3DOpen(!viewer3DOpen)}
-        >
-          <ThreeDViewer
-            partType={currentData.inspectionSetup.partType || ""}
-            material={currentData.inspectionSetup.material as MaterialType || ""}
-            dimensions={{
-              length: currentData.inspectionSetup.partLength || 100,
-              width: currentData.inspectionSetup.partWidth || 50,
-              thickness: currentData.inspectionSetup.partThickness || 10,
-              diameter: currentData.inspectionSetup.diameter || 50,
-              isHollow: currentData.inspectionSetup.isHollow,
-              innerDiameter: currentData.inspectionSetup.innerDiameter,
-              innerLength: currentData.inspectionSetup.innerLength,
-              innerWidth: currentData.inspectionSetup.innerWidth,
-              wallThickness: currentData.inspectionSetup.wallThickness,
-              // Cone-specific dimensions
-              coneTopDiameter: currentData.inspectionSetup.coneTopDiameter,
-              coneBottomDiameter: currentData.inspectionSetup.coneBottomDiameter,
-              coneHeight: currentData.inspectionSetup.coneHeight,
-            }}
-            scanDirections={currentData.scanDetails.scanDetails.map(detail => ({
-              direction: detail.scanningDirection,
-              waveMode: detail.waveMode,
-              isVisible: detail.isVisible || false
-            }))}
-          />
-        </Collapsible3DPanel>
+          {/* 3D Viewer Panel - Below the form fields */}
+          <div className="hidden lg:block px-4 pb-4">
+            <Collapsible3DPanel
+              title="3D Part Viewer"
+              isOpen={viewer3DOpen}
+              onToggle={() => setViewer3DOpen(!viewer3DOpen)}
+            >
+              <ThreeDViewer
+                partType={currentData.inspectionSetup.partType || ""}
+                material={currentData.inspectionSetup.material as MaterialType || ""}
+                dimensions={{
+                  length: currentData.inspectionSetup.partLength || 100,
+                  width: currentData.inspectionSetup.partWidth || 50,
+                  thickness: currentData.inspectionSetup.partThickness || 10,
+                  diameter: currentData.inspectionSetup.diameter || 50,
+                  isHollow: currentData.inspectionSetup.isHollow,
+                  innerDiameter: currentData.inspectionSetup.innerDiameter,
+                  innerLength: currentData.inspectionSetup.innerLength,
+                  innerWidth: currentData.inspectionSetup.innerWidth,
+                  wallThickness: currentData.inspectionSetup.wallThickness,
+                  coneTopDiameter: currentData.inspectionSetup.coneTopDiameter,
+                  coneBottomDiameter: currentData.inspectionSetup.coneBottomDiameter,
+                  coneHeight: currentData.inspectionSetup.coneHeight,
+                }}
+                scanDirections={currentData.scanDetails.scanDetails.map(detail => ({
+                  direction: detail.scanningDirection,
+                  waveMode: detail.waveMode,
+                  isVisible: detail.isVisible || false
+                }))}
+              />
+            </Collapsible3DPanel>
+          </div>
+        </div>
       </div>
 
       {/* Status Bar */}
