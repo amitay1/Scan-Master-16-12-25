@@ -511,7 +511,7 @@ export const InspectionSetupTab = ({ data, onChange, acceptanceClass }: Inspecti
           </Select>
         </FieldWithHelp>
 
-        <div className="bg-primary/5 border border-primary/20 rounded-lg p-2 -m-0.5">
+        <div className="col-span-2 bg-primary/10 border-2 border-primary/30 rounded-xl p-3 shadow-sm">
           <FieldWithHelp
             label="Part Type"
             fieldKey="partType"
