@@ -256,6 +256,15 @@ const Index = () => {
         category: "Planning",
         order: 1,
         isActive: true,
+      },
+      {
+        id: "tcg-calibration",
+        title: "TCG for Shear Wave Calibration",
+        description: "Time Corrected Gain calibration procedures for shear wave testing",
+        filePath: "/documents/tcg-shear-wave-calibration.docx",
+        category: "Calibration",
+        order: 2,
+        isActive: true,
       }
     ]
   });
@@ -269,6 +278,15 @@ const Index = () => {
         filePath: "/documents/scan-plan-guide.pdf",
         category: "Planning",
         order: 1,
+        isActive: true,
+      },
+      {
+        id: "tcg-calibration",
+        title: "TCG for Shear Wave Calibration",
+        description: "Time Corrected Gain calibration procedures for shear wave testing",
+        filePath: "/documents/tcg-shear-wave-calibration.docx",
+        category: "Calibration",
+        order: 2,
         isActive: true,
       }
     ]

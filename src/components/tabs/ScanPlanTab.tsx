@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ScanPlanData, ScanPlanDocument } from "@/types/techniqueSheet";
-import { PDFViewer } from "@/components/PDFViewer";
+import { DocumentViewer } from "@/components/DocumentViewer";
 import {
   Collapsible,
   CollapsibleContent,
@@ -46,16 +46,21 @@ export const ScanPlanTab = ({ data, onChange }: ScanPlanTabProps) => {
     const doc = getSelectedDocument();
     if (doc) {
       const link = document.createElement('a');
-      link.href = doc.filePath;
-      link.download = doc.title + '.pdf';
+      const fileUrl = doc.filePath.startsWith('/') ? `http://localhost:5000${doc.filePath}` : doc.filePath;
+      link.href = fileUrl;
+      const ext = doc.filePath.split('.').pop() || 'pdf';
+      link.download = doc.title + '.' + ext;
+      document.body.appendChild(link);
       link.click();
+      document.body.removeChild(link);
     }
   };
 
   const handleOpenExternal = () => {
     const doc = getSelectedDocument();
     if (doc) {
-      window.open(doc.filePath, '_blank');
+      const fileUrl = doc.filePath.startsWith('/') ? `http://localhost:5000${doc.filePath}` : doc.filePath;
+      window.open(fileUrl, '_blank');
     }
   };
 
@@ -163,7 +168,7 @@ export const ScanPlanTab = ({ data, onChange }: ScanPlanTabProps) => {
                     </Button>
                   </div>
 
-                  {/* PDF Viewer */}
+                  {/* Document Viewer */}
                   <div
                     className={`h-[calc(100vh-280px)] min-h-[500px] ${
                       isFullscreen ? "fixed inset-2 z-50 bg-background h-auto" : ""
@@ -172,18 +177,18 @@ export const ScanPlanTab = ({ data, onChange }: ScanPlanTabProps) => {
                     {loadError ? (
                       <div className="flex flex-col items-center justify-center h-full p-8 text-center">
                         <FileText className="h-16 w-16 mb-4 text-destructive/50" />
-                        <h3 className="text-lg font-semibold mb-2 text-destructive">Failed to Load PDF</h3>
+                        <h3 className="text-lg font-semibold mb-2 text-destructive">Failed to Load Document</h3>
                         <p className="text-sm text-muted-foreground mb-4">
-                          The PDF file could not be loaded. This might be due to browser restrictions.
+                          The document could not be loaded. Try the options below.
                         </p>
                         <div className="flex gap-2">
                           <Button onClick={handleDownload} variant="outline">
                             <Download className="h-4 w-4 mr-2" />
-                            Download PDF
+                            Download
                           </Button>
                           <Button onClick={handleOpenExternal} variant="outline">
                             <ExternalLink className="h-4 w-4 mr-2" />
-                            Open in New Tab
+                            Open Externally
                           </Button>
                           <Button onClick={() => { setLoadError(false); setKey(prev => prev + 1); }} variant="outline">
                             <RefreshCw className="h-4 w-4 mr-2" />
@@ -195,7 +200,7 @@ export const ScanPlanTab = ({ data, onChange }: ScanPlanTabProps) => {
                         </p>
                       </div>
                     ) : (
-                      <PDFViewer
+                      <DocumentViewer
                         key={key}
                         file={doc.filePath}
                         onLoadError={() => setLoadError(true)}
