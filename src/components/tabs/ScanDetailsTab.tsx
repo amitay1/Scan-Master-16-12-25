@@ -253,12 +253,26 @@ export const ScanDetailsTab = ({ data, onChange, partType, dimensions = {} }: Sc
   return (
     <div className="space-y-2 p-2">
       {/* Inspection Plan Visual Preview */}
-      <InspectionPlanViewer
-        partType={partType}
-        scanDetails={scanDetails}
-        highlightedDirection={highlightedDirection}
-        dimensions={dimensions}
-      />
+      {!partType ? (
+        <Card className="p-8 flex flex-col items-center justify-center min-h-[400px] bg-muted/30">
+          <div className="text-center space-y-3">
+            <div className="w-16 h-16 mx-auto rounded-full bg-muted flex items-center justify-center">
+              <Info className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <h3 className="text-lg font-semibold text-muted-foreground">No Part Type Selected</h3>
+            <p className="text-sm text-muted-foreground max-w-md">
+              Please select a Part Type in the Setup tab first to view the technical drawing and configure scan directions.
+            </p>
+          </div>
+        </Card>
+      ) : (
+        <InspectionPlanViewer
+          partType={partType}
+          scanDetails={scanDetails}
+          highlightedDirection={highlightedDirection}
+          dimensions={dimensions}
+        />
+      )}
 
       {/* Scan Details Table */}
       <Card className="p-6">
