@@ -232,16 +232,35 @@ function setupIPCHandlers() {
   // IPC handlers for manual update control
   ipcMain.handle('check-for-updates', async () => {
     if (!isDev && autoUpdater) {
-      return autoUpdater.checkForUpdates();
+      try {
+        await autoUpdater.checkForUpdates();
+        // Return current state - the actual update info comes via events
+        return { 
+          checking: true,
+          updateAvailable,
+          updateDownloaded,
+          updateVersion,
+          currentVersion: app.getVersion()
+        };
+      } catch (error) {
+        console.error('Check for updates error:', error.message);
+        return { error: error.message, updateAvailable: false };
+      }
     }
-    return { updateAvailable: false };
+    return { updateAvailable: false, isDev: true };
   });
 
   ipcMain.handle('download-update', async () => {
     if (autoUpdater) {
-      return autoUpdater.downloadUpdate();
+      try {
+        await autoUpdater.downloadUpdate();
+        return { downloading: true };
+      } catch (error) {
+        console.error('Download update error:', error.message);
+        return { error: error.message };
+      }
     }
-    return null;
+    return { error: 'No auto updater available' };
   });
 
   ipcMain.handle('install-update', (event, silent = true) => {
@@ -298,10 +317,22 @@ function setupIPCHandlers() {
   // New: Force check for updates (bypass cache)
   ipcMain.handle('force-check-updates', async () => {
     if (!isDev && autoUpdater) {
-      updateRetryCount = 0;
-      return autoUpdater.checkForUpdates();
+      try {
+        updateRetryCount = 0;
+        await autoUpdater.checkForUpdates();
+        return { 
+          checking: true,
+          updateAvailable,
+          updateDownloaded,
+          updateVersion,
+          currentVersion: app.getVersion()
+        };
+      } catch (error) {
+        console.error('Force check updates error:', error.message);
+        return { error: error.message, updateAvailable: false };
+      }
     }
-    return { updateAvailable: false };
+    return { updateAvailable: false, isDev: true };
   });
 
   // License Management IPC Handlers

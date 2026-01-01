@@ -196,7 +196,7 @@ export const Collapsible3DPanel = ({
         animate={{ opacity: 1, x: 0 }}
         exit={{ opacity: 0, x: 50 }}
         transition={{ type: "spring", damping: 25, stiffness: 200 }}
-        className={`relative flex flex-col flex-shrink-0 z-30 ${className}`}
+        className={`relative flex flex-col flex-shrink-0 ${className}`}
         style={{
           width: size.width,
           height: size.height,
