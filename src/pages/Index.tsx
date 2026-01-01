@@ -1624,7 +1624,7 @@ const Index = () => {
         </div>
 
         {/* Desktop: Right Panel - 3D Viewer (Collapsible & Resizable) */}
-        <div className="hidden lg:flex lg:items-start lg:justify-end lg:p-4 lg:sticky lg:top-4 lg:right-0 lg:h-fit lg:max-h-[calc(100vh-2rem)] lg:overflow-visible">
+        <div className="hidden lg:flex lg:items-start lg:justify-end lg:pr-2 lg:pt-2 lg:sticky lg:top-2 lg:right-0 lg:h-fit lg:max-h-[calc(100vh-1rem)] lg:overflow-visible">
           <Collapsible3DPanel
             title="3D Part Viewer"
             isOpen={viewer3DOpen}

@@ -177,7 +177,6 @@ export function FBHStraightBeamDrawing({
           strokeWidth={0.5}
           strokeDasharray="6,3"
         />
-        <text x={fbhCenterX + 8} y={gMarkerY - 5} fill="#333" style={{ fontSize: 12 }}>G</text>
 
         {/* Dimension labels */}
         {showDimensions && (
@@ -187,7 +186,6 @@ export function FBHStraightBeamDrawing({
               <line x1={blockLeft - 25} y1={blockTop} x2={blockLeft - 25} y2={blockBottom} stroke="#333" strokeWidth={1} />
               <line x1={blockLeft - 30} y1={blockTop} x2={blockLeft - 20} y2={blockTop} stroke="#333" strokeWidth={1} />
               <line x1={blockLeft - 30} y1={blockBottom} x2={blockLeft - 20} y2={blockBottom} stroke="#333" strokeWidth={1} />
-              <text x={blockLeft - 38} y={(blockTop + blockBottom) / 2 + 4} fill="#333" style={{ fontSize: 12 }}>A</text>
             </g>
 
             {/* E - Right height */}
@@ -197,9 +195,6 @@ export function FBHStraightBeamDrawing({
               <line x1={blockRight + 20} y1={blockBottom} x2={blockRight + 30} y2={blockBottom} stroke="#333" strokeWidth={1} />
               <text x={blockRight + 35} y={(blockTop + blockBottom) / 2 + 4} fill="#333" style={{ fontSize: 12 }}>E</text>
             </g>
-
-            {/* B - Bottom left corner */}
-            <text x={blockLeft - 12} y={blockBottom + 18} fill="#333" style={{ fontSize: 12 }}>B</text>
 
             {/* F - Bottom width */}
             <g>

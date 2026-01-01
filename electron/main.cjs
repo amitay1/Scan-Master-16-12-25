@@ -4,6 +4,14 @@ const express = require('express');
 const fs = require('fs');
 const LicenseManager = require('./license-manager.cjs');
 
+// GPU stability flags - keep GPU enabled for WebGL but with safe settings
+app.commandLine.appendSwitch('disable-gpu-sandbox');
+app.commandLine.appendSwitch('disable-gpu-watchdog');
+app.commandLine.appendSwitch('ignore-gpu-blocklist');
+app.commandLine.appendSwitch('enable-webgl');
+app.commandLine.appendSwitch('use-angle', 'default');
+app.commandLine.appendSwitch('no-sandbox');
+
 let mainWindow;
 let embeddedServer;
 let updateAvailable = false;

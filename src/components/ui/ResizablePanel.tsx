@@ -31,26 +31,26 @@ const clampSizeToViewport = (
 ) => {
   // More aggressive padding for Electron desktop app
   const isDesktopApp = isElectron();
-  const horizontalPadding = isDesktopApp ? 150 : 80; // More padding in desktop mode
-  const verticalPadding = isDesktopApp ? 200 : 120;  // Account for title bar, status bar
-  
+  const horizontalPadding = isDesktopApp ? 60 : 80; // Reduced padding for better desktop alignment
+  const verticalPadding = isDesktopApp ? 140 : 120;  // Reduced to improve vertical positioning
+
   const maxViewportWidth = Math.max(minSize.width, window.innerWidth - horizontalPadding);
   const maxViewportHeight = Math.max(minSize.height, window.innerHeight - verticalPadding);
-  
+
   return {
     width: Math.max(minSize.width, Math.min(maxSize.width, maxViewportWidth, size.width)),
     height: Math.max(minSize.height, Math.min(maxSize.height, maxViewportHeight, size.height))
   };
 };
 
-// Size presets configuration - smaller for desktop app
+// Size presets configuration - optimized for desktop app
 const getPresetSizes = () => {
   const isDesktopApp = isElectron();
   if (isDesktopApp) {
     return {
-      S: { width: 220, height: 250 },
-      M: { width: 320, height: 360 },
-      L: { width: 420, height: 450 },
+      S: { width: 320, height: 360 },
+      M: { width: 420, height: 480 },
+      L: { width: 520, height: 600 },
     };
   }
   return {
@@ -203,19 +203,20 @@ export const Collapsible3DPanel = ({
           minWidth: minSize.width,
           minHeight: minSize.height,
           maxWidth: '100%',
-          maxHeight: 'calc(100vh - 120px)',
+          maxHeight: 'calc(100vh - 80px)',
           userSelect: isResizing ? 'none' : 'auto'
         }}
       >
         {/* Panel Header */}
         <div className="flex items-center justify-between px-3 py-2
                         bg-gradient-to-r from-slate-800/90 to-slate-700/90
-                        backdrop-blur-md rounded-t-xl border-b border-white/10">
+                        backdrop-blur-md rounded-t-xl border-b border-white/10
+                        min-w-0 overflow-visible">
           {/* Title */}
-          <span className="text-sm font-medium text-white/80">{title}</span>
+          <span className="text-sm font-medium text-white/80 truncate flex-shrink">{title}</span>
 
           {/* Controls */}
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 flex-shrink-0">
             {/* Size Presets */}
             {presets.map((preset) => (
               <button
