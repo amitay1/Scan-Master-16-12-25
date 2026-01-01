@@ -190,7 +190,7 @@ export function UpdateNotification() {
       >
         <Button
           onClick={() => { setDismissed(false); setShowMinimal(false); }}
-          className="bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-full px-4 py-2 shadow-lg hover:shadow-xl transition-all"
+          className="bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-full px-4 py-2 shadow-lg hover:shadow-xl transition-all border border-blue-500/30"
         >
           <CheckCircle2 className="w-4 h-4 mr-2" />
           Update Ready
@@ -213,7 +213,7 @@ export function UpdateNotification() {
           transition={{ type: 'spring', damping: 20, stiffness: 300 }}
           className="fixed top-4 left-1/2 -translate-x-1/2 z-[9999] w-[420px]"
         >
-          <div className="bg-gradient-to-br from-blue-600 to-purple-700 rounded-2xl shadow-2xl border border-white/20 overflow-hidden">
+          <div className="bg-gradient-to-br from-slate-700 to-slate-800 rounded-2xl shadow-2xl border border-blue-500/30 overflow-hidden">
             {/* Animated background particles */}
             <div className="absolute inset-0 overflow-hidden">
               {[...Array(20)].map((_, i) => (
@@ -309,7 +309,7 @@ export function UpdateNotification() {
           transition={{ type: 'spring', damping: 20, stiffness: 300 }}
           className="fixed bottom-4 right-4 z-[9999] w-[350px]"
         >
-          <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl shadow-2xl border border-white/20 overflow-hidden">
+          <div className="bg-gradient-to-br from-slate-700 to-slate-800 rounded-2xl shadow-2xl border border-blue-500/30 overflow-hidden">
             <div className="p-5">
               <button 
                 onClick={handleDismiss}
@@ -324,7 +324,7 @@ export function UpdateNotification() {
                   transition={{ duration: 2, repeat: Infinity }}
                   className="p-3 bg-white/20 rounded-xl"
                 >
-                  <Sparkles className="w-6 h-6 text-yellow-300" />
+                  <Sparkles className="w-6 h-6 text-blue-400" />
                 </motion.div>
                 
                 <div className="flex-1">
@@ -408,7 +408,7 @@ export function UpdateNotification() {
           className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm"
         >
           <motion.div 
-            className="bg-gradient-to-br from-green-500 via-emerald-600 to-teal-700 rounded-3xl shadow-2xl border border-white/20 w-[480px] overflow-hidden"
+            className="bg-gradient-to-br from-slate-700 via-slate-800 to-slate-900 rounded-3xl shadow-2xl border border-blue-500/30 w-[480px] overflow-hidden"
             initial={{ rotateX: -20 }}
             animate={{ rotateX: 0 }}
             transition={{ type: 'spring', damping: 20 }}
@@ -420,7 +420,7 @@ export function UpdateNotification() {
                   key={i}
                   className="absolute w-2 h-2 rounded-full"
                   style={{
-                    background: ['#FFD700', '#FF6B6B', '#4ECDC4', '#A855F7', '#3B82F6'][i % 5],
+                    background: ['#3B82F6', '#60A5FA', '#93C5FD', '#64748B', '#94A3B8'][i % 5],
                   }}
                   initial={{ 
                     x: 240, 
@@ -483,7 +483,7 @@ export function UpdateNotification() {
                 className="bg-white/10 rounded-lg p-3 mb-6"
               >
                 <p className="text-white/90 text-sm flex items-center justify-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-green-300" />
+                  <CheckCircle2 className="w-4 h-4 text-blue-400" />
                   {updateStatus.autoInstallOnQuit 
                     ? "Will install automatically when you close the app"
                     : "Ready to install now"
@@ -514,7 +514,7 @@ export function UpdateNotification() {
                 </Button>
                 <Button
                   onClick={() => handleInstallUpdate(true)}
-                  className="bg-white text-green-600 hover:bg-white/90 font-bold px-6 py-3 text-lg rounded-xl shadow-lg"
+                  className="bg-blue-600 text-white hover:bg-blue-500 font-bold px-6 py-3 text-lg rounded-xl shadow-lg border border-blue-400/50"
                 >
                   <RefreshCw className="w-5 h-5 mr-2" />
                   Restart & Update
