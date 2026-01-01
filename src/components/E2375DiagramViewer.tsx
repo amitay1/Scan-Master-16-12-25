@@ -1,9 +1,12 @@
 import React from "react";
 import { Card } from "@/components/ui/card";
 import type { PartGeometry } from "@/types/techniqueSheet";
+import type { ScanDetail } from "@/types/scanDetails";
 
 interface E2375DiagramViewerProps {
   partType: PartGeometry;
+  scanDetails?: ScanDetail[];
+  highlightedDirection?: string | null;
   className?: string;
 }
 
@@ -169,6 +172,8 @@ const normalizePartType = (partType: PartGeometry): string => {
 
 export const E2375DiagramViewer: React.FC<E2375DiagramViewerProps> = ({
   partType,
+  scanDetails,
+  highlightedDirection,
   className = ""
 }) => {
   const diagramInfo = getE2375DiagramInfo(partType);
@@ -188,6 +193,9 @@ export const E2375DiagramViewer: React.FC<E2375DiagramViewerProps> = ({
     );
   }
 
+  // Construct PDF URL with page parameter
+  const pdfUrl = `/standards/E2375.pdf#page=${diagramInfo.page}`;
+
   return (
     <Card className={`p-6 ${className}`}>
       <div className="space-y-4">
@@ -201,34 +209,14 @@ export const E2375DiagramViewer: React.FC<E2375DiagramViewerProps> = ({
           </p>
         </div>
 
-        {/* Diagram Display Area */}
-        <div className="bg-muted/30 rounded-lg p-8 min-h-[300px] flex items-center justify-center border-2 border-dashed">
-          <div className="text-center space-y-4">
-            <div className="w-16 h-16 mx-auto bg-primary/10 rounded-full flex items-center justify-center">
-              <svg
-                className="w-8 h-8 text-primary"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                />
-              </svg>
-            </div>
-            <div>
-              <p className="text-sm font-medium">Technical Drawing Reference</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                {diagramInfo.figure}
-              </p>
-              <p className="text-xs text-blue-600 mt-2 font-mono">
-                📄 E2375.pdf - Page {diagramInfo.page}
-              </p>
-            </div>
-          </div>
+        {/* PDF Diagram Display - Shows actual page from the standard */}
+        <div className="bg-white rounded-lg overflow-hidden border-2 border-gray-200 shadow-sm">
+          <iframe
+            src={pdfUrl}
+            className="w-full h-[600px]"
+            title={`${diagramInfo.title} - ASTM E2375 Page ${diagramInfo.page}`}
+            style={{ border: 'none' }}
+          />
         </div>
 
         {/* Description */}
@@ -240,6 +228,31 @@ export const E2375DiagramViewer: React.FC<E2375DiagramViewerProps> = ({
             {diagramInfo.description}
           </p>
         </div>
+
+        {/* Enabled Scan Directions */}
+        {scanDetails && scanDetails.some(d => d.enabled) && (
+          <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded">
+            <h4 className="text-sm font-semibold text-green-900 mb-2">
+              Enabled Scan Directions for this Part
+            </h4>
+            <div className="flex flex-wrap gap-2">
+              {scanDetails
+                .filter(d => d.enabled)
+                .map(detail => (
+                  <span
+                    key={detail.scanningDirection}
+                    className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${
+                      highlightedDirection === detail.scanningDirection
+                        ? 'bg-green-600 text-white scale-110 shadow-md'
+                        : 'bg-green-200 text-green-800'
+                    }`}
+                  >
+                    {detail.scanningDirection}: {detail.waveMode}
+                  </span>
+                ))}
+            </div>
+          </div>
+        )}
 
         {/* Reference Link */}
         <div className="flex items-center justify-between pt-2 border-t">

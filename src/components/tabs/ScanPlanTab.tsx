@@ -129,20 +129,20 @@ export const ScanPlanTab = ({ data, onChange }: ScanPlanTabProps) => {
         <Card className={`overflow-hidden ${isFullscreen ? 'fixed inset-2 z-50' : ''}`}>
           {/* Collapsible Header */}
           <CollapsibleTrigger className="w-full">
-            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 transition-colors cursor-pointer border-b">
+            <div className="flex items-center justify-between p-4 bg-slate-50 hover:bg-slate-100 transition-colors cursor-pointer border-b">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-500 rounded-lg">
+                <div className="p-2 bg-slate-600 rounded-lg">
                   <FileText className="h-5 w-5 text-white" />
                 </div>
                 <div className="text-left">
-                  <h3 className="font-semibold text-lg">Scan Plan Documents</h3>
-                  <p className="text-sm text-muted-foreground">
+                  <h3 className="font-semibold text-lg text-slate-800">Scan Plan Documents</h3>
+                  <p className="text-sm text-slate-500">
                     {activeDocuments.length} documents • Click to {isOpen ? 'collapse' : 'expand'}
                   </p>
                 </div>
               </div>
               <ChevronDown
-                className={`h-6 w-6 text-muted-foreground transition-transform duration-300 ${
+                className={`h-6 w-6 text-slate-500 transition-transform duration-300 ${
                   isOpen ? "rotate-180" : ""
                 }`}
               />

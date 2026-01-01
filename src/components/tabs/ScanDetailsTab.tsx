@@ -11,7 +11,6 @@ import { Info, Plus, Trash2, ArrowDown, ArrowUp, ArrowRight, ArrowLeft, RotateCw
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { PartGeometry } from "@/types/techniqueSheet";
 import type { ScanDetail, ScanDetailsData } from "@/types/scanDetails";
-import { InspectionPlanViewer } from "@/components/InspectionPlanViewer";
 import { E2375DiagramViewer } from "@/components/E2375DiagramViewer";
 
 interface ScanDetailsTabProps {
@@ -253,12 +252,7 @@ export const ScanDetailsTab = ({ data, onChange, partType, dimensions = {} }: Sc
 
   return (
     <div className="space-y-2 p-2">
-      {/* E2375 Standard Diagram Reference */}
-      {partType && (
-        <E2375DiagramViewer partType={partType} className="mb-4" />
-      )}
-
-      {/* Inspection Plan Visual Preview */}
+      {/* E2375 Standard Diagram - Shows actual images from the standard */}
       {!partType ? (
         <Card className="p-8 flex flex-col items-center justify-center min-h-[400px] bg-muted/30">
           <div className="text-center space-y-3">
@@ -267,16 +261,15 @@ export const ScanDetailsTab = ({ data, onChange, partType, dimensions = {} }: Sc
             </div>
             <h3 className="text-lg font-semibold text-muted-foreground">No Part Type Selected</h3>
             <p className="text-sm text-muted-foreground max-w-md">
-              Please select a Part Type in the Setup tab first to view the technical drawing and configure scan directions.
+              Please select a Part Type in the Setup tab first to view the ASTM E2375 standard diagram and configure scan directions.
             </p>
           </div>
         </Card>
       ) : (
-        <InspectionPlanViewer
+        <E2375DiagramViewer
           partType={partType}
           scanDetails={scanDetails}
           highlightedDirection={highlightedDirection}
-          dimensions={dimensions}
         />
       )}
 
