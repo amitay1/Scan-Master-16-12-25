@@ -147,23 +147,31 @@ if ($ghAvailable) {
             gh release upload "v$newVersion" $latestYml --clobber
         }
         
-        # Find and upload installer files for current version
+        # Find installer files for current version and rename them to match latest.yml
+        # electron-builder creates files with spaces, but latest.yml expects hyphens
         $installerPatterns = @(
             "*Setup*$newVersion*.exe",
             "*Portable*$newVersion*.exe",
-            "*$newVersion*.exe.blockmap",
-            "*$newVersion*.dmg",
-            "*$newVersion*.AppImage",
-            "*$newVersion*.deb",
-            "*$newVersion*.rpm",
-            "*$newVersion*.zip"
+            "*$newVersion*.exe.blockmap"
         )
         
         foreach ($pattern in $installerPatterns) {
             $files = Get-ChildItem -Path (Join-Path $releaseFolder $pattern) -ErrorAction SilentlyContinue
             foreach ($file in $files) {
-                Write-Info "  Uploading: $($file.Name)"
-                gh release upload "v$newVersion" $file.FullName --clobber
+                # Replace spaces with hyphens in filename for GitHub upload
+                $newFileName = $file.Name -replace ' ', '-'
+                $tempPath = Join-Path $releaseFolder $newFileName
+                
+                if ($file.Name -ne $newFileName) {
+                    Write-Info "  Renaming: $($file.Name) -> $newFileName"
+                    Copy-Item $file.FullName $tempPath -Force
+                    Write-Info "  Uploading: $newFileName"
+                    gh release upload "v$newVersion" $tempPath --clobber
+                    Remove-Item $tempPath -Force
+                } else {
+                    Write-Info "  Uploading: $($file.Name)"
+                    gh release upload "v$newVersion" $file.FullName --clobber
+                }
             }
         }
     }

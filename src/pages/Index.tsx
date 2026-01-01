@@ -1624,40 +1624,38 @@ const Index = () => {
         </div>
 
         {/* Desktop: Right Panel - 3D Viewer (Collapsible & Resizable) */}
-        {/* This panel takes its own space in the flex layout, doesn't overlap */}
-        <div className="hidden lg:block lg:flex-shrink-0 lg:pr-2 lg:pt-2">
-          <div className="sticky top-2">
-            <Collapsible3DPanel
-              title="3D Part Viewer"
-              isOpen={viewer3DOpen}
-              onToggle={() => setViewer3DOpen(!viewer3DOpen)}
-            >
-              <ThreeDViewer
-                partType={currentData.inspectionSetup.partType || ""}
-                material={currentData.inspectionSetup.material as MaterialType || ""}
-                dimensions={{
-                  length: currentData.inspectionSetup.partLength || 100,
-                  width: currentData.inspectionSetup.partWidth || 50,
-                  thickness: currentData.inspectionSetup.partThickness || 10,
-                  diameter: currentData.inspectionSetup.diameter || 50,
-                  isHollow: currentData.inspectionSetup.isHollow,
-                  innerDiameter: currentData.inspectionSetup.innerDiameter,
-                  innerLength: currentData.inspectionSetup.innerLength,
-                  innerWidth: currentData.inspectionSetup.innerWidth,
-                  wallThickness: currentData.inspectionSetup.wallThickness,
-                  // Cone-specific dimensions
-                  coneTopDiameter: currentData.inspectionSetup.coneTopDiameter,
-                  coneBottomDiameter: currentData.inspectionSetup.coneBottomDiameter,
-                  coneHeight: currentData.inspectionSetup.coneHeight,
-                }}
-                scanDirections={currentData.scanDetails.scanDetails.map(detail => ({
-                  direction: detail.scanningDirection,
-                  waveMode: detail.waveMode,
-                  isVisible: detail.isVisible || false
-                }))}
-              />
-            </Collapsible3DPanel>
-          </div>
+        {/* This panel takes its own space in the flex layout */}
+        <div className="hidden lg:flex lg:flex-shrink-0 lg:items-start lg:pr-2 lg:pt-2 lg:self-start">
+          <Collapsible3DPanel
+            title="3D Part Viewer"
+            isOpen={viewer3DOpen}
+            onToggle={() => setViewer3DOpen(!viewer3DOpen)}
+          >
+            <ThreeDViewer
+              partType={currentData.inspectionSetup.partType || ""}
+              material={currentData.inspectionSetup.material as MaterialType || ""}
+              dimensions={{
+                length: currentData.inspectionSetup.partLength || 100,
+                width: currentData.inspectionSetup.partWidth || 50,
+                thickness: currentData.inspectionSetup.partThickness || 10,
+                diameter: currentData.inspectionSetup.diameter || 50,
+                isHollow: currentData.inspectionSetup.isHollow,
+                innerDiameter: currentData.inspectionSetup.innerDiameter,
+                innerLength: currentData.inspectionSetup.innerLength,
+                innerWidth: currentData.inspectionSetup.innerWidth,
+                wallThickness: currentData.inspectionSetup.wallThickness,
+                // Cone-specific dimensions
+                coneTopDiameter: currentData.inspectionSetup.coneTopDiameter,
+                coneBottomDiameter: currentData.inspectionSetup.coneBottomDiameter,
+                coneHeight: currentData.inspectionSetup.coneHeight,
+              }}
+              scanDirections={currentData.scanDetails.scanDetails.map(detail => ({
+                direction: detail.scanningDirection,
+                waveMode: detail.waveMode,
+                isVisible: detail.isVisible || false
+              }))}
+            />
+          </Collapsible3DPanel>
         </div>
       </div>
 
