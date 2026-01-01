@@ -1157,46 +1157,9 @@ const Index = () => {
           setCalibrationBlockDiagram(exportCaptures.calibrationBlockDiagram);
         }
 
-        // Step 3: Go to scan details tab and capture the inspection plan drawing
-        setActiveTab('scandetails');
-        await new Promise(resolve => setTimeout(resolve, 1200)); // Longer wait for canvas to fully render
-
-        // Capture the scan directions canvas directly for better quality
-        const scanDirectionsCanvas = document.getElementById('scan-directions-canvas') as HTMLCanvasElement;
-        if (scanDirectionsCanvas) {
-          try {
-            // Create a high-resolution copy for better print quality
-            const scale = 3;
-            const highResCanvas = document.createElement('canvas');
-            highResCanvas.width = scanDirectionsCanvas.width * scale;
-            highResCanvas.height = scanDirectionsCanvas.height * scale;
-            const ctx = highResCanvas.getContext('2d');
-            if (ctx) {
-              ctx.fillStyle = 'white';
-              ctx.fillRect(0, 0, highResCanvas.width, highResCanvas.height);
-              ctx.scale(scale, scale);
-              ctx.drawImage(scanDirectionsCanvas, 0, 0);
-              const scanImage = highResCanvas.toDataURL('image/png', 1.0);
-              if (scanImage && scanImage.length > 100) {
-                setCapturedScanDirections(scanImage);
-                console.log('Scan directions captured successfully (high-res)');
-              }
-            }
-          } catch (error) {
-            console.warn('Could not capture scan directions (high-res), trying fallback:', error);
-            // Fallback to hook-based capture
-            const scanResult = await captureScanDirections();
-            if (scanResult && exportCaptures.scanDirectionsView) {
-              setCapturedScanDirections(exportCaptures.scanDirectionsView);
-            }
-          }
-        } else {
-          // Fallback if canvas not found
-          const scanResult = await captureScanDirections();
-          if (scanResult && exportCaptures.scanDirectionsView) {
-            setCapturedScanDirections(exportCaptures.scanDirectionsView);
-          }
-        }
+        // Step 3: Scan directions now use E2375 PDF directly (no canvas to capture)
+        // We skip this capture as the PDF is embedded via iframe in E2375DiagramViewer
+        console.log('Scan directions: Using E2375 PDF directly in exports');
 
         // Step 4: Return to original tab
         setActiveTab(originalTab);

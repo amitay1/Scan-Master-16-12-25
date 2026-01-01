@@ -4,7 +4,7 @@
  * Similar to professional calibration block drawings with proper perspective
  */
 
-import React, { useMemo, useId } from 'react';
+import React, { useMemo, useId, useState, useCallback } from 'react';
 import {
   CustomBlockShape,
   DesignerHole,
@@ -12,6 +12,9 @@ import {
   MATERIAL_PROPERTIES,
   BlockMaterial,
 } from '@/types/blockDesigner.types';
+import { ScanDirectionCode, SCAN_DIRECTION_DEFINITIONS } from '@/types/scanDetails';
+import { ScanDirectionOverlay, ScanDirectionLegend, useScanDirections } from './ScanDirectionOverlay';
+import { Radar, Eye, EyeOff, RotateCcw, CheckSquare } from 'lucide-react';
 
 interface IsometricDrawingProps {
   blockShape: CustomBlockShape;
@@ -21,6 +24,7 @@ interface IsometricDrawingProps {
   onHoleClick?: (holeId: string) => void;
   width?: number;
   height?: number;
+  showScanDirections?: boolean;
 }
 
 // Isometric projection constants
@@ -445,8 +449,20 @@ export function IsometricDrawing({
   onHoleClick,
   width = 600,
   height = 400,
+  showScanDirections = true,
 }: IsometricDrawingProps) {
   const uniqueId = useId();
+  
+  // Scan direction state
+  const {
+    selectedDirections,
+    availableDirections,
+    toggleDirection,
+    selectAll,
+    clearAll,
+  } = useScanDirections(blockShape.geometryType);
+  
+  const [showDirectionPanel, setShowDirectionPanel] = useState(false);
 
   // Calculate scale to fit the drawing - always ensures it fits in view
   const { scale, offsetX, offsetY } = useMemo(() => {
@@ -511,6 +527,7 @@ export function IsometricDrawing({
   };
 
   return (
+    <div className="relative w-full h-full">
     <svg
       viewBox={`0 0 ${width} ${height}`}
       className="w-full h-full"
@@ -583,6 +600,19 @@ export function IsometricDrawing({
         );
       })}
 
+      {/* Scan Direction Arrows Overlay */}
+      {showScanDirections && selectedDirections.length > 0 && (
+        <ScanDirectionOverlay
+          blockShape={blockShape}
+          selectedDirections={selectedDirections}
+          width={width}
+          height={height}
+          scale={scale}
+          offsetX={offsetX}
+          offsetY={offsetY}
+        />
+      )}
+
       {/* Legend */}
       <g transform={`translate(15, ${height - 55})`}>
         <text fontSize="11" fontWeight="600" fill={colors.text}>FBH Holes: {holes.length}</text>
@@ -603,5 +633,134 @@ export function IsometricDrawing({
         </text>
       </g>
     </svg>
+    
+    {/* Scan Direction Selection Panel */}
+    {showScanDirections && (
+      <div className="absolute top-2 right-2 z-10">
+        {/* Toggle Button */}
+        <button
+          onClick={() => setShowDirectionPanel(!showDirectionPanel)}
+          className={`
+            flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all
+            ${showDirectionPanel 
+              ? 'bg-blue-600 text-white shadow-lg' 
+              : 'bg-slate-700/90 text-slate-200 hover:bg-slate-600'
+            }
+          `}
+        >
+          <Radar className="w-4 h-4" />
+          <span>כיווני סריקה</span>
+          {selectedDirections.length > 0 && (
+            <span className="bg-white/20 px-1.5 rounded text-xs">
+              {selectedDirections.length}
+            </span>
+          )}
+        </button>
+        
+        {/* Direction Selection Panel */}
+        {showDirectionPanel && (
+          <div className="absolute top-12 right-0 w-64 animate-in slide-in-from-top-2 duration-200">
+            <div className="bg-slate-800/95 rounded-lg shadow-xl border border-slate-600/50 overflow-hidden backdrop-blur-sm">
+              {/* Header */}
+              <div className="px-3 py-2 bg-slate-700/50 border-b border-slate-600/50">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm font-semibold text-white flex items-center gap-2">
+                    <Radar className="w-4 h-4 text-blue-400" />
+                    E2375 כיווני סריקה
+                  </h4>
+                  <div className="flex gap-1">
+                    <button
+                      onClick={selectAll}
+                      className="p-1 text-slate-400 hover:text-green-400 transition-colors"
+                      title="בחר הכל"
+                    >
+                      <CheckSquare className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={clearAll}
+                      className="p-1 text-slate-400 hover:text-red-400 transition-colors"
+                      title="נקה הכל"
+                    >
+                      <RotateCcw className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+                <p className="text-xs text-slate-400 mt-1">
+                  ASTM E2375 Figures 6 & 7
+                </p>
+              </div>
+              
+              {/* Direction List */}
+              <div className="max-h-48 overflow-y-auto p-2 space-y-1">
+                {availableDirections.length === 0 ? (
+                  <p className="text-xs text-slate-400 text-center py-4">
+                    אין כיוונים זמינים לצורה זו
+                  </p>
+                ) : (
+                  availableDirections.map((dir) => {
+                    const isSelected = selectedDirections.includes(dir.code);
+                    return (
+                      <button
+                        key={dir.code}
+                        onClick={() => toggleDirection(dir.code)}
+                        className={`
+                          w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-left transition-all
+                          ${isSelected
+                            ? 'bg-slate-600/80 ring-1 ring-white/20'
+                            : 'hover:bg-slate-700/60 opacity-70 hover:opacity-100'
+                          }
+                        `}
+                      >
+                        <span
+                          className={`
+                            w-6 h-6 rounded flex items-center justify-center text-xs font-bold text-white shrink-0
+                            transition-transform ${isSelected ? 'scale-110' : ''}
+                          `}
+                          style={{ backgroundColor: dir.color }}
+                        >
+                          {dir.code}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-xs text-white truncate font-medium">
+                            {dir.nameHe}
+                          </div>
+                          <div className="text-[10px] text-slate-400 truncate">
+                            {dir.waveMode}
+                          </div>
+                        </div>
+                        {isSelected && (
+                          <Eye className="w-3.5 h-3.5 text-green-400 shrink-0" />
+                        )}
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+              
+              {/* Footer info */}
+              {selectedDirections.length > 0 && (
+                <div className="px-3 py-2 bg-slate-700/30 border-t border-slate-600/50">
+                  <div className="flex flex-wrap gap-1">
+                    {selectedDirections.map((code) => {
+                      const dir = SCAN_DIRECTION_DEFINITIONS.find(d => d.code === code);
+                      return (
+                        <span
+                          key={code}
+                          className="px-1.5 py-0.5 rounded text-[10px] font-bold text-white"
+                          style={{ backgroundColor: dir?.color }}
+                        >
+                          {code}
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    )}
+    </div>
   );
 }

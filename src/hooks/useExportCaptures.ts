@@ -164,35 +164,13 @@ export function useExportCaptures(): UseExportCapturesReturn {
     }
   }, []);
 
-  // Capture scan directions drawing (from InspectionPlanViewer)
+  // Capture scan directions drawing
+  // NOTE: Scan directions are now displayed via E2375 PDF iframe, not canvas
+  // We don't capture this anymore - the PDF is used directly in exports
   const captureScanDirections = useCallback(async (): Promise<boolean> => {
-    setIsCapturing(true);
-
-    try {
-      // Wait for canvas to fully render with all arrows
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      const result = await smartCapture(SCAN_DIRECTIONS_SELECTORS, {
-        scale: 3, // Higher scale for better quality
-        quality: 1.0, // Maximum quality
-        backgroundColor: 'white',
-      });
-
-      if (result.success && result.data) {
-        console.log('Scan directions captured successfully');
-        setCaptures(prev => ({ ...prev, scanDirectionsView: result.data }));
-        setLastCaptureTime(Date.now());
-        return true;
-      }
-
-      console.warn('Scan directions capture failed:', result.error);
-      return false;
-    } catch (error) {
-      console.error('Error capturing scan directions:', error);
-      return false;
-    } finally {
-      setIsCapturing(false);
-    }
+    console.log('Scan directions: Using E2375 PDF directly (no capture needed)');
+    // Return true to indicate "success" but we're not actually capturing anything
+    return true;
   }, []);
 
   // Capture all at once
