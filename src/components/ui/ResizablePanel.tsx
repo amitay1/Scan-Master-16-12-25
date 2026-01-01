@@ -252,9 +252,11 @@ export const Collapsible3DPanel = ({
         {/* Content Area */}
         <div className="flex-1 bg-gradient-to-b from-slate-800/80 to-slate-900/80
                         backdrop-blur-md rounded-b-xl
-                        border border-t-0 border-white/10"
-             style={{ overflow: 'hidden', minHeight: 0 }}>
-          {children}
+                        border border-t-0 border-white/10 relative"
+             style={{ overflow: 'hidden' }}>
+          <div className="absolute inset-0">
+            {children}
+          </div>
         </div>
 
         {/* Resize Handle - Bottom Left Corner */}
