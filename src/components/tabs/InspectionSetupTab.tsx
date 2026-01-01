@@ -511,24 +511,26 @@ export const InspectionSetupTab = ({ data, onChange, acceptanceClass }: Inspecti
           </Select>
         </FieldWithHelp>
 
-        <FieldWithHelp
-          label="Part Type"
-          fieldKey="partType"
-          required
-        >
-          <PartTypeVisualSelector
-            value={data.partType}
-            material={data.material}
-            onChange={(value) => {
-              onChange({ 
-                ...data, 
-                partType: value,
-                customShapeDescription: value === "custom" ? data.customShapeDescription : undefined,
-                customShapeParameters: value === "custom" ? data.customShapeParameters : undefined
-              });
-            }}
-          />
-        </FieldWithHelp>
+        <div className="bg-primary/5 border border-primary/20 rounded-lg p-2 -m-0.5">
+          <FieldWithHelp
+            label="Part Type"
+            fieldKey="partType"
+            required
+          >
+            <PartTypeVisualSelector
+              value={data.partType}
+              material={data.material}
+              onChange={(value) => {
+                onChange({ 
+                  ...data, 
+                  partType: value,
+                  customShapeDescription: value === "custom" ? data.customShapeDescription : undefined,
+                  customShapeParameters: value === "custom" ? data.customShapeParameters : undefined
+                });
+              }}
+            />
+          </FieldWithHelp>
+        </div>
 
         {data.partType === "custom" && (
           <>
