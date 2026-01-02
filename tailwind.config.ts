@@ -13,6 +13,18 @@ export default {
         "2xl": "1400px",
       },
     },
+    // Override default font sizes for larger UI text
+    fontSize: {
+      'xs': ['0.8125rem', { lineHeight: '1.25rem' }],      // 13px (was 12px)
+      'sm': ['0.9375rem', { lineHeight: '1.375rem' }],     // 15px (was 14px)
+      'base': ['1rem', { lineHeight: '1.5rem' }],          // 16px (was 14px)
+      'lg': ['1.125rem', { lineHeight: '1.75rem' }],       // 18px (was 16px)
+      'xl': ['1.3125rem', { lineHeight: '1.875rem' }],     // 21px (was 20px)
+      '2xl': ['1.5rem', { lineHeight: '2rem' }],           // 24px
+      '3xl': ['1.875rem', { lineHeight: '2.25rem' }],      // 30px
+      '4xl': ['2.25rem', { lineHeight: '2.5rem' }],        // 36px
+      '5xl': ['3rem', { lineHeight: '1' }],                // 48px
+    },
     extend: {
       colors: {
         border: "hsl(var(--border))",
