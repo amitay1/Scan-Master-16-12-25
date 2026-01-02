@@ -201,7 +201,7 @@ export const ScanPlanTab = ({ data, onChange }: ScanPlanTabProps) => {
               </div>
 
               {/* Document Content */}
-              <div className={`overflow-auto bg-white ${isFullscreen[doc.id] ? 'h-[calc(100vh-150px)]' : 'h-[500px]'}`}>
+              <div className={`overflow-auto bg-slate-200 ${isFullscreen[doc.id] ? 'h-[calc(100vh-150px)]' : 'h-[700px]'}`}>
                 {isLoading[doc.id] ? (
                   <div className="flex flex-col items-center justify-center h-full">
                     <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mb-3"></div>
@@ -226,37 +226,59 @@ export const ScanPlanTab = ({ data, onChange }: ScanPlanTabProps) => {
                     </div>
                   </div>
                 ) : (
-                  <div 
-                    className="p-8 prose prose-sm max-w-none"
-                    style={{ 
-                      backgroundColor: 'white',
-                      color: 'black',
-                      fontFamily: 'Arial, sans-serif'
-                    }}
-                  >
-                    <style>{`
-                      .document-content {
-                        line-height: 1.6;
-                      }
-                      .document-content table {
-                        width: 100%;
-                        border-collapse: collapse;
-                        margin: 1rem 0;
-                      }
-                      .document-content table td,
-                      .document-content table th {
-                        border: 1px solid #ccc;
-                        padding: 8px;
-                      }
-                      .document-content img {
-                        max-width: 100%;
-                        height: auto;
-                      }
-                    `}</style>
+                  <div className="p-6 flex justify-center">
                     <div 
-                      className="document-content"
-                      dangerouslySetInnerHTML={{ __html: documentHtml[doc.id] || '' }} 
-                    />
+                      className="a4-page prose prose-sm max-w-none"
+                      style={{ 
+                        backgroundColor: 'white',
+                        color: 'black',
+                        fontFamily: 'Arial, sans-serif',
+                        width: '210mm',
+                        minHeight: '297mm',
+                        padding: '20mm',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                        boxSizing: 'border-box'
+                      }}
+                    >
+                      <style>{`
+                        .a4-page {
+                          line-height: 1.6;
+                        }
+                        .a4-page table {
+                          width: 100%;
+                          border-collapse: collapse;
+                          margin: 1rem 0;
+                        }
+                        .a4-page table td,
+                        .a4-page table th {
+                          border: 1px solid #ccc;
+                          padding: 8px;
+                        }
+                        .a4-page img {
+                          max-width: 100%;
+                          height: auto;
+                        }
+                        .a4-page h1, .a4-page h2, .a4-page h3 {
+                          page-break-after: avoid;
+                        }
+                        .a4-page p {
+                          orphans: 3;
+                          widows: 3;
+                        }
+                        @media print {
+                          .a4-page {
+                            width: 210mm;
+                            min-height: 297mm;
+                            padding: 20mm;
+                            margin: 0;
+                            box-shadow: none;
+                          }
+                        }
+                      `}</style>
+                      <div 
+                        dangerouslySetInnerHTML={{ __html: documentHtml[doc.id] || '' }} 
+                      />
+                    </div>
                   </div>
                 )}
               </div>

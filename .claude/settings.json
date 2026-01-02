@@ -1,0 +1,7 @@
+{
+  "contextFiles": [
+    "QUICK_CONTEXT.md",
+    "CLAUDE.md"
+  ],
+  "projectInstructions": "Always start by reading QUICK_CONTEXT.md for rapid project understanding. Use CLAUDE.md for detailed rules and guidelines."
+}

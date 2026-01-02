@@ -1,92 +1,158 @@
 # ScanMaster AI Coding Instructions
 
 ## Project Overview
-ScanMaster is an NDT (Non-Destructive Testing) application for ultrasonic inspection planning. It generates **technique sheets** and **inspection reports** compliant with aerospace standards (AMS-STD-2154, ASTM E2375, ASTM A388, BS-EN-10228).
+ScanMaster generates **technique sheets** and **inspection reports** for ultrasonic NDT compliant with aerospace standards (AMS-STD-2154, ASTM E2375, ASTM A388, BS-EN-10228).
 
 ## Architecture
 
+### Data Flow
+```
+Frontend (React) → Express API → PostgreSQL (Drizzle ORM)
+                 ↘ JSON job spec → Python CAD engine → STEP/PDF
+```
+
 ### Frontend (`src/`)
-- **React 18 + TypeScript + Vite** with shadcn/ui components
-- **State**: TanStack React Query for server state, React local state/context for UI (no Redux/Zustand)
-- **3D**: Three.js via `@react-three/fiber` for part visualization
-- **Main entry**: `src/pages/Index.tsx` - orchestrates 8 technique sheet tabs
+- **React 18 + TypeScript + Vite** with shadcn/ui (Radix primitives)
+- **State**: TanStack React Query for API; React local state for UI (**no Redux/Zustand**)
+- **Main orchestrator**: `src/pages/Index.tsx` - 8 tabs for technique sheets, 5 tabs for inspection reports
+- **3D**: `@react-three/fiber` for part visualization
 
 ### Backend (`server/`)
-- **Express 5 + TypeScript** served by `tsx`
-- **Database**: PostgreSQL + Drizzle ORM (schema in `shared/schema.ts`)
-- **Auth**: Supabase integration with mock auth for development
-- **Routes**: `server/routes.ts` handles API + CAD engine bridge
+- **Express 5** served via `tsx` (TypeScript execution)
+- **Schema**: `shared/schema.ts` - Drizzle ORM with Zod validation
+- **Routes**: `server/routes.ts` - all API endpoints (~935 lines)
+- **Mock org**: Development uses `MOCK_ORG_ID` for multi-tenant testing
 
 ### CAD Engine (`drawing-engine/`)
-- **Python** (CadQuery + FreeCAD TechDraw) for generating technical drawings and STEP files
-- Node.js spawns Python scripts via `SCANMASTER_CAD_SCRIPT` env var
-- Job specs flow: Client → JSON → Node → Python → PDF/STEP output
+- **Python** (CadQuery + FreeCAD TechDraw) - external process
+- Set `SCANMASTER_CAD_SCRIPT` env var pointing to Python entrypoint
+- Job specs written to `cad-engine-jobs/`, output to `cad-3d-output/`
 
 ## Critical Patterns
 
-### Domain Types
-All part geometries and inspection parameters are defined in `src/types/techniqueSheet.ts`:
-- `PartGeometry`: 27+ shapes (box, cylinder, tube, l_profile, i_profile, etc.)
-- `AcceptanceClass`: AAA/AA/A/B/C per AMS-STD-2154
-- Scanning directions A-L for different beam orientations
-
-### Auto-Fill Logic
-When material or acceptance class changes, auto-populate dependent fields:
+### Domain Types (`src/types/techniqueSheet.ts`)
 ```typescript
-// src/utils/autoFillLogic.ts
-const recommendedFreq = getRecommendedFrequency(thickness, material);
-const metalTravel = calculateMetalTravel(thickness); // 3T rule
-const couplant = getCouplantRecommendation(transducerType, material);
+type PartGeometry = "box" | "cylinder" | "tube" | "l_profile" | "i_profile" | ... // 27+ shapes
+type AcceptanceClass = "AAA" | "AA" | "A" | "B" | "C";  // AMS-STD-2154
+type StandardType = "AMS-STD-2154E" | "ASTM-A388" | "BS-EN-10228-3" | ...
 ```
 
-### Standards Data
-UT standards live in `standards/` - update these files (not code) when changing acceptance criteria, FBH tables, or material properties. Frontend reads via services.
+### Auto-Fill Logic (`src/utils/autoFillLogic.ts`)
+When material/class changes, dependent fields auto-populate via `materialDatabase`:
+- `getRecommendedFrequency(thickness, material)` - trades resolution vs penetration
+- `calculateMetalTravel(thickness)` - 3× thickness rule for calibration
+- `getCouplantRecommendation(transducerType, material)` - immersion vs contact
 
-### Tab State Architecture
-Index.tsx maintains parallel state for Part A and Part B (split mode):
-- `inspectionSetup` / `inspectionSetupB`
-- `equipment` / `equipmentB`
-- etc.
+### Split Mode State (Part A / Part B)
+`src/pages/Index.tsx` maintains parallel state controlled by `activePart`:
+```typescript
+const [inspectionSetup, setInspectionSetup] = useState<InspectionSetupData>(...);
+const [inspectionSetupB, setInspectionSetupB] = useState<InspectionSetupData>(...);
+// Pattern repeats for: equipment, calibration, scanParameters, acceptanceCriteria, documentation
+```
 
-Use `getCurrentData()` to access the active part's data.
+### Tab Components
+Each tab in `src/components/tabs/` receives props from Index.tsx and calls setters to update state.
+
+### Context Providers (`src/contexts/`)
+- `LicenseContext` - Electron licensing via `window.electron.license.*`
+- `SavedCardsContext` - Per-profile localStorage persistence
+- `InspectorProfileContext` - Inspector certification data
+- `SettingsContext` - App-wide settings
+
+### Electron Integration
+Desktop app uses IPC via preload script:
+```typescript
+// Check if running in Electron
+const isElectron = typeof window !== 'undefined' && window.electron;
+// License check example
+if (isElectron) {
+  const license = await window.electron.license.check();
+}
+```
+
+### Logging
+Use `src/lib/logger.ts` instead of `console.log`:
+```typescript
+import { logInfo, logError, logWarn } from "@/lib/logger";
+logInfo("message", { context });  // ℹ️ in dev, POST /api/logs in prod
+```
+
+### Export System (`src/utils/export/`)
+- **ExportManager** (singleton) routes exports to appropriate exporter
+- **BaseExporter** abstract class - template method pattern for PDF/Word sections
+- Exporters: `pdfExporter.ts` (jsPDF), `wordExporter.ts` (docx), `tuvExporter.ts` (bilingual TÜV)
+- **CaptureEngine** - Universal visual capture with 30s cache TTL and retry logic
+
+### Validation Engine (`src/utils/standards/`)
+- **validationEngine** - Real-time compliance checking with standard refs
+- **complianceEngine** - Multi-standard calculations, loads from `standards/processed/`
+- **fieldDependencyEngine** - Auto-fill cascade: standard→material→geometry→class
+
+### Electron Preload (`electron/preload.cjs`)
+Two exposed APIs:
+- `window.electronAPI` - Legacy channel-restricted IPC
+- `window.electron` - Primary API (updates, license, version info)
 
 ## Commands
 ```bash
-npm run dev          # Dev server (tsx watch + Vite)
+npm run dev          # Dev server (tsx watch + Vite HMR)
 npm run build        # Production frontend build
-npm run lint         # ESLint - run after changes
+npm run lint         # ESLint - always run after changes
 npm run db:push      # Drizzle schema push to PostgreSQL
 npm run electron:dev # Desktop app development
+npm run release      # Windows: version bump + electron build
 ```
+
+### Release Script (`release.ps1`)
+```powershell
+.\release.ps1 [patch|minor|major] [message]
+# Bumps version → git commit/tag/push → npm run dist:win → gh release create
+```
+
+### Release Workflow
+After completing a batch of changes (bug fixes, features), run the release script in background:
+```powershell
+.\release.ps1
+```
+**Do NOT wait** for the build to finish - continue working on the next task immediately so the user can report more issues while the new version builds (~5-10 min).
 
 ## Conventions
 
 ### File Naming
-- Components: `PascalCase.tsx`
-- Hooks: `use-kebab-case.ts`
-- Types: `kebab-case.types.ts`
-- Utils: `kebab-case.ts`
+| Type | Pattern | Example |
+|------|---------|---------|
+| Component | `PascalCase.tsx` | `CalibrationTab.tsx` |
+| Hook | `use-kebab-case.ts` | `use-saved-cards.ts` |
+| Types | `kebab-case.ts` | `techniqueSheet.ts` |
+| Utils | `kebab-case.ts` | `autoFillLogic.ts` |
 
 ### Component Patterns
-- Functional components only with shadcn/ui primitives
-- Use `cn()` utility for conditional Tailwind classes
-- Co-locate component hooks in same file when small
+- Functional only; use `cn()` for conditional Tailwind classes
+- Import UI from `@/components/ui/*` (shadcn/ui)
+- Use `@/` path alias (configured in vite/tsconfig)
 
-### API Routes
-All routes in `server/routes.ts`:
+### API Routes (all in `server/routes.ts`)
 - `GET/POST/PATCH/DELETE /api/technique-sheets` - CRUD with org scoping
-- `POST /api/cad/engine/parts` - Generate STEP files via Python
+- `POST /api/cad/engine/parts` - Generate STEP via Python
 - `POST /api/cad/drawings` - Generate PDF drawings via Python
+- `GET /api/profiles` - Inspector profile management
 
 ## Do NOT
-- Install new npm packages without explicit confirmation
-- Edit `dist/`, `cad-3d-output/`, or `cad-engine-jobs/` (build artifacts)
-- Add global state libraries (Zustand, Redux)
-- Change UT standard calculations without reading `standards/` docs first
-- Use `html2canvas` (not in this project)
+- Install npm packages without explicit confirmation
+- Edit `dist/`, `cad-3d-output/`, `cad-engine-jobs/` (build artifacts)
+- Add global state libraries (Zustand, Redux, etc.)
+- Change UT calculations without reading `standards/` and `AUTO_FILL_DOCUMENTATION.md`
+- Assume `html2canvas` exists (it doesn't)
+- Use `console.log` directly - use `logInfo`/`logError` from `@/lib/logger`
+
+## Testing
+**No test suite exists yet.** When adding tests:
+- Propose framework (Vitest recommended) and confirm before adding to `package.json`
+- Focus on: UT calculations, auto-fill logic, geometry math
 
 ## Key Documentation
-- `CLAUDE.md` - Comprehensive project context
-- `AUTO_FILL_DOCUMENTATION.md` - Field dependency logic
-- `TECHNIQUE_SHEET_ANALYSIS.md` - Domain rules
-- `TUV_EXPORT_SYSTEM_README.md` - Export formats
+- `CLAUDE.md` - Full project context with feature checklist
+- `AUTO_FILL_DOCUMENTATION.md` - Field dependency rules
+- `drawing-engine/README.md` - Python CAD setup
+- `standards/` - UT standard data files (update data here, not code)

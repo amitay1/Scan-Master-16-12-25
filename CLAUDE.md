@@ -1,5 +1,10 @@
 # CLAUDE.md – Scan-Master Project Guidelines
 
+> **Quick Start:** Read `QUICK_CONTEXT.md` first for a condensed 2-minute overview of the entire project.
+> This file contains full detailed guidelines - use it as reference for specific rules.
+
+---
+
 ## Project Overview
 
 **Scan-Master** is an NDT (Non-Destructive Testing) application for ultrasonic inspection planning and documentation.
