@@ -127,8 +127,8 @@ All colors MUST be HSL.
     overflow: hidden;
     /* Prevent browser zoom from breaking layout */
     touch-action: manipulation;
-    /* Base font size - increased for better readability */
-    font-size: 16px;
+    /* Larger base font size */
+    font-size: 18px !important;
   }
 
   body {
@@ -143,9 +143,9 @@ All colors MUST be HSL.
     /* Prevent text size adjustment on orientation change */
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
-    /* Larger base text size for UI */
-    font-size: 15px;
-    line-height: 1.5;
+    /* Much larger base text size for UI */
+    font-size: 16px !important;
+    line-height: 1.6;
   }
 
   #root {
@@ -154,27 +154,53 @@ All colors MUST be HSL.
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    font-size: 16px;
   }
 
-  /* Larger text for form labels and inputs */
+  /* Make ALL text larger */
+  label, span, p, div, h1, h2, h3, h4, h5, h6, a, button, input, select, textarea, option {
+    font-size: inherit;
+  }
+
+  /* Larger text for form labels */
   label {
-    font-size: 14px;
+    font-size: 15px !important;
     font-weight: 500;
   }
 
+  /* Larger inputs */
   input, select, textarea {
-    font-size: 15px !important;
+    font-size: 16px !important;
+    padding: 10px 12px !important;
   }
 
   /* Larger button text */
   button {
-    font-size: 14px;
+    font-size: 15px !important;
+  }
+
+  /* Tab triggers - make them much more visible */
+  [role="tablist"] button,
+  [data-state] {
+    font-size: 15px !important;
   }
 
   /* Professional panel styling */
   .app-panel {
     box-shadow: var(--shadow-panel);
     @apply bg-card border border-border;
+    font-size: 15px;
+  }
+
+  /* Cards and panels */
+  .app-panel label {
+    font-size: 15px !important;
+  }
+
+  .app-panel input,
+  .app-panel select,
+  .app-panel textarea {
+    font-size: 16px !important;
   }
 
   .toolbar-item {
