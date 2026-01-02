@@ -1399,15 +1399,15 @@ const Index = () => {
 
                     <div className="w-full overflow-x-auto scrollbar-hide md:overflow-visible sticky top-0 bg-background z-10 pb-2">
                       <TabsList className="inline-flex flex-nowrap h-10 items-center justify-start md:justify-center rounded-md bg-muted p-1 text-muted-foreground w-max md:w-full">
-                        <TabsTrigger value="setup" className="flex-shrink-0 px-3 text-xs md:text-sm">Setup</TabsTrigger>
-                        <TabsTrigger value="scandetails" className="flex-shrink-0 px-3 text-xs md:text-sm whitespace-nowrap">Scan Details</TabsTrigger>
-                        <TabsTrigger value="drawing" className="flex-shrink-0 px-3 text-xs md:text-sm whitespace-nowrap">Technical Drawing</TabsTrigger>
-                        <TabsTrigger value="equipment" className="flex-shrink-0 px-3 text-xs md:text-sm">Equipment</TabsTrigger>
-                        <TabsTrigger value="calibration" className="flex-shrink-0 px-3 text-xs md:text-sm whitespace-nowrap">Reference Standard</TabsTrigger>
-                        <TabsTrigger value="scan" className="flex-shrink-0 px-3 text-xs md:text-sm whitespace-nowrap">Scan Params</TabsTrigger>
-                        <TabsTrigger value="acceptance" className="flex-shrink-0 px-3 text-xs md:text-sm">Acceptance</TabsTrigger>
-                        <TabsTrigger value="docs" className="flex-shrink-0 px-3 text-xs md:text-sm">Documentation</TabsTrigger>
-                        <TabsTrigger value="scanplan" className="flex-shrink-0 px-3 text-xs md:text-sm whitespace-nowrap">Scan Plan</TabsTrigger>
+                        <TabsTrigger value="setup" className="flex-shrink-0 px-3">Setup</TabsTrigger>
+                        <TabsTrigger value="scandetails" className="flex-shrink-0 px-3 whitespace-nowrap">Scan Details</TabsTrigger>
+                        <TabsTrigger value="drawing" className="flex-shrink-0 px-3 whitespace-nowrap">Technical Drawing</TabsTrigger>
+                        <TabsTrigger value="equipment" className="flex-shrink-0 px-3">Equipment</TabsTrigger>
+                        <TabsTrigger value="calibration" className="flex-shrink-0 px-3 whitespace-nowrap">Reference Standard</TabsTrigger>
+                        <TabsTrigger value="scan" className="flex-shrink-0 px-3 whitespace-nowrap">Scan Params</TabsTrigger>
+                        <TabsTrigger value="acceptance" className="flex-shrink-0 px-3">Acceptance</TabsTrigger>
+                        <TabsTrigger value="docs" className="flex-shrink-0 px-3">Documentation</TabsTrigger>
+                        <TabsTrigger value="scanplan" className="flex-shrink-0 px-3 whitespace-nowrap">Scan Plan</TabsTrigger>
                       </TabsList>
                     </div>
                   </>
@@ -1426,11 +1426,11 @@ const Index = () => {
 
                     <div className="w-full overflow-x-auto scrollbar-hide md:overflow-visible sticky top-0 bg-background z-10 pb-2">
                       <TabsList className="inline-flex flex-nowrap h-10 items-center justify-start md:justify-center rounded-md bg-muted p-1 text-muted-foreground w-max md:w-full">
-                        <TabsTrigger value="cover" className="flex-shrink-0 px-4 text-xs md:text-sm whitespace-nowrap">Cover Page</TabsTrigger>
-                        <TabsTrigger value="diagram" className="flex-shrink-0 px-4 text-xs md:text-sm whitespace-nowrap">Part Diagram</TabsTrigger>
-                        <TabsTrigger value="probe" className="flex-shrink-0 px-4 text-xs md:text-sm whitespace-nowrap">Probe Details</TabsTrigger>
-                        <TabsTrigger value="scans" className="flex-shrink-0 px-4 text-xs md:text-sm">Scans</TabsTrigger>
-                        <TabsTrigger value="remarks" className="flex-shrink-0 px-4 text-xs md:text-sm">Remarks</TabsTrigger>
+                        <TabsTrigger value="cover" className="flex-shrink-0 px-4 whitespace-nowrap">Cover Page</TabsTrigger>
+                        <TabsTrigger value="diagram" className="flex-shrink-0 px-4 whitespace-nowrap">Part Diagram</TabsTrigger>
+                        <TabsTrigger value="probe" className="flex-shrink-0 px-4 whitespace-nowrap">Probe Details</TabsTrigger>
+                        <TabsTrigger value="scans" className="flex-shrink-0 px-4">Scans</TabsTrigger>
+                        <TabsTrigger value="remarks" className="flex-shrink-0 px-4">Remarks</TabsTrigger>
                       </TabsList>
                     </div>
                   </>

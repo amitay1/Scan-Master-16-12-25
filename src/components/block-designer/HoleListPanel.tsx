@@ -137,15 +137,15 @@ export function HoleListPanel() {
       {/* Tabbed Interface */}
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)} className="flex-1 flex flex-col">
         <TabsList className="mx-2 mt-2 bg-slate-800 border border-slate-700">
-          <TabsTrigger value="fbh" className="flex-1 text-xs data-[state=active]:bg-cyan-600">
+          <TabsTrigger value="fbh" className="flex-1 data-[state=active]:bg-cyan-600">
             <CircleDot className="h-3 w-3 mr-1" />
             FBH
           </TabsTrigger>
-          <TabsTrigger value="sdh" className="flex-1 text-xs data-[state=active]:bg-orange-600">
+          <TabsTrigger value="sdh" className="flex-1 data-[state=active]:bg-orange-600">
             <Target className="h-3 w-3 mr-1" />
             SDH
           </TabsTrigger>
-          <TabsTrigger value="notch" className="flex-1 text-xs data-[state=active]:bg-purple-600">
+          <TabsTrigger value="notch" className="flex-1 data-[state=active]:bg-purple-600">
             <Minus className="h-3 w-3 mr-1" />
             Notch
           </TabsTrigger>
