@@ -54,7 +54,7 @@ export const Toolbar = ({
   const { cards } = useSavedCards();
   
   return (
-    <div className="h-12 border-b border-border bg-card flex items-center px-2 md:px-3 gap-1 md:gap-2 overflow-x-auto">
+    <div className="h-12 border-b border-border bg-card flex items-center px-2 md:px-3 gap-1 md:gap-2 overflow-x-auto overflow-y-hidden flex-shrink-0">
       {/* Quick Actions - Compact on mobile */}
       <Button variant="ghost" size="icon" onClick={onSave} title="Save" className="h-8 w-8 md:h-9 md:w-9">
         <Save className="h-3 w-3 md:h-4 md:w-4" />

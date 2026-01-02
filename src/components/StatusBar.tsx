@@ -67,9 +67,9 @@ export const StatusBar = ({
   const autoSaveDisplay = getAutoSaveDisplay();
 
   return (
-    <div className="h-7 border-t border-border bg-card flex items-center px-3 text-xs text-muted-foreground">
+    <div className="h-7 border-t border-border bg-card flex items-center px-3 text-xs text-muted-foreground flex-shrink-0 overflow-hidden">
       {/* Connection Status */}
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center gap-1.5 flex-shrink-0">
         {isOnline ? (
           <>
             <Wifi className="h-3 w-3 text-success" />

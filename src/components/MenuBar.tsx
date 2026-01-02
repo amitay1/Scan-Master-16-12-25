@@ -22,7 +22,7 @@ interface MenuBarProps {
 
 export const MenuBar = ({ onSave, onOpenSavedCards, onExport, onNew, onSignOut, onOpenDrawingEngine, onLoadSampleCards }: MenuBarProps) => {
   return (
-    <Menubar className="border-b border-border bg-card rounded-none h-10 px-2">
+    <Menubar className="border-b border-border bg-card rounded-none h-10 px-2 flex-shrink-0">
       <MenubarMenu>
         <MenubarTrigger className="font-medium text-sm">File</MenubarTrigger>
         <MenubarContent>

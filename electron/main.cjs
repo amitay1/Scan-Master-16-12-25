@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, shell, dialog, ipcMain } = require('electron');
+const { app, BrowserWindow, Menu, shell, dialog, ipcMain, screen } = require('electron');
 const path = require('path');
 const express = require('express');
 const fs = require('fs');
@@ -11,6 +11,10 @@ app.commandLine.appendSwitch('ignore-gpu-blocklist');
 app.commandLine.appendSwitch('enable-webgl');
 app.commandLine.appendSwitch('use-angle', 'default');
 app.commandLine.appendSwitch('no-sandbox');
+
+// High DPI and scaling support for Windows
+app.commandLine.appendSwitch('high-dpi-support', '1');
+app.commandLine.appendSwitch('force-device-scale-factor', '1');
 
 let mainWindow;
 let embeddedServer;
@@ -497,13 +501,25 @@ function updateMenu() {
 }
 
 async function createWindow() {
-  // Create the browser window
+  // Get the primary display to calculate proper dimensions
+  const primaryDisplay = screen.getPrimaryDisplay();
+  const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize;
+  const scaleFactor = primaryDisplay.scaleFactor;
+  
+  console.log(`Screen: ${screenWidth}x${screenHeight}, Scale Factor: ${scaleFactor}`);
+  
+  // Calculate responsive minimum sizes based on screen and scale
+  // For high DPI displays, we need smaller minimums
+  const baseMinWidth = Math.min(1024, Math.floor(screenWidth * 0.6));
+  const baseMinHeight = Math.min(768, Math.floor(screenHeight * 0.6));
+  
+  // Create the browser window with proper scaling support
   mainWindow = new BrowserWindow({
-    width: 1400,
-    height: 900,
-    minWidth: 1024,
-    minHeight: 768,
-    show: false, // Don't show until maximized
+    width: Math.min(1400, screenWidth),
+    height: Math.min(900, screenHeight),
+    minWidth: baseMinWidth,
+    minHeight: baseMinHeight,
+    show: false, // Don't show until ready
     icon: path.join(__dirname, '../public/favicon.ico'),
     webPreferences: {
       nodeIntegration: false,
@@ -511,15 +527,39 @@ async function createWindow() {
       preload: path.join(__dirname, 'preload.cjs'),
       webSecurity: true,
       // Disable service workers in development
-      enablePreferredSizeMode: false
+      enablePreferredSizeMode: false,
+      // Enable zoom factor control for high DPI
+      zoomFactor: 1.0
     },
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
-    title: 'Scan Master Inspection Pro'
+    title: 'Scan Master Inspection Pro',
+    // Use content size to ensure proper fitting
+    useContentSize: true,
+    // Enable frame for proper window controls on Windows
+    frame: true,
+    // Ensure window respects DPI settings
+    backgroundColor: '#14171c'
   });
 
+  // Set minimum window size after creation for better control
+  mainWindow.setMinimumSize(baseMinWidth, baseMinHeight);
+  
   // Always open maximized (fullscreen) on first launch
   mainWindow.maximize();
-  mainWindow.show();
+  
+  // Wait for maximize animation to complete before showing
+  setTimeout(() => {
+    mainWindow.show();
+  }, 100);
+
+  // Handle window resize to ensure proper layout
+  mainWindow.on('resize', () => {
+    // Notify renderer of resize for any needed adjustments
+    if (mainWindow && mainWindow.webContents) {
+      const [width, height] = mainWindow.getSize();
+      mainWindow.webContents.send('window-resized', { width, height, scaleFactor });
+    }
+  });
 
   // Create application menu
   updateMenu();

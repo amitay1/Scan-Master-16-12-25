@@ -1289,7 +1289,7 @@ const Index = () => {
   // Show loading screen while checking authentication
   if (loading) {
     return (
-      <div className="h-screen flex items-center justify-center bg-background">
+      <div className="h-screen w-screen flex items-center justify-center bg-background fixed inset-0">
         <div className="text-center space-y-4">
           <Loader2 className="h-12 w-12 animate-spin mx-auto text-primary" />
           <p className="text-muted-foreground">Loading...</p>
@@ -1301,7 +1301,7 @@ const Index = () => {
   // If not authenticated, show loading while redirecting
   if (!user) {
     return (
-      <div className="h-screen flex items-center justify-center bg-background">
+      <div className="h-screen w-screen flex items-center justify-center bg-background fixed inset-0">
         <div className="text-center space-y-4">
           <Loader2 className="h-12 w-12 animate-spin mx-auto text-primary" />
           <p className="text-muted-foreground">Redirecting to login...</p>
@@ -1311,7 +1311,7 @@ const Index = () => {
   }
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden bg-background">
+    <div className="h-screen w-screen flex flex-col overflow-hidden bg-background fixed inset-0">
       {/* Profile Selection Dialog */}
       <ProfileSelectionDialog
         open={needsProfileSelection && !profileLoading}
@@ -1349,8 +1349,8 @@ const Index = () => {
         onLoadLocalCard={handleLoadLocalCard}
       />
 
-      {/* Main Content Area - Responsive Layout */}
-      <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
+      {/* Main Content Area - Responsive Layout with proper overflow handling */}
+      <div className="flex-1 flex flex-col md:flex-row overflow-hidden min-h-0">
         {/* Mobile: Compact Header with Standard */}
         <div className="md:hidden border-b border-border bg-card p-3">
           <div className="flex items-center gap-3">
@@ -1376,19 +1376,19 @@ const Index = () => {
           />
         </CollapsibleSidebar>
 
-        {/* Center Panel: Main Form - Full width on mobile */}
-        <div className="flex-1 flex flex-col min-h-0">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
+        {/* Center Panel: Main Form - Full width on mobile, flex to fill available space */}
+        <div className="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0 overflow-hidden">
             <div className="p-2 md:p-4 flex-shrink-0">
                 {reportMode === "Technique" ? (
                   <>
                     {/* Compact header row with Part Type and Progress */}
-                    <div className="flex items-center gap-2 mb-2">
+                    <div className="flex items-center gap-2 mb-2 flex-wrap">
                       {/* Compact Part Type Indicator */}
                       <CurrentShapeHeader partType={currentData.inspectionSetup.partType} className="flex-shrink-0 max-w-[180px]" />
                       
-                      {/* Compact Progress Bar - wider, shorter */}
-                      <div className="flex-1 min-w-[300px]">
+                      {/* Compact Progress Bar - responsive width */}
+                      <div className="flex-1 min-w-[200px] max-w-full">
                         <WebGLLiquidProgress
                           value={completionPercent}
                           completedFields={completedFieldsCount}
@@ -1437,10 +1437,10 @@ const Index = () => {
                 )}
             </div>
 
-            <div className="flex-1 overflow-y-auto px-2 md:px-4 pb-4">
+            <div className="flex-1 overflow-y-auto overflow-x-hidden px-2 md:px-4 pb-4 min-h-0">
                 {reportMode === "Technique" ? (
                   <>
-                    <div className="app-panel rounded-md">
+                    <div className="app-panel rounded-md max-w-full">
                       <TabsContent value="setup" className="m-0">
                         <InspectionSetupTab 
                           data={currentData.inspectionSetup} 
