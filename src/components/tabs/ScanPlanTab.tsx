@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ScanPlanData } from "@/types/techniqueSheet";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Collapsible,
   CollapsibleContent,
@@ -28,9 +27,8 @@ export const ScanPlanTab = ({ data, onChange }: ScanPlanTabProps) => {
   const [isLoading, setIsLoading] = useState<Record<string, boolean>>({});
   const [documentHtml, setDocumentHtml] = useState<Record<string, string>>({});
   const [loadErrors, setLoadErrors] = useState<Record<string, boolean>>({});
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const [isOpen, setIsOpen] = useState(true);
-  const [activeDocTab, setActiveDocTab] = useState<string>('');
+  const [isFullscreen, setIsFullscreen] = useState<Record<string, boolean>>({});
+  const [openDocs, setOpenDocs] = useState<Record<string, boolean>>({});
   const [key, setKey] = useState(0);
 
   // Filter only active documents and sort by order
@@ -38,12 +36,16 @@ export const ScanPlanTab = ({ data, onChange }: ScanPlanTabProps) => {
     .filter(doc => doc.isActive)
     .sort((a, b) => a.order - b.order);
 
-  // Set default active tab
+  // Initialize open state for all documents (first one open by default)
   useEffect(() => {
-    if (activeDocuments.length > 0 && !activeDocTab) {
-      setActiveDocTab(activeDocuments[0].id);
+    if (activeDocuments.length > 0 && Object.keys(openDocs).length === 0) {
+      const initialOpenState: Record<string, boolean> = {};
+      activeDocuments.forEach((doc, index) => {
+        initialOpenState[doc.id] = index === 0; // First doc open by default
+      });
+      setOpenDocs(initialOpenState);
     }
-  }, [activeDocuments, activeDocTab]);
+  }, [activeDocuments]);
 
   // Load individual document
   const loadDocument = async (docId: string, filePath: string, title: string) => {
@@ -79,14 +81,10 @@ export const ScanPlanTab = ({ data, onChange }: ScanPlanTabProps) => {
     });
   }, [key, activeDocuments.length]);
 
-  const handleRefresh = (docId?: string) => {
-    if (docId) {
-      const doc = activeDocuments.find(d => d.id === docId);
-      if (doc) {
-        loadDocument(doc.id, doc.filePath, doc.title);
-      }
-    } else {
-      setKey(prev => prev + 1);
+  const handleRefresh = (docId: string) => {
+    const doc = activeDocuments.find(d => d.id === docId);
+    if (doc) {
+      loadDocument(doc.id, doc.filePath, doc.title);
     }
   };
 
@@ -106,8 +104,12 @@ export const ScanPlanTab = ({ data, onChange }: ScanPlanTabProps) => {
     window.open(fileUrl, '_blank');
   };
 
-  const toggleFullscreen = () => {
-    setIsFullscreen(!isFullscreen);
+  const toggleFullscreen = (docId: string) => {
+    setIsFullscreen(prev => ({ ...prev, [docId]: !prev[docId] }));
+  };
+
+  const toggleDoc = (docId: string) => {
+    setOpenDocs(prev => ({ ...prev, [docId]: !prev[docId] }));
   };
 
   if (activeDocuments.length === 0) {
@@ -125,166 +127,143 @@ export const ScanPlanTab = ({ data, onChange }: ScanPlanTabProps) => {
   }
 
   return (
-    <div className="flex flex-col gap-2 p-2">
-      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-        <Card className={`overflow-hidden ${isFullscreen ? 'fixed inset-2 z-50' : ''}`}>
-          {/* Collapsible Header */}
-          <CollapsibleTrigger className="w-full">
-            <div className="flex items-center justify-between p-4 bg-slate-50 hover:bg-slate-100 transition-colors cursor-pointer border-b">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-slate-600 rounded-lg">
-                  <FileText className="h-5 w-5 text-white" />
+    <div className="flex flex-col gap-3 p-2">
+      {activeDocuments.map((doc) => (
+        <Collapsible 
+          key={doc.id} 
+          open={openDocs[doc.id]} 
+          onOpenChange={() => toggleDoc(doc.id)}
+        >
+          <Card className={`overflow-hidden ${isFullscreen[doc.id] ? 'fixed inset-2 z-50' : ''}`}>
+            {/* Collapsible Header */}
+            <CollapsibleTrigger className="w-full">
+              <div className="flex items-center justify-between p-4 bg-slate-50 hover:bg-slate-100 transition-colors cursor-pointer border-b">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-slate-600 rounded-lg">
+                    <FileText className="h-5 w-5 text-white" />
+                  </div>
+                  <div className="text-left">
+                    <h3 className="font-semibold text-lg text-slate-800">{doc.title}</h3>
+                    <p className="text-sm text-slate-500">
+                      {doc.description} • Click to {openDocs[doc.id] ? 'collapse' : 'expand'}
+                    </p>
+                  </div>
                 </div>
-                <div className="text-left">
-                  <h3 className="font-semibold text-lg text-slate-800">Scan Plan Documents</h3>
-                  <p className="text-sm text-slate-500">
-                    {activeDocuments.length} documents • Click to {isOpen ? 'collapse' : 'expand'}
-                  </p>
-                </div>
+                <ChevronDown
+                  className={`h-6 w-6 text-slate-500 transition-transform duration-300 ${
+                    openDocs[doc.id] ? "rotate-180" : ""
+                  }`}
+                />
               </div>
-              <ChevronDown
-                className={`h-6 w-6 text-slate-500 transition-transform duration-300 ${
-                  isOpen ? "rotate-180" : ""
-                }`}
-              />
-            </div>
-          </CollapsibleTrigger>
+            </CollapsibleTrigger>
 
-          <CollapsibleContent>
-            {/* Document Tabs */}
-            <Tabs value={activeDocTab} onValueChange={setActiveDocTab} className="w-full">
-              <div className="border-b bg-muted/30 flex items-center justify-between px-2">
-                <TabsList className="h-auto p-1 bg-transparent justify-start flex-wrap">
-                  {activeDocuments.map((doc) => (
-                    <TabsTrigger
-                      key={doc.id}
-                      value={doc.id}
-                      className="data-[state=active]:bg-white data-[state=active]:shadow-sm px-4 py-2 text-sm"
-                    >
-                      <FileText className="h-4 w-4 mr-2" />
-                      {doc.title}
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
-                
-                {/* Fullscreen button */}
+            <CollapsibleContent>
+              {/* Toolbar */}
+              <div className="flex items-center justify-end gap-2 p-2 bg-muted/30 border-b">
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={(e) => { e.stopPropagation(); toggleFullscreen(); }}
-                  className="h-8 ml-2"
-                  title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+                  onClick={(e) => { e.stopPropagation(); handleRefresh(doc.id); }}
+                  className="h-8"
+                  title="Refresh document"
                 >
-                  {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                  <RefreshCw className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={(e) => { e.stopPropagation(); toggleFullscreen(doc.id); }}
+                  className="h-8"
+                  title={isFullscreen[doc.id] ? "Exit fullscreen" : "Fullscreen"}
+                >
+                  {isFullscreen[doc.id] ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={(e) => { e.stopPropagation(); handleDownload(doc); }}
+                  className="h-8"
+                  title="Download document"
+                >
+                  <Download className="h-4 w-4 mr-1" />
+                  Download
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={(e) => { e.stopPropagation(); handleOpenExternal(doc.filePath); }}
+                  className="h-8"
+                  title="Open in new window"
+                >
+                  <ExternalLink className="h-4 w-4 mr-1" />
+                  Open External
                 </Button>
               </div>
 
-              {activeDocuments.map((doc) => (
-                <TabsContent key={doc.id} value={doc.id} className="mt-0">
-                  {/* Document Toolbar */}
-                  <div className="flex items-center justify-between gap-2 p-2 bg-muted/20 border-b">
-                    <p className="text-sm text-muted-foreground px-2">
-                      {doc.description}
+              {/* Document Content */}
+              <div className={`overflow-auto bg-white ${isFullscreen[doc.id] ? 'h-[calc(100vh-150px)]' : 'h-[500px]'}`}>
+                {isLoading[doc.id] ? (
+                  <div className="flex flex-col items-center justify-center h-full">
+                    <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mb-3"></div>
+                    <p className="text-sm text-muted-foreground">Loading {doc.title}...</p>
+                  </div>
+                ) : loadErrors[doc.id] ? (
+                  <div className="flex flex-col items-center justify-center h-full gap-4 p-8">
+                    <FileText className="h-16 w-16 text-muted-foreground/50" />
+                    <p className="text-lg font-medium text-destructive">Failed to Load Document</p>
+                    <p className="text-sm text-muted-foreground text-center max-w-md">
+                      Could not load "{doc.title}". Try refreshing or download it directly.
                     </p>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleRefresh(doc.id)}
-                        className="h-8"
-                        title="Refresh document"
-                      >
-                        <RefreshCw className="h-4 w-4" />
+                    <div className="flex gap-3">
+                      <Button onClick={() => handleRefresh(doc.id)} variant="outline">
+                        <RefreshCw className="h-4 w-4 mr-2" />
+                        Try Again
                       </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDownload(doc)}
-                        className="h-8"
-                        title="Download document"
-                      >
-                        <Download className="h-4 w-4 mr-1" />
+                      <Button onClick={() => handleDownload(doc)} variant="default">
+                        <Download className="h-4 w-4 mr-2" />
                         Download
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleOpenExternal(doc.filePath)}
-                        className="h-8"
-                        title="Open in new window"
-                      >
-                        <ExternalLink className="h-4 w-4 mr-1" />
-                        Open External
                       </Button>
                     </div>
                   </div>
-
-                  {/* Document Content */}
-                  <div className={`overflow-auto bg-white ${isFullscreen ? 'h-[calc(100vh-200px)]' : 'h-[calc(100vh-350px)] min-h-[400px]'}`}>
-                    {isLoading[doc.id] ? (
-                      <div className="flex flex-col items-center justify-center h-full">
-                        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mb-3"></div>
-                        <p className="text-sm text-muted-foreground">Loading {doc.title}...</p>
-                      </div>
-                    ) : loadErrors[doc.id] ? (
-                      <div className="flex flex-col items-center justify-center h-full gap-4 p-8">
-                        <FileText className="h-16 w-16 text-muted-foreground/50" />
-                        <p className="text-lg font-medium text-destructive">Failed to Load Document</p>
-                        <p className="text-sm text-muted-foreground text-center max-w-md">
-                          Could not load "{doc.title}". Try refreshing or download it directly.
-                        </p>
-                        <div className="flex gap-3">
-                          <Button onClick={() => handleRefresh(doc.id)} variant="outline">
-                            <RefreshCw className="h-4 w-4 mr-2" />
-                            Try Again
-                          </Button>
-                          <Button onClick={() => handleDownload(doc)} variant="default">
-                            <Download className="h-4 w-4 mr-2" />
-                            Download
-                          </Button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div 
-                        className="p-8 prose prose-sm max-w-none"
-                        style={{ 
-                          backgroundColor: 'white',
-                          color: 'black',
-                          fontFamily: 'Arial, sans-serif'
-                        }}
-                      >
-                        <style>{`
-                          .document-content {
-                            line-height: 1.6;
-                          }
-                          .document-content table {
-                            width: 100%;
-                            border-collapse: collapse;
-                            margin: 1rem 0;
-                          }
-                          .document-content table td,
-                          .document-content table th {
-                            border: 1px solid #ccc;
-                            padding: 8px;
-                          }
-                          .document-content img {
-                            max-width: 100%;
-                            height: auto;
-                          }
-                        `}</style>
-                        <div 
-                          className="document-content"
-                          dangerouslySetInnerHTML={{ __html: documentHtml[doc.id] || '' }} 
-                        />
-                      </div>
-                    )}
+                ) : (
+                  <div 
+                    className="p-8 prose prose-sm max-w-none"
+                    style={{ 
+                      backgroundColor: 'white',
+                      color: 'black',
+                      fontFamily: 'Arial, sans-serif'
+                    }}
+                  >
+                    <style>{`
+                      .document-content {
+                        line-height: 1.6;
+                      }
+                      .document-content table {
+                        width: 100%;
+                        border-collapse: collapse;
+                        margin: 1rem 0;
+                      }
+                      .document-content table td,
+                      .document-content table th {
+                        border: 1px solid #ccc;
+                        padding: 8px;
+                      }
+                      .document-content img {
+                        max-width: 100%;
+                        height: auto;
+                      }
+                    `}</style>
+                    <div 
+                      className="document-content"
+                      dangerouslySetInnerHTML={{ __html: documentHtml[doc.id] || '' }} 
+                    />
                   </div>
-                </TabsContent>
-              ))}
-            </Tabs>
-          </CollapsibleContent>
-        </Card>
-      </Collapsible>
+                )}
+              </div>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
+      ))}
     </div>
   );
 };

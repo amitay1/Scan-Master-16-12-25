@@ -250,7 +250,7 @@ const Index = () => {
     documents: [
       {
         id: "scan-plan-1",
-        title: "Scan Master - Scan Plan Guide",
+        title: "UT Scan Planning Guide",
         description: "Complete guide for scan planning and execution",
         filePath: "/documents/scan-plan-guide.docx",
         category: "Planning",
@@ -273,7 +273,7 @@ const Index = () => {
     documents: [
       {
         id: "scan-plan-1",
-        title: "Scan Master - Scan Plan Guide",
+        title: "UT Scan Planning Guide",
         description: "Complete guide for scan planning and execution",
         filePath: "/documents/scan-plan-guide.docx",
         category: "Planning",
