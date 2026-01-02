@@ -21,7 +21,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Receive messages from main process
   on: (channel, callback) => {
-    const validChannels = ['new-sheet', 'export-pdf', 'file-saved', 'file-opened', 'update-status'];
+    const validChannels = ['new-sheet', 'export-pdf', 'file-saved', 'file-opened', 'update-status', 'display-info', 'window-resized'];
     if (validChannels.includes(channel)) {
       ipcRenderer.on(channel, (event, ...args) => callback(...args));
     }

@@ -528,8 +528,9 @@ async function createWindow() {
       webSecurity: true,
       // Disable service workers in development
       enablePreferredSizeMode: false,
-      // Enable zoom factor control for high DPI
-      zoomFactor: 1.0
+      // Adjust zoom for better readability - slightly larger UI
+      // On high DPI displays (scale > 1.25), use 1.0; otherwise use 1.1 for larger UI
+      zoomFactor: scaleFactor > 1.25 ? 1.0 : 1.1
     },
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
     title: 'Scan Master Inspection Pro',
@@ -589,6 +590,16 @@ async function createWindow() {
         ...details.responseHeaders,
         'Content-Security-Policy': [cspPolicy]
       }
+    });
+  });
+
+  // Send display info to renderer when ready
+  mainWindow.webContents.on('did-finish-load', () => {
+    mainWindow.webContents.send('display-info', {
+      scaleFactor,
+      screenWidth,
+      screenHeight,
+      zoomFactor: scaleFactor > 1.25 ? 1.0 : 1.1
     });
   });
 

@@ -35,6 +35,18 @@ const AppContent = () => {
     }
   }, [isOffline]);
 
+  // Add electron-app class to body when running in Electron for desktop-specific styles
+  useEffect(() => {
+    if (isElectron) {
+      document.body.classList.add('electron-app');
+      document.documentElement.classList.add('electron-app');
+    }
+    return () => {
+      document.body.classList.remove('electron-app');
+      document.documentElement.classList.remove('electron-app');
+    };
+  }, [isElectron]);
+
   // Show splash screen
   if (showSplash) {
     return <SplashScreen onComplete={() => setShowSplash(false)} />;

@@ -127,9 +127,41 @@ All colors MUST be HSL.
     overflow: hidden;
     /* Prevent browser zoom from breaking layout */
     touch-action: manipulation;
-    /* Larger base font size */
-    font-size: 18px !important;
+    /* Larger base font size for desktop app */
+    font-size: 16px;
   }
+
+  /* Electron desktop app - larger UI for better readability */
+  html.electron-app {
+    font-size: 17px; /* Slightly larger base for desktop */
+  }
+
+  body.electron-app {
+    font-size: 1.0625rem; /* 17px */
+  }
+
+  /* Electron-specific larger form elements */
+  .electron-app input,
+  .electron-app select,
+  .electron-app textarea {
+    font-size: 1.0625rem !important; /* 17px */
+    min-height: 2.75rem; /* 44px - larger touch targets */
+  }
+
+  .electron-app button {
+    font-size: 1rem !important; /* 16px */
+    min-height: 2.5rem; /* 40px */
+  }
+
+  .electron-app label {
+    font-size: 1rem !important; /* 16px */
+  }
+
+  /* Larger headings in Electron */
+  .electron-app h1 { font-size: 2rem; }
+  .electron-app h2 { font-size: 1.5rem; }
+  .electron-app h3 { font-size: 1.25rem; }
+  .electron-app h4 { font-size: 1.125rem; }
 
   body {
     @apply bg-background text-foreground antialiased;
@@ -143,8 +175,8 @@ All colors MUST be HSL.
     /* Prevent text size adjustment on orientation change */
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
-    /* Much larger base text size for UI */
-    font-size: 16px !important;
+    /* Base text size - larger for desktop app readability */
+    font-size: 1rem;
     line-height: 1.6;
   }
 
@@ -154,53 +186,122 @@ All colors MUST be HSL.
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    font-size: 16px;
+    font-size: 1rem;
   }
 
-  /* Make ALL text larger */
+  /* Make ALL text inherit properly */
   label, span, p, div, h1, h2, h3, h4, h5, h6, a, button, input, select, textarea, option {
     font-size: inherit;
   }
 
-  /* Larger text for form labels */
+  /* Larger text for form labels - very readable */
   label {
-    font-size: 15px !important;
+    font-size: 0.9375rem !important; /* 15px */
     font-weight: 500;
   }
 
-  /* Larger inputs */
+  /* Larger inputs - comfortable size */
   input, select, textarea {
-    font-size: 16px !important;
-    padding: 10px 12px !important;
+    font-size: 1rem !important; /* 16px */
+    padding: 0.625rem 0.75rem !important; /* 10px 12px */
+    min-height: 2.5rem; /* 40px minimum height */
   }
 
   /* Larger button text */
   button {
-    font-size: 15px !important;
+    font-size: 0.9375rem !important; /* 15px */
+    min-height: 2.25rem; /* 36px minimum height */
   }
 
-  /* Tab triggers - make them much more visible */
+  /* Tab triggers - very visible */
   [role="tablist"] button,
   [data-state] {
-    font-size: 15px !important;
+    font-size: 0.9375rem !important; /* 15px */
   }
 
   /* Professional panel styling */
   .app-panel {
     box-shadow: var(--shadow-panel);
     @apply bg-card border border-border;
-    font-size: 15px;
+    font-size: 1rem; /* 16px base */
   }
 
-  /* Cards and panels */
+  /* Cards and panels - readable form elements */
   .app-panel label {
-    font-size: 15px !important;
+    font-size: 0.9375rem !important; /* 15px */
   }
 
   .app-panel input,
   .app-panel select,
   .app-panel textarea {
-    font-size: 16px !important;
+    font-size: 1rem !important; /* 16px */
+  }
+
+  /* Headings in panels */
+  .app-panel h1, .app-panel h2, .app-panel h3, .app-panel h4 {
+    font-size: 1.125rem; /* 18px */
+    font-weight: 600;
+  }
+
+  html.electron-ui {
+    --ui-font-base: clamp(15px, 0.6vmin + 12px, 20px);
+    --ui-font-label: clamp(14px, 0.5vmin + 11px, 18px);
+    --ui-font-control: clamp(15px, 0.55vmin + 12px, 19px);
+    --ui-font-tab: clamp(15px, 0.55vmin + 12px, 19px);
+    --ui-font-tiny: clamp(11px, 0.35vmin + 8.5px, 14px);
+    --ui-control-pad-y: clamp(6px, 0.4vmin + 4px, 10px);
+    --ui-control-pad-x: clamp(10px, 0.7vmin + 6px, 14px);
+    font-size: var(--ui-font-base) !important;
+  }
+
+  html.electron-ui body {
+    font-size: var(--ui-font-base) !important;
+    line-height: 1.5;
+  }
+
+  html.electron-ui #root {
+    font-size: inherit;
+  }
+
+  html.electron-ui label {
+    font-size: var(--ui-font-label) !important;
+  }
+
+  html.electron-ui input,
+  html.electron-ui select,
+  html.electron-ui textarea {
+    font-size: var(--ui-font-control) !important;
+    padding: var(--ui-control-pad-y) var(--ui-control-pad-x) !important;
+  }
+
+  html.electron-ui button {
+    font-size: var(--ui-font-control) !important;
+    line-height: 1.2;
+  }
+
+  html.electron-ui [role="tablist"] button,
+  html.electron-ui [data-state] {
+    font-size: var(--ui-font-tab) !important;
+    line-height: 1.2;
+  }
+
+  html.electron-ui .app-panel {
+    font-size: var(--ui-font-base);
+  }
+
+  html.electron-ui .app-panel label {
+    font-size: var(--ui-font-label) !important;
+  }
+
+  html.electron-ui .app-panel input,
+  html.electron-ui .app-panel select,
+  html.electron-ui .app-panel textarea {
+    font-size: var(--ui-font-control) !important;
+  }
+
+  html.electron-ui :is(p, span, div, label, button, li, td, th, small, a)[class~="text-[10px]"],
+  html.electron-ui :is(p, span, div, label, button, li, td, th, small, a)[class~="text-[9px]"] {
+    font-size: var(--ui-font-tiny) !important;
   }
 
   .toolbar-item {
@@ -281,16 +382,16 @@ All colors MUST be HSL.
     transform: translate3d(0, 0, 0);
   }
 
-  /* Responsive text scaling for high DPI displays */
+  /* Responsive text scaling for high DPI displays - larger minimum */
   .text-responsive {
-    font-size: clamp(0.75rem, 1vw + 0.5rem, 1rem);
+    font-size: clamp(0.875rem, 0.8vw + 0.75rem, 1.125rem);
     line-height: 1.5;
   }
 
-  /* Responsive spacing for different screen sizes */
+  /* Responsive spacing for different screen sizes - comfortable padding */
   .spacing-responsive {
-    padding: clamp(0.5rem, 1vw, 1rem);
-    gap: clamp(0.25rem, 0.5vw, 0.5rem);
+    padding: clamp(0.75rem, 1.5vw, 1.5rem);
+    gap: clamp(0.5rem, 0.75vw, 0.75rem);
   }
 
   /* Hide scrollbar for Chrome, Safari and Opera */
@@ -307,6 +408,44 @@ All colors MUST be HSL.
   /* Smooth scrolling for mobile tabs */
   .scrollbar-hide {
     -webkit-overflow-scrolling: touch;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════
+     CONTENT CONTAINMENT - Prevent overflow on resize
+     ═══════════════════════════════════════════════════════════════════ */
+
+  /* Text that wraps and never overflows */
+  .text-contained {
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    hyphens: auto;
+    max-width: 100%;
+  }
+
+  /* Form fields that stay within their container */
+  .form-contained {
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .form-contained input,
+  .form-contained select,
+  .form-contained textarea {
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* Grid/flex container that doesn't overflow */
+  .grid-contained {
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+  /* Card that stays within viewport */
+  .card-contained {
+    max-width: 100%;
+    overflow: hidden;
+    box-sizing: border-box;
   }
 
   /* ═══════════════════════════════════════════════════════════════════
