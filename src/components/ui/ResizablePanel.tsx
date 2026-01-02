@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, ReactNode, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Eye, GripHorizontal } from 'lucide-react';
+import { X, Eye, GripHorizontal, ZoomIn, ZoomOut } from 'lucide-react';
 import { useSettings } from '@/hooks/useSettings';
 
 interface ResizablePanelProps {
@@ -166,6 +166,26 @@ export const Collapsible3DPanel = ({
     setActivePreset(preset.label);
   };
 
+  // Zoom in - increase size by 20%
+  const handleZoomIn = useCallback(() => {
+    const newSize = {
+      width: size.width * 1.2,
+      height: size.height * 1.2
+    };
+    setSize(clampSizeToViewport(newSize, minSize, maxSize));
+    setActivePreset(null);
+  }, [size, minSize, maxSize]);
+
+  // Zoom out - decrease size by 20%
+  const handleZoomOut = useCallback(() => {
+    const newSize = {
+      width: size.width * 0.8,
+      height: size.height * 0.8
+    };
+    setSize(clampSizeToViewport(newSize, minSize, maxSize));
+    setActivePreset(null);
+  }, [size, minSize, maxSize]);
+
   // Floating button when collapsed
   if (!isOpen) {
     return (
@@ -217,6 +237,17 @@ export const Collapsible3DPanel = ({
 
           {/* Controls */}
           <div className="flex items-center gap-1 flex-shrink-0">
+            {/* Zoom Out Button */}
+            <button
+              onClick={handleZoomOut}
+              className="w-7 h-7 rounded-md bg-white/10 text-white/60
+                         hover:bg-white/20 hover:text-white
+                         transition-all duration-200 flex items-center justify-center"
+              title="הקטן תצוגה"
+            >
+              <ZoomOut className="w-4 h-4" />
+            </button>
+
             {/* Size Presets */}
             {presets.map((preset) => (
               <button
@@ -227,11 +258,22 @@ export const Collapsible3DPanel = ({
                              ? 'bg-blue-600 text-white'
                              : 'bg-white/10 text-white/60 hover:bg-white/20 hover:text-white'
                            }`}
-                title={`Size ${preset.label}`}
+                title={`גודל ${preset.label}`}
               >
                 {preset.label}
               </button>
             ))}
+
+            {/* Zoom In Button */}
+            <button
+              onClick={handleZoomIn}
+              className="w-7 h-7 rounded-md bg-white/10 text-white/60
+                         hover:bg-white/20 hover:text-white
+                         transition-all duration-200 flex items-center justify-center"
+              title="הגדל תצוגה"
+            >
+              <ZoomIn className="w-4 h-4" />
+            </button>
 
             {/* Divider */}
             <div className="w-px h-5 bg-white/20 mx-1" />
