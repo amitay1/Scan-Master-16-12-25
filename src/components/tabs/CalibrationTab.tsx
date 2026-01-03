@@ -8,27 +8,21 @@ import { CalibrationCADIntegration } from "../CalibrationCADIntegration";
 import { toast } from "sonner";
 import { FieldWithHelp } from "@/components/FieldWithHelp";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 // New components for FBH table with dropdowns
 import { FBHHoleTable } from "../FBHHoleTable";
 import { FBHStraightBeamDrawing } from "../FBHStraightBeamDrawing";
 import { AngleBeamDrawing } from "../AngleBeamDrawing";
+import AngleBeamCalibrationBlock3D from "../AngleBeamCalibrationBlock3D";
 import { DEFAULT_FBH_HOLES, type FBHHoleRowData } from "@/data/fbhStandardsData";
 import {
   calibrationByStandard,
   getFBHSizeForStandard,
 } from "@/data/standardsDifferences";
-
-// Geometries that require ANGLE BEAM (circumferential shear wave)
-const ANGLE_BEAM_GEOMETRIES = [
-  'ring', 'ring_forging', 'pipe', 'tube', 'sleeve', 'bushing',
-  'rectangular_tube', 'square_tube'
-];
-
-// Check if geometry requires angle beam inspection
-const requiresAngleBeam = (partType: string | undefined): boolean => {
-  if (!partType) return false;
-  return ANGLE_BEAM_GEOMETRIES.includes(partType.toLowerCase());
-};
+import {
+  getBeamRequirement,
+  BEAM_TYPE_LABELS,
+} from "@/utils/beamTypeClassification";
 import type {
   CalibrationTabFields,
   InspectionSetupTabFields,
@@ -72,6 +66,14 @@ export const CalibrationTab = ({
   // FBH Holes state - 3 rows by default with dropdown selections
   const [fbhHoles, setFbhHoles] = useState<FBHHoleRowData[]>(DEFAULT_FBH_HOLES);
   const [selectedModelId, setSelectedModelId] = useState<CalibrationBlockType | null>(null);
+  const [activeBeamTab, setActiveBeamTab] = useState<"straight" | "angle">("straight");
+
+  // Determine beam requirements based on part type and hollow status
+  const beamRequirement = useMemo(
+    () => getBeamRequirement(inspectionSetup.partType, inspectionSetup.isHollow),
+    [inspectionSetup.partType, inspectionSetup.isHollow]
+  );
+  const needsBothBeams = beamRequirement === "both";
 
   const updateField = (field: keyof CalibrationData, value: any) => {
     onChange({ ...data, [field]: value });
@@ -146,8 +148,61 @@ export const CalibrationTab = ({
     updateField("standardType", modelId);
   };
 
-  // Determine if angle beam is required based on part geometry
-  const isAngleBeamRequired = requiresAngleBeam(inspectionSetup.partType);
+  // Render the Straight Beam content (FBH drawing + table)
+  const renderStraightBeamContent = () => (
+    <>
+      <FBHStraightBeamDrawing
+        partNumber={fbhHoles[0]?.partNumber || "7075 5-0150"}
+        serialNumber={data.blockSerialNumber || "000"}
+        width={600}
+        height={450}
+        showDimensions={true}
+        title="FIG. 1 Standard Set Block Dimensions"
+      />
+      {/* FBH Holes Table - 3 rows with dropdowns */}
+      <div className="border rounded-lg p-4 bg-card">
+        <h4 className="font-semibold mb-4">FBH Hole Specifications</h4>
+        <FBHHoleTable
+          holes={fbhHoles}
+          onChange={handleFbhHolesChange}
+          maxHoles={5}
+          minHoles={1}
+          showPartNumber={true}
+          showDeltaType={true}
+        />
+      </div>
+    </>
+  );
+
+  // Render the Angle Beam content (3D model + drawing)
+  const renderAngleBeamContent = () => (
+    <>
+      {/* 3D Angle Beam Calibration Block */}
+      <div className="border rounded-lg bg-white overflow-hidden" style={{ height: "400px" }}>
+        <AngleBeamCalibrationBlock3D
+          outerRadius={inspectionSetup.diameter ? inspectionSetup.diameter / 2 : 60}
+          innerRadius={inspectionSetup.innerDiameter ? inspectionSetup.innerDiameter / 2 : 40}
+          height={inspectionSetup.partLength || 80}
+          arcAngle={270}
+          stepCount={5}
+          stepWidth={12}
+          material="steel"
+          showDimensions={true}
+        />
+      </div>
+      {/* 2D Technical Drawing */}
+      <AngleBeamDrawing
+        outerDiameter={inspectionSetup.diameter || 100}
+        innerDiameter={inspectionSetup.innerDiameter || 60}
+        wallThickness={inspectionSetup.wallThickness}
+        partLength={inspectionSetup.partLength || 50}
+        beamAngle={45}
+        width={550}
+        height={320}
+        showDimensions={true}
+      />
+    </>
+  );
 
   return (
     <div className="space-y-2 p-2">
@@ -155,46 +210,48 @@ export const CalibrationTab = ({
       <div className="space-y-2">
         <h3 className="text-lg font-semibold flex items-center gap-2">
           <Target className="h-5 w-5" />
-          {isAngleBeamRequired
-            ? "Calibration Model - Angle Beam (Shear Wave)"
-            : "Calibration Model - Straight Beam + FBH"}
+          Calibration Block
+          {needsBothBeams && (
+            <Badge variant="secondary" className="ml-2">
+              Requires Both Beam Types
+            </Badge>
+          )}
         </h3>
 
-        {/* Show appropriate drawing based on geometry */}
-        {isAngleBeamRequired ? (
-          <AngleBeamDrawing
-            outerDiameter={inspectionSetup.diameter || 100}
-            innerDiameter={inspectionSetup.innerDiameter || 60}
-            wallThickness={inspectionSetup.wallThickness}
-            partLength={inspectionSetup.partLength || 50}
-            beamAngle={45}
-            width={550}
-            height={320}
-            showDimensions={true}
-          />
+        {/* Show tabs when both beam types are required */}
+        {needsBothBeams ? (
+          <Tabs
+            value={activeBeamTab}
+            onValueChange={(v) => setActiveBeamTab(v as "straight" | "angle")}
+            className="w-full"
+          >
+            <TabsList className="grid w-full grid-cols-2 mb-4">
+              <TabsTrigger value="straight" className="data-[state=active]:bg-blue-100">
+                {BEAM_TYPE_LABELS.straight.short}
+              </TabsTrigger>
+              <TabsTrigger value="angle" className="data-[state=active]:bg-orange-100">
+                {BEAM_TYPE_LABELS.angle.short}
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value="straight" className="space-y-4">
+              <div className="text-sm text-muted-foreground mb-2">
+                {BEAM_TYPE_LABELS.straight.description}
+              </div>
+              {renderStraightBeamContent()}
+            </TabsContent>
+            <TabsContent value="angle" className="space-y-4">
+              <div className="text-sm text-muted-foreground mb-2">
+                {BEAM_TYPE_LABELS.angle.description}
+              </div>
+              {renderAngleBeamContent()}
+            </TabsContent>
+          </Tabs>
         ) : (
-          <FBHStraightBeamDrawing
-            partNumber={fbhHoles[0]?.partNumber || "7075 5-0150"}
-            serialNumber={data.blockSerialNumber || "000"}
-            width={600}
-            height={450}
-            showDimensions={true}
-            title="FIG. 1 Standard Set Block Dimensions"
-          />
+          // Only straight beam required - show without tabs
+          <div className="space-y-4">
+            {renderStraightBeamContent()}
+          </div>
         )}
-
-        {/* FBH Holes Table - 3 rows with dropdowns */}
-        <div className="border rounded-lg p-4 bg-card">
-          <h4 className="font-semibold mb-4">FBH Hole Specifications</h4>
-          <FBHHoleTable
-            holes={fbhHoles}
-            onChange={handleFbhHolesChange}
-            maxHoles={5}
-            minHoles={1}
-            showPartNumber={true}
-            showDeltaType={true}
-          />
-        </div>
       </div>
 
       {/* Block Settings */}
