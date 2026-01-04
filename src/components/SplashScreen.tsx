@@ -104,8 +104,8 @@ const SplashScreen = ({ onComplete }: { onComplete: () => void }) => {
               key={`ring-${ring}`}
               className="absolute rounded-full"
               style={{
-                width: `${300 + ring * 60}px`,
-                height: `${300 + ring * 60}px`,
+                width: `${400 + ring * 80}px`,
+                height: `${400 + ring * 80}px`,
                 left: '50%',
                 top: '50%',
                 transform: 'translate(-50%, -50%)',
@@ -124,7 +124,7 @@ const SplashScreen = ({ onComplete }: { onComplete: () => void }) => {
           ))}
 
           {/* A-Scan waveform display */}
-          <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-96 h-24 opacity-50">
+          <div className="absolute -top-52 left-1/2 -translate-x-1/2 w-[480px] h-28 opacity-50">
             <svg viewBox="0 0 400 100" className="w-full h-full">
               {/* Grid lines */}
               <line x1="0" y1="50" x2="400" y2="50" stroke="rgba(0, 255, 255, 0.2)" strokeWidth="1" />
@@ -173,9 +173,9 @@ const SplashScreen = ({ onComplete }: { onComplete: () => void }) => {
                   alt="SM Logo"
                   className="relative z-10"
                   style={{
-                    width: '200px',
-                    height: '200px',
-                    filter: 'drop-shadow(0 0 20px rgba(0, 150, 255, 0.6))',
+                    width: '280px',
+                    height: '280px',
+                    filter: 'drop-shadow(0 0 30px rgba(0, 150, 255, 0.7))',
                   }}
                 />
 
@@ -208,17 +208,17 @@ const SplashScreen = ({ onComplete }: { onComplete: () => void }) => {
               transition={{ delay: 0.5, duration: 0.8 }}
               className="text-center"
             >
-              <motion.h1 
-                className="text-2xl font-bold text-cyan-400 tracking-wider mb-2"
+              <motion.h1
+                className="text-4xl font-bold text-cyan-400 tracking-wider mb-4"
                 style={{
-                  textShadow: '0 0 10px rgba(0, 255, 255, 0.5)'
+                  textShadow: '0 0 15px rgba(0, 255, 255, 0.6)'
                 }}
               >
                 ULTRASONIC INSPECTION SYSTEM
               </motion.h1>
-              
+
               {/* Loading progress bar */}
-              <div className="w-64 h-1 bg-gray-800 rounded-full overflow-hidden mx-auto mb-4">
+              <div className="w-80 h-1.5 bg-gray-800 rounded-full overflow-hidden mx-auto mb-4">
                 <motion.div
                   className="h-full bg-gradient-to-r from-cyan-500 to-cyan-300"
                   initial={{ width: "0%" }}
@@ -228,7 +228,7 @@ const SplashScreen = ({ onComplete }: { onComplete: () => void }) => {
               </div>
               
               <motion.div className="flex items-center justify-center gap-2">
-                <span className="text-sm text-cyan-300/60 tracking-widest font-mono">
+                <span className="text-base text-cyan-300/70 tracking-widest font-mono">
                   CALIBRATING TRANSDUCER
                 </span>
               </motion.div>
@@ -237,20 +237,20 @@ const SplashScreen = ({ onComplete }: { onComplete: () => void }) => {
         </div>
 
         {/* Ultrasonic measurement overlay - bottom corners */}
-        <div className="absolute bottom-4 left-4 text-cyan-400/50 font-mono text-xs">
+        <div className="absolute bottom-6 left-6 text-cyan-400/60 font-mono text-sm">
           <div>FREQ: 5.0 MHz</div>
           <div>GAIN: 42 dB</div>
           <div>RANGE: 250mm</div>
         </div>
-        
-        <div className="absolute bottom-4 right-4 text-cyan-400/50 font-mono text-xs text-right">
+
+        <div className="absolute bottom-6 right-6 text-cyan-400/60 font-mono text-sm text-right">
           <div>VELOCITY: 5920 m/s</div>
           <div>PROBE: 70° L-Wave</div>
           <div>MODE: PULSE-ECHO</div>
         </div>
-        
+
         {/* Scanning progress indicator */}
-        <div className="absolute top-4 right-4 text-cyan-400/50 font-mono text-xs">
+        <div className="absolute top-6 right-6 text-cyan-400/60 font-mono text-sm">
           <motion.div
             animate={{ opacity: [0.5, 1, 0.5] }}
             transition={{ duration: 1, repeat: Infinity }}

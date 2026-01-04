@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FBHHoleTable } from "../FBHHoleTable";
 import { FBHStraightBeamDrawing } from "../FBHStraightBeamDrawing";
 import { AngleBeamDrawing } from "../AngleBeamDrawing";
-import AngleBeamCalibrationBlock3D from "../AngleBeamCalibrationBlock3D";
+import { AngleBeamCalibrationBlockDrawing } from "../AngleBeamCalibrationBlockDrawing";
 import { DEFAULT_FBH_HOLES, type FBHHoleRowData } from "@/data/fbhStandardsData";
 import {
   calibrationByStandard,
@@ -174,23 +174,17 @@ export const CalibrationTab = ({
     </>
   );
 
-  // Render the Angle Beam content (3D model + drawing)
+  // Render the Angle Beam content (calibration block drawing)
   const renderAngleBeamContent = () => (
     <>
-      {/* 3D Angle Beam Calibration Block */}
-      <div className="border rounded-lg bg-white overflow-hidden" style={{ height: "400px" }}>
-        <AngleBeamCalibrationBlock3D
-          outerRadius={inspectionSetup.diameter ? inspectionSetup.diameter / 2 : 60}
-          innerRadius={inspectionSetup.innerDiameter ? inspectionSetup.innerDiameter / 2 : 40}
-          height={inspectionSetup.partLength || 80}
-          arcAngle={270}
-          stepCount={5}
-          stepWidth={12}
-          material="steel"
-          showDimensions={true}
-        />
-      </div>
-      {/* 2D Technical Drawing */}
+      {/* Angle Beam Calibration Block Drawing */}
+      <AngleBeamCalibrationBlockDrawing
+        width={700}
+        height={500}
+        showDimensions={true}
+        title="Angle Beam Calibration Block - Shear Wave Reference Standard"
+      />
+      {/* 2D Technical Drawing - Inspection Setup */}
       <AngleBeamDrawing
         outerDiameter={inspectionSetup.diameter || 100}
         innerDiameter={inspectionSetup.innerDiameter || 60}
