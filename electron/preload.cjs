@@ -50,6 +50,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
 // Also expose as 'electron' for easier access with enhanced update capabilities
 contextBridge.exposeInMainWorld('electron', {
+  // Flag to identify Electron environment
+  isElectron: true,
+  platform: process.platform,
+  
   // Version info
   getAppVersion: () => ipcRenderer.invoke('get-app-version'),
   
@@ -78,5 +82,15 @@ contextBridge.exposeInMainWorld('electron', {
   },
   removeUpdateListener: (callback) => {
     updateListeners.delete(callback);
+  },
+  
+  // License Management API
+  license: {
+    check: () => ipcRenderer.invoke('license:check'),
+    activate: (licenseKey) => ipcRenderer.invoke('license:activate', licenseKey),
+    getInfo: () => ipcRenderer.invoke('license:getInfo'),
+    hasStandard: (standardCode) => ipcRenderer.invoke('license:hasStandard', standardCode),
+    getStandards: () => ipcRenderer.invoke('license:getStandards'),
+    deactivate: () => ipcRenderer.invoke('license:deactivate')
   }
 });

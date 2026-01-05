@@ -42,7 +42,7 @@ export const LicenseProvider = ({ children }: { children: ReactNode }) => {
   // Check if running in Electron
   const isElectron = typeof window !== 'undefined' &&
                      window.electron &&
-                     window.electron.license;
+                     window.electron.isElectron === true;
 
   // Load license on mount
   useEffect(() => {
@@ -172,6 +172,20 @@ export const useLicense = () => {
 declare global {
   interface Window {
     electron?: {
+      isElectron: boolean;
+      platform: string;
+      getAppVersion: () => Promise<string>;
+      checkForUpdates: () => Promise<any>;
+      forceCheckUpdates: () => Promise<any>;
+      installUpdate: (silent?: boolean) => Promise<void>;
+      downloadUpdate: () => Promise<any>;
+      getUpdateInfo: () => Promise<any>;
+      getUpdateSettings: () => Promise<any>;
+      setUpdateSettings: (settings: any) => Promise<any>;
+      scheduleRestart: (delaySeconds: number) => Promise<any>;
+      cancelScheduledRestart: () => Promise<any>;
+      onUpdateStatus: (callback: (event: any, status: any) => void) => void;
+      removeUpdateListener: (callback: (event: any, status: any) => void) => void;
       license: {
         check: () => Promise<LicenseInfo>;
         activate: (licenseKey: string) => Promise<{ success: boolean; error?: string; license?: LicenseInfo }>;
@@ -180,8 +194,6 @@ declare global {
         getStandards: () => Promise<StandardCatalog[]>;
         deactivate: () => Promise<{ success: boolean }>;
       };
-      isElectron: boolean;
-      platform: string;
     };
   }
 }
