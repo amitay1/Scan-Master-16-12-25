@@ -179,7 +179,23 @@ function setupAutoUpdaterHandlers() {
 
   autoUpdater.on('error', (error) => {
     console.error('❌ Auto-updater error:', error.message);
-    console.error('Full error details:', error);
+    console.error('Full error details:', JSON.stringify({
+      message: error.message,
+      stack: error.stack,
+      code: error.code,
+      name: error.name
+    }, null, 2));
+    
+    // Enhanced error info for debugging
+    const errorInfo = {
+      message: error.message,
+      code: error.code || 'UNKNOWN',
+      isNetworkError: error.message?.includes('net::') || error.message?.includes('ENOTFOUND') || error.message?.includes('ETIMEDOUT'),
+      isSha512Error: error.message?.includes('sha512') || error.message?.includes('checksum'),
+      isFileError: error.message?.includes('ENOENT') || error.message?.includes('file'),
+      timestamp: new Date().toISOString()
+    };
+    console.error('Error analysis:', JSON.stringify(errorInfo, null, 2));
     
     // Retry logic
     if (updateRetryCount < UPDATE_SETTINGS.maxRetries) {
@@ -194,6 +210,8 @@ function setupAutoUpdaterHandlers() {
       mainWindow.webContents.send('update-status', { 
         status: 'error', 
         error: error.message,
+        errorCode: error.code,
+        errorDetails: errorInfo,
         canRetry: true 
       });
     }

@@ -525,7 +525,7 @@ export function UpdateNotification() {
         </motion.div>
       )}
 
-      {/* Error State - With retry option */}
+      {/* Error State - With retry option and detailed info */}
       {updateStatus.status === 'error' && (
         <motion.div
           initial={{ opacity: 0, x: 100 }}
@@ -533,7 +533,7 @@ export function UpdateNotification() {
           exit={{ opacity: 0, x: 100 }}
           className="fixed bottom-6 right-6 z-[9999] w-[450px]"
         >
-          <div className="bg-red-500/95 backdrop-blur rounded-2xl shadow-2xl border-2 border-white/30 p-6">
+          <div className="bg-gradient-to-br from-red-600 to-red-700 backdrop-blur rounded-2xl shadow-2xl border-2 border-white/30 p-6">
             <button 
               onClick={handleDismiss}
               className="absolute top-4 right-4 text-white/60 hover:text-white"
@@ -547,18 +547,41 @@ export function UpdateNotification() {
               <div className="flex-1">
                 <h3 className="text-white font-bold text-xl">Update Error</h3>
                 <p className="text-white/80 text-base mt-1">{updateStatus.error}</p>
+                {(updateStatus as unknown as { errorDetails?: { isNetworkError?: boolean; isSha512Error?: boolean } }).errorDetails && (
+                  <div className="mt-2 text-white/60 text-sm">
+                    {(updateStatus as unknown as { errorDetails: { isNetworkError?: boolean } }).errorDetails.isNetworkError && (
+                      <p>💡 Check your internet connection or firewall settings</p>
+                    )}
+                    {(updateStatus as unknown as { errorDetails: { isSha512Error?: boolean } }).errorDetails.isSha512Error && (
+                      <p>💡 Download verification failed - try again later</p>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
-            {updateStatus.canRetry && (
+            <div className="mt-4 flex gap-2">
+              {updateStatus.canRetry && (
+                <Button
+                  onClick={handleRetry}
+                  variant="ghost"
+                  className="flex-1 text-white hover:bg-white/10 text-base py-3"
+                >
+                  <RefreshCw className="w-5 h-5 mr-2" />
+                  Try Again
+                </Button>
+              )}
               <Button
-                onClick={handleRetry}
+                onClick={() => {
+                  // Copy error for support
+                  const errorText = `Update Error: ${updateStatus.error}\nVersion: ${currentVersion}`;
+                  navigator.clipboard?.writeText(errorText);
+                }}
                 variant="ghost"
-                className="mt-4 w-full text-white hover:bg-white/10 text-base py-3"
+                className="text-white/70 hover:bg-white/10 text-sm px-3"
               >
-                <RefreshCw className="w-5 h-5 mr-2" />
-                Try Again
+                Copy Error
               </Button>
-            )}
+            </div>
           </div>
         </motion.div>
       )}
