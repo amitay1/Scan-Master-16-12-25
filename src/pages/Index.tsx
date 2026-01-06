@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { flushSync } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -380,15 +381,15 @@ const Index = () => {
     }
   }, [standard, isSplitMode, activePart]);
 
-  // Auto-capture technical drawing when visiting the drawing tab
+  // Auto-capture technical drawing when visiting the setup tab (drawing is in setup)
   useEffect(() => {
-    if (activeTab === 'drawing' && reportMode === 'Technique') {
+    if (activeTab === 'setup' && reportMode === 'Technique') {
       const timer = setTimeout(async () => {
         const success = await captureTechnicalDrawing();
         if (success && exportCaptures.technicalDrawing) {
           setCapturedDrawing(exportCaptures.technicalDrawing);
         }
-      }, 500);
+      }, 800); // Longer delay to ensure canvas renders
       return () => clearTimeout(timer);
     }
   }, [activeTab, reportMode, captureTechnicalDrawing, exportCaptures.technicalDrawing]);
@@ -401,23 +402,34 @@ const Index = () => {
         if (success && exportCaptures.calibrationBlockDiagram) {
           setCalibrationBlockDiagram(exportCaptures.calibrationBlockDiagram);
         }
+        // Also try to capture angle beam if available
+        const angleSuccess = await captureAngleBeamBlock();
+        if (angleSuccess && exportCaptures.angleBeamCalibrationDiagram) {
+          setAngleBeamDiagram(exportCaptures.angleBeamCalibrationDiagram);
+        }
       }, 500);
       return () => clearTimeout(timer);
     }
-  }, [activeTab, reportMode, captureCalibrationBlock, exportCaptures.calibrationBlockDiagram]);
+  }, [activeTab, reportMode, captureCalibrationBlock, captureAngleBeamBlock, exportCaptures.calibrationBlockDiagram, exportCaptures.angleBeamCalibrationDiagram]);
 
-  // Auto-capture scan directions drawing when visiting the scandetails tab
+  // Auto-capture E2375 diagram when visiting the scandetails tab
   useEffect(() => {
     if (activeTab === 'scandetails' && reportMode === 'Technique') {
       const timer = setTimeout(async () => {
-        const success = await captureScanDirections();
-        if (success && exportCaptures.scanDirectionsView) {
+        // Capture E2375 scan directions diagram
+        const success = await captureE2375Diagram();
+        if (success && exportCaptures.e2375Diagram) {
+          setE2375Diagram(exportCaptures.e2375Diagram);
+        }
+        // Also capture scan directions view if available
+        const scanSuccess = await captureScanDirections();
+        if (scanSuccess && exportCaptures.scanDirectionsView) {
           setCapturedScanDirections(exportCaptures.scanDirectionsView);
         }
-      }, 800); // Slightly longer delay to ensure arrows are rendered
+      }, 1000); // Longer delay to ensure image loads
       return () => clearTimeout(timer);
     }
-  }, [activeTab, reportMode, captureScanDirections, exportCaptures.scanDirectionsView]);
+  }, [activeTab, reportMode, captureE2375Diagram, captureScanDirections, exportCaptures.e2375Diagram, exportCaptures.scanDirectionsView]);
 
   // CRITICAL: Reset captured drawings when part type or key dimensions change
   // This ensures PDF export always uses drawings that match the current shape
@@ -1142,6 +1154,12 @@ const Index = () => {
       const { smartCapture } = await import('@/utils/export/captureEngine');
       const { getBeamRequirement } = await import('@/utils/beamTypeClassification');
 
+      // Store captured images in local variables to avoid async state issues
+      let capturedTechnicalDrawing: string | undefined;
+      let capturedFBHDiagram: string | undefined;
+      let capturedAngleBeam: string | undefined;
+      let capturedE2375: string | undefined;
+
       try {
         // Step 1: Go to Setup tab to capture the technical drawing
         // The RealTimeTechnicalDrawing component with id="technical-drawing-canvas" is in the Setup tab
@@ -1168,7 +1186,7 @@ const Index = () => {
               const drawingImage = highResCanvas.toDataURL('image/png', 1.0);
               console.log('[PDF Export] Technical drawing captured, size:', drawingImage.length);
               if (drawingImage && drawingImage.length > 100) {
-                setCapturedDrawing(drawingImage);
+                capturedTechnicalDrawing = drawingImage;
               }
             }
           } catch (error) {
@@ -1205,7 +1223,7 @@ const Index = () => {
 
         console.log('[PDF Export] FBH calibration capture result:', calibrationResult.success, calibrationResult.data?.length || 0);
         if (calibrationResult.success && calibrationResult.data) {
-          setCalibrationBlockDiagram(calibrationResult.data);
+          capturedFBHDiagram = calibrationResult.data;
         }
 
         // Step 2b: Capture angle beam diagram if this part type requires it
@@ -1230,7 +1248,7 @@ const Index = () => {
 
           console.log('[PDF Export] Angle beam capture result:', angleBeamResult.success, angleBeamResult.data?.length || 0);
           if (angleBeamResult.success && angleBeamResult.data) {
-            setAngleBeamDiagram(angleBeamResult.data);
+            capturedAngleBeam = angleBeamResult.data;
           }
         }
 
@@ -1254,7 +1272,7 @@ const Index = () => {
 
         console.log('[PDF Export] E2375 capture result:', e2375Result.success, e2375Result.data?.length || 0);
         if (e2375Result.success && e2375Result.data) {
-          setE2375Diagram(e2375Result.data);
+          capturedE2375 = e2375Result.data;
         }
 
         // Note: InspectionPlanViewer (scan-directions-canvas) is not currently rendered in the app.
@@ -1264,17 +1282,24 @@ const Index = () => {
         console.log('[PDF Export] Step 4: Returning to original tab...');
         setActiveTab(originalTab);
 
-        // CRITICAL: Wait for React state to update with new drawings
-        // This ensures the export dialog receives the freshly captured drawings
-        // 500ms provides buffer for slower machines and complex state updates
-        await new Promise(resolve => setTimeout(resolve, 500));
-
         // Log summary of what was captured
         console.log('[PDF Export] Capture Summary:');
-        console.log('  - Technical Drawing: captured');
-        console.log('  - FBH Calibration: captured');
-        console.log('  - Angle Beam:', beamRequirement === 'both' ? 'captured' : 'not required');
-        console.log('  - E2375 Diagram: captured');
+        console.log('  - Technical Drawing:', capturedTechnicalDrawing ? 'captured' : 'NOT captured');
+        console.log('  - FBH Calibration:', capturedFBHDiagram ? 'captured' : 'NOT captured');
+        console.log('  - Angle Beam:', beamRequirement === 'both' ? (capturedAngleBeam ? 'captured' : 'NOT captured') : 'not required');
+        console.log('  - E2375 Diagram:', capturedE2375 ? 'captured' : 'NOT captured');
+
+        // CRITICAL: Use flushSync to force synchronous state updates
+        // This ensures all captured images are committed to state BEFORE opening the dialog
+        flushSync(() => {
+          if (capturedTechnicalDrawing) setCapturedDrawing(capturedTechnicalDrawing);
+          if (capturedFBHDiagram) setCalibrationBlockDiagram(capturedFBHDiagram);
+          if (capturedAngleBeam) setAngleBeamDiagram(capturedAngleBeam);
+          if (capturedE2375) setE2375Diagram(capturedE2375);
+        });
+
+        // Small delay to ensure React has fully processed the state updates
+        await new Promise(resolve => setTimeout(resolve, 100));
 
         // Dismiss loading and open dialog
         toast.dismiss('export-prep');
