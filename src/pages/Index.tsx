@@ -1138,13 +1138,15 @@ const Index = () => {
       // Capture all drawings by visiting each tab temporarily
       const originalTab = activeTab;
 
-      // Import smartCapture for direct DOM capture
+      // Import smartCapture for direct DOM capture and beam type check
       const { smartCapture } = await import('@/utils/export/captureEngine');
+      const { getBeamRequirement } = await import('@/utils/beamTypeClassification');
 
       try {
-        // Step 1: Go to technical drawing tab and capture
-        setActiveTab('drawing');
-        await new Promise(resolve => setTimeout(resolve, 800)); // Longer wait for canvas to render
+        // Step 1: Go to Setup tab to capture the technical drawing
+        // The RealTimeTechnicalDrawing component with id="technical-drawing-canvas" is in the Setup tab
+        setActiveTab('setup');
+        await new Promise(resolve => setTimeout(resolve, 800)); // Wait for canvas to render
 
         const drawingCanvas = document.getElementById('technical-drawing-canvas') as HTMLCanvasElement;
         if (drawingCanvas) {
@@ -1174,6 +1176,13 @@ const Index = () => {
         setActiveTab('calibration');
         await new Promise(resolve => setTimeout(resolve, 800)); // Wait for SVG to render
 
+        // First, make sure we're on the "straight" sub-tab for FBH capture
+        const straightTabTrigger = document.querySelector('[value="straight"]') as HTMLElement;
+        if (straightTabTrigger) {
+          straightTabTrigger.click();
+          await new Promise(resolve => setTimeout(resolve, 400));
+        }
+
         // Directly capture using smartCapture instead of relying on stale state
         const calibrationResult = await smartCapture([
           '#calibration-block-svg',
@@ -1185,23 +1194,35 @@ const Index = () => {
           '.calibration-drawing svg',
           '.calibration-tab svg',
         ], { scale: 3, quality: 1.0, backgroundColor: 'white', maxWidth: 1800, maxHeight: 1200 });
-        
+
         if (calibrationResult.success && calibrationResult.data) {
           setCalibrationBlockDiagram(calibrationResult.data);
         }
 
-        // Step 2b: Also capture angle beam diagram if present (for tubes, rings, etc.)
-        const angleBeamResult = await smartCapture([
-          '[data-testid="angle-beam-calibration-block"]',
-          '.angle-beam-calibration-block',
-          '.angle-beam-calibration-block img',
-        ], { scale: 3, quality: 1.0, backgroundColor: 'white', maxWidth: 1800, maxHeight: 1200 });
-        
-        if (angleBeamResult.success && angleBeamResult.data) {
-          setAngleBeamDiagram(angleBeamResult.data);
+        // Step 2b: Capture angle beam diagram if this part type requires it
+        // Check if the current part geometry requires both beam types
+        const beamRequirement = getBeamRequirement(currentData.inspectionSetup.partType, currentData.inspectionSetup.isHollow);
+
+        if (beamRequirement === 'both') {
+          // Switch to angle beam sub-tab
+          const angleTabTrigger = document.querySelector('[value="angle"]') as HTMLElement;
+          if (angleTabTrigger) {
+            angleTabTrigger.click();
+            await new Promise(resolve => setTimeout(resolve, 600)); // Wait for angle beam component to render
+          }
+
+          const angleBeamResult = await smartCapture([
+            '[data-testid="angle-beam-calibration-block"]',
+            '.angle-beam-calibration-block',
+            '.angle-beam-calibration-block svg',
+          ], { scale: 3, quality: 1.0, backgroundColor: 'white', maxWidth: 1800, maxHeight: 1200 });
+
+          if (angleBeamResult.success && angleBeamResult.data) {
+            setAngleBeamDiagram(angleBeamResult.data);
+          }
         }
 
-        // Step 3: Go to scan details tab and capture E2375 diagram AND scan directions
+        // Step 3: Go to scan details tab and capture E2375 diagram
         setActiveTab('scandetails');
         await new Promise(resolve => setTimeout(resolve, 800)); // Wait for image to render
 
@@ -1213,21 +1234,13 @@ const Index = () => {
           '.e2375-diagram-container img',
           '[data-testid="e2375-diagram"]',
         ], { scale: 2, quality: 1.0, backgroundColor: 'white', maxWidth: 1200, maxHeight: 800 });
-        
+
         if (e2375Result.success && e2375Result.data) {
           setE2375Diagram(e2375Result.data);
         }
 
-        // Step 3b: Capture scan directions canvas (InspectionPlanViewer)
-        const scanDirectionsResult = await smartCapture([
-          '#scan-directions-canvas',
-          '[data-testid="scan-directions-canvas"]',
-          '.inspection-plan-viewer canvas',
-        ], { scale: 3, quality: 1.0, backgroundColor: 'white', maxWidth: 1800, maxHeight: 1200 });
-        
-        if (scanDirectionsResult.success && scanDirectionsResult.data) {
-          setCapturedScanDirections(scanDirectionsResult.data);
-        }
+        // Note: InspectionPlanViewer (scan-directions-canvas) is not currently rendered in the app.
+        // The E2375 diagram from above serves as the scan directions visualization.
 
         // Step 4: Return to original tab
         setActiveTab(originalTab);
@@ -1704,7 +1717,7 @@ const Index = () => {
         acceptanceCriteria={isSplitMode && activePart === "B" ? acceptanceCriteriaB : acceptanceCriteria}
         documentation={isSplitMode && activePart === "B" ? documentationB : documentation}
         inspectionReport={inspectionReport}
-        scanDetails={scanDetails}
+        scanDetails={isSplitMode && activePart === "B" ? scanDetailsB : scanDetails}
         scanPlan={isSplitMode && activePart === "B" ? scanPlanB : scanPlan}
         capturedDrawing={capturedDrawing}
         calibrationBlockDiagram={calibrationBlockDiagram}

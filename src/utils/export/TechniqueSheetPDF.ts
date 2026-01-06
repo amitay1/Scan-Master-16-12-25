@@ -1148,9 +1148,22 @@ class TechniqueSheetPDFBuilder {
 
     const scan = this.data.scanParameters;
 
+    // Format technique type for display
+    const formatTechnique = (technique?: string): string => {
+      if (!technique) return '-';
+      const techniqueMap: Record<string, string> = {
+        'conventional': 'Conventional',
+        'bubbler': 'Bubbler',
+        'squirt': 'Squirt / Water Jet',
+        'phased_array': 'Phased Array',
+      };
+      return techniqueMap[technique] || technique;
+    };
+
     // Main Scan Parameters
     const scanInfo = buildTableRows([
       ['Scan Method', formatScanMethod(scan.scanMethod)],
+      ['Technique', formatTechnique(scan.technique)],
       ['Scan Type', formatValue(scan.scanType)],
       ['Scan Pattern', formatValue(scan.scanPattern)],
       ['Coupling Method', formatValue(scan.couplingMethod)],
@@ -1371,6 +1384,7 @@ class TechniqueSheetPDFBuilder {
           detail.frequency ? `${detail.frequency} MHz` : '-',
           detail.make || '-',
           detail.probe || '-',
+          detail.remarkDetails || '-',
         ]);
       }
     });
@@ -1378,18 +1392,19 @@ class TechniqueSheetPDFBuilder {
     if (directionRows.length > 0) {
       autoTable(this.pdf, {
         startY: y,
-        head: [['Dir.', 'Wave Mode', 'Angle', 'Frequency', 'Make', 'Probe']],
+        head: [['Dir.', 'Wave Mode', 'Angle', 'Freq.', 'Make', 'Probe', 'Remarks']],
         body: directionRows,
         theme: 'grid',
         styles: { fontSize: 8, cellPadding: 2 },
         headStyles: { fillColor: COLORS.primary, textColor: [255, 255, 255], fontSize: 9 },
         columnStyles: {
-          0: { fontStyle: 'bold', cellWidth: 18, halign: 'center' },
-          1: { cellWidth: 50 },
-          2: { cellWidth: 20, halign: 'center' },
-          3: { cellWidth: 28, halign: 'center' },
-          4: { cellWidth: 35 },
-          5: { cellWidth: 35 },
+          0: { fontStyle: 'bold', cellWidth: 15, halign: 'center' },
+          1: { cellWidth: 40 },
+          2: { cellWidth: 16, halign: 'center' },
+          3: { cellWidth: 18, halign: 'center' },
+          4: { cellWidth: 25 },
+          5: { cellWidth: 25 },
+          6: { cellWidth: 'auto' },  // Remarks gets remaining space
         },
         margin: { left: PAGE.marginLeft, right: PAGE.marginRight },
       });

@@ -172,6 +172,7 @@ export const Toolbar = ({
         )}
       </Button>
       
+      {/* Settings Button - temporarily hidden until settings are fully functional
       <Button 
         variant="ghost" 
         size="icon" 
@@ -181,12 +182,14 @@ export const Toolbar = ({
       >
         <Settings className="h-5 w-5 md:h-5 md:w-5" />
       </Button>
+      */}
       
-      {/* Settings Dialog */}
+      {/* Settings Dialog - temporarily disabled
       <SettingsDialog 
         open={settingsOpen} 
         onOpenChange={setSettingsOpen} 
       />
+      */}
       
       {/* Local Saved Cards Dialog */}
       <SavedCardsDialog

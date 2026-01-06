@@ -142,15 +142,15 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl h-[85vh] p-0 gap-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border-slate-700/50">
+      <DialogContent className="max-w-4xl h-[80vh] p-0 gap-0 bg-slate-900 border border-slate-700 shadow-2xl overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700/50">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700 bg-slate-950">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-blue-500/20">
-              <Settings className="w-5 h-5 text-blue-400" />
+            <div className="p-2.5 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 shadow-lg shadow-blue-500/25">
+              <Settings className="w-5 h-5 text-white" />
             </div>
             <div>
-              <DialogTitle className="text-lg font-semibold text-white">Settings</DialogTitle>
+              <DialogTitle className="text-lg font-bold text-white">Settings</DialogTitle>
               <DialogDescription className="text-sm text-slate-400">
                 Configure your ScanMaster preferences
               </DialogDescription>
@@ -158,7 +158,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
           </div>
 
           {/* Header Actions */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -166,7 +166,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                     variant="ghost"
                     size="sm"
                     onClick={handleExportSettings}
-                    className="text-slate-400 hover:text-white"
+                    className="text-slate-400 hover:text-white hover:bg-slate-800"
                   >
                     <Download className="w-4 h-4" />
                   </Button>
@@ -182,7 +182,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                     variant="ghost"
                     size="sm"
                     onClick={handleImportSettings}
-                    className="text-slate-400 hover:text-white"
+                    className="text-slate-400 hover:text-white hover:bg-slate-800"
                   >
                     <Upload className="w-4 h-4" />
                   </Button>
@@ -191,7 +191,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
               </Tooltip>
             </TooltipProvider>
 
-            <Separator orientation="vertical" className="h-6 bg-slate-700" />
+            <Separator orientation="vertical" className="h-5 bg-slate-700 mx-2" />
 
             <TooltipProvider>
               <Tooltip>
@@ -200,7 +200,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                     variant="ghost"
                     size="sm"
                     onClick={handleResetAll}
-                    className="text-slate-400 hover:text-red-400"
+                    className="text-slate-400 hover:text-red-400 hover:bg-red-500/10"
                   >
                     <RotateCcw className="w-4 h-4" />
                   </Button>
@@ -214,16 +214,16 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
         {/* Content */}
         <div className="flex flex-1 overflow-hidden">
           {/* Sidebar */}
-          <div className="w-56 border-r border-slate-700/50 bg-slate-900/50">
-            <ScrollArea className="h-full py-2">
+          <div className="w-56 border-r border-slate-700 bg-slate-950 flex-shrink-0">
+            <ScrollArea className="h-full py-3">
               {settingsTabs.map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-all duration-200 ${
+                  className={`w-full flex items-center gap-3 px-4 py-3.5 text-left transition-all duration-200 ${
                     activeTab === tab.id
-                      ? 'bg-blue-500/20 text-blue-400 border-r-2 border-blue-500'
-                      : 'text-slate-400 hover:bg-slate-800/50 hover:text-white'
+                      ? 'bg-blue-600/20 text-blue-400 border-l-3 border-blue-500 ml-0.5'
+                      : 'text-slate-400 hover:bg-slate-800 hover:text-white border-l-3 border-transparent'
                   }`}
                 >
                   <span className={activeTab === tab.id ? 'text-blue-400' : 'text-slate-500'}>
@@ -231,7 +231,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                   </span>
                   <span className="text-sm font-medium">{tab.label}</span>
                   {activeTab === tab.id && (
-                    <ChevronRight className="w-4 h-4 ml-auto" />
+                    <ChevronRight className="w-4 h-4 ml-auto text-blue-400" />
                   )}
                 </button>
               ))}
@@ -241,21 +241,21 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
           {/* Main Content */}
           <div className="flex-1 flex flex-col overflow-hidden">
             {/* Tab Header */}
-            <div className="px-6 py-4 border-b border-slate-700/30 bg-slate-800/30">
+            <div className="px-6 py-4 border-b border-slate-700 bg-slate-800/50">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-lg font-medium text-white">
+                  <h3 className="text-lg font-semibold text-white">
                     {settingsTabs.find(t => t.id === activeTab)?.label}
                   </h3>
-                  <p className="text-sm text-slate-400">
+                  <p className="text-sm text-slate-400 mt-0.5">
                     {settingsTabs.find(t => t.id === activeTab)?.description}
                   </p>
                 </div>
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
                   onClick={handleResetCategory}
-                  className="text-slate-400 hover:text-white"
+                  className="text-slate-300 border-slate-600 hover:bg-slate-700 hover:text-white"
                 >
                   <RotateCcw className="w-4 h-4 mr-2" />
                   Reset
@@ -264,7 +264,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
             </div>
 
             {/* Tab Content */}
-            <ScrollArea className="flex-1 px-6 py-4">
+            <ScrollArea className="flex-1 px-6 py-5">
               <AnimatePresence mode="wait">
                 <motion.div
                   key={activeTab}
@@ -288,11 +288,12 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-6 py-4 border-t border-slate-700/50 bg-slate-900/50">
-          <p className="text-xs text-slate-500">
+        <div className="flex items-center justify-between px-6 py-4 border-t border-slate-700 bg-slate-950">
+          <p className="text-sm text-slate-400 flex items-center gap-2">
+            <Save className="w-4 h-4" />
             Settings are saved automatically
           </p>
-          <Button onClick={() => onOpenChange(false)} className="bg-blue-600 hover:bg-blue-700">
+          <Button onClick={() => onOpenChange(false)} className="bg-blue-600 hover:bg-blue-700 px-6">
             <Check className="w-4 h-4 mr-2" />
             Done
           </Button>
@@ -1087,9 +1088,9 @@ function AdvancedSettings() {
 
 function SettingsSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="space-y-4">
-      <h4 className="text-sm font-semibold text-white uppercase tracking-wider">{title}</h4>
-      <div className="space-y-3">{children}</div>
+    <div className="space-y-4 mb-8">
+      <h4 className="text-xs font-bold text-blue-400 uppercase tracking-widest border-b border-slate-700 pb-2">{title}</h4>
+      <div className="space-y-2">{children}</div>
     </div>
   );
 }
@@ -1104,12 +1105,12 @@ function SettingsRow({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center justify-between py-3 px-4 rounded-lg bg-slate-800/50 hover:bg-slate-800/70 transition-colors">
-      <div className="flex-1 pr-4">
-        <Label className="text-sm font-medium text-white">{label}</Label>
-        <p className="text-xs text-slate-400 mt-0.5">{description}</p>
+    <div className="flex items-center justify-between py-3.5 px-4 rounded-lg bg-slate-800/70 hover:bg-slate-800 border border-slate-700/50 transition-colors">
+      <div className="flex-1 pr-6 min-w-0">
+        <Label className="text-sm font-medium text-white block">{label}</Label>
+        <p className="text-xs text-slate-400 mt-1 leading-relaxed">{description}</p>
       </div>
-      <div className="flex-shrink-0">{children}</div>
+      <div className="flex-shrink-0 [&_input]:bg-slate-900 [&_input]:border-slate-600 [&_input]:text-white [&_input]:placeholder:text-slate-500 [&_button]:border-slate-600 [&_button]:bg-slate-900 [&_button]:text-white [&_textarea]:bg-slate-900 [&_textarea]:border-slate-600 [&_textarea]:text-white">{children}</div>
     </div>
   );
 }
