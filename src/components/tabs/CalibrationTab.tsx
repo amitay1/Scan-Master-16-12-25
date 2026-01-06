@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { CalibrationData, InspectionSetupData, AcceptanceClass, CalibrationBlockType, StandardType } from "@/types/techniqueSheet";
 import { Target, Info } from "lucide-react";
 import { CalibrationCatalog } from "../CalibrationCatalog";
-import { CalibrationCADIntegration } from "../CalibrationCADIntegration";
 import { toast } from "sonner";
 import { FieldWithHelp } from "@/components/FieldWithHelp";
 import { Badge } from "@/components/ui/badge";
@@ -12,7 +11,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 // New components for FBH table with dropdowns
 import { FBHHoleTable } from "../FBHHoleTable";
 import { FBHStraightBeamDrawing } from "../FBHStraightBeamDrawing";
-import { AngleBeamDrawing } from "../AngleBeamDrawing";
 import { AngleBeamCalibrationBlockDrawing } from "../AngleBeamCalibrationBlockDrawing";
 import { DEFAULT_FBH_HOLES, type FBHHoleRowData } from "@/data/fbhStandardsData";
 import {
@@ -23,21 +21,12 @@ import {
   getBeamRequirement,
   BEAM_TYPE_LABELS,
 } from "@/utils/beamTypeClassification";
-import type {
-  CalibrationTabFields,
-  InspectionSetupTabFields,
-  EquipmentTabFields
-} from "@/types/scanMasterCAD";
 
 interface CalibrationTabProps {
   data: CalibrationData;
   onChange: (data: CalibrationData) => void;
   inspectionSetup: InspectionSetupData;
   acceptanceClass: AcceptanceClass | "";
-  // Additional data for CAD Integration
-  equipmentData?: EquipmentTabFields;
-  userId?: string;
-  projectId?: string;
   standard?: StandardType;
 }
 
@@ -58,9 +47,6 @@ export const CalibrationTab = ({
   onChange,
   inspectionSetup,
   acceptanceClass,
-  equipmentData,
-  userId,
-  projectId,
   standard = "AMS-STD-2154E"
 }: CalibrationTabProps) => {
   // FBH Holes state - 3 rows by default with dropdown selections
@@ -176,26 +162,27 @@ export const CalibrationTab = ({
 
   // Render the Angle Beam content (calibration block drawing)
   const renderAngleBeamContent = () => (
-    <>
-      {/* Angle Beam Calibration Block Drawing */}
+    <div className="space-y-4">
+      {/* Prominent notice for shear wave calibration */}
+      <div className="bg-gradient-to-r from-orange-50 to-amber-50 border-2 border-orange-200 rounded-xl p-4">
+        <h4 className="font-bold text-orange-800 text-lg mb-2">
+          🔊 Shear Wave Calibration Required
+        </h4>
+        <p className="text-orange-700 text-sm">
+          This part geometry (tube, cylinder, cone, or sphere) requires shear wave inspection 
+          for circumferential coverage. The reference standard below shows the required calibration 
+          block design with FBH positions and step wedge profiles.
+        </p>
+      </div>
+      
+      {/* Angle Beam Calibration Block Drawing - Large and Prominent */}
       <AngleBeamCalibrationBlockDrawing
-        width={700}
-        height={500}
+        width={950}
+        height={700}
         showDimensions={true}
-        title="Angle Beam Calibration Block - Shear Wave Reference Standard"
+        title="Shear Wave Calibration Block - Reference Standard for Circular Parts"
       />
-      {/* 2D Technical Drawing - Inspection Setup */}
-      <AngleBeamDrawing
-        outerDiameter={inspectionSetup.diameter || 100}
-        innerDiameter={inspectionSetup.innerDiameter || 60}
-        wallThickness={inspectionSetup.wallThickness}
-        partLength={inspectionSetup.partLength || 50}
-        beamAngle={45}
-        width={550}
-        height={320}
-        showDimensions={true}
-      />
-    </>
+    </div>
   );
 
   return (
@@ -311,64 +298,6 @@ export const CalibrationTab = ({
             className="bg-background"
           />
         </FieldWithHelp>
-      </div>
-
-      {/* ScanMaster CAD Integration */}
-      <div className="mt-8">
-        <CalibrationCADIntegration
-            calibrationData={{
-              fbhSizes: data.fbhSizes || "",
-              metalTravelDistance: data.metalTravelDistance || 0,
-              blockDimensions: (() => {
-                // Parse blockDimensions - handle various formats: "100×50×25", "100 × 50 × 25", "100x50x25", "100 x 50 x 25"
-                const dimStr = data.blockDimensions || "";
-                const parts = dimStr.split(/\s*[×xX]\s*/); // Split by × or x with optional spaces
-                return {
-                  L: parseFloat(parts[0]?.trim() || "0") || 100,
-                  W: parseFloat(parts[1]?.trim() || "0") || 50,
-                  H: parseFloat(parts[2]?.trim() || "0") || 25,
-                };
-              })(),
-              standardType: data.standardType || "",
-              recommendedBlockType: selectedModelId || undefined,
-            }}
-            inspectionData={{
-              material: inspectionSetup.material || "",
-              partThickness: inspectionSetup.partThickness || 0,
-              partType: inspectionSetup.partType || "",
-              isHollow: inspectionSetup.isHollow || false,
-              acceptanceClass: acceptanceClass || "",
-            }}
-            equipmentData={{
-              probeType: equipmentData?.probeType || "Straight Beam",
-              frequency: equipmentData?.frequency || 5.0,
-              inspectionType: equipmentData?.inspectionType || "UT",
-              // Determine beam type from probe type or inspection type
-              beamType: (equipmentData?.probeType?.toLowerCase().includes('angle') || 
-                        equipmentData?.inspectionType?.toLowerCase().includes('angle')) ? 'angle' : 'straight',
-            }}
-            userId={userId}
-            projectId={projectId}
-            onSuccess={(result) => {
-              toast.success("Calibration block created successfully! 🎉", {
-                description: `${result.partInfo.holesCount} FBH holes drilled`,
-                action: {
-                  label: "Download STEP",
-                  onClick: () => {
-                    const link = document.createElement('a');
-                    link.href = result.outputPath;
-                    link.download = `calibration_block_${Date.now()}.step`;
-                    link.click();
-                  }
-                }
-              });
-            }}
-            onError={(error) => {
-              toast.error("Error creating calibration block", {
-                description: error
-              });
-            }}
-          />
       </div>
     </div>
   );

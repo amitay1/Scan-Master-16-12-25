@@ -99,7 +99,7 @@ function drawFrontView(
     rectY - 15,
     `t=${wallThickness}mm`,
     10,
-    '#FFD700'
+    '#000000'
   );
 }
 
@@ -132,7 +132,7 @@ function drawSideView(
     point: [rectX, rectY],
     size: [scaledWidth, scaledThickness]
   });
-  outerPath.strokeColor = new scope.Color('#FFFFFF');
+  outerPath.strokeColor = new scope.Color('#000000');
   outerPath.strokeWidth = 2;
 
   // Inner hollow rectangle
@@ -145,7 +145,7 @@ function drawSideView(
     point: [innerX, innerY],
     size: [innerWidth, innerHeight]
   });
-  innerPath.strokeColor = new scope.Color('#FFFFFF');
+  innerPath.strokeColor = new scope.Color('#000000');
   innerPath.strokeWidth = 2;
 
   // Hatching for walls only

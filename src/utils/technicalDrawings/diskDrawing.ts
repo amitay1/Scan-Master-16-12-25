@@ -130,14 +130,14 @@ function drawSideView(
     generator.drawRectangle(hollowX, rectY, scaledID, scaledThickness, 'visible');
     // Hollow disk label
     generator.drawText(x + width / 2, rectY + scaledThickness / 2 - 10, 'DISK', 12, '#00BFFF');
-    generator.drawText(x + width / 2, rectY + scaledThickness / 2 + 8, '(HOLLOW)', 9, '#FFD700');
+    generator.drawText(x + width / 2, rectY + scaledThickness / 2 + 8, '(HOLLOW)', 9, '#000000');
   } else {
     // Solid disk - full hatching
     generator.drawRectangle(rectX, rectY, scaledDiameter, scaledThickness, 'visible');
     generator.drawHatching(rectX, rectY, scaledDiameter, scaledThickness, 45, 4);
     // Solid disk label - PROMINENT indicator
     generator.drawText(x + width / 2, rectY + scaledThickness / 2 - 10, 'DISK', 12, '#FF6B6B');
-    generator.drawText(x + width / 2, rectY + scaledThickness / 2 + 8, '(SOLID, H/D<0.5)', 9, '#FFFFFF');
+    generator.drawText(x + width / 2, rectY + scaledThickness / 2 + 8, '(SOLID, H/D<0.5)', 9, '#000000');
   }
 
   // Centerlines

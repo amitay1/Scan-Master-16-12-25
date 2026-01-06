@@ -85,6 +85,90 @@ export async function captureCanvas(
 }
 
 /**
+ * Capture an IMG element to Base64 PNG
+ */
+export async function captureImage(
+  imgOrSelector: HTMLImageElement | string,
+  options: CaptureOptions = {}
+): Promise<CaptureResult> {
+  const {
+    scale = 2,
+    backgroundColor = 'white',
+    maxWidth = 1800,
+    maxHeight = 1200,
+    quality = 0.92
+  } = options;
+
+  try {
+    // Get IMG element
+    const img = typeof imgOrSelector === 'string'
+      ? document.querySelector(imgOrSelector) as HTMLImageElement
+      : imgOrSelector;
+
+    if (!img) {
+      return { success: false, error: 'Image element not found' };
+    }
+
+    // Wait for image to load if not already loaded
+    if (!img.complete) {
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+        setTimeout(reject, 3000); // Timeout after 3s
+      });
+    }
+
+    if (img.naturalWidth === 0) {
+      return { success: false, error: 'Image failed to load or has no dimensions' };
+    }
+
+    // Calculate dimensions
+    let width = img.naturalWidth * scale;
+    let height = img.naturalHeight * scale;
+
+    // Apply max dimensions while maintaining aspect ratio
+    if (width > maxWidth) {
+      const ratio = maxWidth / width;
+      width = maxWidth;
+      height *= ratio;
+    }
+    if (height > maxHeight) {
+      const ratio = maxHeight / height;
+      height = maxHeight;
+      width *= ratio;
+    }
+
+    // Create canvas and draw image
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+
+    if (!ctx) {
+      return { success: false, error: 'Failed to get canvas context' };
+    }
+
+    // Fill background
+    ctx.fillStyle = backgroundColor;
+    ctx.fillRect(0, 0, width, height);
+
+    // Draw image
+    ctx.drawImage(img, 0, 0, width, height);
+
+    const data = canvas.toDataURL('image/png', quality);
+
+    return {
+      success: true,
+      data,
+      width,
+      height,
+    };
+  } catch (error) {
+    return { success: false, error: String(error) };
+  }
+}
+
+/**
  * Capture an SVG element to Base64 PNG
  */
 export async function captureSVG(
@@ -199,7 +283,7 @@ export async function captureElement(
   elementOrSelector: HTMLElement | string,
   options: CaptureOptions = {}
 ): Promise<CaptureResult> {
-  const { scale = 2, backgroundColor = 'white' } = options;
+  const { scale = 2, backgroundColor = 'white', quality = 0.92, maxWidth = 1800, maxHeight = 1200 } = options;
 
   try {
     const element = typeof elementOrSelector === 'string'
@@ -222,6 +306,12 @@ export async function captureElement(
       return captureSVG(svg, options);
     }
 
+    // Check for image inside the element
+    const img = element.querySelector('img') as HTMLImageElement;
+    if (img && img.complete && img.naturalWidth > 0) {
+      return captureImage(img, options);
+    }
+
     // For other elements, try to find a WebGL canvas (Three.js)
     const webglCanvas = element.querySelector('canvas[data-engine]') ||
                         element.querySelector('.react-three-fiber canvas') ||
@@ -230,7 +320,7 @@ export async function captureElement(
       return captureCanvas(webglCanvas as HTMLCanvasElement, options);
     }
 
-    return { success: false, error: 'No capturable element found (canvas or SVG)' };
+    return { success: false, error: 'No capturable element found (canvas, SVG, or image)' };
   } catch (error) {
     return { success: false, error: String(error) };
   }
@@ -259,6 +349,8 @@ export async function smartCapture(
       result = await captureCanvas(element, options);
     } else if (element instanceof SVGElement) {
       result = await captureSVG(element, options);
+    } else if (element instanceof HTMLImageElement) {
+      result = await captureImage(element, options);
     } else if (element instanceof HTMLElement) {
       result = await captureElement(element, options);
     } else {
@@ -370,6 +462,7 @@ export function clearCaptureCache(): void {
 
 export default {
   captureCanvas,
+  captureImage,
   captureSVG,
   captureElement,
   smartCapture,

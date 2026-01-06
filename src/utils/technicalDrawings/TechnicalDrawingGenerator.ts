@@ -36,55 +36,55 @@ export interface LayoutConfig {
   isometric: { x: number; y: number; width: number; height: number };
 }
 
-// ISO 128 Line Standards with advanced properties - HIGH CONTRAST for dark backgrounds
+// ISO 128 Line Standards - Classic Engineering Drawing Style (light background)
 export const LINE_STANDARDS: Record<string, LineStyle> = {
   visible: {
-    width: 3.5,
-    color: '#FFFFFF',
+    width: 0.7,
+    color: '#000000',
     description: 'Visible outlines'
   },
   hidden: {
-    width: 2.0,
-    dash: [5, 3],
-    color: '#B0B0B0',
+    width: 0.5,
+    dash: [4, 2],
+    color: '#000000',
     description: 'Hidden edges'
   },
   center: {
-    width: 1.5,
-    dash: [15, 3, 3, 3],
-    color: '#FFD700',
+    width: 0.35,
+    dash: [12, 3, 2, 3],
+    color: '#000000',
     description: 'Center lines'
   },
   dimension: {
-    width: 1.2,
-    color: '#00D4FF',
+    width: 0.35,
+    color: '#000000',
     description: 'Dimension lines'
   },
   cutting: {
-    width: 3.0,
-    dash: [20, 3, 3, 3],
-    color: '#FF6B6B',
+    width: 0.7,
+    dash: [15, 3, 2, 3],
+    color: '#000000',
     description: 'Section cutting plane'
   },
   boundary: {
-    width: 0.5,
-    color: '#FFFFFF',
+    width: 0.25,
+    color: '#000000',
     description: 'Boundary lines'
   },
   leader: {
-    width: 1.0,
-    color: '#00D4FF',
+    width: 0.35,
+    color: '#000000',
     description: 'Leader lines'
   },
   phantom: {
-    width: 1.0,
-    dash: [10, 3],
-    color: '#A0A0A0',
+    width: 0.35,
+    dash: [8, 2],
+    color: '#666666',
     description: 'Alternative positions'
   },
   grid: {
-    width: 0.15,
-    color: '#404040',
+    width: 0.1,
+    color: '#CCCCCC',
     description: 'Grid lines'
   }
 };
@@ -443,15 +443,15 @@ export class TechnicalDrawingGenerator {
 
     // Draw section label with circle background
     const circle = new this.scope.Path.Circle(new this.scope.Point(labelX, labelY), 10);
-    circle.fillColor = new this.scope.Color('#FF6B6B');
-    circle.strokeColor = new this.scope.Color('#FFFFFF');
-    circle.strokeWidth = 2;
+    circle.fillColor = new this.scope.Color('#000000');
+    circle.strokeColor = new this.scope.Color('#000000');
+    circle.strokeWidth = 1;
 
-    this.drawText(labelX, labelY + 1, label, 14, '#FFFFFF');
+    this.drawText(labelX, labelY + 1, label, 14, '#000000');
   }
 
-  // Draw text - HIGH CONTRAST for visibility
-  drawText(x: number, y: number, text: string, fontSize: number = 12, color: string = '#FFFFFF') {
+  // Draw text - Classic engineering style
+  drawText(x: number, y: number, text: string, fontSize: number = 12, color: string = '#000000') {
     const textItem = new this.scope.PointText(new this.scope.Point(x, y));
     textItem.content = text;
     textItem.fontSize = fontSize;
@@ -485,8 +485,8 @@ export class TechnicalDrawingGenerator {
         new this.scope.Point(x1, y1),
         new this.scope.Point(x2, y2)
       );
-      line.strokeColor = new this.scope.Color('#CCCCCC');
-      line.strokeWidth = 0.5;
+      line.strokeColor = new this.scope.Color('#666666');
+      line.strokeWidth = 0.25;
       
       const clipped = line.intersect(rect);
       group.addChild(clipped);
@@ -497,9 +497,9 @@ export class TechnicalDrawingGenerator {
     return group;
   }
 
-  // Draw view label - HIGH CONTRAST
+  // Draw view label - Classic style
   drawViewLabel(x: number, y: number, label: string) {
-    this.drawText(x, y - 15, label, 14, '#FFFFFF');
+    this.drawText(x, y - 15, label, 14, '#000000');
   }
 
   // Draw grid background
@@ -545,21 +545,21 @@ export class TechnicalDrawingGenerator {
     // Vertical divider
     this.drawLine(x + 120, y, x + 120, y + 60, 'visible');
     
-    // Title - HIGH CONTRAST
-    this.drawText(x + 90, y + 10, title, 12, '#FFFFFF');
+    // Title - Classic style
+    this.drawText(x + 90, y + 10, title, 12, '#000000');
     
     // Part Number
-    this.drawText(x + 60, y + 30, `PART: ${partNumber}`, 10, '#FFFFFF');
-    this.drawText(x + 150, y + 30, `REV: ${revision}`, 10, '#FFFFFF');
+    this.drawText(x + 60, y + 30, `PART: ${partNumber}`, 10, '#000000');
+    this.drawText(x + 150, y + 30, `REV: ${revision}`, 10, '#000000');
     
     // Material
-    this.drawText(x + 60, y + 50, `MATERIAL: ${material}`, 10, '#FFFFFF');
-    this.drawText(x + 150, y + 50, `SCALE: ${scale}`, 10, '#FFFFFF');
+    this.drawText(x + 60, y + 50, `MATERIAL: ${material}`, 10, '#000000');
+    this.drawText(x + 150, y + 50, `SCALE: ${scale}`, 10, '#000000');
     
-    // Bottom row - HIGH CONTRAST
-    this.drawText(x + 40, y + 70, `TOL: ${tolerance}`, 9, '#FFFFFF');
-    this.drawText(x + 90, y + 70, date, 9, '#FFFFFF');
-    this.drawText(x + 140, y + 70, 'ISO 128', 9, '#FFFFFF');
+    // Bottom row - Classic style
+    this.drawText(x + 40, y + 70, `TOL: ${tolerance}`, 9, '#000000');
+    this.drawText(x + 90, y + 70, date, 9, '#000000');
+    this.drawText(x + 140, y + 70, 'ISO 128', 9, '#000000');
   }
 
   // Draw dimension with tolerance
@@ -575,30 +575,30 @@ export class TechnicalDrawingGenerator {
   ) {
     this.drawDimension(startX, startY, endX, endY, nominal, arrowSize);
     
-    // Add tolerance - HIGH CONTRAST
+    // Add tolerance - Classic style
     const textX = (startX + endX) / 2;
     const textY = (startY + endY) / 2 - 10;
-    this.drawText(textX, textY - 12, `${upper}`, 8, '#00D4FF');
-    this.drawText(textX, textY + 2, `${lower}`, 8, '#00D4FF');
+    this.drawText(textX, textY - 12, `${upper}`, 8, '#000000');
+    this.drawText(textX, textY + 2, `${lower}`, 8, '#000000');
   }
 
   // Draw surface finish symbol
   drawSurfaceFinish(x: number, y: number, finish: string, Ra: string = '1.6') {
     const finishData = SURFACE_FINISH[finish as keyof typeof SURFACE_FINISH] || SURFACE_FINISH.machined;
     
-    // Draw surface finish symbol - HIGH CONTRAST
+    // Draw surface finish symbol - Classic style
     const path = new this.scope.Path();
     path.add(new this.scope.Point(x - 10, y + 10));
     path.add(new this.scope.Point(x, y - 10));
     path.add(new this.scope.Point(x + 10, y + 10));
-    path.strokeColor = new this.scope.Color('#FFFFFF');
-    path.strokeWidth = 1;
+    path.strokeColor = new this.scope.Color('#000000');
+    path.strokeWidth = 0.5;
     
-    // Add Ra value - HIGH CONTRAST
-    this.drawText(x, y - 15, `Ra ${Ra || finishData.Ra}`, 8, '#FFFFFF');
+    // Add Ra value - Classic style
+    this.drawText(x, y - 15, `Ra ${Ra || finishData.Ra}`, 8, '#000000');
     
     // Add symbol
-    this.drawText(x, y + 5, finishData.symbol, 12, '#FFFFFF');
+    this.drawText(x, y + 5, finishData.symbol, 12, '#000000');
   }
 
   // Draw geometric tolerance frame
@@ -621,16 +621,16 @@ export class TechnicalDrawingGenerator {
       this.drawLine(x + 40, y, x + 40, y + height, 'visible');
     }
     
-    // Symbol - HIGH CONTRAST
+    // Symbol - Classic style
     const toleranceSymbol = GEOMETRIC_TOLERANCES[symbol as keyof typeof GEOMETRIC_TOLERANCES] || symbol;
-    this.drawText(x + 10, y + height / 2 + 3, toleranceSymbol, 12, '#FFFFFF');
+    this.drawText(x + 10, y + height / 2 + 3, toleranceSymbol, 12, '#000000');
     
     // Tolerance value
-    this.drawText(x + 30, y + height / 2 + 3, tolerance, 10, '#FFFFFF');
+    this.drawText(x + 30, y + height / 2 + 3, tolerance, 10, '#000000');
     
     // Datum if provided
     if (datum) {
-      this.drawText(x + 50, y + height / 2 + 3, datum, 10, '#FFFFFF');
+      this.drawText(x + 50, y + height / 2 + 3, datum, 10, '#000000');
     }
   }
 
@@ -644,9 +644,9 @@ export class TechnicalDrawingGenerator {
     this.drawArrow(x1 - 5 * Math.cos(angle), y1 - 5 * Math.sin(angle), angle + Math.PI, 8);
     this.drawArrow(x2 + 5 * Math.cos(angle), y2 + 5 * Math.sin(angle), angle, 8);
     
-    // Labels - HIGH CONTRAST
-    this.drawText(x1 - 20, y1, label.split('-')[0], 14, '#FF6B6B');
-    this.drawText(x2 + 20, y2, label.split('-')[1] || label.split('-')[0], 14, '#FF6B6B');
+    // Labels - Classic style
+    this.drawText(x1 - 20, y1, label.split('-')[0], 14, '#000000');
+    this.drawText(x2 + 20, y2, label.split('-')[1] || label.split('-')[0], 14, '#000000');
   }
 
   // Draw weld symbol
@@ -670,11 +670,11 @@ export class TechnicalDrawingGenerator {
         return;
     }
     
-    path.strokeColor = new this.scope.Color('#FFFFFF');
-    path.strokeWidth = 1.5;
+    path.strokeColor = new this.scope.Color('#000000');
+    path.strokeWidth = 0.5;
     
-    // Size annotation - HIGH CONTRAST
-    this.drawText(x, y - 15, size, 10, '#FFFFFF');
+    // Size annotation - Classic style
+    this.drawText(x, y - 15, size, 10, '#000000');
   }
 
   // Export to SVG

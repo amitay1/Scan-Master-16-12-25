@@ -4,9 +4,10 @@
  * Per AMS-STD-2154 Appendix A - Circumferential shear wave required for rings
  */
 
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Upload, Image as ImageIcon, RefreshCw } from "lucide-react";
+import { Download, Image as ImageIcon, RefreshCw } from "lucide-react";
+import { toast } from "sonner";
 
 interface AngleBeamDrawingProps {
   // Part dimensions
@@ -87,6 +88,71 @@ export function AngleBeamDrawing({
       fileInputRef.current.value = '';
     }
   };
+
+  // Download SVG as PNG
+  const handleDownload = useCallback(() => {
+    const svgElement = document.querySelector('.angle-beam-drawing') as SVGSVGElement;
+    if (!svgElement) {
+      toast.error("Drawing not found");
+      return;
+    }
+
+    // Clone the SVG to avoid modifying the original
+    const clonedSvg = svgElement.cloneNode(true) as SVGSVGElement;
+
+    // Ensure xmlns is set for proper rendering
+    clonedSvg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+    clonedSvg.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
+
+    // Get the SVG dimensions
+    const svgWidth = width;
+    const svgHeight = height;
+
+    // Create a canvas
+    const canvas = document.createElement('canvas');
+    const scale = 2; // Higher resolution
+    canvas.width = svgWidth * scale;
+    canvas.height = svgHeight * scale;
+    const ctx = canvas.getContext('2d');
+
+    if (!ctx) {
+      toast.error("Failed to create canvas context");
+      return;
+    }
+
+    // Scale the context for higher resolution
+    ctx.scale(scale, scale);
+
+    // Convert SVG to data URL using base64 encoding
+    const svgData = new XMLSerializer().serializeToString(clonedSvg);
+    const base64Data = btoa(unescape(encodeURIComponent(svgData)));
+    const dataUrl = `data:image/svg+xml;base64,${base64Data}`;
+
+    // Create image and draw to canvas
+    const img = new Image();
+    img.onload = () => {
+      ctx.fillStyle = '#fafafa';
+      ctx.fillRect(0, 0, svgWidth, svgHeight);
+      ctx.drawImage(img, 0, 0, svgWidth, svgHeight);
+
+      // Download the canvas as PNG
+      const link = document.createElement('a');
+      link.download = `angle-beam-circumferential-shear-wave-OD${outerDiameter}mm.png`;
+      link.href = canvas.toDataURL('image/png');
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      toast.success("Drawing downloaded successfully");
+    };
+
+    img.onerror = (e) => {
+      console.error("Image load error:", e);
+      toast.error("Failed to generate image");
+    };
+
+    img.src = dataUrl;
+  }, [width, height, outerDiameter]);
 
   // Calculate beam path for angle beam
   const beamAngleRad = (beamAngle * Math.PI) / 180;
@@ -464,8 +530,8 @@ export function AngleBeamDrawing({
         </text>
       </svg>
 
-      {/* Load Image Button */}
-      <div className="absolute top-12 left-4">
+      {/* Action Buttons */}
+      <div className="absolute top-12 left-4 flex gap-2">
         <Button
           variant="outline"
           size="sm"
@@ -474,6 +540,15 @@ export function AngleBeamDrawing({
         >
           <ImageIcon className="h-4 w-4 mr-2" />
           Load Image
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleDownload}
+          className="bg-blue-600 hover:bg-blue-700 text-white border-blue-600"
+        >
+          <Download className="h-4 w-4 mr-2" />
+          Download
         </Button>
       </div>
     </div>

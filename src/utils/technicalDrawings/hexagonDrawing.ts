@@ -53,7 +53,7 @@ function drawFrontView(
     radius: scaledRadius,
     rotation: 30 // Flat side on top
   });
-  hexagon.strokeColor = new scope.Color('#FFFFFF');
+  hexagon.strokeColor = new scope.Color('#000000');
   hexagon.strokeWidth = 2;
   hexagon.fillColor = null;
 
@@ -128,7 +128,7 @@ function drawFrontView(
       centerY,
       `ID=${innerDiameter}mm`,
       10,
-      '#FFFFFF'
+      '#000000'
     );
   }
 }

@@ -196,3 +196,55 @@ export const insertPurchaseHistorySchema = createInsertSchema(purchaseHistory).o
 });
 export type InsertPurchaseHistory = typeof purchaseHistory.$inferInsert;
 export type PurchaseHistory = typeof purchaseHistory.$inferSelect;
+
+// Desktop Licenses table - Track all generated licenses
+export const desktopLicenses = pgTable("desktop_licenses", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  licenseKey: text("license_key").unique().notNull(),
+  factoryId: text("factory_id").notNull(),
+  factoryName: text("factory_name").notNull(),
+  contactEmail: text("contact_email"),
+  contactPhone: text("contact_phone"),
+  purchasedStandards: jsonb("purchased_standards").$type<string[]>().default([]),
+  maxActivations: integer("max_activations").default(3),
+  isLifetime: boolean("is_lifetime").default(false),
+  expiryDate: timestamp("expiry_date"),
+  totalPrice: decimal("total_price", { precision: 10, scale: 2 }),
+  notes: text("notes"),
+  status: text("status").default("active"), // active, revoked, expired
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertDesktopLicenseSchema = createInsertSchema(desktopLicenses).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertDesktopLicense = typeof desktopLicenses.$inferInsert;
+export type DesktopLicense = typeof desktopLicenses.$inferSelect;
+
+// License Activations table - Track each time a license is activated
+export const licenseActivations = pgTable("license_activations", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  licenseId: uuid("license_id").notNull().references(() => desktopLicenses.id),
+  licenseKey: text("license_key").notNull(),
+  machineId: text("machine_id").notNull(),
+  machineName: text("machine_name"),
+  osVersion: text("os_version"),
+  appVersion: text("app_version"),
+  ipAddress: text("ip_address"),
+  country: text("country"),
+  isActive: boolean("is_active").default(true),
+  activatedAt: timestamp("activated_at").defaultNow().notNull(),
+  lastSeenAt: timestamp("last_seen_at").defaultNow(),
+  deactivatedAt: timestamp("deactivated_at"),
+});
+
+export const insertLicenseActivationSchema = createInsertSchema(licenseActivations).omit({
+  id: true,
+  activatedAt: true,
+  lastSeenAt: true,
+});
+export type InsertLicenseActivation = typeof licenseActivations.$inferInsert;
+export type LicenseActivation = typeof licenseActivations.$inferSelect;

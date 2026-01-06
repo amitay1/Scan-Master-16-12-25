@@ -3,6 +3,7 @@ const path = require('path');
 const express = require('express');
 const fs = require('fs');
 const LicenseManager = require('./license-manager.cjs');
+const OfflineUpdater = require('./offline-updater.cjs');
 
 // GPU stability flags - keep GPU enabled for WebGL but with safe settings
 app.commandLine.appendSwitch('disable-gpu-sandbox');
@@ -25,6 +26,7 @@ let updateInfo = null;
 let licenseManager;
 let autoUpdater;
 let isDev;
+let offlineUpdater;
 let silentUpdateTimer = null;
 let updateCheckInterval = null;
 
@@ -339,6 +341,35 @@ function setupIPCHandlers() {
     return { updateAvailable: false, isDev: true };
   });
 
+  // PDF/File Save IPC Handler - more reliable than blob downloads
+  ipcMain.handle('save-pdf', async (event, { data, filename }) => {
+    try {
+      // Show save dialog
+      const { filePath } = await dialog.showSaveDialog(mainWindow, {
+        defaultPath: path.join(app.getPath('downloads'), filename),
+        filters: [
+          { name: 'PDF Files', extensions: ['pdf'] }
+        ]
+      });
+
+      if (filePath) {
+        // Convert base64 to buffer and save
+        const buffer = Buffer.from(data, 'base64');
+        fs.writeFileSync(filePath, buffer);
+        console.log('PDF saved to:', filePath);
+
+        // Open the file location
+        shell.showItemInFolder(filePath);
+
+        return { success: true, path: filePath };
+      }
+      return { success: false, cancelled: true };
+    } catch (error) {
+      console.error('Error saving PDF:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
   // License Management IPC Handlers
   ipcMain.handle('license:check', () => {
     return licenseManager.getLicense();
@@ -363,6 +394,91 @@ function setupIPCHandlers() {
   ipcMain.handle('license:deactivate', () => {
     licenseManager.deactivate();
     return { success: true };
+  });
+
+  // Offline Activation IPC Handlers
+  ipcMain.handle('license:generateActivationRequest', () => {
+    return licenseManager.generateActivationRequest();
+  });
+
+  ipcMain.handle('license:activateOffline', async (event, licenseKey, responseCode) => {
+    return await licenseManager.activateOffline(licenseKey, responseCode);
+  });
+
+  ipcMain.handle('license:getMachineInfo', () => {
+    return licenseManager.getMachineInfo();
+  });
+
+  // ==========================================
+  // Offline Update IPC Handlers (USB Updates)
+  // ==========================================
+
+  // Initialize offline updater
+  offlineUpdater = new OfflineUpdater({
+    currentVersion: app.getVersion(),
+    appPath: app.getPath('exe'),
+    tempDir: app.getPath('temp'),
+    onProgress: (progress) => {
+      if (mainWindow) {
+        mainWindow.webContents.send('offline-update-progress', progress);
+      }
+    },
+    onLog: (message) => {
+      console.log('[OfflineUpdater]', message);
+    }
+  });
+
+  // Browse for update folder
+  ipcMain.handle('offline-update:browse', async () => {
+    const result = await dialog.showOpenDialog(mainWindow, {
+      title: 'Select Update Folder (USB Drive)',
+      properties: ['openDirectory'],
+      buttonLabel: 'Select Folder'
+    });
+
+    if (result.canceled || !result.filePaths[0]) {
+      return { cancelled: true };
+    }
+
+    return { path: result.filePaths[0] };
+  });
+
+  // Scan for updates in a directory
+  ipcMain.handle('offline-update:scan', async (event, directoryPath) => {
+    return await offlineUpdater.scanForUpdates(directoryPath);
+  });
+
+  // Validate an update package
+  ipcMain.handle('offline-update:validate', async (event, packageInfo) => {
+    return await offlineUpdater.validatePackage(packageInfo);
+  });
+
+  // Install update from USB
+  ipcMain.handle('offline-update:install', async (event, packageInfo, options) => {
+    try {
+      const result = await offlineUpdater.installUpdate(packageInfo, options);
+
+      // If installation started, quit the app
+      if (result.success && options.autoRestart !== false) {
+        setTimeout(() => {
+          app.quit();
+        }, 2000);
+      }
+
+      return result;
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  });
+
+  // Get display info for a package
+  ipcMain.handle('offline-update:getDisplayInfo', (event, packageInfo) => {
+    return offlineUpdater.getPackageDisplayInfo(packageInfo);
+  });
+
+  // Get current version
+  ipcMain.handle('offline-update:getCurrentVersion', () => {
+    return app.getVersion();
   });
 }
 
@@ -505,8 +621,59 @@ async function createWindow() {
   const primaryDisplay = screen.getPrimaryDisplay();
   const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize;
   const scaleFactor = primaryDisplay.scaleFactor;
-  
+
   console.log(`Screen: ${screenWidth}x${screenHeight}, Scale Factor: ${scaleFactor}`);
+
+  // Set up download handler for PDF exports and other file downloads
+  const { session } = require('electron');
+  session.defaultSession.on('will-download', (event, item, webContents) => {
+    const fileName = item.getFilename();
+    console.log('Download started:', fileName);
+
+    // Get the default download path
+    const downloadsPath = app.getPath('downloads');
+    const savePath = path.join(downloadsPath, fileName);
+
+    // Set the save path
+    item.setSavePath(savePath);
+
+    item.on('updated', (event, state) => {
+      if (state === 'interrupted') {
+        console.log('Download interrupted');
+      } else if (state === 'progressing') {
+        if (item.isPaused()) {
+          console.log('Download paused');
+        } else {
+          const percent = item.getReceivedBytes() / item.getTotalBytes() * 100;
+          console.log(`Download progress: ${percent.toFixed(1)}%`);
+        }
+      }
+    });
+
+    item.once('done', (event, state) => {
+      if (state === 'completed') {
+        console.log('Download completed:', savePath);
+        // Notify renderer that download is complete
+        if (mainWindow) {
+          mainWindow.webContents.send('download-complete', {
+            success: true,
+            path: savePath,
+            fileName: fileName
+          });
+        }
+        // Open the file location in explorer/finder
+        shell.showItemInFolder(savePath);
+      } else {
+        console.log('Download failed:', state);
+        if (mainWindow) {
+          mainWindow.webContents.send('download-complete', {
+            success: false,
+            error: state
+          });
+        }
+      }
+    });
+  });
   
   // Calculate responsive minimum sizes based on screen and scale
   // For high DPI displays, we need smaller minimums
@@ -927,8 +1094,8 @@ app.whenReady().then(async () => {
   // In packaged app, app.isPackaged is true
   isDev = !app.isPackaged;
 
-  // Initialize license manager with app data path
-  licenseManager = new LicenseManager(app.getPath('userData'));
+  // Initialize license manager with app data path and version
+  licenseManager = new LicenseManager(app.getPath('userData'), app.getVersion());
 
   // Setup IPC handlers
   setupIPCHandlers();

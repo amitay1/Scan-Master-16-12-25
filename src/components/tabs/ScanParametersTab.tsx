@@ -33,14 +33,30 @@ const getStandardLabel = (standard: StandardType): string => {
 };
 
 export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E" }: ScanParametersTabProps) => {
-  // Get scan parameters for current standard
+  // Ensure we have valid data object with defaults
+  const safeData = data || {
+    scanMethod: "",
+    scanMethods: [],
+    technique: "conventional" as const,
+    scanType: "",
+    scanSpeed: 100,
+    scanIndex: 70,
+    coverage: 100,
+    scanPattern: "",
+    waterPath: 0,
+    pulseRepetitionRate: 1000,
+    gainSettings: "",
+    alarmGateSettings: "",
+  };
+
+  // Get scan parameters for current standard with fallback
   const scanParams = useMemo(() => {
-    return scanParametersByStandard[standard];
+    return scanParametersByStandard[standard] || scanParametersByStandard["AMS-STD-2154E"];
   }, [standard]);
 
-  // Get calibration requirements for current standard
+  // Get calibration requirements for current standard with fallback
   const calibParams = useMemo(() => {
-    return calibrationByStandard[standard];
+    return calibrationByStandard[standard] || calibrationByStandard["AMS-STD-2154E"];
   }, [standard]);
 
   // Get max speed based on scan type and standard
@@ -76,12 +92,10 @@ export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E" }
     }
   }, [standard]);
 
-  // Show coupling method options only for immersion or contact
-  const showCouplingMethod = data.scanMethod === "immersion" || data.scanMethod === "contact";
-  // Show phased array fields when PA is selected
-  const showPhasedArray = data.couplingMethod === "phased_array";
-  // Show bubbler fields
-  const showBubblerFields = data.couplingMethod === "bubbler";
+  // Show phased array fields when PA technique is selected
+  const showPhasedArray = data.technique === "phased_array";
+  // Show bubbler fields when bubbler technique is selected
+  const showBubblerFields = data.technique === "bubbler";
   const isAustenitic = standard === "BS-EN-10228-4";
 
   // Update phased array settings
@@ -147,32 +161,112 @@ export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E" }
         </div>
       )}
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2">
-        <FieldWithHelp
-          label="Scan Method"
-          fieldKey="scanMethod"
-          required
-        >
-          <Select
-            value={data.scanMethod}
-            onValueChange={(value) => {
-              updateField("scanMethod", value);
-              // Reset coupling method when changing scan method
-              if (value === "squirter") {
-                updateField("couplingMethod", undefined);
-              }
+      {/* Scan Method - Multi-select buttons */}
+      <div className="bg-blue-500/5 border border-blue-500/20 rounded-lg p-4 mb-4">
+        <Label className="text-sm font-semibold mb-3 block">Scan Method</Label>
+        <div className="flex gap-4">
+          <button
+            type="button"
+            onClick={() => {
+              const current = data.scanMethods || [];
+              const newMethods = current.includes('immersion')
+                ? current.filter(m => m !== 'immersion')
+                : [...current, 'immersion'];
+              // Update both fields at once to avoid double render
+              onChange({ 
+                ...data, 
+                scanMethods: newMethods,
+                scanMethod: newMethods.length > 0 ? newMethods[0] : data.scanMethod
+              });
             }}
+            className={`px-6 py-3 rounded-lg font-medium transition-all border-2 ${
+              (data.scanMethods || []).includes('immersion')
+                ? 'bg-blue-600 text-white border-blue-600 shadow-lg'
+                : 'bg-gray-100 hover:bg-gray-200 text-gray-800 border-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-600'
+            }`}
           >
-            <SelectTrigger className="bg-background">
-              <SelectValue placeholder="Select method..." />
-            </SelectTrigger>
-            <SelectContent className="bg-popover z-50">
-              <SelectItem value="immersion">Immersion</SelectItem>
-              <SelectItem value="contact">Contact</SelectItem>
-              <SelectItem value="squirter">Squirter</SelectItem>
-            </SelectContent>
-          </Select>
-        </FieldWithHelp>
+            IMMERSION
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              const current = data.scanMethods || [];
+              const newMethods = current.includes('contact')
+                ? current.filter(m => m !== 'contact')
+                : [...current, 'contact'];
+              // Update both fields at once to avoid double render
+              onChange({ 
+                ...data, 
+                scanMethods: newMethods,
+                scanMethod: newMethods.length > 0 ? newMethods[0] : data.scanMethod
+              });
+            }}
+            className={`px-6 py-3 rounded-lg font-medium transition-all border-2 ${
+              (data.scanMethods || []).includes('contact')
+                ? 'bg-blue-600 text-white border-blue-600 shadow-lg'
+                : 'bg-gray-100 hover:bg-gray-200 text-gray-800 border-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-600'
+            }`}
+          >
+            CONTACT
+          </button>
+        </div>
+        {(data.scanMethods || []).length === 0 && (
+          <p className="text-xs text-muted-foreground mt-2">Select one or more scan methods</p>
+        )}
+      </div>
+
+      {/* Technique Selection */}
+      <div className="bg-purple-500/5 border border-purple-500/20 rounded-lg p-4 mb-4">
+        <Label className="text-sm font-semibold mb-3 block">Technique</Label>
+        <div className="flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={() => updateField("technique", "conventional")}
+            className={`px-5 py-2.5 rounded-lg font-medium transition-all ${
+              data.technique === 'conventional'
+                ? 'bg-purple-600 text-white shadow-lg'
+                : 'bg-muted hover:bg-muted/80 text-foreground'
+            }`}
+          >
+            CONVENTIONAL
+          </button>
+          <button
+            type="button"
+            onClick={() => updateField("technique", "bubbler")}
+            className={`px-5 py-2.5 rounded-lg font-medium transition-all ${
+              data.technique === 'bubbler'
+                ? 'bg-purple-600 text-white shadow-lg'
+                : 'bg-muted hover:bg-muted/80 text-foreground'
+            }`}
+          >
+            BUBBLER
+          </button>
+          <button
+            type="button"
+            onClick={() => updateField("technique", "squirt")}
+            className={`px-5 py-2.5 rounded-lg font-medium transition-all ${
+              data.technique === 'squirt'
+                ? 'bg-purple-600 text-white shadow-lg'
+                : 'bg-muted hover:bg-muted/80 text-foreground'
+            }`}
+          >
+            SQUIRT
+          </button>
+          <button
+            type="button"
+            onClick={() => updateField("technique", "phased_array")}
+            className={`px-5 py-2.5 rounded-lg font-medium transition-all ${
+              data.technique === 'phased_array'
+                ? 'bg-purple-600 text-white shadow-lg'
+                : 'bg-muted hover:bg-muted/80 text-foreground'
+            }`}
+          >
+            PHASED ARRAY
+          </button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2">
 
         <FieldWithHelp
           label="Scan Type"
@@ -200,49 +294,6 @@ export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E" }
           </Select>
         </FieldWithHelp>
 
-        {/* Coupling Method Section - Only for Immersion/Contact */}
-        {showCouplingMethod && (
-          <div className="md:col-span-2">
-            <Card className="p-4 bg-muted/30">
-              <Label className="text-sm font-semibold mb-3 block">Coupling Method / Technique</Label>
-              <div className="flex flex-wrap gap-6">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="couplingMethod"
-                    value="regular"
-                    checked={data.couplingMethod === "regular" || !data.couplingMethod}
-                    onChange={() => updateField("couplingMethod", "regular")}
-                    className="w-4 h-4"
-                  />
-                  <span className="text-sm">Regular (Conventional UT)</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="couplingMethod"
-                    value="bubbler"
-                    checked={data.couplingMethod === "bubbler"}
-                    onChange={() => updateField("couplingMethod", "bubbler")}
-                    className="w-4 h-4"
-                  />
-                  <span className="text-sm">Bubbler (Water Column)</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="couplingMethod"
-                    value="phased_array"
-                    checked={data.couplingMethod === "phased_array"}
-                    onChange={() => updateField("couplingMethod", "phased_array")}
-                    className="w-4 h-4"
-                  />
-                  <span className="text-sm">Phased Array (PAUT)</span>
-                </label>
-              </div>
-            </Card>
-          </div>
-        )}
 
         {/* Bubbler Settings - Only when Bubbler is selected */}
         {showBubblerFields && (
@@ -507,8 +558,8 @@ export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E" }
           </Select>
         </FieldWithHelp>
 
-        {/* Water Path for Immersion without Coupling Method - Legacy support */}
-        {data.scanMethod === "immersion" && !showCouplingMethod && (
+        {/* Water Path for Immersion - shown when technique is conventional or not using bubbler */}
+        {data.scanMethod === "immersion" && data.technique !== "bubbler" && (
           <FieldWithHelp
             label="Water Path (mm)"
             fieldKey="waterPath"
@@ -577,53 +628,34 @@ export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E" }
         />
       </FieldWithHelp>
 
-      {/* Scan Parameters Summary Table */}
+      {/* Scan Parameters Summary - Current Standard Only */}
       <div className="border border-border rounded-lg overflow-hidden">
-        <div className="bg-muted/50 px-4 py-2 border-b border-border">
-          <h4 className="text-sm font-semibold">Scan Parameters by Standard</h4>
+        <div className="bg-primary/10 px-4 py-2 border-b border-border">
+          <h4 className="text-sm font-semibold">Scan Parameters - {getStandardLabel(standard)}</h4>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs">
-            <thead className="bg-muted/30">
-              <tr>
-                <th className="px-3 py-2 text-left">Parameter</th>
-                <th className="px-3 py-2 text-left">AMS-STD-2154E</th>
-                <th className="px-3 py-2 text-left">ASTM A388</th>
-                <th className="px-3 py-2 text-left">BS EN 10228-3</th>
-                <th className="px-3 py-2 text-left">BS EN 10228-4</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr className={standard === "AMS-STD-2154E" ? "bg-primary/10" : ""}>
-                <td className="px-3 py-2 font-medium">Max Speed (Manual)</td>
-                <td className={`px-3 py-2 ${standard === "AMS-STD-2154E" ? "font-semibold" : ""}`}>150 mm/s</td>
-                <td className={`px-3 py-2 ${standard === "ASTM-A388" ? "font-semibold" : ""}`}>152 mm/s</td>
-                <td className={`px-3 py-2 ${standard === "BS-EN-10228-3" ? "font-semibold" : ""}`}>150 mm/s</td>
-                <td className={`px-3 py-2 ${standard === "BS-EN-10228-4" ? "font-semibold" : ""}`}>100 mm/s</td>
-              </tr>
-              <tr className={standard === "AMS-STD-2154E" ? "bg-primary/10" : ""}>
-                <td className="px-3 py-2 font-medium">Max Speed (Auto)</td>
-                <td className={`px-3 py-2 ${standard === "AMS-STD-2154E" ? "font-semibold" : ""}`}>150 mm/s</td>
-                <td className={`px-3 py-2 ${standard === "ASTM-A388" ? "font-semibold" : ""}`}>305 mm/s</td>
-                <td className={`px-3 py-2 ${standard === "BS-EN-10228-3" ? "font-semibold" : ""}`}>500 mm/s</td>
-                <td className={`px-3 py-2 ${standard === "BS-EN-10228-4" ? "font-semibold" : ""}`}>250 mm/s</td>
-              </tr>
-              <tr className={standard === "AMS-STD-2154E" ? "bg-primary/10" : ""}>
-                <td className="px-3 py-2 font-medium">Min Overlap</td>
-                <td className={`px-3 py-2 ${standard === "AMS-STD-2154E" ? "font-semibold" : ""}`}>30%</td>
-                <td className={`px-3 py-2 ${standard === "ASTM-A388" ? "font-semibold" : ""}`}>10-15%</td>
-                <td className={`px-3 py-2 ${standard === "BS-EN-10228-3" ? "font-semibold" : ""}`}>10%</td>
-                <td className={`px-3 py-2 ${standard === "BS-EN-10228-4" ? "font-semibold" : ""}`}>20%</td>
-              </tr>
-              <tr className={standard === "AMS-STD-2154E" ? "bg-primary/10" : ""}>
-                <td className="px-3 py-2 font-medium">Calibration Interval</td>
-                <td className={`px-3 py-2 ${standard === "AMS-STD-2154E" ? "font-semibold" : ""}`}>Every 4 hrs</td>
-                <td className={`px-3 py-2 ${standard === "ASTM-A388" ? "font-semibold" : ""}`}>Start/End</td>
-                <td className={`px-3 py-2 ${standard === "BS-EN-10228-3" ? "font-semibold" : ""}`}>Start/End</td>
-                <td className={`px-3 py-2 ${standard === "BS-EN-10228-4" ? "font-semibold" : ""}`}>Every 2 hrs</td>
-              </tr>
-            </tbody>
-          </table>
+        <div className="p-4 space-y-3">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-muted/30 rounded-lg p-3">
+              <p className="text-xs text-muted-foreground">Max Speed (Manual)</p>
+              <p className="text-sm font-semibold">{scanParams.maxSpeedManual.value} {scanParams.maxSpeedManual.unit}</p>
+            </div>
+            <div className="bg-muted/30 rounded-lg p-3">
+              <p className="text-xs text-muted-foreground">Max Speed (Automated)</p>
+              <p className="text-sm font-semibold">{scanParams.maxSpeedAutomated.value} {scanParams.maxSpeedAutomated.unit}</p>
+            </div>
+            <div className="bg-muted/30 rounded-lg p-3">
+              <p className="text-xs text-muted-foreground">Min Overlap</p>
+              <p className="text-sm font-semibold">{scanParams.minOverlap}%</p>
+            </div>
+            <div className="bg-muted/30 rounded-lg p-3">
+              <p className="text-xs text-muted-foreground">Coverage Required</p>
+              <p className="text-sm font-semibold">{scanParams.coverageRequired}%</p>
+            </div>
+          </div>
+          <div className="bg-muted/30 rounded-lg p-3">
+            <p className="text-xs text-muted-foreground">Calibration Interval</p>
+            <p className="text-sm font-semibold">{calibParams.calibrationInterval}</p>
+          </div>
         </div>
       </div>
 

@@ -54,10 +54,10 @@ export const Toolbar = ({
   const { cards } = useSavedCards();
   
   return (
-    <div className="h-12 border-b border-border bg-card flex items-center px-2 md:px-3 gap-1 md:gap-2 overflow-x-auto overflow-y-hidden flex-shrink-0">
+    <div className="h-14 border-b-2 border-border bg-card flex items-center px-3 md:px-4 gap-2 md:gap-3 overflow-x-auto overflow-y-hidden flex-shrink-0">
       {/* Quick Actions - Compact on mobile */}
-      <Button variant="ghost" size="icon" onClick={onSave} title="Save" className="h-8 w-8 md:h-9 md:w-9">
-        <Save className="h-3 w-3 md:h-4 md:w-4" />
+      <Button variant="ghost" size="icon" onClick={onSave} title="Save" className="h-10 w-10 md:h-11 md:w-11">
+        <Save className="h-5 w-5 md:h-5 md:w-5" />
       </Button>
 
       {/* Export Button */}
@@ -66,17 +66,17 @@ export const Toolbar = ({
         size="sm"
         onClick={onExport}
         title="Export PDF"
-        className="h-8 px-2 md:px-3 text-[10px] md:text-xs bg-primary/10 hover:bg-primary/20 text-primary"
+        className="h-10 px-3 md:px-4 text-sm md:text-base bg-primary/10 hover:bg-primary/20 text-primary font-semibold"
       >
-        <FileDown className="h-3 w-3 md:h-4 md:w-4 md:mr-1" />
+        <FileDown className="h-5 w-5 md:h-5 md:w-5 md:mr-2" />
         <span className="hidden sm:inline">Export</span>
       </Button>
 
-      <Button variant="ghost" size="icon" onClick={onValidate} title="Validate" className="h-8 w-8 md:h-9 md:w-9">
-        <CheckCircle className="h-3 w-3 md:h-4 md:w-4" />
+      <Button variant="ghost" size="icon" onClick={onValidate} title="Validate" className="h-10 w-10 md:h-11 md:w-11">
+        <CheckCircle className="h-5 w-5 md:h-5 md:w-5" />
       </Button>
 
-      <Separator orientation="vertical" className="h-6 md:h-8 mx-0.5 md:mx-1" />
+      <Separator orientation="vertical" className="h-8 md:h-10 mx-1 md:mx-2" />
 
       {/* Split Mode Toggle */}
       {reportMode === "Technique" && onSplitModeChange && (
@@ -85,10 +85,10 @@ export const Toolbar = ({
             variant={isSplitMode ? "secondary" : "ghost"}
             size="sm"
             onClick={() => onSplitModeChange(!isSplitMode)}
-            className="h-7 md:h-8 text-[10px] md:text-xs font-medium px-2"
+            className="h-9 md:h-10 text-sm md:text-base font-semibold px-3"
             title="Split to Part A & B"
           >
-            <RefreshCw className="h-3 w-3 md:mr-1" />
+            <RefreshCw className="h-4 w-4 md:mr-2" />
             {isSplitMode && <span className="hidden sm:inline">Part A+B</span>}
           </Button>
           
@@ -98,7 +98,7 @@ export const Toolbar = ({
                 variant={activePart === "A" ? "default" : "ghost"}
                 size="sm"
                 onClick={() => onActivePartChange("A")}
-                className="h-7 md:h-8 text-[10px] md:text-xs font-medium px-2"
+                className="h-9 md:h-10 text-sm md:text-base font-semibold px-3"
               >
                 A
               </Button>
@@ -106,7 +106,7 @@ export const Toolbar = ({
                 variant={activePart === "B" ? "default" : "ghost"}
                 size="sm"
                 onClick={() => onActivePartChange("B")}
-                className="h-7 md:h-8 text-[10px] md:text-xs font-medium px-2"
+                className="h-9 md:h-10 text-sm md:text-base font-semibold px-3"
               >
                 B
               </Button>
@@ -115,7 +115,7 @@ export const Toolbar = ({
                   variant="ghost"
                   size="sm"
                   onClick={onCopyAToB}
-                  className="h-7 md:h-8 text-[10px] md:text-xs font-medium px-2"
+                  className="h-9 md:h-10 text-sm md:text-base font-semibold px-3"
                   title="Copy Part A to Part B"
                 >
                   A→B
@@ -123,28 +123,28 @@ export const Toolbar = ({
               )}
             </>
           )}
-          <Separator orientation="vertical" className="h-6 md:h-8 mx-0.5 md:mx-1" />
+          <Separator orientation="vertical" className="h-8 md:h-10 mx-1 md:mx-2" />
         </>
       )}
 
       {/* Mode Selection - Compact on mobile */}
-      <div className="flex gap-0.5 md:gap-1 bg-muted p-0.5 md:p-1 rounded-md">
+      <div className="flex gap-1 md:gap-2 bg-muted p-1 md:p-1.5 rounded-lg">
         <Button
           variant={reportMode === "Technique" ? "secondary" : "ghost"}
           size="sm"
           onClick={() => onReportModeChange("Technique")}
-          className="h-7 md:h-8 text-[10px] md:text-xs font-medium px-2"
+          className="h-9 md:h-10 text-sm md:text-base font-semibold px-3"
         >
-          <FileText className="h-3 w-3 md:mr-1" />
+          <FileText className="h-4 w-4 md:mr-2" />
           <span className="hidden sm:inline">Technique</span>
         </Button>
         <Button
           variant={reportMode === "Report" ? "secondary" : "ghost"}
           size="sm"
           onClick={() => onReportModeChange("Report")}
-          className="h-7 md:h-8 text-[10px] md:text-xs font-medium px-2"
+          className="h-9 md:h-10 text-sm md:text-base font-semibold px-3"
         >
-          <FileSearch className="h-3 w-3 md:mr-1" />
+          <FileSearch className="h-4 w-4 md:mr-2" />
           <span className="hidden sm:inline">Report</span>
         </Button>
       </div>
@@ -154,19 +154,19 @@ export const Toolbar = ({
       {/* Inspector Profile Indicator */}
       <ProfileIndicator className="hidden sm:flex" />
 
-      <Separator orientation="vertical" className="h-6 md:h-8 mx-0.5 md:mx-1 hidden sm:block" />
+      <Separator orientation="vertical" className="h-8 md:h-10 mx-1 md:mx-2 hidden sm:block" />
 
       {/* Right Side Tools - Hidden on small mobile */}
       <Button
         variant="ghost"
         size="icon"
         title="Local Saved Cards"
-        className="h-8 w-8 md:h-9 md:w-9 hidden sm:flex relative"
+        className="h-10 w-10 md:h-11 md:w-11 hidden sm:flex relative"
         onClick={() => setLocalSavedCardsOpen(true)}
       >
-        <FolderOpen className="h-3 w-3 md:h-4 md:w-4" />
+        <FolderOpen className="h-5 w-5 md:h-5 md:w-5" />
         {cards.length > 0 && (
-          <span className="absolute -top-1 -right-1 h-4 w-4 bg-blue-500 text-white text-[9px] rounded-full flex items-center justify-center">
+          <span className="absolute -top-1 -right-1 h-5 w-5 bg-blue-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
             {cards.length}
           </span>
         )}
@@ -176,10 +176,10 @@ export const Toolbar = ({
         variant="ghost" 
         size="icon" 
         title="Settings" 
-        className="h-8 w-8 md:h-9 md:w-9 hidden sm:flex"
+        className="h-10 w-10 md:h-11 md:w-11 hidden sm:flex"
         onClick={() => setSettingsOpen(true)}
       >
-        <Settings className="h-3 w-3 md:h-4 md:w-4" />
+        <Settings className="h-5 w-5 md:h-5 md:w-5" />
       </Button>
       
       {/* Settings Dialog */}

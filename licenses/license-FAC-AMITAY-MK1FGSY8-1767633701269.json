@@ -1,0 +1,24 @@
+{
+  "licenseKey": "SM-FAC-AMITAY-MK1FGSY8-AMSASTMBS3BS4MIL-LIFETIME-2F7A350EE50F",
+  "factoryId": "FAC-AMITAY-MK1FGSY8",
+  "factoryName": "Amitay Factory",
+  "purchasedStandards": [
+    "AMS-STD-2154E",
+    "ASTM-A388",
+    "BS-EN-10228-3",
+    "BS-EN-10228-4",
+    "MIL-STD-2154"
+  ],
+  "standardsShortCodes": [
+    "AMS",
+    "ASTM",
+    "BS3",
+    "BS4",
+    "MIL"
+  ],
+  "expiryDate": null,
+  "isLifetime": true,
+  "maxUsers": null,
+  "generatedAt": "2026-01-05T17:21:41.265Z",
+  "totalPrice": 2800
+}

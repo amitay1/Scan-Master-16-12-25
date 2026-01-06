@@ -29,6 +29,7 @@ import type {
   ScanParametersData,
   AcceptanceCriteriaData,
   DocumentationData,
+  ScanPlanData,
 } from '@/types/techniqueSheet';
 import type { ScanDetailsData } from '@/types/scanDetails';
 import {
@@ -63,8 +64,11 @@ export interface TechniqueSheetExportData {
   acceptanceCriteria: AcceptanceCriteriaData;
   documentation: DocumentationData;
   scanDetails?: ScanDetailsData;
+  scanPlan?: ScanPlanData; // Scan plan documents (list of linked PDFs/procedures)
   capturedDrawing?: string; // Base64 image of technical drawing
-  calibrationBlockDiagram?: string; // Base64 image of calibration block
+  calibrationBlockDiagram?: string; // Base64 image of FBH/straight beam calibration block
+  angleBeamDiagram?: string; // Base64 image of angle beam calibration block (for circular parts)
+  e2375Diagram?: string; // Base64 image of ASTM E2375 scan directions diagram
   scanDirectionsDrawing?: string; // Base64 image of scan directions (from InspectionPlanViewer)
 }
 
@@ -72,6 +76,12 @@ export interface ExportOptions {
   companyName?: string;
   companyLogo?: string;
   documentNumber?: string;
+}
+
+// Type declaration for Electron API
+interface ElectronAPI {
+  isElectron: boolean;
+  savePDF?: (data: string, filename: string) => Promise<{ success: boolean; path?: string; error?: string; cancelled?: boolean }>;
 }
 
 // ============================================================================
@@ -95,7 +105,72 @@ export function exportTechniqueSheetPDF(
   const date = new Date().toISOString().split('T')[0];
   const filename = `${partNumber}_TechniqueSheet_${date}.pdf`;
 
-  pdf.save(filename);
+  // Check if we're in Electron environment
+  const electronApi = typeof window !== 'undefined'
+    ? (window as unknown as { electron?: ElectronAPI }).electron
+    : undefined;
+  const isElectron = electronApi?.isElectron === true;
+
+  if (isElectron && electronApi?.savePDF) {
+    // For Electron: use IPC to save PDF through main process (most reliable)
+    try {
+      // Get PDF as base64
+      const pdfBase64 = pdf.output('datauristring').split(',')[1];
+
+      // Call Electron's save dialog
+      electronApi.savePDF(pdfBase64, filename)
+        .then((result) => {
+          if (result.success) {
+            console.log('PDF saved successfully:', result.path);
+          } else if (result.cancelled) {
+            console.log('PDF save cancelled by user');
+          } else {
+            console.error('PDF save failed:', result.error);
+            // Fallback to blob download
+            fallbackBlobDownload(pdf, filename);
+          }
+        })
+        .catch((error) => {
+          console.error('Electron PDF save error:', error);
+          fallbackBlobDownload(pdf, filename);
+        });
+    } catch (error) {
+      console.error('Electron PDF export error:', error);
+      // Fallback to blob download
+      fallbackBlobDownload(pdf, filename);
+    }
+  } else {
+    // For regular browser: use standard jsPDF save
+    pdf.save(filename);
+  }
+}
+
+// Fallback method using blob URL download
+function fallbackBlobDownload(pdf: jsPDF, filename: string): void {
+  try {
+    const pdfBlob = pdf.output('blob');
+    const blobUrl = URL.createObjectURL(pdfBlob);
+
+    // Create a temporary link and click it to trigger download
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = filename;
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+
+    // Cleanup after a short delay
+    setTimeout(() => {
+      document.body.removeChild(link);
+      URL.revokeObjectURL(blobUrl);
+    }, 1000);
+
+    console.log('PDF fallback download initiated:', filename);
+  } catch (fallbackError) {
+    console.error('Fallback download also failed:', fallbackError);
+    // Last resort: use standard jsPDF save
+    pdf.save(filename);
+  }
 }
 
 // ============================================================================
@@ -116,13 +191,28 @@ class TechniqueSheetPDFBuilder {
     this.calculatePages();
   }
 
+  // Safely get the final Y position after autoTable
+  private getTableEndY(fallbackY: number, extraSpace = 10): number {
+    const pdfWithTable = this.pdf as unknown as { lastAutoTable?: { finalY?: number } };
+    const finalY = pdfWithTable.lastAutoTable?.finalY;
+    if (typeof finalY === 'number' && !isNaN(finalY)) {
+      return finalY + extraSpace;
+    }
+    return fallbackY + 30 + extraSpace; // Fallback: assume table took ~30mm
+  }
+
   // Calculate total pages based on content
   private calculatePages(): void {
     let pages = 10; // Base pages (cover, toc, setup, equipment, calibration, cal-diagram, scan-params, acceptance, docs, approvals)
 
+    if (this.data.angleBeamDiagram) pages++; // Angle beam calibration block diagram
     if (this.data.scanDetails) pages++; // Scan details table page
+    if (this.data.e2375Diagram) pages++; // E2375 scan directions diagram
     if (this.data.scanDirectionsDrawing) pages++; // Scan directions drawing page
     if (this.data.capturedDrawing) pages++; // Technical drawing page
+    // Safe check for scan plan documents
+    const scanPlanDocs = this.data.scanPlan?.documents || [];
+    if (scanPlanDocs.filter(d => d && d.isActive).length > 0) pages++; // Scan plan page
 
     this.totalPages = pages;
 
@@ -134,16 +224,26 @@ class TechniqueSheetPDFBuilder {
     this.pageMapping.set('equipment', page++);
     this.pageMapping.set('calibration', page++);
     this.pageMapping.set('calibration-diagram', page++);
+    if (this.data.angleBeamDiagram) {
+      this.pageMapping.set('angle-beam-diagram', page++);
+    }
     this.pageMapping.set('scan-parameters', page++);
     this.pageMapping.set('acceptance', page++);
     if (this.data.scanDetails) {
       this.pageMapping.set('scan-details', page++);
+    }
+    if (this.data.e2375Diagram) {
+      this.pageMapping.set('e2375-diagram', page++);
     }
     if (this.data.scanDirectionsDrawing) {
       this.pageMapping.set('scan-directions-drawing', page++);
     }
     if (this.data.capturedDrawing) {
       this.pageMapping.set('technical-drawing', page++);
+    }
+    // Add scan plan page mapping - safe check
+    if (scanPlanDocs.filter(d => d && d.isActive).length > 0) {
+      this.pageMapping.set('scan-plan', page++);
     }
     this.pageMapping.set('documentation', page++);
     this.pageMapping.set('approvals', page++);
@@ -164,6 +264,13 @@ class TechniqueSheetPDFBuilder {
     this.buildCalibration();
     this.addNewPage();
     this.buildCalibrationDiagram();
+
+    // Add angle beam calibration diagram if available (for circular parts)
+    if (this.data.angleBeamDiagram) {
+      this.addNewPage();
+      this.buildAngleBeamDiagram();
+    }
+
     this.addNewPage();
     this.buildScanParameters();
     this.addNewPage();
@@ -174,6 +281,12 @@ class TechniqueSheetPDFBuilder {
       this.buildScanDetails();
     }
 
+    // Add E2375 scan directions diagram if available
+    if (this.data.e2375Diagram) {
+      this.addNewPage();
+      this.buildE2375Diagram();
+    }
+
     if (this.data.scanDirectionsDrawing) {
       this.addNewPage();
       this.buildScanDirectionsDrawing();
@@ -182,6 +295,13 @@ class TechniqueSheetPDFBuilder {
     if (this.data.capturedDrawing) {
       this.addNewPage();
       this.buildTechnicalDrawing();
+    }
+
+    // Add scan plan page if documents exist - safe check
+    const scanPlanDocsForBuild = this.data.scanPlan?.documents || [];
+    if (scanPlanDocsForBuild.filter(d => d && d.isActive).length > 0) {
+      this.addNewPage();
+      this.buildScanPlan();
     }
 
     this.addNewPage();
@@ -473,9 +593,17 @@ class TechniqueSheetPDFBuilder {
       { title: '2. Equipment', page: this.pageMapping.get('equipment') || 4 },
       { title: '3. Calibration', page: this.pageMapping.get('calibration') || 5 },
       { title: '   3.1 Calibration Block Diagram', page: this.pageMapping.get('calibration-diagram') || 6 },
+    ];
+
+    // Add angle beam calibration if available
+    if (this.data.angleBeamDiagram) {
+      tocItems.push({ title: '   3.2 Angle Beam Calibration Block', page: this.pageMapping.get('angle-beam-diagram') || 7 });
+    }
+
+    tocItems.push(
       { title: '4. Scan Parameters', page: this.pageMapping.get('scan-parameters') || 7 },
       { title: '5. Acceptance Criteria', page: this.pageMapping.get('acceptance') || 8 },
-    ];
+    );
 
     // Add optional sections with dynamic numbering
     let sectionNum = 6;
@@ -483,8 +611,14 @@ class TechniqueSheetPDFBuilder {
       tocItems.push({ title: `${sectionNum}. Scan Details & Directions`, page: this.pageMapping.get('scan-details') || 9 });
       sectionNum++;
     }
-    if (this.data.scanDirectionsDrawing) {
+    // Add E2375 scan directions diagram if available
+    if (this.data.e2375Diagram) {
       const subSection = this.data.scanDetails ? `${sectionNum - 1}.1` : String(sectionNum);
+      tocItems.push({ title: `   ${subSection} E2375 Scan Directions Diagram`, page: this.pageMapping.get('e2375-diagram') || 10 });
+      if (!this.data.scanDetails) sectionNum++;
+    }
+    if (this.data.scanDirectionsDrawing) {
+      const subSection = this.data.scanDetails ? `${sectionNum - 1}.2` : String(sectionNum);
       tocItems.push({ title: `   ${subSection} Inspection Plan Drawing`, page: this.pageMapping.get('scan-directions-drawing') || 10 });
       if (!this.data.scanDetails) sectionNum++;
     }
@@ -493,11 +627,18 @@ class TechniqueSheetPDFBuilder {
       sectionNum++;
     }
 
+    // Add scan plan if available - safe check
+    const scanPlanDocsForToc = this.data.scanPlan?.documents || [];
+    if (scanPlanDocsForToc.filter(d => d && d.isActive).length > 0) {
+      tocItems.push({ title: `${sectionNum}. Scan Plan & Reference Documents`, page: this.pageMapping.get('scan-plan') || 11 });
+      sectionNum++;
+    }
+
     const docPage = this.pageMapping.get('documentation') || 11;
     const appPage = this.pageMapping.get('approvals') || 12;
     tocItems.push(
-      { title: `${tocItems.length + 1}. Documentation`, page: docPage },
-      { title: `${tocItems.length + 2}. Approval Signatures`, page: appPage }
+      { title: `${sectionNum}. Documentation`, page: docPage },
+      { title: `${sectionNum + 1}. Approval Signatures`, page: appPage }
     );
 
     this.pdf.setFontSize(11);
@@ -563,7 +704,7 @@ class TechniqueSheetPDFBuilder {
       margin: { left: PAGE.marginLeft, right: PAGE.marginRight },
     });
 
-    y = (this.pdf as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
+    y = this.getTableEndY(y);
 
     // Dimensions Table
     y = this.addSubsectionTitle('Dimensions', y);
@@ -584,7 +725,7 @@ class TechniqueSheetPDFBuilder {
         margin: { left: PAGE.marginLeft, right: PAGE.marginRight },
       });
 
-      y = (this.pdf as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
+      y = this.getTableEndY(y);
     }
 
     // Material Properties
@@ -609,7 +750,7 @@ class TechniqueSheetPDFBuilder {
           margin: { left: PAGE.marginLeft, right: PAGE.marginRight },
         });
 
-        y = (this.pdf as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
+        y = this.getTableEndY(y);
       }
     }
 
@@ -677,7 +818,7 @@ class TechniqueSheetPDFBuilder {
       margin: { left: PAGE.marginLeft, right: PAGE.marginRight },
     });
 
-    y = (this.pdf as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
+    y = this.getTableEndY(y);
 
     // Transducer Settings
     y = this.addSubsectionTitle('Transducer', y);
@@ -704,7 +845,7 @@ class TechniqueSheetPDFBuilder {
       margin: { left: PAGE.marginLeft, right: PAGE.marginRight },
     });
 
-    y = (this.pdf as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
+    y = this.getTableEndY(y);
 
     // Performance Parameters
     y = this.addSubsectionTitle('Performance Parameters', y);
@@ -728,7 +869,7 @@ class TechniqueSheetPDFBuilder {
       margin: { left: PAGE.marginLeft, right: PAGE.marginRight },
     });
 
-    y = (this.pdf as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
+    y = this.getTableEndY(y);
 
     // Phased Array Settings (if applicable)
     if (eq.numberOfElements || eq.elementPitch || eq.wedgeModel || eq.wedgeType) {
@@ -798,7 +939,7 @@ class TechniqueSheetPDFBuilder {
       margin: { left: PAGE.marginLeft, right: PAGE.marginRight },
     });
 
-    y = (this.pdf as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
+    y = this.getTableEndY(y);
 
     // FBH Table
     if (cal.fbhHoles && cal.fbhHoles.length > 0) {
@@ -823,7 +964,7 @@ class TechniqueSheetPDFBuilder {
         margin: { left: PAGE.marginLeft, right: PAGE.marginRight },
       });
 
-      y = (this.pdf as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
+      y = this.getTableEndY(y);
     } else if (cal.fbhSizes) {
       // Legacy FBH sizes string
       y = this.addSubsectionTitle('FBH Sizes', y);
@@ -886,6 +1027,116 @@ class TechniqueSheetPDFBuilder {
   }
 
   // =========================================================================
+  // PAGE: ANGLE BEAM CALIBRATION DIAGRAM (optional - for circular parts)
+  // =========================================================================
+
+  private buildAngleBeamDiagram(): void {
+    this.addHeader();
+    let y = PAGE.contentStart;
+
+    y = this.addSectionTitle('3.2 ANGLE BEAM CALIBRATION BLOCK', y);
+
+    // Add subtitle
+    this.pdf.setFontSize(FONTS.small.size);
+    this.pdf.setTextColor(...COLORS.lightText);
+    this.pdf.text('Shear Wave / Circumferential Inspection Reference Block', PAGE.marginLeft, y);
+    y += 8;
+
+    if (this.data.angleBeamDiagram) {
+      try {
+        // Use full available space for better quality
+        const maxWidth = PAGE.contentWidth;
+        const maxHeight = PAGE.height - y - PAGE.footerHeight - 20;
+
+        this.pdf.addImage(
+          this.data.angleBeamDiagram,
+          'PNG',
+          PAGE.marginLeft,
+          y,
+          maxWidth,
+          Math.min(maxHeight, 180),
+          undefined,
+          'MEDIUM'
+        );
+      } catch {
+        this.pdf.setFontSize(10);
+        this.pdf.setTextColor(...COLORS.lightText);
+        this.pdf.text('Angle beam calibration block diagram could not be loaded.', PAGE.marginLeft, y + 20);
+      }
+    } else {
+      this.pdf.setFontSize(10);
+      this.pdf.setTextColor(...COLORS.lightText);
+      this.pdf.text('No angle beam calibration block diagram available.', PAGE.marginLeft, y + 10);
+    }
+
+    this.pdf.setTextColor(...COLORS.text);
+    this.addFooter();
+  }
+
+  // =========================================================================
+  // PAGE: E2375 SCAN DIRECTIONS DIAGRAM (optional)
+  // =========================================================================
+
+  private buildE2375Diagram(): void {
+    this.addHeader();
+    let y = PAGE.contentStart;
+
+    y = this.addSectionTitle('5.1 ASTM E2375 SCAN DIRECTIONS DIAGRAM', y);
+
+    // Add subtitle with standard reference
+    this.pdf.setFontSize(FONTS.small.size);
+    this.pdf.setTextColor(...COLORS.lightText);
+    const partType = this.data.inspectionSetup.partType || 'Unknown';
+    this.pdf.text(
+      `Standard Practice for Ultrasonic Testing of Wrought Products - ${formatPartType(partType)}`,
+      PAGE.marginLeft,
+      y
+    );
+    y += 8;
+
+    if (this.data.e2375Diagram) {
+      try {
+        // Use full available space
+        const maxWidth = PAGE.contentWidth;
+        const maxHeight = PAGE.height - y - PAGE.footerHeight - 30;
+
+        this.pdf.addImage(
+          this.data.e2375Diagram,
+          'PNG',
+          PAGE.marginLeft,
+          y,
+          maxWidth,
+          Math.min(maxHeight, 160),
+          undefined,
+          'MEDIUM'
+        );
+
+        // Add note below the diagram
+        const noteY = y + Math.min(maxHeight, 160) + 10;
+        this.pdf.setFontSize(8);
+        this.pdf.setTextColor(...COLORS.lightText);
+        this.pdf.text(
+          'Reference: ASTM E2375-16 "Standard Practice for Ultrasonic Testing of Wrought Products"',
+          PAGE.marginLeft,
+          noteY
+        );
+      } catch {
+        this.pdf.setFontSize(10);
+        this.pdf.setTextColor(...COLORS.lightText);
+        this.pdf.text('E2375 scan directions diagram could not be loaded.', PAGE.marginLeft, y + 20);
+      }
+    } else {
+      this.pdf.setFontSize(10);
+      this.pdf.setTextColor(...COLORS.lightText);
+      this.pdf.text('No E2375 scan directions diagram available.', PAGE.marginLeft, y + 10);
+      this.pdf.text('Please visit the Scan Details tab before exporting to capture this diagram.', PAGE.marginLeft, y + 20);
+    }
+
+    this.pdf.setTextColor(...COLORS.text);
+    this.addFooter();
+  }
+
+  // =========================================================================
   // PAGE 7: SCAN PARAMETERS
   // =========================================================================
 
@@ -919,7 +1170,7 @@ class TechniqueSheetPDFBuilder {
       margin: { left: PAGE.marginLeft, right: PAGE.marginRight },
     });
 
-    y = (this.pdf as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
+    y = this.getTableEndY(y);
 
     // Speed & Coverage
     y = this.addSubsectionTitle('Speed & Coverage', y);
@@ -943,7 +1194,7 @@ class TechniqueSheetPDFBuilder {
       margin: { left: PAGE.marginLeft, right: PAGE.marginRight },
     });
 
-    y = (this.pdf as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
+    y = this.getTableEndY(y);
 
     // Gate & Gain Settings
     y = this.addSubsectionTitle('Instrument Settings', y);
@@ -966,7 +1217,7 @@ class TechniqueSheetPDFBuilder {
       margin: { left: PAGE.marginLeft, right: PAGE.marginRight },
     });
 
-    y = (this.pdf as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
+    y = this.getTableEndY(y);
 
     // Phased Array Settings
     if (scan.couplingMethod === 'phased_array' && scan.phasedArray) {
@@ -1056,7 +1307,7 @@ class TechniqueSheetPDFBuilder {
       margin: { left: PAGE.marginLeft, right: PAGE.marginRight },
     });
 
-    y = (this.pdf as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
+    y = this.getTableEndY(y);
 
     // Special Requirements
     if (acc.specialRequirements) {
@@ -1257,6 +1508,111 @@ class TechniqueSheetPDFBuilder {
   }
 
   // =========================================================================
+  // PAGE: SCAN PLAN (Reference Documents)
+  // =========================================================================
+
+  private buildScanPlan(): void {
+    this.addHeader();
+    let y = PAGE.contentStart;
+
+    // Calculate dynamic section number
+    let sectionNum = 7;
+    if (this.data.scanDetails) sectionNum++;
+    if (this.data.scanDirectionsDrawing) sectionNum++;
+    if (this.data.capturedDrawing) sectionNum++;
+
+    y = this.addSectionTitle(`${sectionNum}. SCAN PLAN & REFERENCE DOCUMENTS`, y);
+
+    // Safe check for scanPlan and documents
+    const documents = this.data.scanPlan?.documents || [];
+    
+    if (!this.data.scanPlan || documents.length === 0) {
+      this.pdf.setFontSize(10);
+      this.pdf.setTextColor(...COLORS.lightText);
+      this.pdf.text('No scan plan documents available.', PAGE.marginLeft, y + 10);
+      this.pdf.setTextColor(...COLORS.text);
+      this.addFooter();
+      return;
+    }
+
+    // Filter active documents and sort by order
+    const activeDocuments = documents
+      .filter(doc => doc && doc.isActive)
+      .sort((a, b) => (a.order || 0) - (b.order || 0));
+
+    if (activeDocuments.length === 0) {
+      this.pdf.setFontSize(10);
+      this.pdf.setTextColor(...COLORS.lightText);
+      this.pdf.text('No active scan plan documents configured.', PAGE.marginLeft, y + 10);
+      this.pdf.setTextColor(...COLORS.text);
+      this.addFooter();
+      return;
+    }
+
+    // Subtitle
+    this.pdf.setFontSize(FONTS.small.size);
+    this.pdf.setTextColor(...COLORS.lightText);
+    this.pdf.text('The following reference documents are associated with this technique sheet:', PAGE.marginLeft, y);
+    y += 10;
+
+    // Build documents table - ensure all values are strings
+    const documentRows = activeDocuments.map((doc, index) => [
+      String(index + 1),
+      String(doc.title || '-'),
+      String(doc.description || '-'),
+      String(doc.category || 'General'),
+      doc.filePath ? String(doc.filePath.split('/').pop() || '-') : '-',
+    ]);
+
+    autoTable(this.pdf, {
+      startY: y,
+      head: [['#', 'Document Title', 'Description', 'Category', 'File Reference']],
+      body: documentRows,
+      theme: 'grid',
+      styles: { fontSize: 9, cellPadding: 3 },
+      headStyles: { fillColor: COLORS.primary, textColor: [255, 255, 255] },
+      columnStyles: {
+        0: { cellWidth: 10, halign: 'center' },
+        1: { fontStyle: 'bold', cellWidth: 50 },
+        2: { cellWidth: 'auto' },
+        3: { cellWidth: 30 },
+        4: { cellWidth: 35, fontSize: 8 },
+      },
+      margin: { left: PAGE.marginLeft, right: PAGE.marginRight },
+    });
+
+    y = this.getTableEndY(y, 15);
+
+    // Add note about documents
+    this.pdf.setFillColor(240, 249, 255); // Light blue background
+    this.pdf.roundedRect(PAGE.marginLeft, y, PAGE.contentWidth, 25, 2, 2, 'F');
+    this.pdf.setDrawColor(59, 130, 246); // Blue border
+    this.pdf.roundedRect(PAGE.marginLeft, y, PAGE.contentWidth, 25, 2, 2, 'S');
+
+    this.pdf.setFontSize(9);
+    this.pdf.setFont('helvetica', 'bold');
+    this.pdf.setTextColor(30, 64, 175); // Blue text
+    this.pdf.text('NOTE', PAGE.marginLeft + 5, y + 7);
+    this.pdf.setFont('helvetica', 'normal');
+    this.pdf.setTextColor(30, 58, 138);
+    this.pdf.text(
+      'The documents listed above provide detailed procedures, calibration guides, and reference materials.',
+      PAGE.marginLeft + 5,
+      y + 14,
+      { maxWidth: PAGE.contentWidth - 10 }
+    );
+    this.pdf.text(
+      'Refer to these documents for complete inspection methodology and compliance requirements.',
+      PAGE.marginLeft + 5,
+      y + 20,
+      { maxWidth: PAGE.contentWidth - 10 }
+    );
+
+    this.pdf.setTextColor(...COLORS.text);
+    this.addFooter();
+  }
+
+  // =========================================================================
   // PAGE 11: DOCUMENTATION
   // =========================================================================
 
@@ -1269,6 +1625,9 @@ class TechniqueSheetPDFBuilder {
     if (this.data.scanDetails) docSectionNum++;
     if (this.data.scanDirectionsDrawing && !this.data.scanDetails) docSectionNum++;
     if (this.data.capturedDrawing) docSectionNum++;
+    // Account for scan plan page - safe check
+    const scanPlanDocsForDoc = this.data.scanPlan?.documents || [];
+    if (scanPlanDocsForDoc.filter(d => d && d.isActive).length > 0) docSectionNum++;
 
     y = this.addSectionTitle(`${docSectionNum}. DOCUMENTATION`, y);
 
@@ -1296,7 +1655,7 @@ class TechniqueSheetPDFBuilder {
       margin: { left: PAGE.marginLeft, right: PAGE.marginRight },
     });
 
-    y = (this.pdf as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
+    y = this.getTableEndY(y);
 
     // Customer & Document Info
     y = this.addSubsectionTitle('Customer & Document', y);
@@ -1323,7 +1682,7 @@ class TechniqueSheetPDFBuilder {
       margin: { left: PAGE.marginLeft, right: PAGE.marginRight },
     });
 
-    y = (this.pdf as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
+    y = this.getTableEndY(y);
 
     // Additional Notes
     if (doc.additionalNotes) {
@@ -1348,6 +1707,9 @@ class TechniqueSheetPDFBuilder {
     if (this.data.scanDetails) approvalSectionNum++;
     if (this.data.scanDirectionsDrawing && !this.data.scanDetails) approvalSectionNum++;
     if (this.data.capturedDrawing) approvalSectionNum++;
+    // Account for scan plan page - safe check
+    const scanPlanDocsForApproval = this.data.scanPlan?.documents || [];
+    if (scanPlanDocsForApproval.filter(d => d && d.isActive).length > 0) approvalSectionNum++;
 
     y = this.addSectionTitle(`${approvalSectionNum}. APPROVAL SIGNATURES`, y);
 
@@ -1380,7 +1742,7 @@ class TechniqueSheetPDFBuilder {
       margin: { left: PAGE.marginLeft, right: PAGE.marginRight },
     });
 
-    y = (this.pdf as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 15;
+    y = this.getTableEndY(y, 15);
 
     // Approval notice
     if (doc.approvalRequired) {

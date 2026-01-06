@@ -14,7 +14,7 @@ export const SCAN_DEPTH_COLORS = [
   { depth: 0.0, color: '#FF0000', label: 'Surface' },           // Red - surface
   { depth: 0.125, color: '#FF4500', label: 'Near Surface' },    // Red-Orange
   { depth: 0.25, color: '#FFA500', label: 'Shallow' },          // Orange
-  { depth: 0.375, color: '#FFD700', label: 'Upper Mid' },       // Gold
+  { depth: 0.375, color: '#000000', label: 'Upper Mid' },       // Gold
   { depth: 0.50, color: '#00FF00', label: 'Mid Depth' },        // Green
   { depth: 0.625, color: '#00CED1', label: 'Lower Mid' },       // Dark Turquoise
   { depth: 0.75, color: '#0000FF', label: 'Deep' },             // Blue
@@ -1092,7 +1092,7 @@ export function renderScanZone(
     
     // Create label background (white circle)
     const labelBg = new scope.Path.Circle(new scope.Point(labelX, labelY), 15);
-    labelBg.fillColor = new scope.Color('#FFFFFF');
+    labelBg.fillColor = new scope.Color('#000000');
     labelBg.strokeColor = new scope.Color('#000000');
     labelBg.strokeWidth = 2;
     group.addChild(labelBg);
@@ -1140,7 +1140,7 @@ export function renderScanZone(
         arrowPath.add(new scope.Point(px, py));
       }
 
-      arrowPath.strokeColor = new scope.Color('#00D4FF');
+      arrowPath.strokeColor = new scope.Color('#000000');
       arrowPath.strokeWidth = 1.5;
 
       // Draw arrowhead at the end of the path using the generator's arrow helper
@@ -1377,7 +1377,7 @@ export function addScanLegend(
   const { x, y, orientation } = position;
   
   // Legend title - HIGH CONTRAST
-  generator.drawText(x, y - 10, 'SCAN ZONES', 12, '#FFFFFF');
+  generator.drawText(x, y - 10, 'SCAN ZONES', 12, '#000000');
   
   const legendItemSize = 20;
   const spacing = 5;
@@ -1400,19 +1400,19 @@ export function addScanLegend(
     );
     box.fillColor = new scope.Color(zone.color);
     box.fillColor.alpha = zone.opacity;
-    box.strokeColor = new scope.Color('#FFFFFF');
+    box.strokeColor = new scope.Color('#000000');
     box.strokeWidth = 1;
     
     // Label
     const labelX = orientation === 'vertical' ? itemX + textOffset : itemX + legendItemSize / 2;
     const labelY = orientation === 'vertical' ? itemY + legendItemSize / 2 : itemY + textOffset;
-    generator.drawText(labelX, labelY, zone.label, 10, '#FFFFFF');
+    generator.drawText(labelX, labelY, zone.label, 10, '#000000');
     
     // Depth range
     const depthText = `${(zone.depthStart * 100).toFixed(0)}-${(zone.depthEnd * 100).toFixed(0)}%`;
     const depthX = orientation === 'vertical' ? itemX + textOffset + 20 : itemX;
     const depthY = orientation === 'vertical' ? itemY + legendItemSize / 2 : itemY + textOffset + 12;
-    generator.drawText(depthX, depthY, depthText, 8, '#FFFFFF');
+    generator.drawText(depthX, depthY, depthText, 8, '#000000');
   });
 }
 
@@ -1799,7 +1799,7 @@ export function renderClippedScanCoverage(
           clippedZone.bounds.center.y,
           zone.label,
           labelSize,
-          '#FFFFFF'
+          '#000000'
         );
       }
     }

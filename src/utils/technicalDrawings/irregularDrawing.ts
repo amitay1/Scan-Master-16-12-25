@@ -72,7 +72,7 @@ function drawFrontView(
   path.add(new scope.Point(centerX - scaledLength * 0.2, bottomEdge));
 
   path.closed = true;
-  path.strokeColor = new scope.Color('#FFFFFF');
+  path.strokeColor = new scope.Color('#000000');
   path.strokeWidth = 2;
 
   // Add mounting holes
@@ -80,14 +80,14 @@ function drawFrontView(
     center: [leftEnd + scaledLength * 0.15, centerY],
     radius: scaledThickness * 0.1
   });
-  hole1.strokeColor = new scope.Color('#FFFFFF');
+  hole1.strokeColor = new scope.Color('#000000');
   hole1.strokeWidth = 2;
 
   const hole2 = new scope.Path.Circle({
     center: [rightEnd - scaledLength * 0.15, centerY],
     radius: scaledThickness * 0.1
   });
-  hole2.strokeColor = new scope.Color('#FFFFFF');
+  hole2.strokeColor = new scope.Color('#000000');
   hole2.strokeWidth = 2;
 
   // Centerlines for holes
@@ -146,11 +146,11 @@ function drawFrontView(
     centerY - scaledThickness * 0.15,
     '2×Ø10',
     10,
-    '#FFFFFF'
+    '#000000'
   );
 
   // Note about custom shape
-  generator.drawText(centerX, y + height - 5, 'CUSTOM BRACKET - ALL DIMS IN MM', 10, '#FFD700');
+  generator.drawText(centerX, y + height - 5, 'CUSTOM BRACKET - ALL DIMS IN MM', 10, '#000000');
 }
 
 function drawSideView(
@@ -193,7 +193,7 @@ function drawSideView(
   path.add(new scope.Point(rightEdge, bottomEdge));
 
   path.closed = true;
-  path.strokeColor = new scope.Color('#FFFFFF');
+  path.strokeColor = new scope.Color('#000000');
   path.strokeWidth = 2;
 
   // Add hatching for section view
@@ -243,6 +243,6 @@ function drawSideView(
     centerY,
     'SOLID',
     10,
-    '#FFFFFF'
+    '#000000'
   );
 }

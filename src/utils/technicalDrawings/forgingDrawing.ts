@@ -76,7 +76,7 @@ function drawFrontView(
   path.add(new scope.Point(leftEnd, centerY + scaledThickness * 0.2));
 
   path.closed = true;
-  path.strokeColor = new scope.Color('#FFFFFF');
+  path.strokeColor = new scope.Color('#000000');
   path.strokeWidth = 2;
 
   // Add forge flow lines (characteristic of forged parts)
@@ -123,7 +123,7 @@ function drawFrontView(
   );
 
   // Add forging note
-  generator.drawText(centerX, y + height - 5, 'FORGED PART - DRAFT ANGLE 7°', 10, '#FFD700');
+  generator.drawText(centerX, y + height - 5, 'FORGED PART - DRAFT ANGLE 7°', 10, '#000000');
 }
 
 function drawSideView(
@@ -168,7 +168,7 @@ function drawSideView(
     path.add(point);
   }
   path.closed = true;
-  path.strokeColor = new scope.Color('#FFFFFF');
+  path.strokeColor = new scope.Color('#000000');
   path.strokeWidth = 2;
 
   // Add hatching
@@ -209,6 +209,6 @@ function drawSideView(
     centerY,
     'SOLID',
     10,
-    '#FFFFFF'
+    '#000000'
   );
 }

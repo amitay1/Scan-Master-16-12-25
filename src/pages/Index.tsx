@@ -26,7 +26,6 @@ import { ScansTab } from "@/components/tabs/ScansTab";
 import { RemarksTab } from "@/components/tabs/RemarksTab";
 import { ScanDetailsTab } from "@/components/tabs/ScanDetailsTab";
 import type { ScanDetailsData } from "@/types/scanDetails";
-import { TechnicalDrawingTab } from "@/components/tabs/TechnicalDrawingTab";
 import { ScanPlanTab } from "@/components/tabs/ScanPlanTab";
 import { ProbeProgressGauge } from "@/components/ui/ProbeProgressGauge";
 import { HorizontalProgressBar } from "@/components/ui/HorizontalProgressBar";
@@ -64,6 +63,10 @@ import { testCards, type TestCard } from "@/data/testCards";
 import { CurrentShapeHeader } from "@/components/CurrentShapeHeader";
 import { useAutoSave } from "@/hooks/useAutoSave";
 import { useLicense } from "@/contexts/LicenseContext";
+import { DiagnosticsExportDialog } from "@/components/support/DiagnosticsExportDialog";
+import { SelfDiagnosticPanel } from "@/components/diagnostics/SelfDiagnosticPanel";
+import { OfflineUpdateDialog } from "@/components/updates/OfflineUpdateDialog";
+import { LicenseWarningBanner } from "@/components/LicenseWarningBanner";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -77,9 +80,13 @@ const Index = () => {
   const [isSplitMode, setIsSplitMode] = useState(false);
   const [activePart, setActivePart] = useState<"A" | "B">("A");
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [diagnosticsDialogOpen, setDiagnosticsDialogOpen] = useState(false);
+  const [diagnosticsPanelOpen, setDiagnosticsPanelOpen] = useState(false);
+  const [offlineUpdateDialogOpen, setOfflineUpdateDialogOpen] = useState(false);
+  const [licenseWarningDismissed, setLicenseWarningDismissed] = useState(false);
   const [capturedDrawing, setCapturedDrawing] = useState<string | undefined>();
   const [calibrationBlockDiagram, setCalibrationBlockDiagram] = useState<string | undefined>();
-  const [viewer3DOpen, setViewer3DOpen] = useState(true);
+  const [viewer3DOpen, setViewer3DOpen] = useState(false); // Start collapsed by default
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   // Smart capture system for export
@@ -87,12 +94,18 @@ const Index = () => {
     captures: exportCaptures,
     captureTechnicalDrawing,
     captureCalibrationBlock,
+    captureAngleBeamBlock,
+    captureE2375Diagram,
     captureScanDirections,
     isCapturing: isCaptureInProgress,
   } = useExportCaptures();
 
   // State for captured scan directions drawing
   const [capturedScanDirections, setCapturedScanDirections] = useState<string | undefined>();
+  // State for angle beam calibration diagram
+  const [angleBeamDiagram, setAngleBeamDiagram] = useState<string | undefined>();
+  // State for E2375 scan directions diagram
+  const [e2375Diagram, setE2375Diagram] = useState<string | undefined>();
 
   const [inspectionSetup, setInspectionSetup] = useState<InspectionSetupData>({
     partNumber: "",
@@ -168,6 +181,8 @@ const Index = () => {
 
   const [scanParameters, setScanParameters] = useState<ScanParametersData>({
     scanMethod: "",
+    scanMethods: [],
+    technique: "conventional",
     scanType: "",
     scanSpeed: 100,
     scanIndex: 70,
@@ -181,6 +196,8 @@ const Index = () => {
 
   const [scanParametersB, setScanParametersB] = useState<ScanParametersData>({
     scanMethod: "",
+    scanMethods: [],
+    technique: "conventional",
     scanType: "",
     scanSpeed: 100,
     scanIndex: 70,
@@ -409,6 +426,8 @@ const Index = () => {
     setCapturedDrawing(undefined);
     setCapturedScanDirections(undefined);
     setCalibrationBlockDiagram(undefined);
+    setAngleBeamDiagram(undefined);
+    setE2375Diagram(undefined);
   }, [
     inspectionSetup.partType,
     inspectionSetup.diameter,
@@ -1119,6 +1138,9 @@ const Index = () => {
       // Capture all drawings by visiting each tab temporarily
       const originalTab = activeTab;
 
+      // Import smartCapture for direct DOM capture
+      const { smartCapture } = await import('@/utils/export/captureEngine');
+
       try {
         // Step 1: Go to technical drawing tab and capture
         setActiveTab('drawing');
@@ -1148,18 +1170,64 @@ const Index = () => {
           }
         }
 
-        // Step 2: Go to calibration tab and capture
+        // Step 2: Go to calibration tab and capture straight beam (FBH) diagram
         setActiveTab('calibration');
         await new Promise(resolve => setTimeout(resolve, 800)); // Wait for SVG to render
 
-        const captureResult = await captureCalibrationBlock();
-        if (captureResult && exportCaptures.calibrationBlockDiagram) {
-          setCalibrationBlockDiagram(exportCaptures.calibrationBlockDiagram);
+        // Directly capture using smartCapture instead of relying on stale state
+        const calibrationResult = await smartCapture([
+          '#calibration-block-svg',
+          'svg#calibration-block-svg',
+          '[data-testid="calibration-block-diagram"]',
+          'svg[data-testid="calibration-block-diagram"]',
+          '.fbh-straight-beam-drawing',
+          'svg.fbh-straight-beam-drawing',
+          '.calibration-drawing svg',
+          '.calibration-tab svg',
+        ], { scale: 3, quality: 1.0, backgroundColor: 'white', maxWidth: 1800, maxHeight: 1200 });
+        
+        if (calibrationResult.success && calibrationResult.data) {
+          setCalibrationBlockDiagram(calibrationResult.data);
         }
 
-        // Step 3: Scan directions now use E2375 PDF directly (no canvas to capture)
-        // We skip this capture as the PDF is embedded via iframe in E2375DiagramViewer
-        console.log('Scan directions: Using E2375 PDF directly in exports');
+        // Step 2b: Also capture angle beam diagram if present (for tubes, rings, etc.)
+        const angleBeamResult = await smartCapture([
+          '[data-testid="angle-beam-calibration-block"]',
+          '.angle-beam-calibration-block',
+          '.angle-beam-calibration-block img',
+        ], { scale: 3, quality: 1.0, backgroundColor: 'white', maxWidth: 1800, maxHeight: 1200 });
+        
+        if (angleBeamResult.success && angleBeamResult.data) {
+          setAngleBeamDiagram(angleBeamResult.data);
+        }
+
+        // Step 3: Go to scan details tab and capture E2375 diagram AND scan directions
+        setActiveTab('scandetails');
+        await new Promise(resolve => setTimeout(resolve, 800)); // Wait for image to render
+
+        // Capture E2375 standard diagram (look for the actual img element first)
+        const e2375Result = await smartCapture([
+          '[data-testid="e2375-diagram-img"]',  // Direct image element with testid
+          '[data-testid="e2375-diagram"] img',  // Image inside container
+          '.e2375-diagram-image img',
+          '.e2375-diagram-container img',
+          '[data-testid="e2375-diagram"]',
+        ], { scale: 2, quality: 1.0, backgroundColor: 'white', maxWidth: 1200, maxHeight: 800 });
+        
+        if (e2375Result.success && e2375Result.data) {
+          setE2375Diagram(e2375Result.data);
+        }
+
+        // Step 3b: Capture scan directions canvas (InspectionPlanViewer)
+        const scanDirectionsResult = await smartCapture([
+          '#scan-directions-canvas',
+          '[data-testid="scan-directions-canvas"]',
+          '.inspection-plan-viewer canvas',
+        ], { scale: 3, quality: 1.0, backgroundColor: 'white', maxWidth: 1800, maxHeight: 1200 });
+        
+        if (scanDirectionsResult.success && scanDirectionsResult.data) {
+          setCapturedScanDirections(scanDirectionsResult.data);
+        }
 
         // Step 4: Return to original tab
         setActiveTab(originalTab);
@@ -1318,6 +1386,11 @@ const Index = () => {
         allowClose={false}
       />
 
+      {/* License Expiry Warning Banner */}
+      {!licenseWarningDismissed && (
+        <LicenseWarningBanner onDismiss={() => setLicenseWarningDismissed(true)} />
+      )}
+
       {/* Menu Bar - Hidden on Mobile and in Electron (uses native menu) */}
       {!isElectron && (
         <div className="hidden md:block">
@@ -1329,6 +1402,9 @@ const Index = () => {
             onSignOut={signOut}
             onOpenDrawingEngine={() => navigate("/drawing-test")}
             onLoadSampleCards={handleLoadSampleCards}
+            onExportDiagnostics={() => setDiagnosticsDialogOpen(true)}
+            onRunDiagnostics={() => setDiagnosticsPanelOpen(true)}
+            onOfflineUpdate={() => setOfflineUpdateDialogOpen(true)}
           />
         </div>
       )}
@@ -1400,13 +1476,12 @@ const Index = () => {
                     <div className="w-full overflow-x-auto scrollbar-hide md:overflow-visible sticky top-0 bg-background z-10 pb-2">
                       <TabsList className="inline-flex flex-nowrap h-10 items-center justify-start md:justify-center rounded-md bg-muted p-1 text-muted-foreground w-max md:w-full">
                         <TabsTrigger value="setup" className="flex-shrink-0 px-3">Setup</TabsTrigger>
-                        <TabsTrigger value="scandetails" className="flex-shrink-0 px-3 whitespace-nowrap">Scan Details</TabsTrigger>
-                        <TabsTrigger value="drawing" className="flex-shrink-0 px-3 whitespace-nowrap">Technical Drawing</TabsTrigger>
                         <TabsTrigger value="equipment" className="flex-shrink-0 px-3">Equipment</TabsTrigger>
-                        <TabsTrigger value="calibration" className="flex-shrink-0 px-3 whitespace-nowrap">Reference Standard</TabsTrigger>
                         <TabsTrigger value="scan" className="flex-shrink-0 px-3 whitespace-nowrap">Scan Params</TabsTrigger>
                         <TabsTrigger value="acceptance" className="flex-shrink-0 px-3">Acceptance</TabsTrigger>
+                        <TabsTrigger value="scandetails" className="flex-shrink-0 px-3 whitespace-nowrap">Scan Details</TabsTrigger>
                         <TabsTrigger value="docs" className="flex-shrink-0 px-3">Documentation</TabsTrigger>
+                        <TabsTrigger value="calibration" className="flex-shrink-0 px-3 whitespace-nowrap">Reference Standard</TabsTrigger>
                         <TabsTrigger value="scanplan" className="flex-shrink-0 px-3 whitespace-nowrap">Scan Plan</TabsTrigger>
                       </TabsList>
                     </div>
@@ -1472,31 +1547,6 @@ const Index = () => {
                         />
                       </TabsContent>
 
-                      <TabsContent value="drawing" className="m-0">
-                        {currentData.inspectionSetup.partType ? (
-                          <TechnicalDrawingTab
-                            partType={currentData.inspectionSetup.partType}
-                            dimensions={{
-                              length: currentData.inspectionSetup.partLength || 100,
-                              width: currentData.inspectionSetup.partWidth || 50,
-                              thickness: currentData.inspectionSetup.partThickness || 10,
-                              diameter: currentData.inspectionSetup.diameter || undefined,
-                              isHollow: currentData.inspectionSetup.isHollow,
-                              innerDiameter: currentData.inspectionSetup.innerDiameter,
-                              innerLength: currentData.inspectionSetup.innerLength,
-                              innerWidth: currentData.inspectionSetup.innerWidth,
-                              wallThickness: currentData.inspectionSetup.wallThickness,
-                            }}
-                            material={currentData.inspectionSetup.material as MaterialType}
-                          />
-                        ) : (
-                          <div className="p-6 text-center">
-                            <p className="text-muted-foreground">
-                              Please select a part type in the Setup tab to view the technical drawing.
-                            </p>
-                          </div>
-                        )}
-                      </TabsContent>
 
                       <TabsContent value="equipment" className="m-0">
                         <EquipmentTab
@@ -1513,13 +1563,6 @@ const Index = () => {
                           onChange={currentData.setCalibration}
                           inspectionSetup={currentData.inspectionSetup}
                           acceptanceClass={currentData.acceptanceCriteria.acceptanceClass}
-                          equipmentData={{
-                            probeType: currentData.equipment.transducerType || "contact",
-                            frequency: currentData.equipment.frequency || 5.0,
-                            inspectionType: "straight_beam" // Can add this field to Equipment data
-                          }}
-                          userId="current-user" // Replace with actual user ID
-                          projectId="current-project" // Replace with actual project ID
                           standard={standard}
                         />
                       </TabsContent>
@@ -1603,9 +1646,9 @@ const Index = () => {
             </div>
           </Tabs>
 
-          {/* 3D Viewer Panel - Only visible on Setup tab */}
-          {activeTab === "setup" && (
-            <div className="hidden lg:block px-4 pb-4">
+          {/* 3D Viewer Panel - In floating mode always visible, otherwise only on Setup tab */}
+          {(activeTab === "setup" || (typeof localStorage !== 'undefined' && localStorage.getItem('viewer3DFloating') === 'true')) && (
+            <div className={localStorage.getItem('viewer3DFloating') === 'true' ? '' : 'hidden lg:block px-4 pb-4'}>
               <Collapsible3DPanel
                 title="3D Part Viewer"
                 isOpen={viewer3DOpen}
@@ -1662,37 +1705,58 @@ const Index = () => {
         documentation={isSplitMode && activePart === "B" ? documentationB : documentation}
         inspectionReport={inspectionReport}
         scanDetails={scanDetails}
+        scanPlan={isSplitMode && activePart === "B" ? scanPlanB : scanPlan}
         capturedDrawing={capturedDrawing}
         calibrationBlockDiagram={calibrationBlockDiagram}
+        angleBeamDiagram={angleBeamDiagram}
+        e2375Diagram={e2375Diagram}
         scanDirectionsDrawing={capturedScanDirections}
         onExport={(format, template) => {
           toast.success(`Exported ${template.toUpperCase()} as ${format.toUpperCase()} successfully!`);
         }}
       />
 
+      {/* Diagnostics Export Dialog */}
+      <DiagnosticsExportDialog
+        open={diagnosticsDialogOpen}
+        onOpenChange={setDiagnosticsDialogOpen}
+      />
+
+      {/* Self-Diagnostic Panel */}
+      <SelfDiagnosticPanel
+        open={diagnosticsPanelOpen}
+        onOpenChange={setDiagnosticsPanelOpen}
+      />
+
+      {/* Offline Update Dialog (USB) */}
+      <OfflineUpdateDialog
+        open={offlineUpdateDialogOpen}
+        onOpenChange={setOfflineUpdateDialogOpen}
+      />
+
       <Dialog open={isSaveDialogOpen} onOpenChange={setIsSaveDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>שמירת כרטיס</DialogTitle>
-            <DialogDescription>תן לכרטיס שם ברור כדי שתוכל למצוא אותו בקלות.</DialogDescription>
+            <DialogTitle>Save Card</DialogTitle>
+            <DialogDescription>Give your card a clear name so you can find it easily.</DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
-            <Label htmlFor="card-name">שם הכרטיס</Label>
+            <Label htmlFor="card-name">Card Name</Label>
             <Input
               id="card-name"
               value={sheetNameInput}
               onChange={(event) => setSheetNameInput(event.target.value)}
-              placeholder="לדוגמה: AMS-STD-2154E - חלק 123"
+              placeholder="e.g., AMS-STD-2154E - Part 123"
               autoFocus
             />
           </div>
           <DialogFooter className="gap-2 sm:gap-0">
             <Button variant="outline" onClick={() => setIsSaveDialogOpen(false)}>
-              ביטול
+              Cancel
             </Button>
             <Button onClick={handleSaveDialogConfirm} disabled={!sheetNameInput.trim() || isSavingSheet}>
               {isSavingSheet && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              שמור כרטיס
+              Save Card
             </Button>
           </DialogFooter>
         </DialogContent>

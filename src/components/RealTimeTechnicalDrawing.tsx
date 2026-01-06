@@ -85,8 +85,8 @@ export const RealTimeTechnicalDrawing = ({
 
   // Standard layout configuration - 2 views only (Front and Side)
   const layout: LayoutConfig = useMemo(() => ({
-    frontView: { x: 50, y: 80, width: 380, height: 450 },
-    sideView: { x: 460, y: 80, width: 380, height: 450 },
+    frontView: { x: 30, y: 50, width: 340, height: 340 },
+    sideView: { x: 420, y: 50, width: 340, height: 340 },
     // Keep these for compatibility but won't be used
     topView: { x: 0, y: 0, width: 0, height: 0 },
     isometric: { x: 0, y: 0, width: 0, height: 0 }
@@ -152,9 +152,9 @@ export const RealTimeTechnicalDrawing = ({
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    // Set canvas size
-    canvas.width = 850;
-    canvas.height = 650;
+    // Set canvas size to fit container
+    canvas.width = 800;
+    canvas.height = 450;
 
     // ALWAYS re-initialize generator to ensure clean slate
     // This fixes issues where the canvas doesn't update properly
@@ -172,7 +172,7 @@ export const RealTimeTechnicalDrawing = ({
     }
 
     // Draw title
-    generator.drawText(425, 30, `TECHNICAL DRAWING - ${partType.toUpperCase()}`, 18, '#000000');
+    generator.drawText(400, 25, `TECHNICAL DRAWING - ${partType.toUpperCase()}`, 14, '#000000');
 
       // Draw based on part type
       try {
@@ -359,15 +359,16 @@ export const RealTimeTechnicalDrawing = ({
   }, [partType, drawingDimensions, layout, showGrid, material, showScanCoverage, scanType, coverageDimensions]);
 
   return (
-    <div className="w-full h-full flex items-center justify-center bg-background">
+    <div className="w-full h-full flex items-center justify-center bg-[#D4D4D4]">
       <canvas
         id="technical-drawing-canvas"
         ref={canvasRef}
-        className="border border-border rounded-lg shadow-lg"
+        className="border border-gray-400 rounded-lg shadow-lg"
         style={{
           maxWidth: '100%',
           maxHeight: '100%',
-          imageRendering: 'crisp-edges'
+          imageRendering: 'crisp-edges',
+          backgroundColor: '#D4D4D4'
         }}
       />
     </div>

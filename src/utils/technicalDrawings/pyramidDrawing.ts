@@ -53,7 +53,7 @@ function drawFrontView(
   path.add(new scope.Point(centerX, topY)); // Apex
   path.add(new scope.Point(centerX + scaledBase / 2, bottomY)); // Bottom right
   path.closed = true;
-  path.strokeColor = new scope.Color('#FFFFFF');
+  path.strokeColor = new scope.Color('#000000');
   path.strokeWidth = 2;
 
   // Draw height centerline
@@ -97,7 +97,7 @@ function drawFrontView(
     bottomY - 20,
     `α=${angle.toFixed(1)}°`,
     10,
-    '#FFFFFF'
+    '#000000'
   );
 }
 
@@ -133,7 +133,7 @@ function drawSideView(
   path.add(new scope.Point(centerX, topY));
   path.add(new scope.Point(centerX + scaledBase / 2, bottomY));
   path.closed = true;
-  path.strokeColor = new scope.Color('#FFFFFF');
+  path.strokeColor = new scope.Color('#000000');
   path.strokeWidth = 2;
 
   // Add hatching for section view
@@ -171,6 +171,6 @@ function drawSideView(
     centerY,
     'SOLID',
     10,
-    '#FFFFFF'
+    '#000000'
   );
 }

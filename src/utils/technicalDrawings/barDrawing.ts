@@ -134,6 +134,6 @@ function drawSideView(
     rectY + scaledThickness / 2,
     'BAR (L/W>4)',
     10,
-    '#FFFFFF'
+    '#000000'
   );
 }

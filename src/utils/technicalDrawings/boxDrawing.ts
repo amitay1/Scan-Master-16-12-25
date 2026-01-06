@@ -97,7 +97,7 @@ function drawFrontView(
       rectY - 15,
       `t=${wallThickness}mm`,
       10,
-      '#FFD700'
+      '#000000'
     );
   }
 }
@@ -157,7 +157,7 @@ function drawSideView(
       rectY + scaledThickness / 2,
       'HOLLOW',
       10,
-      '#FFFFFF'
+      '#000000'
     );
   } else {
     // Solid - add hatching for section view
@@ -168,7 +168,7 @@ function drawSideView(
       rectY + scaledThickness / 2,
       'BOX/BILLET',
       10,
-      '#FFFFFF'
+      '#000000'
     );
   }
 

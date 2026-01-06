@@ -36,8 +36,12 @@ const BOTH_BEAM_GEOMETRIES: PartGeometry[] = [
   "sleeve",
   "bushing",
 
-  // Hollow cylinders (if marked as hollow in the part setup)
-  "cylinder", // Note: Only if isHollow=true, otherwise straight only
+  // Cylinders - both solid and hollow need angle beam for circumferential inspection
+  "cylinder",
+
+  // Spherical and conical parts - require circumferential shear wave inspection
+  "cone",
+  "sphere",
 ];
 
 /**
@@ -115,11 +119,6 @@ export function getBeamRequirement(
   if (!partType) return "straight_only";
 
   const normalizedType = partType.toLowerCase() as PartGeometry;
-
-  // Special case: cylinders are "both" only if hollow
-  if (normalizedType === "cylinder") {
-    return isHollow ? "both" : "straight_only";
-  }
 
   // Check if requires both beam types
   if (BOTH_BEAM_GEOMETRIES.includes(normalizedType)) {

@@ -91,6 +91,29 @@ contextBridge.exposeInMainWorld('electron', {
     getInfo: () => ipcRenderer.invoke('license:getInfo'),
     hasStandard: (standardCode) => ipcRenderer.invoke('license:hasStandard', standardCode),
     getStandards: () => ipcRenderer.invoke('license:getStandards'),
-    deactivate: () => ipcRenderer.invoke('license:deactivate')
+    deactivate: () => ipcRenderer.invoke('license:deactivate'),
+    // Offline Activation
+    generateActivationRequest: () => ipcRenderer.invoke('license:generateActivationRequest'),
+    activateOffline: (licenseKey, responseCode) => ipcRenderer.invoke('license:activateOffline', licenseKey, responseCode),
+    getMachineInfo: () => ipcRenderer.invoke('license:getMachineInfo')
+  },
+
+  // File operations - for PDF export etc.
+  savePDF: (data, filename) => ipcRenderer.invoke('save-pdf', { data, filename }),
+
+  // Offline Update API (USB Updates for air-gapped factories)
+  offlineUpdate: {
+    browse: () => ipcRenderer.invoke('offline-update:browse'),
+    scan: (directoryPath) => ipcRenderer.invoke('offline-update:scan', directoryPath),
+    validate: (packageInfo) => ipcRenderer.invoke('offline-update:validate', packageInfo),
+    install: (packageInfo, options) => ipcRenderer.invoke('offline-update:install', packageInfo, options),
+    getDisplayInfo: (packageInfo) => ipcRenderer.invoke('offline-update:getDisplayInfo', packageInfo),
+    getCurrentVersion: () => ipcRenderer.invoke('offline-update:getCurrentVersion'),
+    onProgress: (callback) => {
+      ipcRenderer.on('offline-update-progress', (event, progress) => callback(progress));
+    },
+    removeProgressListener: () => {
+      ipcRenderer.removeAllListeners('offline-update-progress');
+    }
   }
 });

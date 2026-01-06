@@ -161,7 +161,7 @@ function drawSideView(
       centerY - 10,
       `t=${((diameter - innerDiameter) / 2).toFixed(1)}mm`,
       10,
-      '#FFD700'
+      '#000000'
     );
 
     // Dimension - inner diameter
@@ -197,7 +197,7 @@ function drawSideView(
       centerY + 5,
       '(SOLID)',
       10,
-      '#FFFFFF'  // White for contrast
+      '#000000'  // White for contrast
     );
   }
 

@@ -64,7 +64,7 @@ function drawFrontView(
   conePath.add(new scope.Point(centerX + scaledTop / 2, topY)); // Top right
   conePath.add(new scope.Point(centerX + scaledBase / 2, bottomY)); // Bottom right
   conePath.closed = true;
-  conePath.strokeColor = new scope.Color('#FFFFFF');
+  conePath.strokeColor = new scope.Color('#000000');
   conePath.strokeWidth = 2;
 
   // Draw inner profile if hollow
@@ -121,7 +121,7 @@ function drawFrontView(
 
   // Taper angle calculation
   const taperAngle = Math.atan((baseDiameter - topDiameter) / 2 / height) * (180 / Math.PI);
-  generator.drawText(centerX, bottomY + 55, `Taper: ${taperAngle.toFixed(1)}°`, 10, '#FFFFFF');
+  generator.drawText(centerX, bottomY + 55, `Taper: ${taperAngle.toFixed(1)}°`, 10, '#000000');
 }
 
 function drawSideView(
@@ -168,7 +168,7 @@ function drawSideView(
     outerPath.add(new scope.Point(centerX + scaledTop / 2, topY));
     outerPath.add(new scope.Point(centerX + scaledBase / 2, bottomY));
     outerPath.closed = true;
-    outerPath.strokeColor = new scope.Color('#FFFFFF');
+    outerPath.strokeColor = new scope.Color('#000000');
     outerPath.strokeWidth = 2;
 
     // Draw inner profile
@@ -178,7 +178,7 @@ function drawSideView(
     innerPath.add(new scope.Point(centerX + scaledInnerTop / 2, topY));
     innerPath.add(new scope.Point(centerX + scaledInnerBase / 2, bottomY));
     innerPath.closed = true;
-    innerPath.strokeColor = new scope.Color('#FFFFFF');
+    innerPath.strokeColor = new scope.Color('#000000');
     innerPath.strokeWidth = 2;
 
     // Hatching for left wall
@@ -205,7 +205,7 @@ function drawSideView(
       centerY,
       `t=${wallThickness}mm`,
       10,
-      '#FFD700'
+      '#000000'
     );
   } else {
     // Solid cone - full hatching
@@ -231,10 +231,10 @@ function drawSideView(
     conePath.add(new scope.Point(centerX + scaledTop / 2, topY));
     conePath.add(new scope.Point(centerX + scaledBase / 2, bottomY));
     conePath.closed = true;
-    conePath.strokeColor = new scope.Color('#FFFFFF');
+    conePath.strokeColor = new scope.Color('#000000');
     conePath.strokeWidth = 2;
 
-    generator.drawText(centerX, centerY, 'SOLID', 10, '#FFFFFF');
+    generator.drawText(centerX, centerY, 'SOLID', 10, '#000000');
   }
 
   // Centerline

@@ -2,10 +2,6 @@
  * Tube (Hollow Cylinder) Technical Drawing Module
  * Generates 2-view technical drawings for tubular parts
  * Tubes are always hollow with OD, ID, and wall thickness
- *
- * Professional aerospace-grade drawing with scan direction indicators:
- * - Front View: Side profile with LW 0° axial arrows (A-A, B-B) and radial arrow (C)
- * - End View: Cross-section with SW 45° shear wave arrows
  */
 
 import { TechnicalDrawingGenerator, Dimensions, LayoutConfig } from './TechnicalDrawingGenerator';
@@ -44,10 +40,10 @@ export function drawTubeTechnicalDrawing(
     wallThickness = (outerDiameter - innerDiameter) / 2;
   }
 
-  // FRONT VIEW (Side profile - Length × OD with scan direction arrows)
+  // FRONT VIEW (Side profile - Length × OD)
   drawFrontView(generator, length, outerDiameter, innerDiameter, wallThickness, layout.frontView);
 
-  // SIDE VIEW (End view - Concentric circles with SW 45° arrows)
+  // SIDE VIEW (End view - Concentric circles)
   drawSideView(generator, outerDiameter, innerDiameter, wallThickness, layout.sideView);
 }
 
@@ -56,7 +52,7 @@ function drawFrontView(
   length: number,
   outerDiameter: number,
   innerDiameter: number,
-  _wallThickness: number, // Reserved for future use
+  _wallThickness: number,
   viewConfig?: { x: number; y: number; width: number; height: number }
 ) {
   if (!viewConfig) return;
@@ -65,14 +61,14 @@ function drawFrontView(
   // View label
   generator.drawViewLabel(x + width / 2, y, 'FRONT VIEW');
 
-  // Scale to fit - use 0.35 to leave plenty of room for scan arrows
-  const scale = Math.min(width / length, height / outerDiameter) * 0.35;
+  // Scale to fit - use 0.5 for better visibility
+  const scale = Math.min(width / length, height / outerDiameter) * 0.5;
   const scaledLength = length * scale;
   const scaledOD = outerDiameter * scale;
   const scaledID = innerDiameter * scale;
 
-  // Position the tube more to the left to leave space for arrow C on the right
-  const outerX = x + (width - scaledLength) / 2 - 40;
+  // Center the tube
+  const outerX = x + (width - scaledLength) / 2;
   const outerY = y + (height - scaledOD) / 2;
 
   const innerX = outerX;
@@ -104,103 +100,33 @@ function drawFrontView(
     'center'
   );
 
-  // ============================================
-  // SCAN DIRECTION ARROWS (matching the hand drawing)
-  // ============================================
-  const arrowColor = '#FF0000'; // Red arrows like in the sketch
-  const arrowHeadSize = 10;
-
-  // A-A: LW 0° (AXIAL) - Arrow from top pointing down
-  const arrowAX = centerX;
-  const arrowAStartY = outerY - 40;
-  const arrowAEndY = outerY - 5;
-
-  // Draw arrow line A-A
-  generator.drawLine(arrowAX, arrowAStartY, arrowAX, arrowAEndY, 'cutting');
-  // Draw arrowhead pointing down
-  drawScanArrowHead(generator, arrowAX, arrowAEndY, Math.PI / 2, arrowHeadSize, arrowColor);
-  // Label A-A
-  generator.drawText(arrowAX + 60, arrowAStartY + 10, 'A-A, LW 0° (AXIAL)', 10, arrowColor);
-
-  // B-B: LW 0° (AXIAL) - Arrow from bottom pointing up
-  const arrowBX = centerX;
-  const arrowBStartY = outerY + scaledOD + 40;
-  const arrowBEndY = outerY + scaledOD + 5;
-
-  // Draw arrow line B-B
-  generator.drawLine(arrowBX, arrowBStartY, arrowBX, arrowBEndY, 'cutting');
-  // Draw arrowhead pointing up
-  drawScanArrowHead(generator, arrowBX, arrowBEndY, -Math.PI / 2, arrowHeadSize, arrowColor);
-  // Label B-B
-  generator.drawText(arrowBX + 60, arrowBStartY - 10, 'B-B, LW 0° (AXIAL)', 10, arrowColor);
-
-  // C: LW 0° (RADIAL) - Arrow from right pointing left (into the tube wall)
-  const arrowCX = outerX + scaledLength + 50;
-  const arrowCEndX = outerX + scaledLength + 5;
-  const arrowCY = centerY;
-
-  // Draw arrow line C
-  generator.drawLine(arrowCX, arrowCY, arrowCEndX, arrowCY, 'cutting');
-  // Draw arrowhead pointing left
-  drawScanArrowHead(generator, arrowCEndX, arrowCY, Math.PI, arrowHeadSize, arrowColor);
-  // Label C
-  generator.drawText(arrowCX + 70, arrowCY, 'C, LW 0° (RADIAL)', 10, arrowColor);
-
-  // ============================================
   // DIMENSIONS
-  // ============================================
   generator.drawDimension(
     outerX,
-    outerY + scaledOD + 70,
+    outerY + scaledOD + 40,
     outerX + scaledLength,
-    outerY + scaledOD + 70,
+    outerY + scaledOD + 40,
     `L=${length}mm`,
     5
   );
 
   generator.drawDimension(
-    outerX - 50,
+    outerX - 40,
     outerY,
-    outerX - 50,
+    outerX - 40,
     outerY + scaledOD,
     `OD=${outerDiameter}mm`,
     5
   );
 
   generator.drawDimension(
-    outerX - 80,
+    outerX - 70,
     innerY,
-    outerX - 80,
+    outerX - 70,
     innerY + scaledID,
     `ID=${innerDiameter.toFixed(1)}mm`,
     5
   );
-}
-
-/**
- * Draw a scan direction arrowhead
- */
-function drawScanArrowHead(
-  generator: TechnicalDrawingGenerator,
-  x: number,
-  y: number,
-  angle: number,
-  size: number,
-  color: string
-) {
-  const scope = generator.getScope();
-  const path = new scope.Path();
-  path.add(new scope.Point(x, y));
-  path.add(new scope.Point(
-    x - size * Math.cos(angle - Math.PI / 6),
-    y - size * Math.sin(angle - Math.PI / 6)
-  ));
-  path.add(new scope.Point(
-    x - size * Math.cos(angle + Math.PI / 6),
-    y - size * Math.sin(angle + Math.PI / 6)
-  ));
-  path.closed = true;
-  path.fillColor = new scope.Color(color);
 }
 
 function drawSideView(
@@ -214,15 +140,15 @@ function drawSideView(
   const { x, y, width, height } = viewConfig;
 
   // View label - END VIEW showing cross-section
-  generator.drawViewLabel(x + width / 2, y, 'END VIEW (SECTION A-A)');
+  generator.drawViewLabel(x + width / 2, y, 'SECTION A-A');
 
-  // Scale to fit - use 0.3 to leave plenty of room for SW arrows
-  const scale = Math.min(width, height) / outerDiameter * 0.3;
+  // Scale to fit - use 0.45 for better visibility
+  const scale = Math.min(width, height) / outerDiameter * 0.45;
   const scaledOuterRadius = (outerDiameter / 2) * scale;
   const scaledInnerRadius = (innerDiameter / 2) * scale;
 
-  // Position the circle more to the right to leave space for SW arrows on the left
-  const centerX = x + width / 2 + 40;
+  // Center the circle
+  const centerX = x + width / 2;
   const centerY = y + height / 2;
 
   // Outer circle
@@ -258,49 +184,7 @@ function drawSideView(
     'center'
   );
 
-  // ============================================
-  // SHEAR WAVE 45° ARROWS (matching the hand drawing)
-  // Two arrows at 45° angle showing shear wave scan directions
-  // ============================================
-  const arrowColor = '#FF0000'; // Red arrows
-  const arrowHeadSize = 10;
-
-  // Calculate arrow positions - arrows should point toward the tube wall
-  // at 45° angles, showing circumferential shear wave inspection
-  const arrowStartRadius = scaledOuterRadius + 60; // Start outside the tube
-  const arrowEndRadius = scaledOuterRadius + 10; // End near the outer wall
-
-  // SW 45° Arrow 1 - Coming from lower-right at 45° angle (pointing up-left into wall)
-  const angle1 = Math.PI / 4; // 45 degrees
-  const arrow1StartX = centerX + arrowStartRadius * Math.cos(angle1);
-  const arrow1StartY = centerY + arrowStartRadius * Math.sin(angle1);
-  const arrow1EndX = centerX + arrowEndRadius * Math.cos(angle1);
-  const arrow1EndY = centerY + arrowEndRadius * Math.sin(angle1);
-
-  // Draw dashed line for beam path
-  generator.drawLine(arrow1StartX, arrow1StartY, arrow1EndX, arrow1EndY, 'cutting');
-  // Arrowhead pointing toward center (into the wall)
-  drawScanArrowHead(generator, arrow1EndX, arrow1EndY, angle1 + Math.PI, arrowHeadSize, arrowColor);
-  // Label
-  generator.drawText(arrow1StartX + 20, arrow1StartY + 15, 'SW 45°', 10, arrowColor);
-
-  // SW 45° Arrow 2 - Coming from lower-left at 135° angle (pointing up-right into wall)
-  const angle2 = 3 * Math.PI / 4; // 135 degrees
-  const arrow2StartX = centerX + arrowStartRadius * Math.cos(angle2);
-  const arrow2StartY = centerY + arrowStartRadius * Math.sin(angle2);
-  const arrow2EndX = centerX + arrowEndRadius * Math.cos(angle2);
-  const arrow2EndY = centerY + arrowEndRadius * Math.sin(angle2);
-
-  // Draw dashed line for beam path
-  generator.drawLine(arrow2StartX, arrow2StartY, arrow2EndX, arrow2EndY, 'cutting');
-  // Arrowhead pointing toward center (into the wall)
-  drawScanArrowHead(generator, arrow2EndX, arrow2EndY, angle2 + Math.PI, arrowHeadSize, arrowColor);
-  // Label
-  generator.drawText(arrow2StartX - 50, arrow2StartY + 15, 'SW 45°', 10, arrowColor);
-
-  // ============================================
   // DIMENSIONS
-  // ============================================
   generator.drawDimension(
     centerX - scaledOuterRadius,
     centerY - scaledOuterRadius - 40,
@@ -312,9 +196,9 @@ function drawSideView(
 
   generator.drawDimension(
     centerX - scaledInnerRadius,
-    centerY - scaledInnerRadius - 20,
+    centerY + scaledInnerRadius + 40,
     centerX + scaledInnerRadius,
-    centerY - scaledInnerRadius - 20,
+    centerY + scaledInnerRadius + 40,
     `ID=${innerDiameter.toFixed(1)}mm`,
     5
   );
@@ -325,6 +209,6 @@ function drawSideView(
     centerY - scaledOuterRadius / 2,
     `t=${wallThickness.toFixed(1)}mm`,
     10,
-    '#FFD700'
+    '#000000'
   );
 }

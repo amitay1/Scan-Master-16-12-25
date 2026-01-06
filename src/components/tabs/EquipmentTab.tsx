@@ -427,26 +427,51 @@ export const EquipmentTab = ({ data, onChange, partThickness, standard = "AMS-ST
                 fieldKey="manufacturer"
                 help="Total number of elements in the PA probe (e.g., 32, 64, 128)"
               >
-                <Input
-                  type="number"
-                  value={data.numberOfElements ?? ''}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    if (value === '' || value === null) {
-                      updateField("numberOfElements", undefined);
-                      return;
-                    }
-                    const numValue = parseInt(value, 10);
-                    if (!isNaN(numValue)) {
-                      updateField("numberOfElements", numValue);
-                    }
-                  }}
-                  min={1}
-                  max={256}
-                  step={1}
-                  placeholder="e.g., 64"
-                  className="bg-background"
-                />
+                <div className="flex gap-2">
+                  <div className="flex items-center gap-1 border rounded px-2 bg-muted/50">
+                    <label className="flex items-center gap-1 cursor-pointer text-xs">
+                      <input
+                        type="radio"
+                        name="numberOfElements_an"
+                        checked={data.numberOfElementsApplicable !== false}
+                        onChange={() => updateField("numberOfElementsApplicable", true)}
+                        className="w-3 h-3"
+                      />
+                      A
+                    </label>
+                    <label className="flex items-center gap-1 cursor-pointer text-xs">
+                      <input
+                        type="radio"
+                        name="numberOfElements_an"
+                        checked={data.numberOfElementsApplicable === false}
+                        onChange={() => updateField("numberOfElementsApplicable", false)}
+                        className="w-3 h-3"
+                      />
+                      N
+                    </label>
+                  </div>
+                  <Input
+                    type="number"
+                    value={data.numberOfElements ?? ''}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value === '' || value === null) {
+                        updateField("numberOfElements", undefined);
+                        return;
+                      }
+                      const numValue = parseInt(value, 10);
+                      if (!isNaN(numValue)) {
+                        updateField("numberOfElements", numValue);
+                      }
+                    }}
+                    min={1}
+                    max={256}
+                    step={1}
+                    placeholder="e.g., 64"
+                    className="bg-background flex-1"
+                    disabled={data.numberOfElementsApplicable === false}
+                  />
+                </div>
               </FieldWithHelp>
 
               <FieldWithHelp
@@ -454,26 +479,51 @@ export const EquipmentTab = ({ data, onChange, partThickness, standard = "AMS-ST
                 fieldKey="manufacturer"
                 help="Distance between adjacent elements in mm"
               >
-                <Input
-                  type="number"
-                  value={data.elementPitch ?? ''}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    if (value === '' || value === null) {
-                      updateField("elementPitch", undefined);
-                      return;
-                    }
-                    const numValue = parseFloat(value);
-                    if (!isNaN(numValue)) {
-                      updateField("elementPitch", numValue);
-                    }
-                  }}
-                  min={0.1}
-                  max={5}
-                  step={0.01}
-                  placeholder="e.g., 0.6"
-                  className="bg-background"
-                />
+                <div className="flex gap-2">
+                  <div className="flex items-center gap-1 border rounded px-2 bg-muted/50">
+                    <label className="flex items-center gap-1 cursor-pointer text-xs">
+                      <input
+                        type="radio"
+                        name="elementPitch_an"
+                        checked={data.elementPitchApplicable !== false}
+                        onChange={() => updateField("elementPitchApplicable", true)}
+                        className="w-3 h-3"
+                      />
+                      A
+                    </label>
+                    <label className="flex items-center gap-1 cursor-pointer text-xs">
+                      <input
+                        type="radio"
+                        name="elementPitch_an"
+                        checked={data.elementPitchApplicable === false}
+                        onChange={() => updateField("elementPitchApplicable", false)}
+                        className="w-3 h-3"
+                      />
+                      N
+                    </label>
+                  </div>
+                  <Input
+                    type="number"
+                    value={data.elementPitch ?? ''}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value === '' || value === null) {
+                        updateField("elementPitch", undefined);
+                        return;
+                      }
+                      const numValue = parseFloat(value);
+                      if (!isNaN(numValue)) {
+                        updateField("elementPitch", numValue);
+                      }
+                    }}
+                    min={0.1}
+                    max={5}
+                    step={0.01}
+                    placeholder="e.g., 0.6"
+                    className="bg-background flex-1"
+                    disabled={data.elementPitchApplicable === false}
+                  />
+                </div>
               </FieldWithHelp>
 
               <FieldWithHelp
@@ -481,12 +531,37 @@ export const EquipmentTab = ({ data, onChange, partThickness, standard = "AMS-ST
                 fieldKey="manufacturer"
                 help="Wedge/shoe model identifier"
               >
-                <Input
-                  value={data.wedgeModel || ""}
-                  onChange={(e) => updateField("wedgeModel", e.target.value)}
-                  placeholder="e.g., SA32-N55S"
-                  className="bg-background"
-                />
+                <div className="flex gap-2">
+                  <div className="flex items-center gap-1 border rounded px-2 bg-muted/50">
+                    <label className="flex items-center gap-1 cursor-pointer text-xs">
+                      <input
+                        type="radio"
+                        name="wedgeModel_an"
+                        checked={data.wedgeModelApplicable !== false}
+                        onChange={() => updateField("wedgeModelApplicable", true)}
+                        className="w-3 h-3"
+                      />
+                      A
+                    </label>
+                    <label className="flex items-center gap-1 cursor-pointer text-xs">
+                      <input
+                        type="radio"
+                        name="wedgeModel_an"
+                        checked={data.wedgeModelApplicable === false}
+                        onChange={() => updateField("wedgeModelApplicable", false)}
+                        className="w-3 h-3"
+                      />
+                      N
+                    </label>
+                  </div>
+                  <Input
+                    value={data.wedgeModel || ""}
+                    onChange={(e) => updateField("wedgeModel", e.target.value)}
+                    placeholder="e.g., SA32-N55S"
+                    className="bg-background flex-1"
+                    disabled={data.wedgeModelApplicable === false}
+                  />
+                </div>
               </FieldWithHelp>
 
               <FieldWithHelp
@@ -494,20 +569,45 @@ export const EquipmentTab = ({ data, onChange, partThickness, standard = "AMS-ST
                 fieldKey="manufacturer"
                 help="Type of wedge (Normal, Angled, Immersion)"
               >
-                <Select
-                  value={data.wedgeType || ""}
-                  onValueChange={(value) => updateField("wedgeType", value)}
-                >
-                  <SelectTrigger className="bg-background">
-                    <SelectValue placeholder="Select wedge type..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Normal">Normal (0°)</SelectItem>
-                    <SelectItem value="Angled">Angled (Shear Wave)</SelectItem>
-                    <SelectItem value="Immersion">Immersion</SelectItem>
-                    <SelectItem value="Custom">Custom</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="flex gap-2">
+                  <div className="flex items-center gap-1 border rounded px-2 bg-muted/50">
+                    <label className="flex items-center gap-1 cursor-pointer text-xs">
+                      <input
+                        type="radio"
+                        name="wedgeType_an"
+                        checked={data.wedgeTypeApplicable !== false}
+                        onChange={() => updateField("wedgeTypeApplicable", true)}
+                        className="w-3 h-3"
+                      />
+                      A
+                    </label>
+                    <label className="flex items-center gap-1 cursor-pointer text-xs">
+                      <input
+                        type="radio"
+                        name="wedgeType_an"
+                        checked={data.wedgeTypeApplicable === false}
+                        onChange={() => updateField("wedgeTypeApplicable", false)}
+                        className="w-3 h-3"
+                      />
+                      N
+                    </label>
+                  </div>
+                  <Select
+                    value={data.wedgeType || ""}
+                    onValueChange={(value) => updateField("wedgeType", value)}
+                    disabled={data.wedgeTypeApplicable === false}
+                  >
+                    <SelectTrigger className="bg-background flex-1">
+                      <SelectValue placeholder="Select wedge type..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Normal">Normal (0°)</SelectItem>
+                      <SelectItem value="Angled">Angled (Shear Wave)</SelectItem>
+                      <SelectItem value="Immersion">Immersion</SelectItem>
+                      <SelectItem value="Custom">Custom</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </FieldWithHelp>
 
               <FieldWithHelp
@@ -515,65 +615,75 @@ export const EquipmentTab = ({ data, onChange, partThickness, standard = "AMS-ST
                 fieldKey="manufacturer"
                 help="Delay line specification if applicable"
               >
-                <Input
-                  value={data.delayLine || ""}
-                  onChange={(e) => updateField("delayLine", e.target.value)}
-                  placeholder="e.g., DL-25, Water column"
-                  className="bg-background"
-                />
+                <div className="flex gap-2">
+                  <div className="flex items-center gap-1 border rounded px-2 bg-muted/50">
+                    <label className="flex items-center gap-1 cursor-pointer text-xs">
+                      <input
+                        type="radio"
+                        name="delayLine_an"
+                        checked={data.delayLineApplicable !== false}
+                        onChange={() => updateField("delayLineApplicable", true)}
+                        className="w-3 h-3"
+                      />
+                      A
+                    </label>
+                    <label className="flex items-center gap-1 cursor-pointer text-xs">
+                      <input
+                        type="radio"
+                        name="delayLine_an"
+                        checked={data.delayLineApplicable === false}
+                        onChange={() => updateField("delayLineApplicable", false)}
+                        className="w-3 h-3"
+                      />
+                      N
+                    </label>
+                  </div>
+                  <Input
+                    value={data.delayLine || ""}
+                    onChange={(e) => updateField("delayLine", e.target.value)}
+                    placeholder="e.g., DL-25, Water column"
+                    className="bg-background flex-1"
+                    disabled={data.delayLineApplicable === false}
+                  />
+                </div>
               </FieldWithHelp>
             </div>
           </div>
         )}
       </div>
 
-      {/* Equipment Requirements Summary */}
+      {/* Equipment Requirements Summary - Shows only current standard */}
       <div className="border border-border rounded-lg overflow-hidden">
         <div className="bg-muted/50 px-4 py-2 border-b border-border">
-          <h4 className="text-sm font-semibold">Equipment Requirements by Standard</h4>
+          <h4 className="text-sm font-semibold">Equipment Requirements for {standard}</h4>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs">
-            <thead className="bg-muted/30">
-              <tr>
-                <th className="px-3 py-2 text-left">Parameter</th>
-                <th className="px-3 py-2 text-left">AMS-STD-2154E</th>
-                <th className="px-3 py-2 text-left">ASTM A388</th>
-                <th className="px-3 py-2 text-left">BS EN 10228-3</th>
-                <th className="px-3 py-2 text-left">BS EN 10228-4</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr className={standard === "AMS-STD-2154E" ? "bg-primary/10" : ""}>
-                <td className="px-3 py-2 font-medium">Frequency Range</td>
-                <td className={`px-3 py-2 ${standard === "AMS-STD-2154E" ? "font-semibold" : ""}`}>2.25-15 MHz</td>
-                <td className={`px-3 py-2 ${standard === "ASTM-A388" ? "font-semibold" : ""}`}>1-5 MHz</td>
-                <td className={`px-3 py-2 ${standard === "BS-EN-10228-3" ? "font-semibold" : ""}`}>1-5 MHz</td>
-                <td className={`px-3 py-2 ${standard === "BS-EN-10228-4" ? "font-semibold" : ""}`}>0.5-2 MHz</td>
-              </tr>
-              <tr className={standard === "AMS-STD-2154E" ? "bg-primary/10" : ""}>
-                <td className="px-3 py-2 font-medium">Vertical Linearity</td>
-                <td className={`px-3 py-2 ${standard === "AMS-STD-2154E" ? "font-semibold" : ""}`}>5-98% FSH</td>
-                <td className={`px-3 py-2 ${standard === "ASTM-A388" ? "font-semibold" : ""}`}>10-95% FSH</td>
-                <td className={`px-3 py-2 ${standard === "BS-EN-10228-3" ? "font-semibold" : ""}`}>≥80% range</td>
-                <td className={`px-3 py-2 ${standard === "BS-EN-10228-4" ? "font-semibold" : ""}`}>≥80% range</td>
-              </tr>
-              <tr className={standard === "AMS-STD-2154E" ? "bg-primary/10" : ""}>
-                <td className="px-3 py-2 font-medium">Horizontal Linearity</td>
-                <td className={`px-3 py-2 ${standard === "AMS-STD-2154E" ? "font-semibold" : ""}`}>≥90%</td>
-                <td className={`px-3 py-2 ${standard === "ASTM-A388" ? "font-semibold" : ""}`}>≥85%</td>
-                <td className={`px-3 py-2 ${standard === "BS-EN-10228-3" ? "font-semibold" : ""}`}>N/A</td>
-                <td className={`px-3 py-2 ${standard === "BS-EN-10228-4" ? "font-semibold" : ""}`}>N/A</td>
-              </tr>
-              <tr className={standard === "AMS-STD-2154E" ? "bg-primary/10" : ""}>
-                <td className="px-3 py-2 font-medium">Probe Diameter</td>
-                <td className={`px-3 py-2 ${standard === "AMS-STD-2154E" ? "font-semibold" : ""}`}>0.25-1" (6-25mm)</td>
-                <td className={`px-3 py-2 ${standard === "ASTM-A388" ? "font-semibold" : ""}`}>0.375-1.125"</td>
-                <td className={`px-3 py-2 ${standard === "BS-EN-10228-3" ? "font-semibold" : ""}`}>10-25mm</td>
-                <td className={`px-3 py-2 ${standard === "BS-EN-10228-4" ? "font-semibold" : ""}`}>20-30mm</td>
-              </tr>
-            </tbody>
-          </table>
+        <div className="p-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-primary/5 rounded-lg p-3">
+              <div className="text-xs text-muted-foreground mb-1">Frequency Range</div>
+              <div className="font-semibold text-sm">
+                {equipmentParams.frequencyRange.min}-{equipmentParams.frequencyRange.max} MHz
+              </div>
+            </div>
+            <div className="bg-primary/5 rounded-lg p-3">
+              <div className="text-xs text-muted-foreground mb-1">Vertical Linearity</div>
+              <div className="font-semibold text-sm">
+                {equipmentParams.verticalLinearity.min}-{equipmentParams.verticalLinearity.max}% FSH
+              </div>
+            </div>
+            <div className="bg-primary/5 rounded-lg p-3">
+              <div className="text-xs text-muted-foreground mb-1">Horizontal Linearity</div>
+              <div className="font-semibold text-sm">
+                {equipmentParams.horizontalLinearity ? `≥${equipmentParams.horizontalLinearity.min}%` : 'N/A'}
+              </div>
+            </div>
+            <div className="bg-primary/5 rounded-lg p-3">
+              <div className="text-xs text-muted-foreground mb-1">Probe Diameter</div>
+              <div className="font-semibold text-sm">
+                {equipmentParams.transducerDiameter.min}-{equipmentParams.transducerDiameter.max} {equipmentParams.transducerDiameter.unit}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 

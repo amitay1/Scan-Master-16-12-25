@@ -50,7 +50,7 @@ function drawFrontView(
     center: [centerX, centerY],
     size: [scaledMajor, scaledMinor]
   });
-  ellipse.strokeColor = new scope.Color('#FFFFFF');
+  ellipse.strokeColor = new scope.Color('#000000');
   ellipse.strokeWidth = 2;
   ellipse.fillColor = null;
 
@@ -80,19 +80,19 @@ function drawFrontView(
     center: [centerX - focalDistance, centerY],
     radius: 2
   });
-  f1.strokeColor = new scope.Color('#FFD700');
-  f1.fillColor = new scope.Color('#FFD700');
+  f1.strokeColor = new scope.Color('#000000');
+  f1.fillColor = new scope.Color('#000000');
 
   const f2 = new scope.Path.Circle({
     center: [centerX + focalDistance, centerY],
     radius: 2
   });
-  f2.strokeColor = new scope.Color('#FFD700');
-  f2.fillColor = new scope.Color('#FFD700');
+  f2.strokeColor = new scope.Color('#000000');
+  f2.fillColor = new scope.Color('#000000');
 
   // Label focal points
-  generator.drawText(centerX - focalDistance, centerY - 15, 'F1', 10, '#FFD700');
-  generator.drawText(centerX + focalDistance, centerY - 15, 'F2', 10, '#FFD700');
+  generator.drawText(centerX - focalDistance, centerY - 15, 'F1', 10, '#000000');
+  generator.drawText(centerX + focalDistance, centerY - 15, 'F2', 10, '#000000');
 
   // Dimensions
   generator.drawDimension(
@@ -119,7 +119,7 @@ function drawFrontView(
     y + height - 10,
     `e=${eccentricity.toFixed(3)}`,
     10,
-    '#FFFFFF'
+    '#000000'
   );
 }
 
@@ -180,6 +180,6 @@ function drawSideView(
     rectY + scaledThickness / 2,
     'SOLID',
     10,
-    '#FFFFFF'
+    '#000000'
   );
 }

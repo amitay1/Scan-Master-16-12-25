@@ -131,6 +131,13 @@ export interface EquipmentData {
   // Additional fields for PDF export
   wedgeType?: string;              // Type of wedge (e.g., "Normal", "Angled", "Immersion")
   delayLine?: string;              // Delay line specification
+
+  // A/N (Applicable/Not Applicable) flags for Phased Array fields
+  numberOfElementsApplicable?: boolean;
+  elementPitchApplicable?: boolean;
+  wedgeModelApplicable?: boolean;
+  wedgeTypeApplicable?: boolean;
+  delayLineApplicable?: boolean;
 }
 
 // FBH Hole data structure for calibration blocks
@@ -155,8 +162,13 @@ export interface CalibrationData {
   lastCalibrationDate: string;
 }
 
+// Technique type for scan parameters
+export type TechniqueType = "conventional" | "bubbler" | "squirt" | "phased_array";
+
 export interface ScanParametersData {
   scanMethod: string;
+  scanMethods?: string[];          // Multi-select scan methods (IMMERSION, CONTACT)
+  technique?: TechniqueType;       // Technique selection (CONVENTIONAL, BUBBLER, SQUIRT, PHASED ARRAY)
   scanType: string;
   scanSpeed: number;
   scanIndex: number;
@@ -166,9 +178,9 @@ export interface ScanParametersData {
   pulseRepetitionRate: number;
   gainSettings: string;
   alarmGateSettings: string;
-  // Coupling method (Regular/Bubbler/Phased Array)
+  // Coupling method (Regular/Bubbler/Phased Array) - Legacy, replaced by technique
   couplingMethod?: CouplingMethod;
-  // Phased Array settings (when couplingMethod = 'phased_array')
+  // Phased Array settings (when technique = 'phased_array')
   phasedArray?: PhasedArraySettings;
 }
 

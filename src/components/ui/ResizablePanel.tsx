@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, ReactNode, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Eye, GripHorizontal, ZoomIn, ZoomOut } from 'lucide-react';
+import { X, Eye, GripHorizontal, ZoomIn, ZoomOut, Move, Maximize2, Minimize2 } from 'lucide-react';
 import { useSettings } from '@/hooks/useSettings';
 
 interface ResizablePanelProps {
@@ -14,6 +14,40 @@ interface ResizablePanelProps {
   className?: string;
   presets?: { label: string; size: { width: number; height: number } }[];
 }
+
+// Get saved position from localStorage
+const getSavedPosition = () => {
+  try {
+    const saved = localStorage.getItem('viewer3DPosition');
+    if (saved) {
+      return JSON.parse(saved);
+    }
+  } catch (e) {}
+  return null;
+};
+
+// Save position to localStorage
+const savePosition = (position: { x: number; y: number }) => {
+  try {
+    localStorage.setItem('viewer3DPosition', JSON.stringify(position));
+  } catch (e) {}
+};
+
+// Get saved floating mode from localStorage
+const getSavedFloatingMode = () => {
+  try {
+    const saved = localStorage.getItem('viewer3DFloating');
+    return saved === 'true';
+  } catch (e) {}
+  return false;
+};
+
+// Save floating mode to localStorage
+const saveFloatingMode = (isFloating: boolean) => {
+  try {
+    localStorage.setItem('viewer3DFloating', isFloating.toString());
+  } catch (e) {}
+};
 
 // Check if running in Electron (desktop app)
 const isElectron = () => {
@@ -74,7 +108,7 @@ export const Collapsible3DPanel = ({
   onToggle,
   defaultSize,
   minSize = { width: 200, height: 200 },
-  maxSize = { width: 600, height: 600 },
+  maxSize = { width: 800, height: 800 },
   className = "",
   presets: customPresets
 }: ResizablePanelProps) => {
@@ -94,6 +128,20 @@ export const Collapsible3DPanel = ({
   const [size, setSize] = useState(() => clampSizeToViewport(initialSize, minSize, maxSize));
   const [isResizing, setIsResizing] = useState(false);
   const [activePreset, setActivePreset] = useState<string | null>(settings.viewer.viewer3DDefaultSize || "M");
+  
+  // Floating mode state - allows user to drag the panel anywhere
+  const [isFloating, setIsFloating] = useState(() => getSavedFloatingMode());
+  const [position, setPosition] = useState(() => {
+    const saved = getSavedPosition();
+    if (saved) return saved;
+    // Default position - right side, vertically centered
+    return { 
+      x: typeof window !== 'undefined' ? window.innerWidth - 450 : 500, 
+      y: typeof window !== 'undefined' ? Math.max(100, (window.innerHeight - 500) / 2) : 150 
+    };
+  });
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStartPos = useRef({ x: 0, y: 0, posX: 0, posY: 0 });
   const panelRef = useRef<HTMLDivElement>(null);
   const startPos = useRef({ x: 0, y: 0, width: 0, height: 0 });
 
@@ -111,6 +159,13 @@ export const Collapsible3DPanel = ({
   useEffect(() => {
     const handleWindowResize = () => {
       setSize(prevSize => clampSizeToViewport(prevSize, minSize, maxSize));
+      // Keep floating panel in viewport when window resizes
+      if (isFloating) {
+        setPosition(prev => ({
+          x: Math.max(0, Math.min(prev.x, window.innerWidth - 100)),
+          y: Math.max(0, Math.min(prev.y, window.innerHeight - 100))
+        }));
+      }
     };
     
     window.addEventListener('resize', handleWindowResize);
@@ -118,7 +173,69 @@ export const Collapsible3DPanel = ({
     handleWindowResize();
     
     return () => window.removeEventListener('resize', handleWindowResize);
-  }, [minSize, maxSize]);
+  }, [minSize, maxSize, isFloating]);
+
+  // Drag handlers for floating mode
+  const handleDragStart = useCallback((e: React.MouseEvent) => {
+    if (!isFloating) return;
+    e.preventDefault();
+    setIsDragging(true);
+    dragStartPos.current = {
+      x: e.clientX,
+      y: e.clientY,
+      posX: position.x,
+      posY: position.y
+    };
+  }, [isFloating, position]);
+
+  const handleDragMove = useCallback((e: MouseEvent) => {
+    if (!isDragging) return;
+    
+    const deltaX = e.clientX - dragStartPos.current.x;
+    const deltaY = e.clientY - dragStartPos.current.y;
+    
+    const newX = Math.max(0, Math.min(dragStartPos.current.posX + deltaX, window.innerWidth - 100));
+    const newY = Math.max(0, Math.min(dragStartPos.current.posY + deltaY, window.innerHeight - 100));
+    
+    setPosition({ x: newX, y: newY });
+  }, [isDragging]);
+
+  const handleDragEnd = useCallback(() => {
+    if (isDragging) {
+      setIsDragging(false);
+      // Save position when drag ends
+      savePosition(position);
+    }
+  }, [isDragging, position]);
+
+  // Listen for drag events
+  useEffect(() => {
+    if (isDragging) {
+      window.addEventListener('mousemove', handleDragMove);
+      window.addEventListener('mouseup', handleDragEnd);
+      return () => {
+        window.removeEventListener('mousemove', handleDragMove);
+        window.removeEventListener('mouseup', handleDragEnd);
+      };
+    }
+  }, [isDragging, handleDragMove, handleDragEnd]);
+
+  // Toggle floating mode
+  const toggleFloatingMode = useCallback(() => {
+    const newFloating = !isFloating;
+    setIsFloating(newFloating);
+    saveFloatingMode(newFloating);
+    
+    // Set initial position when entering floating mode
+    if (newFloating) {
+      const newPos = {
+        x: window.innerWidth - size.width - 20,
+        y: Math.max(80, (window.innerHeight - size.height) / 2)
+      };
+      setPosition(newPos);
+      savePosition(newPos);
+    }
+  }, [isFloating, size]);
 
   const handleResizeStart = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -134,7 +251,8 @@ export const Collapsible3DPanel = ({
   const handleResizeMove = useCallback((e: MouseEvent) => {
     if (!isResizing) return;
 
-    const deltaX = startPos.current.x - e.clientX; // Reversed for right-side panel
+    // For floating mode, resize from bottom-right corner
+    const deltaX = isFloating ? e.clientX - startPos.current.x : startPos.current.x - e.clientX;
     const deltaY = e.clientY - startPos.current.y;
 
     const newWidth = startPos.current.width + deltaX;
@@ -143,7 +261,7 @@ export const Collapsible3DPanel = ({
     // Clamp to both min/max and viewport bounds
     setSize(clampSizeToViewport({ width: newWidth, height: newHeight }, minSize, maxSize));
     setActivePreset(null); // Clear preset when manually resizing
-  }, [isResizing, minSize, maxSize]);
+  }, [isResizing, minSize, maxSize, isFloating]);
 
   const handleResizeEnd = useCallback(() => {
     setIsResizing(false);
@@ -216,27 +334,53 @@ export const Collapsible3DPanel = ({
         animate={{ opacity: 1, x: 0 }}
         exit={{ opacity: 0, x: 50 }}
         transition={{ type: "spring", damping: 25, stiffness: 200 }}
-        className={`relative flex flex-col flex-shrink-0 ${className}`}
+        className={`${isFloating ? 'fixed z-[100]' : 'relative'} flex flex-col flex-shrink-0 ${className}`}
         style={{
           width: size.width,
           height: size.height,
           minWidth: minSize.width,
           minHeight: minSize.height,
-          maxWidth: '100%',
-          maxHeight: 'calc(100vh - 80px)',
-          userSelect: isResizing ? 'none' : 'auto'
+          maxWidth: isFloating ? undefined : '100%',
+          maxHeight: isFloating ? undefined : 'calc(100vh - 80px)',
+          userSelect: isResizing || isDragging ? 'none' : 'auto',
+          ...(isFloating ? { left: position.x, top: position.y } : {})
         }}
       >
-        {/* Panel Header */}
-        <div className="flex items-center justify-between px-3 py-2
+        {/* Panel Header - Draggable in floating mode */}
+        <div 
+          className={`flex items-center justify-between px-3 py-2
                         bg-gradient-to-r from-slate-800/90 to-slate-700/90
                         backdrop-blur-md rounded-t-xl border-b border-white/10
-                        min-w-0 overflow-visible">
-          {/* Title */}
-          <span className="text-sm font-medium text-white/80 truncate flex-shrink">{title}</span>
+                        min-w-0 overflow-visible
+                        ${isFloating ? 'cursor-move' : ''}`}
+          onMouseDown={handleDragStart}
+        >
+          {/* Title and drag indicator */}
+          <div className="flex items-center gap-2 flex-shrink">
+            {isFloating && (
+              <Move className="w-4 h-4 text-white/40" />
+            )}
+            <span className="text-sm font-medium text-white/80 truncate">{title}</span>
+          </div>
 
           {/* Controls */}
-          <div className="flex items-center gap-1 flex-shrink-0">
+          <div className="flex items-center gap-1 flex-shrink-0" onMouseDown={(e) => e.stopPropagation()}>
+            {/* Float/Dock Toggle Button */}
+            <button
+              onClick={toggleFloatingMode}
+              className={`w-7 h-7 rounded-md transition-all duration-200 flex items-center justify-center
+                         ${isFloating 
+                           ? 'bg-green-600/80 text-white hover:bg-green-500/80' 
+                           : 'bg-white/10 text-white/60 hover:bg-white/20 hover:text-white'
+                         }`}
+              title={isFloating ? "עגן לצד (Dock)" : "מצב צף - גרור לכל מקום (Float)"}
+            >
+              {isFloating ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+            </button>
+
+            {/* Divider */}
+            <div className="w-px h-5 bg-white/20 mx-1" />
+
             {/* Zoom Out Button */}
             <button
               onClick={handleZoomOut}
@@ -301,27 +445,32 @@ export const Collapsible3DPanel = ({
           </div>
         </div>
 
-        {/* Resize Handle - Bottom Left Corner */}
+        {/* Resize Handle - Bottom Right Corner for floating, Bottom Left for docked */}
         <div
           onMouseDown={handleResizeStart}
-          className={`absolute bottom-0 left-0 w-6 h-6 cursor-sw-resize
+          className={`absolute bottom-0 ${isFloating ? 'right-0 cursor-se-resize rounded-tl-lg rounded-br-xl border-t border-l' : 'left-0 cursor-sw-resize rounded-tr-lg rounded-bl-xl border-t border-r'} w-6 h-6
                       flex items-center justify-center
-                      bg-slate-700/80 rounded-tr-lg rounded-bl-xl
-                      border-t border-r border-white/10
+                      bg-slate-700/80 border-white/10
                       hover:bg-blue-600/80 transition-colors duration-200
                       ${isResizing ? 'bg-blue-600/80' : ''}`}
-          title="Drag to resize"
+          title="גרור לשינוי גודל"
         >
           <GripHorizontal className="w-3 h-3 text-white/60 rotate-45" />
         </div>
 
-        {/* Size indicator while resizing */}
-        {isResizing && (
+        {/* Size indicator while resizing or dragging */}
+        {(isResizing || isDragging) && (
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2
                           bg-black/80 text-white text-xs px-3 py-1.5 rounded-lg
-                          font-mono pointer-events-none">
-            {Math.round(size.width)} × {Math.round(size.height)}
+                          font-mono pointer-events-none z-10">
+            {isResizing ? `${Math.round(size.width)} × ${Math.round(size.height)}` : `X: ${Math.round(position.x)}, Y: ${Math.round(position.y)}`}
           </div>
+        )}
+
+        {/* Floating mode indicator */}
+        {isFloating && !isDragging && (
+          <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border border-white/30 shadow-lg" 
+               title="מצב צף - גרור את הכותרת להזזה" />
         )}
       </motion.div>
     </AnimatePresence>

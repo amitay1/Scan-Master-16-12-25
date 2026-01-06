@@ -124,7 +124,7 @@ function drawSideView(
       centerY - 10,
       `t=${((diameter - innerDiameter) / 2).toFixed(1)}mm`,
       10,
-      '#FFD700'
+      '#000000'
     );
   } else {
     // Solid - add cross-hatching
@@ -144,7 +144,7 @@ function drawSideView(
       }
     }
 
-    generator.drawText(centerX, centerY, 'SOLID', 10, '#FFFFFF');
+    generator.drawText(centerX, centerY, 'SOLID', 10, '#000000');
   }
 
   // Centerlines

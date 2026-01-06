@@ -29,6 +29,7 @@ import type {
   ScanParametersData,
   AcceptanceCriteriaData,
   DocumentationData as TechniqueDocumentationData,
+  ScanPlanData,
 } from "@/types/techniqueSheet";
 import type { InspectionReportData } from "@/types/inspectionReport";
 import type { ScanDetailsData } from "@/types/scanDetails";
@@ -48,8 +49,11 @@ interface UnifiedExportDialogProps {
   documentation: TechniqueDocumentationData;
   inspectionReport?: InspectionReportData;
   scanDetails?: ScanDetailsData;
+  scanPlan?: ScanPlanData;            // Scan plan documents
   capturedDrawing?: string;
   calibrationBlockDiagram?: string;
+  angleBeamDiagram?: string;           // Angle beam calibration block diagram
+  e2375Diagram?: string;               // ASTM E2375 scan directions diagram
   scanDirectionsDrawing?: string;
   onExport?: (format: "pdf" | "word", template: ExportTemplate) => void;
 }
@@ -65,8 +69,11 @@ export const UnifiedExportDialog: React.FC<UnifiedExportDialogProps> = ({
   acceptanceCriteria,
   documentation,
   scanDetails,
+  scanPlan,
   capturedDrawing,
   calibrationBlockDiagram,
+  angleBeamDiagram,
+  e2375Diagram,
   scanDirectionsDrawing,
   onExport,
 }) => {
@@ -182,8 +189,11 @@ export const UnifiedExportDialog: React.FC<UnifiedExportDialogProps> = ({
           acceptanceCriteria,
           documentation,
           scanDetails,
+          scanPlan,
           capturedDrawing,
           calibrationBlockDiagram,
+          angleBeamDiagram,
+          e2375Diagram,
           scanDirectionsDrawing,
         }, {
           companyName: companyName || undefined,

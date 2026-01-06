@@ -194,41 +194,41 @@ function BeautifulCardItem({
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48 bg-slate-800 border-slate-700">
               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onLoad(); }}>
-                <FolderOpen className="w-4 h-4 ml-2" />
-                פתח כרטיס
+                <FolderOpen className="w-4 h-4 mr-2" />
+                Open Card
               </DropdownMenuItem>
               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onToggleFavorite(); }}>
                 {card.isFavorite ? (
                   <>
-                    <StarOff className="w-4 h-4 ml-2" />
-                    הסר ממועדפים
+                    <StarOff className="w-4 h-4 mr-2" />
+                    Remove from Favorites
                   </>
                 ) : (
                   <>
-                    <Star className="w-4 h-4 ml-2" />
-                    הוסף למועדפים
+                    <Star className="w-4 h-4 mr-2" />
+                    Add to Favorites
                   </>
                 )}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDuplicate(); }}>
-                <Copy className="w-4 h-4 ml-2" />
-                שכפל
+                <Copy className="w-4 h-4 mr-2" />
+                Duplicate
               </DropdownMenuItem>
               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onExport(); }}>
-                <Download className="w-4 h-4 ml-2" />
-                ייצא
+                <Download className="w-4 h-4 mr-2" />
+                Export
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onToggleArchive(); }}>
                 {card.isArchived ? (
                   <>
-                    <ArchiveRestore className="w-4 h-4 ml-2" />
-                    שחזר
+                    <ArchiveRestore className="w-4 h-4 mr-2" />
+                    Restore
                   </>
                 ) : (
                   <>
-                    <Archive className="w-4 h-4 ml-2" />
-                    העבר לארכיון
+                    <Archive className="w-4 h-4 mr-2" />
+                    Archive
                   </>
                 )}
               </DropdownMenuItem>
@@ -236,8 +236,8 @@ function BeautifulCardItem({
                 onClick={(e) => { e.stopPropagation(); onDelete(); }}
                 className="text-red-400 focus:text-red-400"
               >
-                <Trash2 className="w-4 h-4 ml-2" />
-                מחק
+                <Trash2 className="w-4 h-4 mr-2" />
+                Delete
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -255,7 +255,7 @@ function BeautifulCardItem({
               ) : (
                 <AlertCircle className="w-4 h-4 text-amber-400" />
               )}
-              התקדמות
+              Progress
             </span>
             <span className={cn(
               "font-bold text-lg",
@@ -313,7 +313,7 @@ function BeautifulCardItem({
             className="w-full bg-blue-600 hover:bg-blue-500 gap-2"
             onClick={(e) => { e.stopPropagation(); onLoad(); }}
           >
-            פתח והמשך לערוך
+            Open & Continue Editing
             <ArrowRight className="w-4 h-4" />
           </Button>
         </motion.div>
@@ -337,19 +337,19 @@ function EmptyState({ searchQuery, profileName }: { searchQuery: string; profile
         <FolderOpen className="w-10 h-10 text-slate-500" />
       </div>
       <h3 className="text-xl font-semibold text-white mb-2">
-        {searchQuery ? 'לא נמצאו כרטיסים' : 'אין כרטיסים שמורים'}
+        {searchQuery ? 'No cards found' : 'No saved cards'}
       </h3>
       <p className="text-slate-400 max-w-sm">
         {searchQuery 
-          ? 'נסה לחפש במילות מפתח אחרות' 
+          ? 'Try searching with different keywords' 
           : profileName 
-            ? `לפרופיל "${profileName}" אין עדיין כרטיסים שמורים`
-            : 'שמור את הכרטיס הראשון שלך כדי להמשיך לעבוד עליו מאוחר יותר'}
+            ? `Profile "${profileName}" has no saved cards yet`
+            : 'Save your first card to continue working on it later'}
       </p>
       {!searchQuery && (
         <div className="mt-6 flex items-center gap-2 text-sm text-slate-500">
           <Sparkles className="w-4 h-4" />
-          טיפ: לחץ על כפתור השמירה (💾) בסרגל הכלים
+          Tip: Click the save button (💾) in the toolbar
         </div>
       )}
     </motion.div>
@@ -409,13 +409,13 @@ export function SavedCardsDialog({ open, onOpenChange, onLoadCard }: SavedCardsD
   const handleLoad = (card: SavedCard) => {
     onLoadCard(card);
     onOpenChange(false);
-    toast.success(`נטען: "${card.name}"`);
+    toast.success(`Loaded: "${card.name}"`);
   };
   
   const handleDuplicate = (id: string) => {
     const newCard = duplicateCard(id);
     if (newCard) {
-      toast.success(`נוצר העתק: "${newCard.name}"`);
+      toast.success(`Duplicated: "${newCard.name}"`);
     }
   };
   
@@ -423,7 +423,7 @@ export function SavedCardsDialog({ open, onOpenChange, onLoadCard }: SavedCardsD
     const card = cards.find(c => c.id === id);
     deleteCard(id);
     setDeleteConfirmId(null);
-    toast.success(`נמחק: "${card?.name}"`);
+    toast.success(`Deleted: "${card?.name}"`);
   };
   
   const handleExport = (id: string) => {
@@ -437,7 +437,7 @@ export function SavedCardsDialog({ open, onOpenChange, onLoadCard }: SavedCardsD
       a.download = `${card?.name || 'card'}.json`;
       a.click();
       URL.revokeObjectURL(url);
-      toast.success('הכרטיס יוצא בהצלחה');
+      toast.success('Card exported successfully');
     }
   };
   
@@ -450,7 +450,7 @@ export function SavedCardsDialog({ open, onOpenChange, onLoadCard }: SavedCardsD
     a.download = `scanmaster-cards-${new Date().toISOString().split('T')[0]}.json`;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success(`יוצאו ${cards.length} כרטיסים`);
+    toast.success(`Exported ${cards.length} cards`);
   };
   
   const handleImport = () => {
@@ -467,17 +467,17 @@ export function SavedCardsDialog({ open, onOpenChange, onLoadCard }: SavedCardsD
             JSON.parse(json);
             const count = importCards(json);
             if (count > 0) {
-              toast.success(`יובאו ${count} כרטיסים בהצלחה`);
+              toast.success(`Imported ${count} cards successfully`);
             } else {
-              toast.error('לא נמצאו כרטיסים תקינים בקובץ');
+              toast.error('No valid cards found in file');
             }
           } catch (parseError) {
             console.error('JSON parse error:', parseError);
-            toast.error('קובץ JSON לא תקין');
+            toast.error('Invalid JSON file');
           }
         };
         reader.onerror = () => {
-          toast.error('שגיאה בקריאת הקובץ');
+          toast.error('Error reading file');
         };
         reader.readAsText(file);
       }
@@ -488,7 +488,7 @@ export function SavedCardsDialog({ open, onOpenChange, onLoadCard }: SavedCardsD
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-5xl h-[85vh] flex flex-col p-0 bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 border-slate-700" dir="rtl">
+        <DialogContent className="max-w-5xl h-[85vh] flex flex-col p-0 bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 border-slate-700">
           {/* Header */}
           <DialogHeader className="px-6 py-5 border-b border-slate-700/50 bg-slate-900/50 backdrop-blur">
             <div className="flex items-center justify-between">
@@ -497,7 +497,7 @@ export function SavedCardsDialog({ open, onOpenChange, onLoadCard }: SavedCardsD
                   <div className="p-2 rounded-xl bg-blue-500/20">
                     <FolderOpen className="w-6 h-6 text-blue-400" />
                   </div>
-                  הכרטיסים שלי
+                  My Cards
                 </DialogTitle>
                 <DialogDescription className="text-slate-400 mt-1 flex items-center gap-2">
                   {currentProfile && (
@@ -507,7 +507,7 @@ export function SavedCardsDialog({ open, onOpenChange, onLoadCard }: SavedCardsD
                       <span>•</span>
                     </>
                   )}
-                  {stats.total} כרטיסים • {stats.techniques} טכניקה • {stats.reports} דוחות
+                  {stats.total} cards • {stats.techniques} technique • {stats.reports} reports
                 </DialogDescription>
               </div>
               
@@ -518,7 +518,7 @@ export function SavedCardsDialog({ open, onOpenChange, onLoadCard }: SavedCardsD
                     <Star className="w-4 h-4 text-yellow-400" />
                     <span className="font-semibold text-yellow-400">{stats.favorites}</span>
                   </div>
-                  <div className="text-xs text-yellow-400/70">מועדפים</div>
+                  <div className="text-xs text-yellow-400/70">Favorites</div>
                 </div>
                 <div className="px-4 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30">
                   <div className="flex items-center gap-2">
@@ -527,7 +527,7 @@ export function SavedCardsDialog({ open, onOpenChange, onLoadCard }: SavedCardsD
                       {cards.filter(c => c.completionPercent >= 80).length}
                     </span>
                   </div>
-                  <div className="text-xs text-emerald-400/70">הושלמו</div>
+                  <div className="text-xs text-emerald-400/70">Completed</div>
                 </div>
               </div>
             </div>
@@ -538,23 +538,23 @@ export function SavedCardsDialog({ open, onOpenChange, onLoadCard }: SavedCardsD
             {/* Search and Actions */}
             <div className="flex items-center gap-3">
               <div className="relative flex-1">
-                <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                 <Input
-                  placeholder="חפש כרטיסים..."
+                  placeholder="Search cards..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pr-10 bg-slate-800/50 border-slate-600 h-11 text-base"
+                  className="pl-10 bg-slate-800/50 border-slate-600 h-11 text-base"
                 />
               </div>
               
               <Button variant="outline" onClick={handleImport} className="h-11 gap-2">
                 <Upload className="w-4 h-4" />
-                ייבא
+                Import
               </Button>
               
               <Button variant="outline" onClick={handleExportAll} className="h-11 gap-2" disabled={cards.length === 0}>
                 <Download className="w-4 h-4" />
-                ייצא הכל
+                Export All
               </Button>
             </div>
             
@@ -568,7 +568,7 @@ export function SavedCardsDialog({ open, onOpenChange, onLoadCard }: SavedCardsD
                   onClick={() => setActiveTab('all')}
                   className={cn(activeTab === 'all' && 'bg-blue-600')}
                 >
-                  הכל ({stats.total})
+                  All ({stats.total})
                 </Button>
                 <Button
                   variant={activeTab === 'technique' ? 'default' : 'ghost'}
@@ -577,7 +577,7 @@ export function SavedCardsDialog({ open, onOpenChange, onLoadCard }: SavedCardsD
                   className={cn(activeTab === 'technique' && 'bg-blue-600', "gap-1")}
                 >
                   <FileText className="w-4 h-4" />
-                  טכניקה ({stats.techniques})
+                  Technique ({stats.techniques})
                 </Button>
                 <Button
                   variant={activeTab === 'report' ? 'default' : 'ghost'}
@@ -586,7 +586,7 @@ export function SavedCardsDialog({ open, onOpenChange, onLoadCard }: SavedCardsD
                   className={cn(activeTab === 'report' && 'bg-purple-600', "gap-1")}
                 >
                   <ClipboardList className="w-4 h-4" />
-                  דוחות ({stats.reports})
+                  Reports ({stats.reports})
                 </Button>
               </div>
               
@@ -599,7 +599,7 @@ export function SavedCardsDialog({ open, onOpenChange, onLoadCard }: SavedCardsD
                   className="gap-1"
                 >
                   <Star className={cn("w-4 h-4", showFavoritesOnly && "fill-yellow-400 text-yellow-400")} />
-                  מועדפים
+                  Favorites
                 </Button>
                 
                 <Button
@@ -609,7 +609,7 @@ export function SavedCardsDialog({ open, onOpenChange, onLoadCard }: SavedCardsD
                   className="gap-1"
                 >
                   <Archive className="w-4 h-4" />
-                  ארכיון ({stats.archived})
+                  Archive ({stats.archived})
                 </Button>
                 
                 <Separator orientation="vertical" className="h-6 mx-1" />
@@ -618,26 +618,26 @@ export function SavedCardsDialog({ open, onOpenChange, onLoadCard }: SavedCardsD
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="sm" className="gap-1">
                       {sortOrder === 'desc' ? <SortDesc className="w-4 h-4" /> : <SortAsc className="w-4 h-4" />}
-                      {sortBy === 'updatedAt' ? 'תאריך' : sortBy === 'name' ? 'שם' : 'התקדמות'}
+                      {sortBy === 'updatedAt' ? 'Date' : sortBy === 'name' ? 'Name' : 'Progress'}
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="bg-slate-800 border-slate-700">
                     <DropdownMenuItem onClick={() => setSortBy('updatedAt')}>
-                      <Clock className="w-4 h-4 ml-2" />
-                      תאריך עדכון
+                      <Clock className="w-4 h-4 mr-2" />
+                      Update Date
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setSortBy('name')}>
-                      <FileText className="w-4 h-4 ml-2" />
-                      שם
+                      <FileText className="w-4 h-4 mr-2" />
+                      Name
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setSortBy('completionPercent')}>
-                      <CheckCircle2 className="w-4 h-4 ml-2" />
-                      אחוז השלמה
+                      <CheckCircle2 className="w-4 h-4 mr-2" />
+                      Completion %
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={() => setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')}>
-                      {sortOrder === 'desc' ? <SortAsc className="w-4 h-4 ml-2" /> : <SortDesc className="w-4 h-4 ml-2" />}
-                      {sortOrder === 'desc' ? 'סדר עולה' : 'סדר יורד'}
+                      {sortOrder === 'desc' ? <SortAsc className="w-4 h-4 mr-2" /> : <SortDesc className="w-4 h-4 mr-2" />}
+                      {sortOrder === 'desc' ? 'Ascending' : 'Descending'}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -673,20 +673,20 @@ export function SavedCardsDialog({ open, onOpenChange, onLoadCard }: SavedCardsD
       
       {/* Delete Confirmation */}
       <AlertDialog open={!!deleteConfirmId} onOpenChange={() => setDeleteConfirmId(null)}>
-        <AlertDialogContent className="bg-slate-900 border-slate-700" dir="rtl">
+        <AlertDialogContent className="bg-slate-900 border-slate-700">
           <AlertDialogHeader>
-            <AlertDialogTitle>למחוק את הכרטיס?</AlertDialogTitle>
+            <AlertDialogTitle>Delete this card?</AlertDialogTitle>
             <AlertDialogDescription>
-              פעולה זו לא ניתנת לביטול. הכרטיס יימחק לצמיתות.
+              This action cannot be undone. The card will be permanently deleted.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="flex-row-reverse gap-2">
-            <AlertDialogCancel>ביטול</AlertDialogCancel>
+          <AlertDialogFooter className="gap-2">
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => deleteConfirmId && handleDelete(deleteConfirmId)}
               className="bg-red-600 hover:bg-red-700"
             >
-              מחק
+              Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

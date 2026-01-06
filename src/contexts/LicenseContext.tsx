@@ -193,6 +193,27 @@ declare global {
         hasStandard: (standardCode: string) => Promise<boolean>;
         getStandards: () => Promise<StandardCatalog[]>;
         deactivate: () => Promise<{ success: boolean }>;
+        // Offline Activation
+        generateActivationRequest: () => Promise<{
+          requestCode: string;
+          machineId: string;
+          machineName: string;
+          generatedAt: string;
+          validFor: string;
+        }>;
+        activateOffline: (licenseKey: string, responseCode: string) => Promise<{
+          success: boolean;
+          error?: string;
+          license?: LicenseInfo;
+        }>;
+        getMachineInfo: () => Promise<{
+          machineId: string;
+          machineIdShort: string;
+          machineName: string;
+          platform: string;
+          arch: string;
+          osVersion: string;
+        }>;
       };
     };
   }

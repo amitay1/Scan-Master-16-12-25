@@ -1,14 +1,16 @@
 /**
  * Angle Beam Calibration Block Drawing Component
  *
- * SVG technical drawing of the arc-shaped (C-ring) calibration block
- * for shear wave inspection with hatched cross-sections and reference notches.
+ * Displays the arc-shaped calibration block technical drawing
+ * for shear wave beam calibration on circular/curved parts.
  * Per AMS-STD-2154 / ASTM E2375 for circumferential shear wave inspection.
+ * 
+ * Used for: tube, cylinder, cone, sphere geometries
  */
 
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Image as ImageIcon, RefreshCw } from "lucide-react";
+import { Image as ImageIcon, RefreshCw, ZoomIn, ZoomOut, Maximize2 } from "lucide-react";
 
 interface AngleBeamCalibrationBlockDrawingProps {
   width?: number;
@@ -18,13 +20,18 @@ interface AngleBeamCalibrationBlockDrawingProps {
 }
 
 export function AngleBeamCalibrationBlockDrawing({
-  width = 700,
-  height = 550,
-  showDimensions = true,
-  title = "Angle Beam Calibration Block - Shear Wave Reference Standard",
+  width = 900,
+  height = 700,
+  title = "Shear Wave Calibration Block - Reference Standard for Circular Parts",
 }: AngleBeamCalibrationBlockDrawingProps) {
-  const [loadedImage, setLoadedImage] = useState<string | null>(null);
+  const [customImage, setCustomImage] = useState<string | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [zoomLevel, setZoomLevel] = useState(1);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Default image path - the detailed technical drawing for shear wave calibration
+  const defaultImagePath = "/Technical card TUV-17.png";
 
   const handleLoadImage = () => {
     fileInputRef.current?.click();
@@ -35,91 +42,45 @@ export function AngleBeamCalibrationBlockDrawing({
     if (file) {
       const reader = new FileReader();
       reader.onload = (event) => {
-        setLoadedImage(event.target?.result as string);
+        setCustomImage(event.target?.result as string);
       };
       reader.readAsDataURL(file);
     }
   };
 
   const handleClearImage = () => {
-    setLoadedImage(null);
+    setCustomImage(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
   };
 
-  // If user loaded a custom image, show it
-  if (loadedImage) {
-    return (
-      <div className="relative border rounded-lg bg-white p-4">
-        <div className="flex items-center justify-between mb-2">
-          <h4 className="font-semibold text-sm">{title}</h4>
-          <Button variant="outline" size="sm" onClick={handleClearImage}>
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Back to Drawing
-          </Button>
-        </div>
-        <div
-          className="flex items-center justify-center"
-          style={{ height: height - 60 }}
-        >
-          <img
-            src={loadedImage}
-            alt="Angle beam calibration block"
-            className="max-w-full max-h-full object-contain"
-          />
-        </div>
-      </div>
-    );
-  }
-
-  // Center of the isometric view
-  const cx = width * 0.5;
-  const cy = height * 0.48;
-
-  // Block dimensions (scaled for display)
-  const outerR = 130;
-  const innerR = 85;
-  const blockHeight = 85;
-  const wallThickness = outerR - innerR;
-
-  // Arc spans about 270 degrees - open C shape with opening at FRONT
-  // Opening faces the viewer (bottom-front)
-  const arcStart = -45;   // right side of opening
-  const arcEnd = 225;     // left side of opening (270 degree arc)
-
-  // Step configuration - 6 steps at the right end (like Bytest design)
-  const stepCount = 6;
-  const stepHeight = blockHeight / stepCount;
-  const stepAngleSpan = 35; // angle span where steps are located
-  const stepStartAngle = arcStart + stepAngleSpan; // steps are near the right opening
-
-  // Convert angle to isometric coordinates - view from top-front-left
-  const arcPoint = (angle: number, radius: number, zOffset: number = 0) => {
-    const rad = (angle * Math.PI) / 180;
-    const x = radius * Math.cos(rad);
-    const y = radius * Math.sin(rad);
-    // Isometric projection - tilted view
-    return {
-      x: cx + x * 0.9 - y * 0.4,
-      y: cy - zOffset * 0.65 + y * 0.55 + x * 0.25,
-    };
+  const toggleFullscreen = () => {
+    setIsFullscreen(!isFullscreen);
   };
 
-  // Create arc path for isometric view
-  const createIsoArc = (radius: number, startAngle: number, endAngle: number, zOffset: number) => {
-    const points: string[] = [];
-    const segments = 72;
-    for (let i = 0; i <= segments; i++) {
-      const angle = startAngle + (endAngle - startAngle) * (i / segments);
-      const p = arcPoint(angle, radius, zOffset);
-      points.push(`${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`);
-    }
-    return points.join(' ');
+  const handleZoomIn = () => {
+    setZoomLevel(prev => Math.min(prev + 0.25, 2.5));
   };
+
+  const handleZoomOut = () => {
+    setZoomLevel(prev => Math.max(prev - 0.25, 0.5));
+  };
+
+  // Use custom image if loaded, otherwise use default
+  const imageSrc = customImage || defaultImagePath;
+
+  const containerClasses = isFullscreen
+    ? "fixed inset-0 z-50 bg-white flex flex-col"
+    : "relative border-2 border-blue-200 rounded-xl bg-white flex flex-col items-center shadow-lg angle-beam-calibration-block";
 
   return (
-    <div className="relative border rounded-lg bg-white flex flex-col items-center">
+    <div
+      ref={containerRef}
+      className={containerClasses}
+      data-testid="angle-beam-calibration-block"
+      style={isFullscreen ? {} : { minHeight: height }}
+    >
       <input
         ref={fileInputRef}
         type="file"
@@ -128,272 +89,122 @@ export function AngleBeamCalibrationBlockDrawing({
         onChange={handleFileChange}
       />
 
-      <svg
-        width={width}
-        height={height}
-        className="block mx-auto"
-        style={{ background: "#f8f6f0" }}
+      {/* Title Banner */}
+      <div className="w-full text-center py-4 border-b-2 border-blue-100 bg-gradient-to-r from-blue-50 via-white to-blue-50">
+        <h4 className="font-bold text-lg text-blue-800">{title}</h4>
+        <p className="text-sm text-blue-600 mt-1">
+          Applicable for: Tubes, Cylinders, Cones, Spheres - Circumferential Inspection
+        </p>
+      </div>
+
+      {/* Image Display Area */}
+      <div
+        className="flex-1 flex items-center justify-center p-6 overflow-auto bg-gray-50"
+        style={{ 
+          width: isFullscreen ? '100%' : width,
+          minHeight: isFullscreen ? 'calc(100vh - 150px)' : height - 120 
+        }}
       >
-        {/* Hatching pattern definition */}
-        <defs>
-          <pattern id="hatch" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(45)">
-            <line x1="0" y1="0" x2="0" y2="6" stroke="#555" strokeWidth="0.8"/>
-          </pattern>
-          <pattern id="hatch2" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(-45)">
-            <line x1="0" y1="0" x2="0" y2="6" stroke="#555" strokeWidth="0.8"/>
-          </pattern>
-        </defs>
-
-        {/* Title */}
-        <text
-          x={width / 2}
-          y={25}
-          textAnchor="middle"
-          fill="#333"
-          style={{ fontSize: 14, fontWeight: 600 }}
+        <div 
+          className="transition-transform duration-200 ease-out"
+          style={{ transform: `scale(${zoomLevel})` }}
         >
-          {title}
-        </text>
-
-        {/* Main isometric view of the C-ring block with stepped end */}
-        <g>
-          {/* Top surface of the arc - main portion (before steps) */}
-          <path
-            d={`
-              ${createIsoArc(outerR, arcStart, stepStartAngle, blockHeight)}
-              ${createIsoArc(innerR, stepStartAngle, arcStart, blockHeight).replace(/M/g, 'L')}
-              Z
-            `}
-            fill="#c8c8c8"
-            stroke="#333"
-            strokeWidth={1.5}
+          <img
+            src={imageSrc}
+            alt="Shear Wave Calibration Block - Technical Drawing with Cross Sections A-A, B-B, C-C"
+            className="max-w-full h-auto object-contain rounded-lg shadow-md"
+            style={{ 
+              maxHeight: isFullscreen ? '85vh' : height - 160,
+              backgroundColor: 'white',
+              padding: '8px'
+            }}
+            onError={(e) => {
+              const target = e.target as HTMLImageElement;
+              target.style.display = 'none';
+            }}
           />
+        </div>
+      </div>
 
-          {/* Outer curved surface (front/visible part - before steps) */}
-          <path
-            d={`
-              ${createIsoArc(outerR, arcStart, stepStartAngle, blockHeight)}
-              ${createIsoArc(outerR, stepStartAngle, arcStart, 0).replace(/M/g, 'L')}
-              Z
-            `}
-            fill="#6a6a6a"
-            stroke="#333"
-            strokeWidth={1.5}
-          />
+      {/* Technical Info Bar */}
+      <div className="w-full px-6 py-3 border-t-2 border-blue-100 bg-gradient-to-r from-gray-50 to-white">
+        <div className="flex flex-wrap justify-center gap-6 text-sm font-medium text-gray-700">
+          <span className="px-3 py-1 bg-blue-50 rounded-full">Cross Section A-A & B-B: FBH positions</span>
+          <span className="px-3 py-1 bg-orange-50 rounded-full">Cross Section C-C: Step wedge profile</span>
+          <span className="px-3 py-1 bg-green-50 rounded-full">Arc segment: 120° coverage</span>
+        </div>
+        <p className="text-center text-xs text-gray-500 mt-2">
+          Voir rapport 5394 pour Coupe A-A et B-B | Reference: AMS-STD-2154 / ASTM E2375
+        </p>
+      </div>
 
-          {/* Inner curved surface */}
-          <path
-            d={`
-              ${createIsoArc(innerR, arcStart, arcEnd, blockHeight)}
-              ${createIsoArc(innerR, arcEnd, arcStart, 0).replace(/M/g, 'L')}
-              Z
-            `}
-            fill="#888"
-            stroke="#333"
-            strokeWidth={1}
-          />
-
-          {/* Left end face (flat cut at arcStart) - with hatching */}
-          {(() => {
-            const topOuter = arcPoint(arcStart, outerR, blockHeight);
-            const topInner = arcPoint(arcStart, innerR, blockHeight);
-            const botOuter = arcPoint(arcStart, outerR, 0);
-            const botInner = arcPoint(arcStart, innerR, 0);
-            return (
-              <g>
-                {/* Face fill */}
-                <path
-                  d={`M ${topOuter.x} ${topOuter.y} L ${topInner.x} ${topInner.y} L ${botInner.x} ${botInner.y} L ${botOuter.x} ${botOuter.y} Z`}
-                  fill="url(#hatch)"
-                  stroke="#333"
-                  strokeWidth={1.5}
-                />
-                {/* Hatching lines on left face */}
-                {Array.from({ length: 10 }).map((_, i) => {
-                  const t = (i + 1) / 11;
-                  const x1 = topOuter.x + (topInner.x - topOuter.x) * t;
-                  const y1 = topOuter.y + (topInner.y - topOuter.y) * t;
-                  const x2 = botOuter.x + (botInner.x - botOuter.x) * t;
-                  const y2 = botOuter.y + (botInner.y - botOuter.y) * t;
-                  return (
-                    <line
-                      key={`hatch-left-${i}`}
-                      x1={x1} y1={y1} x2={x2} y2={y2}
-                      stroke="#555"
-                      strokeWidth={0.7}
-                    />
-                  );
-                })}
-              </g>
-            );
-          })()}
-
-          {/* Stepped section at the end (arcEnd side) - 6 horizontal steps */}
-          {Array.from({ length: stepCount }).map((_, i) => {
-            const stepZ = blockHeight - stepHeight * i;
-            const nextStepZ = blockHeight - stepHeight * (i + 1);
-
-            // Top surface of this step
-            const topOuter1 = arcPoint(stepStartAngle, outerR, stepZ);
-            const topOuter2 = arcPoint(arcEnd, outerR, stepZ);
-            const topInner2 = arcPoint(arcEnd, innerR, stepZ);
-            const topInner1 = arcPoint(stepStartAngle, innerR, stepZ);
-
-            // Outer curved face of step
-            const outerTop1 = arcPoint(stepStartAngle, outerR, stepZ);
-            const outerTop2 = arcPoint(arcEnd, outerR, stepZ);
-            const outerBot1 = arcPoint(stepStartAngle, outerR, nextStepZ);
-            const outerBot2 = arcPoint(arcEnd, outerR, nextStepZ);
-
-            const topColor = i % 2 === 0 ? "#b8b8b8" : "#a8a8a8";
-            const sideColor = i % 2 === 0 ? "#707070" : "#606060";
-
-            return (
-              <g key={`step-${i}`}>
-                {/* Step tread (top surface) */}
-                <path
-                  d={`M ${topOuter1.x} ${topOuter1.y} L ${topOuter2.x} ${topOuter2.y} L ${topInner2.x} ${topInner2.y} L ${topInner1.x} ${topInner1.y} Z`}
-                  fill={topColor}
-                  stroke="#333"
-                  strokeWidth={1}
-                />
-                {/* Step outer curved face */}
-                <path
-                  d={`
-                    ${createIsoArc(outerR, stepStartAngle, arcEnd, stepZ)}
-                    ${createIsoArc(outerR, arcEnd, stepStartAngle, nextStepZ).replace(/M/g, 'L')}
-                    Z
-                  `}
-                  fill={sideColor}
-                  stroke="#333"
-                  strokeWidth={0.8}
-                />
-                {/* Reference hole on each step (FBH) */}
-                {(() => {
-                  const holeR = (outerR + innerR) / 2;
-                  const holeZ = stepZ - stepHeight * 0.5;
-                  const hole = arcPoint(arcEnd - 5, holeR, holeZ);
-                  return <circle cx={hole.x} cy={hole.y} r={3} fill="#2a2a2a" stroke="#000" strokeWidth={0.5} />;
-                })()}
-              </g>
-            );
-          })}
-
-          {/* Right end face (stepped end) - with hatching */}
-          {(() => {
-            const topOuter = arcPoint(arcEnd, outerR, blockHeight - stepHeight * (stepCount - 1));
-            const topInner = arcPoint(arcEnd, innerR, blockHeight);
-            const botOuter = arcPoint(arcEnd, outerR, 0);
-            const botInner = arcPoint(arcEnd, innerR, 0);
-            return (
-              <g>
-                {/* Face fill with hatching */}
-                <path
-                  d={`M ${topOuter.x} ${topOuter.y} L ${topInner.x} ${topInner.y} L ${botInner.x} ${botInner.y} L ${botOuter.x} ${botOuter.y} Z`}
-                  fill="url(#hatch)"
-                  stroke="#333"
-                  strokeWidth={1.5}
-                />
-                {/* Diagonal hatching lines */}
-                {Array.from({ length: 10 }).map((_, i) => {
-                  const t = (i + 1) / 11;
-                  const x1 = topOuter.x + (topInner.x - topOuter.x) * t;
-                  const y1 = topOuter.y + (topInner.y - topOuter.y) * t;
-                  const x2 = botOuter.x + (botInner.x - botOuter.x) * t;
-                  const y2 = botOuter.y + (botInner.y - botOuter.y) * t;
-                  return (
-                    <line
-                      key={`hatch-right-${i}`}
-                      x1={x1} y1={y1} x2={x2} y2={y2}
-                      stroke="#555"
-                      strokeWidth={0.7}
-                    />
-                  );
-                })}
-              </g>
-            );
-          })()}
-
-          {/* Reference notch on outer curved surface (small rectangle) */}
-          {(() => {
-            const angle = arcStart + 100;
-            const notchSize = 12;
-            const p1 = arcPoint(angle - 4, outerR + 1, blockHeight - 25);
-            const p2 = arcPoint(angle + 4, outerR + 1, blockHeight - 25);
-            const p3 = arcPoint(angle + 4, outerR + 1, blockHeight - 25 - notchSize);
-            const p4 = arcPoint(angle - 4, outerR + 1, blockHeight - 25 - notchSize);
-            return (
-              <path
-                d={`M ${p1.x} ${p1.y} L ${p2.x} ${p2.y} L ${p3.x} ${p3.y} L ${p4.x} ${p4.y} Z`}
-                fill="none"
-                stroke="#333"
-                strokeWidth={1.2}
-              />
-            );
-          })()}
-
-          {/* Reference notch on left end face (small rectangle) */}
-          {(() => {
-            const midR = (outerR + innerR) / 2;
-            const notchSize = 12;
-            const p1 = arcPoint(arcStart, midR - 6, blockHeight - 40);
-            const p2 = arcPoint(arcStart, midR + 6, blockHeight - 40);
-            const p3 = arcPoint(arcStart, midR + 6, blockHeight - 40 - notchSize);
-            const p4 = arcPoint(arcStart, midR - 6, blockHeight - 40 - notchSize);
-            return (
-              <path
-                d={`M ${p1.x} ${p1.y} L ${p2.x} ${p2.y} L ${p3.x} ${p3.y} L ${p4.x} ${p4.y} Z`}
-                fill="none"
-                stroke="#333"
-                strokeWidth={1.2}
-              />
-            );
-          })()}
-
-          {/* Probe indicator with U-shape symbol at top pointing to steps */}
-          {(() => {
-            const probePos = arcPoint(arcEnd + 20, outerR + 50, blockHeight + 20);
-            const arrowEnd = arcPoint(arcEnd - 5, outerR, blockHeight - stepHeight);
-            return (
-              <g>
-                {/* Arrow line pointing down to steps */}
-                <line
-                  x1={probePos.x}
-                  y1={probePos.y}
-                  x2={arrowEnd.x}
-                  y2={arrowEnd.y}
-                  stroke="#333"
-                  strokeWidth={1}
-                />
-                {/* U-shaped probe symbol */}
-                <path
-                  d={`M ${probePos.x - 8} ${probePos.y - 18} 
-                      L ${probePos.x - 8} ${probePos.y - 5} 
-                      Q ${probePos.x} ${probePos.y + 2} ${probePos.x + 8} ${probePos.y - 5} 
-                      L ${probePos.x + 8} ${probePos.y - 18}`}
-                  fill="none"
-                  stroke="#333"
-                  strokeWidth={1.5}
-                />
-              </g>
-            );
-          })()}
-        </g>
-
-      </svg>
-
-      {/* Load Image Button */}
-      <div className="absolute top-12 left-4">
+      {/* Control Buttons - Top Right */}
+      <div className="absolute top-16 right-4 flex gap-2">
         <Button
           variant="outline"
           size="sm"
-          onClick={handleLoadImage}
-          className="bg-white/90 hover:bg-white"
+          onClick={handleZoomOut}
+          className="bg-blue-600 hover:bg-blue-700 text-white border-blue-700 shadow-md"
+          title="Zoom Out"
         >
-          <ImageIcon className="h-4 w-4 mr-2" />
-          Load Image
+          <ZoomOut className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleZoomIn}
+          className="bg-blue-600 hover:bg-blue-700 text-white border-blue-700 shadow-md"
+          title="Zoom In"
+        >
+          <ZoomIn className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={toggleFullscreen}
+          className="bg-blue-600 hover:bg-blue-700 text-white border-blue-700 shadow-md"
+          title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
+        >
+          <Maximize2 className="h-4 w-4" />
         </Button>
       </div>
+
+      {/* Load/Reset Buttons - Top Left */}
+      <div className="absolute top-16 left-4 flex gap-2">
+        {customImage ? (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleClearImage}
+            className="bg-orange-500 hover:bg-orange-600 text-white border-orange-600 shadow-md"
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Reset to Default
+          </Button>
+        ) : (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleLoadImage}
+            className="bg-green-600 hover:bg-green-700 text-white border-green-700 shadow-md"
+          >
+            <ImageIcon className="h-4 w-4 mr-2" />
+            Load Custom Image
+          </Button>
+        )}
+      </div>
+
+      {/* Fullscreen Close Button */}
+      {isFullscreen && (
+        <Button
+          variant="default"
+          size="lg"
+          onClick={toggleFullscreen}
+          className="absolute bottom-6 right-6 shadow-lg"
+        >
+          Close Fullscreen
+        </Button>
+      )}
     </div>
   );
 }

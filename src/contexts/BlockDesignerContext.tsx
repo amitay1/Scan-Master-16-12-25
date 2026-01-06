@@ -1,9 +1,10 @@
 /**
  * Block Designer Context
  * State management for the custom calibration block designer
+ * Includes localStorage persistence to preserve data across navigation
  */
 
-import React, { createContext, useContext, useReducer, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useReducer, useCallback, useMemo, useEffect } from 'react';
 import {
   BlockDesignerState,
   BlockDesignerActions,
@@ -19,6 +20,9 @@ import {
   generateHoleId,
   generateNotchId,
 } from '@/types/blockDesigner.types';
+
+// localStorage key for persisting block designer state
+const STORAGE_KEY = 'block-designer-state';
 
 // ==================== ACTION TYPES ====================
 
@@ -47,7 +51,7 @@ type BlockDesignerAction =
 
 // ==================== INITIAL STATE ====================
 
-const initialState: BlockDesignerState = {
+const defaultState: BlockDesignerState = {
   blockShape: DEFAULT_BLOCK_SHAPE,
   blockMaterial: 'steel',
   holes: [],
@@ -60,6 +64,47 @@ const initialState: BlockDesignerState = {
   undoStack: [],
   redoStack: [],
 };
+
+// Load state from localStorage (used as lazy initializer for useReducer)
+function loadStateFromStorage(_defaultArg?: BlockDesignerState): BlockDesignerState {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      // Merge with default to ensure all fields exist
+      return {
+        ...defaultState,
+        ...parsed,
+        // Don't persist undo/redo stacks - they can get large
+        undoStack: [],
+        redoStack: [],
+      };
+    }
+  } catch (e) {
+    console.warn('Failed to load block designer state from localStorage:', e);
+  }
+  return defaultState;
+}
+
+// Save state to localStorage
+function saveStateToStorage(state: BlockDesignerState): void {
+  try {
+    // Save only the important data, not undo/redo stacks
+    const toSave = {
+      blockShape: state.blockShape,
+      blockMaterial: state.blockMaterial,
+      holes: state.holes,
+      notches: state.notches,
+      viewMode: state.viewMode,
+      placementMode: state.placementMode,
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
+  } catch (e) {
+    console.warn('Failed to save block designer state to localStorage:', e);
+  }
+}
+
+// Note: We use lazy initialization in useReducer to ensure fresh load from localStorage
 
 // ==================== REDUCER ====================
 
@@ -269,7 +314,13 @@ const BlockDesignerContext = createContext<BlockDesignerContextValue | null>(nul
 // ==================== PROVIDER ====================
 
 export function BlockDesignerProvider({ children }: { children: React.ReactNode }) {
-  const [state, dispatch] = useReducer(blockDesignerReducer, initialState);
+  // Use lazy initialization to load fresh state from localStorage on every mount
+  const [state, dispatch] = useReducer(blockDesignerReducer, defaultState, loadStateFromStorage);
+
+  // Persist state to localStorage on every change
+  useEffect(() => {
+    saveStateToStorage(state);
+  }, [state]);
 
   // Helper to save state before modifying
   const saveHistory = useCallback(() => {

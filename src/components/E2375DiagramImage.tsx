@@ -143,13 +143,13 @@ const getE2375ImageInfo = (partType: PartGeometry): {
     // Additional shapes - map to closest equivalent
     case "cone":
       return {
-        imagePath: `${basePath}/disk-forging.png`,
+        imagePath: `${basePath}/ring-forging.png`,
         figure: "Figure 7",
         page: 12,
-        title: "Cone",
-        titleHe: "חרוט",
-        description: "Scan following disk forging principles with adaptation for tapered geometry. Radial and axial scans recommended.",
-        recommendedDirections: ["A", "C", "C₁"]
+        title: "Tapered Tube / Cone",
+        titleHe: "צינור מתחדד / חרוט",
+        description: "Cone is treated as a tapered tube. Scan with straight beam from OD surface radially, and shear wave scans in both circumferential and axial directions for complete coverage.",
+        recommendedDirections: ["C", "C₁", "D", "E", "F", "G", "H"]
       };
 
     case "l_profile":
@@ -320,9 +320,12 @@ export const E2375DiagramImage: React.FC<E2375DiagramImageProps> = ({
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Diagram Image */}
-            <div className="lg:col-span-2 overflow-hidden bg-white rounded-lg border-2 border-gray-200">
-              <div 
-                className="flex items-center justify-center p-4 min-h-[400px] overflow-auto"
+            <div
+              className="lg:col-span-2 overflow-hidden bg-white rounded-lg border-2 border-gray-200 e2375-diagram-container"
+              data-testid="e2375-diagram"
+            >
+              <div
+                className="flex items-center justify-center p-4 min-h-[400px] overflow-auto e2375-diagram-image"
                 style={{ maxHeight: '550px' }}
               >
                 {imageError ? (
@@ -352,6 +355,8 @@ export const E2375DiagramImage: React.FC<E2375DiagramImageProps> = ({
                     className="max-w-full h-auto transition-transform duration-200"
                     style={{ transform: `scale(${zoom})` }}
                     onError={() => setImageError(true)}
+                    data-testid="e2375-diagram-img"
+                    crossOrigin="anonymous"
                   />
                 )}
               </div>

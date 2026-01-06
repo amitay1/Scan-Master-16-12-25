@@ -186,13 +186,13 @@ export function UpdateNotification() {
       <motion.div
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="fixed bottom-4 right-4 z-[9998]"
+        className="fixed bottom-6 right-6 z-[9998]"
       >
         <Button
           onClick={() => { setDismissed(false); setShowMinimal(false); }}
-          className="bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-full px-4 py-2 shadow-lg hover:shadow-xl transition-all border border-blue-500/30"
+          className="bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-full px-6 py-3 text-lg shadow-xl hover:shadow-2xl transition-all border-2 border-blue-500/50"
         >
-          <CheckCircle2 className="w-4 h-4 mr-2" />
+          <CheckCircle2 className="w-5 h-5 mr-3" />
           Update Ready
         </Button>
       </motion.div>
@@ -211,9 +211,9 @@ export function UpdateNotification() {
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -100, scale: 0.9 }}
           transition={{ type: 'spring', damping: 20, stiffness: 300 }}
-          className="fixed top-4 left-1/2 -translate-x-1/2 z-[9999] w-[420px]"
+          className="fixed top-6 left-1/2 -translate-x-1/2 z-[9999] w-[520px]"
         >
-          <div className="bg-gradient-to-br from-slate-700 to-slate-800 rounded-2xl shadow-2xl border border-blue-500/30 overflow-hidden">
+          <div className="bg-gradient-to-br from-slate-700 to-slate-800 rounded-2xl shadow-2xl border-2 border-blue-500/50 overflow-hidden">
             {/* Animated background particles */}
             <div className="absolute inset-0 overflow-hidden">
               {[...Array(20)].map((_, i) => (
@@ -238,34 +238,34 @@ export function UpdateNotification() {
               ))}
             </div>
 
-            <div className="relative p-5">
-              <div className="flex items-center gap-4">
+            <div className="relative p-7">
+              <div className="flex items-center gap-5">
                 <motion.div
                   animate={{ rotate: 360 }}
                   transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
-                  className="p-3 bg-white/20 rounded-xl"
+                  className="p-4 bg-white/20 rounded-xl"
                 >
-                  <Download className="w-6 h-6 text-white" />
+                  <Download className="w-8 h-8 text-white" />
                 </motion.div>
                 
                 <div className="flex-1">
-                  <h3 className="text-white font-bold text-lg flex items-center gap-2">
-                    <Sparkles className="w-4 h-4" />
+                  <h3 className="text-white font-bold text-xl flex items-center gap-2">
+                    <Sparkles className="w-5 h-5" />
                     Downloading Update
                   </h3>
-                  <p className="text-white/80 text-sm">
+                  <p className="text-white/80 text-base mt-1">
                     v{currentVersion} → v{updateStatus.version}
                   </p>
                 </div>
                 
-                <span className="text-2xl font-bold text-white">
+                <span className="text-3xl font-bold text-white">
                   {Math.round(updateStatus.percent || 0)}%
                 </span>
               </div>
 
               {/* Progress bar */}
-              <div className="mt-4 relative">
-                <div className="h-3 bg-white/20 rounded-full overflow-hidden">
+              <div className="mt-5 relative">
+                <div className="h-4 bg-white/20 rounded-full overflow-hidden">
                   <motion.div
                     className="h-full bg-gradient-to-r from-green-400 to-emerald-500 rounded-full"
                     initial={{ width: 0 }}
@@ -275,7 +275,7 @@ export function UpdateNotification() {
                 </div>
                 {/* Glowing effect on progress */}
                 <motion.div
-                  className="absolute top-0 h-3 w-20 bg-gradient-to-r from-transparent via-white/50 to-transparent rounded-full"
+                  className="absolute top-0 h-4 w-24 bg-gradient-to-r from-transparent via-white/50 to-transparent rounded-full"
                   animate={{ left: ['-20%', '100%'] }}
                   transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
                 />
@@ -283,7 +283,7 @@ export function UpdateNotification() {
               
               {/* Download stats */}
               {updateStatus.transferred && updateStatus.total && (
-                <div className="mt-2 flex justify-between text-white/60 text-xs">
+                <div className="mt-3 flex justify-between text-white/70 text-sm font-medium">
                   <span>{formatBytes(updateStatus.transferred)} / {formatBytes(updateStatus.total)}</span>
                   {updateStatus.bytesPerSecond && (
                     <span>{formatBytes(updateStatus.bytesPerSecond)}/s</span>
@@ -292,7 +292,7 @@ export function UpdateNotification() {
               )}
               
               {/* Silent mode indicator */}
-              <p className="text-white/50 text-xs mt-3 text-center">
+              <p className="text-white/60 text-sm mt-4 text-center">
                 🔇 Installing automatically when ready
               </p>
             </div>
@@ -307,37 +307,37 @@ export function UpdateNotification() {
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: 100 }}
           transition={{ type: 'spring', damping: 20, stiffness: 300 }}
-          className="fixed bottom-4 right-4 z-[9999] w-[350px]"
+          className="fixed bottom-6 right-6 z-[9999] w-[420px]"
         >
-          <div className="bg-gradient-to-br from-slate-700 to-slate-800 rounded-2xl shadow-2xl border border-blue-500/30 overflow-hidden">
-            <div className="p-5">
+          <div className="bg-gradient-to-br from-slate-700 to-slate-800 rounded-2xl shadow-2xl border-2 border-blue-500/50 overflow-hidden">
+            <div className="p-6">
               <button 
                 onClick={handleDismiss}
-                className="absolute top-3 right-3 text-white/60 hover:text-white transition-colors"
+                className="absolute top-4 right-4 text-white/60 hover:text-white transition-colors"
               >
-                <X className="w-4 h-4" />
+                <X className="w-5 h-5" />
               </button>
 
-              <div className="flex items-start gap-4">
+              <div className="flex items-start gap-5">
                 <motion.div
                   animate={{ scale: [1, 1.1, 1] }}
                   transition={{ duration: 2, repeat: Infinity }}
-                  className="p-3 bg-white/20 rounded-xl"
+                  className="p-4 bg-white/20 rounded-xl"
                 >
-                  <Sparkles className="w-6 h-6 text-blue-400" />
+                  <Sparkles className="w-8 h-8 text-blue-400" />
                 </motion.div>
                 
                 <div className="flex-1">
-                  <h3 className="text-white font-bold text-lg">
+                  <h3 className="text-white font-bold text-xl">
                     Update Available! ✨
                   </h3>
-                  <p className="text-white/80 text-sm mt-1">
+                  <p className="text-white/80 text-base mt-2">
                     Version {updateStatus.version} is ready to download
                   </p>
                 </div>
               </div>
 
-              <p className="text-white/70 text-xs mt-3">
+              <p className="text-white/70 text-sm mt-4">
                 🔇 Downloading automatically in the background...
               </p>
             </div>
@@ -354,42 +354,42 @@ export function UpdateNotification() {
           className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm"
         >
           <motion.div 
-            className="bg-gradient-to-br from-amber-500 via-orange-600 to-red-600 rounded-3xl shadow-2xl border border-white/20 w-[450px] overflow-hidden"
+            className="bg-gradient-to-br from-amber-500 via-orange-600 to-red-600 rounded-3xl shadow-2xl border-2 border-white/30 w-[550px] overflow-hidden"
           >
-            <div className="relative p-8 text-center">
+            <div className="relative p-10 text-center">
               <motion.div
                 animate={{ scale: [1, 1.05, 1] }}
                 transition={{ duration: 1, repeat: Infinity }}
-                className="mx-auto w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mb-6"
+                className="mx-auto w-24 h-24 bg-white/20 rounded-full flex items-center justify-center mb-8"
               >
-                <Clock className="w-10 h-10 text-white" />
+                <Clock className="w-12 h-12 text-white" />
               </motion.div>
 
-              <h2 className="text-3xl font-bold text-white mb-2">
+              <h2 className="text-4xl font-bold text-white mb-3">
                 Restarting in {formatTime(countdown)}
               </h2>
               
-              <p className="text-white/80 text-lg mb-2">
+              <p className="text-white/80 text-xl mb-3">
                 Version {updateStatus.version} will be installed
               </p>
 
-              <p className="text-white/60 text-sm mb-6">
+              <p className="text-white/60 text-base mb-8">
                 Save your work now. The app will restart automatically.
               </p>
 
-              <div className="flex gap-3 justify-center">
+              <div className="flex gap-4 justify-center">
                 <Button
                   variant="ghost"
                   onClick={handleCancelRestart}
-                  className="text-white/70 hover:text-white hover:bg-white/10"
+                  className="text-white/70 hover:text-white hover:bg-white/10 text-base px-6 py-3"
                 >
                   Cancel
                 </Button>
                 <Button
                   onClick={() => handleInstallUpdate(true)}
-                  className="bg-white text-orange-600 hover:bg-white/90 font-bold px-6"
+                  className="bg-white text-orange-600 hover:bg-white/90 font-bold px-8 py-4 text-xl"
                 >
-                  <RefreshCw className="w-5 h-5 mr-2" />
+                  <RefreshCw className="w-6 h-6 mr-3" />
                   Restart Now
                 </Button>
               </div>
@@ -408,7 +408,7 @@ export function UpdateNotification() {
           className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm"
         >
           <motion.div 
-            className="bg-gradient-to-br from-slate-700 via-slate-800 to-slate-900 rounded-3xl shadow-2xl border border-blue-500/30 w-[480px] overflow-hidden"
+            className="bg-gradient-to-br from-slate-700 via-slate-800 to-slate-900 rounded-3xl shadow-2xl border-2 border-blue-500/50 w-[580px] overflow-hidden"
             initial={{ rotateX: -20 }}
             animate={{ rotateX: 0 }}
             transition={{ type: 'spring', damping: 20 }}
@@ -443,18 +443,18 @@ export function UpdateNotification() {
               ))}
             </div>
 
-            <div className="relative p-8 text-center">
+            <div className="relative p-10 text-center">
               <motion.div
                 initial={{ scale: 0, rotate: -180 }}
                 animate={{ scale: 1, rotate: 0 }}
                 transition={{ type: 'spring', delay: 0.2, damping: 10 }}
-                className="mx-auto w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mb-6"
+                className="mx-auto w-24 h-24 bg-white/20 rounded-full flex items-center justify-center mb-8"
               >
                 <motion.div
                   animate={{ y: [0, -5, 0] }}
                   transition={{ duration: 1.5, repeat: Infinity }}
                 >
-                  <Rocket className="w-10 h-10 text-white" />
+                  <Rocket className="w-12 h-12 text-white" />
                 </motion.div>
               </motion.div>
 
@@ -462,7 +462,7 @@ export function UpdateNotification() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
-                className="text-3xl font-bold text-white mb-2"
+                className="text-4xl font-bold text-white mb-3"
               >
                 Update Ready! 🎉
               </motion.h2>
@@ -471,7 +471,7 @@ export function UpdateNotification() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
-                className="text-white/80 text-lg mb-2"
+                className="text-white/80 text-xl mb-3"
               >
                 Version {updateStatus.version} has been downloaded
               </motion.p>
@@ -480,10 +480,10 @@ export function UpdateNotification() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.5 }}
-                className="bg-white/10 rounded-lg p-3 mb-6"
+                className="bg-white/10 rounded-xl p-4 mb-8"
               >
-                <p className="text-white/90 text-sm flex items-center justify-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-blue-400" />
+                <p className="text-white/90 text-base flex items-center justify-center gap-3">
+                  <CheckCircle2 className="w-5 h-5 text-blue-400" />
                   {updateStatus.autoInstallOnQuit 
                     ? "Will install automatically when you close the app"
                     : "Ready to install now"
@@ -495,28 +495,28 @@ export function UpdateNotification() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.6 }}
-                className="flex gap-3 justify-center flex-wrap"
+                className="flex gap-4 justify-center flex-wrap"
               >
                 <Button
                   variant="ghost"
                   onClick={handleDismiss}
-                  className="text-white/70 hover:text-white hover:bg-white/10"
+                  className="text-white/70 hover:text-white hover:bg-white/10 text-base px-6 py-3"
                 >
                   Continue Working
                 </Button>
                 <Button
                   variant="ghost"
                   onClick={() => handleScheduleRestart(300)} // 5 minutes
-                  className="text-white/70 hover:text-white hover:bg-white/10"
+                  className="text-white/70 hover:text-white hover:bg-white/10 text-base px-6 py-3"
                 >
-                  <Clock className="w-4 h-4 mr-2" />
+                  <Clock className="w-5 h-5 mr-2" />
                   In 5 min
                 </Button>
                 <Button
                   onClick={() => handleInstallUpdate(true)}
-                  className="bg-blue-600 text-white hover:bg-blue-500 font-bold px-6 py-3 text-lg rounded-xl shadow-lg border border-blue-400/50"
+                  className="bg-blue-600 text-white hover:bg-blue-500 font-bold px-8 py-4 text-xl rounded-xl shadow-lg border-2 border-blue-400/50"
                 >
-                  <RefreshCw className="w-5 h-5 mr-2" />
+                  <RefreshCw className="w-6 h-6 mr-3" />
                   Restart & Update
                 </Button>
               </motion.div>
@@ -531,31 +531,31 @@ export function UpdateNotification() {
           initial={{ opacity: 0, x: 100 }}
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: 100 }}
-          className="fixed bottom-4 right-4 z-[9999] w-[380px]"
+          className="fixed bottom-6 right-6 z-[9999] w-[450px]"
         >
-          <div className="bg-red-500/90 backdrop-blur rounded-2xl shadow-2xl border border-white/20 p-5">
+          <div className="bg-red-500/95 backdrop-blur rounded-2xl shadow-2xl border-2 border-white/30 p-6">
             <button 
               onClick={handleDismiss}
-              className="absolute top-3 right-3 text-white/60 hover:text-white"
+              className="absolute top-4 right-4 text-white/60 hover:text-white"
             >
-              <X className="w-4 h-4" />
+              <X className="w-5 h-5" />
             </button>
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-white/20 rounded-lg">
-                <X className="w-5 h-5 text-white" />
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-white/20 rounded-xl">
+                <X className="w-7 h-7 text-white" />
               </div>
               <div className="flex-1">
-                <h3 className="text-white font-bold">Update Error</h3>
-                <p className="text-white/80 text-sm">{updateStatus.error}</p>
+                <h3 className="text-white font-bold text-xl">Update Error</h3>
+                <p className="text-white/80 text-base mt-1">{updateStatus.error}</p>
               </div>
             </div>
             {updateStatus.canRetry && (
               <Button
                 onClick={handleRetry}
                 variant="ghost"
-                className="mt-3 w-full text-white hover:bg-white/10"
+                className="mt-4 w-full text-white hover:bg-white/10 text-base py-3"
               >
-                <RefreshCw className="w-4 h-4 mr-2" />
+                <RefreshCw className="w-5 h-5 mr-2" />
                 Try Again
               </Button>
             )}

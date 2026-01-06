@@ -16,7 +16,9 @@ import {
 
 export interface ExportCaptures {
   technicalDrawing?: string;
-  calibrationBlockDiagram?: string;
+  calibrationBlockDiagram?: string;        // Straight beam FBH diagram
+  angleBeamCalibrationDiagram?: string;    // Angle beam calibration block
+  e2375Diagram?: string;                   // ASTM E2375 scan directions diagram
   threeDView?: string;
   scanDirectionsView?: string;
 }
@@ -27,6 +29,8 @@ export interface UseExportCapturesReturn {
   lastCaptureTime: number | null;
   captureTechnicalDrawing: () => Promise<boolean>;
   captureCalibrationBlock: () => Promise<boolean>;
+  captureAngleBeamBlock: () => Promise<boolean>;
+  captureE2375Diagram: () => Promise<boolean>;
   capture3DView: () => Promise<boolean>;
   captureScanDirections: () => Promise<boolean>;
   captureAll: () => Promise<ExportCaptures>;
@@ -67,6 +71,20 @@ const SCAN_DIRECTIONS_SELECTORS = [
   '#scan-directions-canvas',
   '[data-testid="scan-directions-canvas"]',
   '.inspection-plan-viewer canvas',
+];
+
+// Angle beam calibration block selectors
+const ANGLE_BEAM_SELECTORS = [
+  '[data-testid="angle-beam-calibration-block"]',
+  '.angle-beam-calibration-block',
+  '.angle-beam-calibration-block img',
+];
+
+// E2375 scan directions diagram selectors
+const E2375_DIAGRAM_SELECTORS = [
+  '[data-testid="e2375-diagram"]',
+  '.e2375-diagram-image img',
+  '.e2375-diagram-container img',
 ];
 
 export function useExportCaptures(): UseExportCapturesReturn {
@@ -164,6 +182,72 @@ export function useExportCaptures(): UseExportCapturesReturn {
     }
   }, []);
 
+  // Capture angle beam calibration block diagram
+  const captureAngleBeamBlock = useCallback(async (): Promise<boolean> => {
+    setIsCapturing(true);
+
+    try {
+      // Wait for image to render
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      const result = await smartCapture(ANGLE_BEAM_SELECTORS, {
+        scale: 3,
+        quality: 1.0,
+        backgroundColor: 'white',
+        maxWidth: 1800,
+        maxHeight: 1200,
+      });
+
+      if (result.success && result.data) {
+        console.log('Angle beam calibration block captured successfully');
+        setCaptures(prev => ({ ...prev, angleBeamCalibrationDiagram: result.data }));
+        setLastCaptureTime(Date.now());
+        return true;
+      }
+
+      console.warn('Angle beam capture failed:', result.error);
+      return false;
+    } catch (error) {
+      console.error('Error capturing angle beam block:', error);
+      return false;
+    } finally {
+      setIsCapturing(false);
+    }
+  }, []);
+
+  // Capture E2375 scan directions diagram
+  const captureE2375Diagram = useCallback(async (): Promise<boolean> => {
+    setIsCapturing(true);
+
+    try {
+      // Wait for image to render
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      const result = await smartCapture(E2375_DIAGRAM_SELECTORS, {
+        scale: 2,
+        quality: 1.0,
+        backgroundColor: 'white',
+        maxWidth: 1200,
+        maxHeight: 800,
+      });
+
+      if (result.success && result.data) {
+        console.log('E2375 diagram captured successfully');
+        setCaptures(prev => ({ ...prev, e2375Diagram: result.data }));
+        setLastCaptureTime(Date.now());
+        return true;
+      }
+
+      console.warn('E2375 diagram capture failed:', result.error);
+      return false;
+    } catch (error) {
+      console.error('Error capturing E2375 diagram:', error);
+      return false;
+    } finally {
+      setIsCapturing(false);
+    }
+  }, []);
+
   // Capture scan directions drawing
   // NOTE: Scan directions are now displayed via E2375 PDF iframe, not canvas
   // We don't capture this anymore - the PDF is used directly in exports
@@ -231,6 +315,8 @@ export function useExportCaptures(): UseExportCapturesReturn {
     lastCaptureTime,
     captureTechnicalDrawing,
     captureCalibrationBlock,
+    captureAngleBeamBlock,
+    captureE2375Diagram,
     capture3DView,
     captureScanDirections,
     captureAll: captureAllFn,

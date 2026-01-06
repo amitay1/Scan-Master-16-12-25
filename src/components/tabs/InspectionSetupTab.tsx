@@ -7,10 +7,10 @@ import { Upload, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { materialDatabase } from "@/utils/autoFillLogic";
-import { SmartRecommendations } from "@/components/SmartRecommendations";
 import { PartTypeVisualSelector } from "@/components/PartTypeVisualSelector";
 import { Card } from "@/components/ui/card";
 import { FieldWithHelp } from "@/components/FieldWithHelp";
+import { RealTimeTechnicalDrawing } from "@/components/RealTimeTechnicalDrawing";
 
 interface InspectionSetupTabProps {
   data: InspectionSetupData;
@@ -982,16 +982,31 @@ export const InspectionSetupTab = ({ data, onChange, acceptanceClass }: Inspecti
         )}
       </div>
 
-      {/* Smart Recommendations Panel */}
-      <SmartRecommendations
-        geometry={data.partType}
-        material={data.material}
-        thickness={data.partThickness}
-        width={data.partWidth}
-        length={data.partLength}
-        diameter={data.diameter}
-        acceptanceClass={acceptanceClass}
-      />
+      {/* Technical Drawing with Dimensions */}
+      {data.partType && (
+        <Card className="p-4 mt-4">
+          <h3 className="text-sm font-semibold mb-3">Part Drawing with Dimensions</h3>
+          <div className="h-[480px] w-full overflow-hidden">
+            <RealTimeTechnicalDrawing
+              partType={data.partType}
+              material={data.material as MaterialType}
+              dimensions={{
+                length: data.partLength || 100,
+                width: data.partWidth || 50,
+                thickness: data.partThickness || 10,
+                diameter: data.diameter,
+                isHollow: data.isHollow,
+                innerDiameter: data.innerDiameter,
+                innerLength: data.innerLength,
+                innerWidth: data.innerWidth,
+                wallThickness: data.wallThickness,
+              }}
+              showGrid={false}
+              showDimensions={true}
+            />
+          </div>
+        </Card>
+      )}
     </div>
   );
 };

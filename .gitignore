@@ -48,8 +48,19 @@ coverage/
 # Temp files
 *.tmp
 *.temp
+
 # Large files and unrelated content
 *.rar
 *.zip
 *.7z
 Captain Hardcore*/
+
+# Windows reserved names (can cause issues)
+nul
+NUL
+con
+CON
+prn
+PRN
+aux
+AUX

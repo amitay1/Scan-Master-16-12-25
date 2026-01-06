@@ -1,0 +1,24 @@
+{
+  "licenseKey": "SM-FAC-RONI-MK1FZI2S-AMSASTMBS3BS4MIL-LIFETIME-190FDD234671",
+  "factoryId": "FAC-RONI-MK1FZI2S",
+  "factoryName": "roni",
+  "purchasedStandards": [
+    "AMS-STD-2154E",
+    "ASTM-A388",
+    "BS-EN-10228-3",
+    "BS-EN-10228-4",
+    "MIL-STD-2154"
+  ],
+  "standardsShortCodes": [
+    "AMS",
+    "ASTM",
+    "BS3",
+    "BS4",
+    "MIL"
+  ],
+  "expiryDate": null,
+  "isLifetime": true,
+  "maxUsers": null,
+  "generatedAt": "2026-01-05T17:36:13.637Z",
+  "totalPrice": 2800
+}

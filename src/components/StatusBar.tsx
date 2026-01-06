@@ -37,25 +37,25 @@ export const StatusBar = ({
     switch (autoSaveStatus) {
       case 'pending':
         return {
-          icon: <Cloud className="h-3 w-3 text-muted-foreground" />,
+          icon: <Cloud className="h-5 w-5 text-muted-foreground" />,
           text: 'Changes pending...',
           color: 'text-muted-foreground'
         };
       case 'saving':
         return {
-          icon: <Loader2 className="h-3 w-3 text-blue-500 animate-spin" />,
+          icon: <Loader2 className="h-5 w-5 text-blue-500 animate-spin" />,
           text: 'Saving...',
           color: 'text-blue-500'
         };
       case 'saved':
         return {
-          icon: <Cloud className="h-3 w-3 text-success" />,
+          icon: <Cloud className="h-5 w-5 text-success" />,
           text: lastSaved ? `Saved at ${lastSaved.toLocaleTimeString()}` : 'Saved',
           color: 'text-success'
         };
       case 'error':
         return {
-          icon: <CloudOff className="h-3 w-3 text-destructive" />,
+          icon: <CloudOff className="h-5 w-5 text-destructive" />,
           text: 'Save failed',
           color: 'text-destructive'
         };
@@ -67,43 +67,43 @@ export const StatusBar = ({
   const autoSaveDisplay = getAutoSaveDisplay();
 
   return (
-    <div className="h-7 border-t border-border bg-card flex items-center px-3 text-xs text-muted-foreground flex-shrink-0 overflow-hidden">
+    <div className="h-12 border-t-2 border-border bg-card flex items-center px-5 text-base text-muted-foreground flex-shrink-0 overflow-hidden">
       {/* Connection Status */}
-      <div className="flex items-center gap-1.5 flex-shrink-0">
+      <div className="flex items-center gap-2 flex-shrink-0">
         {isOnline ? (
           <>
-            <Wifi className="h-3 w-3 text-success" />
-            <span className="text-success font-medium">Online</span>
+            <Wifi className="h-5 w-5 text-success" />
+            <span className="text-success font-semibold text-base">Online</span>
           </>
         ) : (
           <>
-            <WifiOff className="h-3 w-3 text-warning" />
-            <span className="text-warning font-medium">Offline</span>
+            <WifiOff className="h-5 w-5 text-warning" />
+            <span className="text-warning font-semibold text-base">Offline</span>
           </>
         )}
       </div>
 
-      <Separator orientation="vertical" className="h-4 mx-3" />
+      <Separator orientation="vertical" className="h-6 mx-4" />
 
       {/* Auto-save Status */}
       {autoSaveDisplay && (
         <>
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-2">
             {autoSaveDisplay.icon}
-            <span className={autoSaveDisplay.color}>{autoSaveDisplay.text}</span>
+            <span className={`${autoSaveDisplay.color} text-base`}>{autoSaveDisplay.text}</span>
           </div>
-          <Separator orientation="vertical" className="h-4 mx-3" />
+          <Separator orientation="vertical" className="h-6 mx-4" />
         </>
       )}
 
       {/* Completion Status */}
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center gap-2">
         {completionPercent === 100 ? (
-          <CheckCircle className="h-3 w-3 text-success" />
+          <CheckCircle className="h-5 w-5 text-success" />
         ) : (
-          <AlertCircle className="h-3 w-3 text-warning" />
+          <AlertCircle className="h-5 w-5 text-warning" />
         )}
-        <span>
+        <span className="text-base font-medium">
           Progress: {Math.round(completionPercent)}%
           ({requiredFieldsComplete}/{totalRequiredFields} fields)
         </span>
@@ -112,7 +112,7 @@ export const StatusBar = ({
       <div className="flex-1" />
 
       {/* Version Info */}
-      <span className="font-mono">v1.0.0</span>
+      <span className="font-mono text-base font-semibold">v1.0.0</span>
     </div>
   );
 };

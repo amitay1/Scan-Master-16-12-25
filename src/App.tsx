@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
 import { UIToaster } from "@/components/ui/toaster-wrapper";
 import { SonnerToaster } from "@/components/ui/sonner-toaster";
 import { OrganizationProvider } from "@/contexts/OrganizationContext";
@@ -12,7 +12,11 @@ import { LicenseActivationScreen } from "@/components/LicenseActivation";
 import { SettingsSync } from "@/components/SettingsSync";
 import { useServiceWorker } from "@/hooks/useServiceWorker";
 import { UpdateNotification } from "@/components/UpdateNotification";
+import { GlobalErrorBoundary, RecoveryProvider } from "@/components/ErrorBoundary";
+import { crashReporter } from "@/lib/crashReporter";
 import SplashScreen from "./components/SplashScreen";
+import { FirstRunWizard } from "./components/wizard/FirstRunWizard";
+import { useFirstRun } from "./hooks/useFirstRun";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Standards from "./pages/Standards";
@@ -21,19 +25,52 @@ import NotFound from "./pages/NotFound";
 import { GaugeDemo } from "./pages/GaugeDemo";
 import TechnicalDrawingTest from "./pages/TechnicalDrawingTest";
 import BlockDesigner from "./pages/BlockDesigner";
+import LicenseDashboard from "./pages/LicenseDashboard";
 
 const queryClient = new QueryClient();
+
+// Initialize crash reporter early
+crashReporter.initialize();
+
+// Secret keyboard shortcut component for admin access
+const AdminShortcut = () => {
+  const navigate = useNavigate();
+  
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl+Shift+Alt+L opens License Dashboard
+      if (e.ctrlKey && e.shiftKey && e.altKey && e.key.toLowerCase() === 'l') {
+        e.preventDefault();
+        navigate('/license-dashboard');
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [navigate]);
+  
+  return null;
+};
 
 const AppContent = () => {
   const { isOffline } = useServiceWorker();
   const [showSplash, setShowSplash] = useState(true);
   const { license, loading: licenseLoading, isElectron } = useLicense();
+  const { isFirstRun, isLoading: firstRunLoading, completeFirstRun } = useFirstRun();
+  const [showFirstRunWizard, setShowFirstRunWizard] = useState(false);
 
   useEffect(() => {
     if (isOffline) {
       console.log('App is offline - using cached data');
     }
   }, [isOffline]);
+
+  // Show first run wizard after splash screen
+  useEffect(() => {
+    if (!showSplash && !firstRunLoading && isFirstRun) {
+      setShowFirstRunWizard(true);
+    }
+  }, [showSplash, firstRunLoading, isFirstRun]);
 
   // Add electron-app class to body when running in Electron for desktop-specific styles
   useEffect(() => {
@@ -46,6 +83,16 @@ const AppContent = () => {
       document.documentElement.classList.remove('electron-app');
     };
   }, [isElectron]);
+
+  const handleFirstRunComplete = (data: Parameters<typeof completeFirstRun>[0]) => {
+    completeFirstRun(data);
+    setShowFirstRunWizard(false);
+  };
+
+  const handleFirstRunSkip = () => {
+    completeFirstRun({ skippedTutorial: true });
+    setShowFirstRunWizard(false);
+  };
 
   // Show splash screen
   if (showSplash) {
@@ -61,6 +108,13 @@ const AppContent = () => {
 
   return (
     <BrowserRouter>
+      <AdminShortcut />
+      {/* First Run Wizard */}
+      <FirstRunWizard
+        open={showFirstRunWizard}
+        onComplete={handleFirstRunComplete}
+        onSkip={handleFirstRunSkip}
+      />
       <Routes>
         <Route path="/" element={<Index />} />
         <Route path="/auth" element={<Auth />} />
@@ -69,6 +123,7 @@ const AppContent = () => {
         <Route path="/gauge-demo" element={<GaugeDemo />} />
         <Route path="/drawing-test" element={<TechnicalDrawingTest />} />
         <Route path="/block-designer" element={<BlockDesigner />} />
+        <Route path="/license-dashboard" element={<LicenseDashboard />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
       <UIToaster />
@@ -79,20 +134,24 @@ const AppContent = () => {
 };
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <LicenseProvider>
-      <SettingsProvider>
-        <SettingsSync />
-        <SavedCardsProvider>
-          <InspectorProfileProvider>
-            <OrganizationProvider>
-              <AppContent />
-            </OrganizationProvider>
-          </InspectorProfileProvider>
-        </SavedCardsProvider>
-      </SettingsProvider>
-    </LicenseProvider>
-  </QueryClientProvider>
+  <GlobalErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <LicenseProvider>
+        <SettingsProvider>
+          <SettingsSync />
+          <SavedCardsProvider>
+            <InspectorProfileProvider>
+              <OrganizationProvider>
+                <RecoveryProvider>
+                  <AppContent />
+                </RecoveryProvider>
+              </OrganizationProvider>
+            </InspectorProfileProvider>
+          </SavedCardsProvider>
+        </SettingsProvider>
+      </LicenseProvider>
+    </QueryClientProvider>
+  </GlobalErrorBoundary>
 );
 
 export default App;

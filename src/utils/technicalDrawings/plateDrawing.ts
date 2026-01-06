@@ -125,6 +125,6 @@ function drawSideView(
     rectY + scaledThickness / 2,
     'PLATE (W/T>5)',
     10,
-    '#FFFFFF'
+    '#000000'
   );
 }

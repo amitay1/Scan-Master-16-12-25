@@ -118,7 +118,7 @@ function drawFrontView(
     centerY - 10,
     `w=${wallThickness.toFixed(1)}mm`,
     10,
-    '#FFD700'
+    '#000000'
   );
 
   // Shape type label - PROMINENT indicator that this is HOLLOW
@@ -134,7 +134,7 @@ function drawFrontView(
     centerY + 5,
     '(HOLLOW, L/T<5)',
     9,
-    '#FFD700'  // Gold color for emphasis
+    '#000000'  // Gold color for emphasis
   );
 }
 
