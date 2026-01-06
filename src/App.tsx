@@ -65,12 +65,12 @@ const AppContent = () => {
     }
   }, [isOffline]);
 
-  // Show first run wizard after splash screen
-  useEffect(() => {
-    if (!showSplash && !firstRunLoading && isFirstRun) {
-      setShowFirstRunWizard(true);
-    }
-  }, [showSplash, firstRunLoading, isFirstRun]);
+  // Show first run wizard after splash screen - TEMPORARILY DISABLED
+  // useEffect(() => {
+  //   if (!showSplash && !firstRunLoading && isFirstRun) {
+  //     setShowFirstRunWizard(true);
+  //   }
+  // }, [showSplash, firstRunLoading, isFirstRun]);
 
   // Add electron-app class to body when running in Electron for desktop-specific styles
   useEffect(() => {
