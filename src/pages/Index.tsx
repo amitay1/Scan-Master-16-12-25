@@ -1145,10 +1145,13 @@ const Index = () => {
       try {
         // Step 1: Go to Setup tab to capture the technical drawing
         // The RealTimeTechnicalDrawing component with id="technical-drawing-canvas" is in the Setup tab
+        console.log('[PDF Export] Step 1: Going to Setup tab for technical drawing...');
         setActiveTab('setup');
-        await new Promise(resolve => setTimeout(resolve, 800)); // Wait for canvas to render
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait for canvas to render
 
         const drawingCanvas = document.getElementById('technical-drawing-canvas') as HTMLCanvasElement;
+        console.log('[PDF Export] Technical drawing canvas found:', !!drawingCanvas);
+
         if (drawingCanvas) {
           try {
             // Create a high-resolution copy of the canvas for better print quality
@@ -1163,24 +1166,29 @@ const Index = () => {
               ctx.scale(scale, scale);
               ctx.drawImage(drawingCanvas, 0, 0);
               const drawingImage = highResCanvas.toDataURL('image/png', 1.0);
+              console.log('[PDF Export] Technical drawing captured, size:', drawingImage.length);
               if (drawingImage && drawingImage.length > 100) {
                 setCapturedDrawing(drawingImage);
               }
             }
           } catch (error) {
-            console.warn('Could not capture technical drawing:', error);
+            console.warn('[PDF Export] Could not capture technical drawing:', error);
           }
+        } else {
+          console.warn('[PDF Export] Technical drawing canvas not found! Make sure a part type is selected.');
         }
 
         // Step 2: Go to calibration tab and capture straight beam (FBH) diagram
+        console.log('[PDF Export] Step 2: Going to Calibration tab for FBH diagram...');
         setActiveTab('calibration');
-        await new Promise(resolve => setTimeout(resolve, 800)); // Wait for SVG to render
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait for SVG to render
 
         // First, make sure we're on the "straight" sub-tab for FBH capture
         const straightTabTrigger = document.querySelector('[value="straight"]') as HTMLElement;
+        console.log('[PDF Export] Straight tab trigger found:', !!straightTabTrigger);
         if (straightTabTrigger) {
           straightTabTrigger.click();
-          await new Promise(resolve => setTimeout(resolve, 400));
+          await new Promise(resolve => setTimeout(resolve, 500));
         }
 
         // Directly capture using smartCapture instead of relying on stale state
@@ -1195,6 +1203,7 @@ const Index = () => {
           '.calibration-tab svg',
         ], { scale: 3, quality: 1.0, backgroundColor: 'white', maxWidth: 1800, maxHeight: 1200 });
 
+        console.log('[PDF Export] FBH calibration capture result:', calibrationResult.success, calibrationResult.data?.length || 0);
         if (calibrationResult.success && calibrationResult.data) {
           setCalibrationBlockDiagram(calibrationResult.data);
         }
@@ -1202,13 +1211,15 @@ const Index = () => {
         // Step 2b: Capture angle beam diagram if this part type requires it
         // Check if the current part geometry requires both beam types
         const beamRequirement = getBeamRequirement(currentData.inspectionSetup.partType, currentData.inspectionSetup.isHollow);
+        console.log('[PDF Export] Beam requirement for', currentData.inspectionSetup.partType, ':', beamRequirement);
 
         if (beamRequirement === 'both') {
           // Switch to angle beam sub-tab
           const angleTabTrigger = document.querySelector('[value="angle"]') as HTMLElement;
+          console.log('[PDF Export] Angle tab trigger found:', !!angleTabTrigger);
           if (angleTabTrigger) {
             angleTabTrigger.click();
-            await new Promise(resolve => setTimeout(resolve, 600)); // Wait for angle beam component to render
+            await new Promise(resolve => setTimeout(resolve, 800)); // Wait for angle beam component to render
           }
 
           const angleBeamResult = await smartCapture([
@@ -1217,14 +1228,20 @@ const Index = () => {
             '.angle-beam-calibration-block svg',
           ], { scale: 3, quality: 1.0, backgroundColor: 'white', maxWidth: 1800, maxHeight: 1200 });
 
+          console.log('[PDF Export] Angle beam capture result:', angleBeamResult.success, angleBeamResult.data?.length || 0);
           if (angleBeamResult.success && angleBeamResult.data) {
             setAngleBeamDiagram(angleBeamResult.data);
           }
         }
 
         // Step 3: Go to scan details tab and capture E2375 diagram
+        console.log('[PDF Export] Step 3: Going to Scan Details tab for E2375 diagram...');
         setActiveTab('scandetails');
-        await new Promise(resolve => setTimeout(resolve, 800)); // Wait for image to render
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait for image to render
+
+        // Check if E2375 image element exists before capture
+        const e2375ImgElement = document.querySelector('[data-testid="e2375-diagram-img"]');
+        console.log('[PDF Export] E2375 img element found:', !!e2375ImgElement);
 
         // Capture E2375 standard diagram (look for the actual img element first)
         const e2375Result = await smartCapture([
@@ -1235,6 +1252,7 @@ const Index = () => {
           '[data-testid="e2375-diagram"]',
         ], { scale: 2, quality: 1.0, backgroundColor: 'white', maxWidth: 1200, maxHeight: 800 });
 
+        console.log('[PDF Export] E2375 capture result:', e2375Result.success, e2375Result.data?.length || 0);
         if (e2375Result.success && e2375Result.data) {
           setE2375Diagram(e2375Result.data);
         }
@@ -1243,12 +1261,20 @@ const Index = () => {
         // The E2375 diagram from above serves as the scan directions visualization.
 
         // Step 4: Return to original tab
+        console.log('[PDF Export] Step 4: Returning to original tab...');
         setActiveTab(originalTab);
 
         // CRITICAL: Wait for React state to update with new drawings
         // This ensures the export dialog receives the freshly captured drawings
         // 500ms provides buffer for slower machines and complex state updates
         await new Promise(resolve => setTimeout(resolve, 500));
+
+        // Log summary of what was captured
+        console.log('[PDF Export] Capture Summary:');
+        console.log('  - Technical Drawing: captured');
+        console.log('  - FBH Calibration: captured');
+        console.log('  - Angle Beam:', beamRequirement === 'both' ? 'captured' : 'not required');
+        console.log('  - E2375 Diagram: captured');
 
         // Dismiss loading and open dialog
         toast.dismiss('export-prep');
