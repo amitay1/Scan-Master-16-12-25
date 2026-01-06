@@ -1247,7 +1247,8 @@ const Index = () => {
 
         // CRITICAL: Wait for React state to update with new drawings
         // This ensures the export dialog receives the freshly captured drawings
-        await new Promise(resolve => setTimeout(resolve, 300));
+        // 500ms provides buffer for slower machines and complex state updates
+        await new Promise(resolve => setTimeout(resolve, 500));
 
         // Dismiss loading and open dialog
         toast.dismiss('export-prep');

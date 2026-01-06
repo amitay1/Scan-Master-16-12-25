@@ -1081,7 +1081,9 @@ class TechniqueSheetPDFBuilder {
     this.addHeader();
     let y = PAGE.contentStart;
 
-    y = this.addSectionTitle('5.1 ASTM E2375 SCAN DIRECTIONS DIAGRAM', y);
+    // Dynamic section numbering - E2375 is a subsection of Scan Details (section 6)
+    const sectionNum = this.data.scanDetails ? '6.1' : '6';
+    y = this.addSectionTitle(`${sectionNum} ASTM E2375 SCAN DIRECTIONS DIAGRAM`, y);
 
     // Add subtitle with standard reference
     this.pdf.setFontSize(FONTS.small.size);
