@@ -12,6 +12,9 @@ export interface ScanDetail {
   probeType?: "single" | "dual" | "phased_array" | "tofd";
   angle?: number;
   color?: string;
+  // New fields for technique and active element
+  technique?: string;      // CONVENTIONAL | PHASED ARRAY
+  activeElement?: string;  // Active element size
 }
 
 export interface ScanDetailsData {

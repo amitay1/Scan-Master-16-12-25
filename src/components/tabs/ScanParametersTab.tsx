@@ -13,11 +13,14 @@ import {
   scanParametersByStandard,
   calibrationByStandard,
 } from "@/data/standardsDifferences";
+import { getFrequencyOptionsForStandard } from "@/utils/frequencyUtils";
 
 interface ScanParametersTabProps {
   data: ScanParametersData;
   onChange: (data: ScanParametersData) => void;
   standard: StandardType;
+  equipmentFrequency?: string;
+  onEquipmentFrequencyChange?: (frequency: string) => void;
 }
 
 // Get standard label
@@ -32,7 +35,7 @@ const getStandardLabel = (standard: StandardType): string => {
   return labels[standard] || standard;
 };
 
-export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E" }: ScanParametersTabProps) => {
+export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E", equipmentFrequency, onEquipmentFrequencyChange }: ScanParametersTabProps) => {
   // Ensure we have valid data object with defaults
   const safeData = data || {
     scanMethod: "",
@@ -247,6 +250,32 @@ export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E" }
             PHASED ARRAY
           </button>
         </div>
+      </div>
+
+      {/* Frequency Selection - Standard-aware */}
+      <div className="bg-green-500/5 border border-green-500/20 rounded-lg p-4 mb-4">
+        <FieldWithHelp
+          label="Frequency (MHz)"
+          fieldKey="frequency"
+          help={`Standard ${standard} supports frequencies: ${getFrequencyOptionsForStandard(standard).join(", ")} MHz`}
+          required
+        >
+          <Select
+            value={equipmentFrequency || ""}
+            onValueChange={(value) => onEquipmentFrequencyChange?.(value)}
+          >
+            <SelectTrigger className="bg-background max-w-xs">
+              <SelectValue placeholder="Select frequency..." />
+            </SelectTrigger>
+            <SelectContent className="bg-popover z-50">
+              {getFrequencyOptionsForStandard(standard).map((freq) => (
+                <SelectItem key={freq} value={freq}>
+                  {freq} MHz
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </FieldWithHelp>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2">

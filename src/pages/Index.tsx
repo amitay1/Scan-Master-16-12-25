@@ -48,6 +48,7 @@ import {
 } from "@/types/techniqueSheet";
 import { InspectionReportData } from "@/types/inspectionReport";
 import { standardRules, getRecommendedFrequency, getCouplantRecommendation, calculateMetalTravel } from "@/utils/autoFillLogic";
+import { getResolutionValues } from "@/utils/frequencyUtils";
 import { useAuth } from "@/hooks/useAuth";
 import { logError, logInfo } from "@/lib/logger";
 import { Button } from "@/components/ui/button";
@@ -1628,6 +1629,7 @@ const Index = () => {
                           data={currentData.scanDetails}
                           onChange={currentData.setScanDetails}
                           partType={currentData.inspectionSetup.partType}
+                          standard={standard}
                           dimensions={{
                             diameter: currentData.inspectionSetup.diameter,
                             length: currentData.inspectionSetup.partLength,
@@ -1671,6 +1673,16 @@ const Index = () => {
                           data={currentData.scanParameters}
                           onChange={currentData.setScanParameters}
                           standard={standard}
+                          equipmentFrequency={currentData.equipment.frequency}
+                          onEquipmentFrequencyChange={(frequency) => {
+                            const resolution = getResolutionValues(frequency);
+                            currentData.setEquipment({
+                              ...currentData.equipment,
+                              frequency,
+                              entrySurfaceResolution: resolution.entry,
+                              backSurfaceResolution: resolution.back,
+                            });
+                          }}
                         />
                       </TabsContent>
 

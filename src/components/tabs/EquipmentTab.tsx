@@ -99,19 +99,7 @@ export const EquipmentTab = ({ data, onChange, partThickness, standard = "AMS-ST
   }, [data.verticalLinearity, data.horizontalLinearity, equipmentParams]);
 
   const updateField = (field: keyof EquipmentData, value: any) => {
-    let newData = { ...data, [field]: value };
-
-    // Auto-fill resolution when frequency changes
-    if (field === "frequency") {
-      const resolutions = getResolutionValues(value);
-      newData = {
-        ...newData,
-        entrySurfaceResolution: resolutions.entry,
-        backSurfaceResolution: resolutions.back,
-      };
-    }
-
-    onChange(newData);
+    onChange({ ...data, [field]: value });
   };
 
   // Update linearity defaults when standard changes
@@ -135,19 +123,6 @@ export const EquipmentTab = ({ data, onChange, partThickness, standard = "AMS-ST
 
   return (
     <div className="space-y-2 p-2">
-      {/* Standard-specific header */}
-      <div className="bg-primary/5 border border-primary/20 rounded p-2">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-sm font-semibold text-foreground">Equipment Requirements</h3>
-            <p className="text-xs text-muted-foreground mt-1">Per {getStandardLabel(standard)}</p>
-          </div>
-          <Badge variant="outline" className="text-xs">
-            {equipmentParams.frequencyRange.min}-{equipmentParams.frequencyRange.max} MHz
-          </Badge>
-        </div>
-      </div>
-
       {/* Frequency warning */}
       {showFrequencyWarning && (
         <div className="bg-warning/10 border border-warning/30 rounded-lg p-4">
@@ -243,29 +218,6 @@ export const EquipmentTab = ({ data, onChange, partThickness, standard = "AMS-ST
             placeholder="e.g., 5L64-A32"
             className="bg-background"
           />
-        </FieldWithHelp>
-
-        <FieldWithHelp
-          label="Frequency (MHz)"
-          help={`Per ${standard}: ${equipmentParams.frequencyRange.min}-${equipmentParams.frequencyRange.max} MHz. Recommended for ${partThickness}mm: ${recommendedFreq}`}
-          required
-          fieldKey="frequency"
-        >
-          <Select
-            value={data.frequency}
-            onValueChange={(value) => updateField("frequency", value)}
-          >
-            <SelectTrigger className={`bg-background ${showFrequencyWarning ? "border-warning" : ""}`}>
-              <SelectValue placeholder="Select frequency..." />
-            </SelectTrigger>
-            <SelectContent>
-              {frequencies.map((freq) => (
-                <SelectItem key={freq} value={freq}>
-                  {freq} MHz {recommendedFreq.includes(freq) && "⭐"}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
         </FieldWithHelp>
 
         <FieldWithHelp

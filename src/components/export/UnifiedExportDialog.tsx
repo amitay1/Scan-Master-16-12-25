@@ -36,6 +36,7 @@ import type { ScanDetailsData } from "@/types/scanDetails";
 import type { ExportTemplate } from "@/types/unifiedInspection";
 
 import { exportTechniqueSheetPDF } from "@/utils/export/TechniqueSheetPDF";
+import { exportTechniqueSheetWord } from "@/utils/export/TechniqueSheetWord";
 
 interface UnifiedExportDialogProps {
   open: boolean;
@@ -200,9 +201,26 @@ export const UnifiedExportDialog: React.FC<UnifiedExportDialogProps> = ({
           companyLogo: companyLogo || undefined,
         });
       } else {
-        // Word export - coming soon
-        console.log("Word export - coming soon");
-        alert("Word export is coming soon!");
+        // Word export
+        await exportTechniqueSheetWord({
+          standard,
+          inspectionSetup,
+          equipment,
+          calibration,
+          scanParameters,
+          acceptanceCriteria,
+          documentation,
+          scanDetails,
+          scanPlan,
+          capturedDrawing,
+          calibrationBlockDiagram,
+          angleBeamDiagram,
+          e2375Diagram,
+          scanDirectionsDrawing,
+        }, {
+          companyName: companyName || undefined,
+          companyLogo: companyLogo || undefined,
+        });
       }
 
       onExport?.(format, "custom");
@@ -348,22 +366,30 @@ export const UnifiedExportDialog: React.FC<UnifiedExportDialogProps> = ({
                 </div>
               </button>
 
-              {/* Word Option - Disabled */}
-              <div
+              {/* Word Option */}
+              <button
+                onClick={() => !isExporting && handleExport("word")}
+                disabled={isExporting}
                 className={cn(
-                  "relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all cursor-not-allowed opacity-50",
-                  "border-slate-200 dark:border-slate-700"
+                  "relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all",
+                  "hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20",
+                  isExporting && exportFormat === "word"
+                    ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                    : "border-slate-200 dark:border-slate-700"
                 )}
-                title="Word export coming soon"
               >
-                <div className="w-10 h-10 rounded-lg bg-slate-400 flex items-center justify-center">
-                  <FileIcon className="w-5 h-5 text-white" />
-                </div>
+                {isExporting && exportFormat === "word" ? (
+                  <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+                ) : (
+                  <div className="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center">
+                    <FileIcon className="w-5 h-5 text-white" />
+                  </div>
+                )}
                 <div>
-                  <div className="font-semibold text-sm text-slate-400">Word</div>
-                  <div className="text-[10px] text-slate-400">Coming soon</div>
+                  <div className="font-semibold text-sm">Word</div>
+                  <div className="text-[10px] text-slate-500">Ready to export</div>
                 </div>
-              </div>
+              </button>
             </div>
           </div>
 

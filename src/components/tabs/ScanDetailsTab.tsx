@@ -9,14 +9,16 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Info, Plus, Trash2, ArrowDown, ArrowUp, ArrowRight, ArrowLeft, RotateCw, RotateCcw, Circle, Disc } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import type { PartGeometry } from "@/types/techniqueSheet";
+import type { PartGeometry, StandardType } from "@/types/techniqueSheet";
 import type { ScanDetail, ScanDetailsData } from "@/types/scanDetails";
 import { E2375DiagramImage } from "@/components/E2375DiagramImage";
+import { getFrequencyOptionsForStandard } from "@/utils/frequencyUtils";
 
 interface ScanDetailsTabProps {
   data: ScanDetailsData;
   onChange: (data: ScanDetailsData) => void;
   partType?: PartGeometry | "";
+  standard?: StandardType;
   dimensions?: {
     diameter?: number;
     length?: number;
@@ -40,7 +42,7 @@ const FIXED_SCAN_DETAILS: ScanDetail[] = [
   // A: PRIMARY STRAIGHT BEAM - From top/flat face through thickness
   {
     scanningDirection: "A",
-    waveMode: "LW 0° (Primary Surface - E2375 Fig.6)",
+    waveMode: "LW 0° (Primary Surface)",
     frequency: "", make: "", probe: "", remarkDetails: "",
     enabled: false,
     entrySurface: "top",
@@ -57,10 +59,10 @@ const FIXED_SCAN_DETAILS: ScanDetail[] = [
     angle: 0,
     color: "#16a34a"
   },
-  // B: SECONDARY STRAIGHT BEAM - From adjacent side (bars/billets need 2 adjacent sides per E2375)
+  // B: SECONDARY STRAIGHT BEAM - From adjacent side
   {
     scanningDirection: "B",
-    waveMode: "LW 0° (Adjacent Side - E2375 Fig.6)",
+    waveMode: "LW 0° (Adjacent Side)",
     frequency: "", make: "", probe: "", remarkDetails: "",
     enabled: false,
     entrySurface: "side",
@@ -97,40 +99,40 @@ const FIXED_SCAN_DETAILS: ScanDetail[] = [
     angle: 0,
     color: "#d97706"
   },
-  // D: CIRCUMFERENTIAL SHEAR CW - Required for rings/tubes per E2375 Annex A1.3.1
+  // D: CIRCUMFERENTIAL SHEAR CW - Required for rings/tubes
   {
     scanningDirection: "D",
-    waveMode: "SW Circumferential CW (E2375 A1.3.1)",
+    waveMode: "SW Circumferential CW",
     frequency: "", make: "", probe: "", remarkDetails: "",
     enabled: false,
     entrySurface: "od",
     angle: 45,
     color: "#ff0000"
   },
-  // E: CIRCUMFERENTIAL SHEAR CCW - Both directions required per E2375 Annex A1.3.1
+  // E: CIRCUMFERENTIAL SHEAR CCW - Both directions required
   {
     scanningDirection: "E",
-    waveMode: "SW Circumferential CCW (E2375 A1.3.1)",
+    waveMode: "SW Circumferential CCW",
     frequency: "", make: "", probe: "", remarkDetails: "",
     enabled: false,
     entrySurface: "od",
     angle: 45,
     color: "#ff0000"
   },
-  // F: AXIAL SHEAR DIRECTION 1 - For tubes per E2375 Annex A1.3.3
+  // F: AXIAL SHEAR DIRECTION 1 - For tubes
   {
     scanningDirection: "F",
-    waveMode: "SW Axial Dir.1 (E2375 A1.3.3)",
+    waveMode: "SW Axial Dir.1",
     frequency: "", make: "", probe: "", remarkDetails: "",
     enabled: false,
     entrySurface: "od",
     angle: 45,
     color: "#ff0000"
   },
-  // G: AXIAL SHEAR DIRECTION 2 - Opposite direction per E2375 Annex A1.3.3
+  // G: AXIAL SHEAR DIRECTION 2 - Opposite direction
   {
     scanningDirection: "G",
-    waveMode: "SW Axial Dir.2 (E2375 A1.3.3)",
+    waveMode: "SW Axial Dir.2",
     frequency: "", make: "", probe: "", remarkDetails: "",
     enabled: false,
     entrySurface: "od",
@@ -157,7 +159,7 @@ const FIXED_SCAN_DETAILS: ScanDetail[] = [
     angle: 0,
     color: "#84cc16"
   },
-  // J: SW 60° - For thin sections (<1 inch) per E2375 Annex A1.3.4
+  // J: SW 60° - For thin sections (<1 inch)
   {
     scanningDirection: "J",
     waveMode: "SW 60° (thin sections <1in)",
@@ -167,7 +169,7 @@ const FIXED_SCAN_DETAILS: ScanDetail[] = [
     angle: 60,
     color: "#f97316"
   },
-  // K: SW 45° - For thick sections (>1 inch) per E2375 Annex A1.3.4
+  // K: SW 45° - For thick sections (>1 inch)
   {
     scanningDirection: "K",
     waveMode: "SW 45° (thick sections >1in)",
@@ -177,10 +179,10 @@ const FIXED_SCAN_DETAILS: ScanDetail[] = [
     angle: 45,
     color: "#eab308"
   },
-  // L: ROTATIONAL 360° - Radial scan while rotating (round bars per E2375 Fig.6)
+  // L: ROTATIONAL 360° - Radial scan while rotating (round bars)
   {
     scanningDirection: "L",
-    waveMode: "LW 0° Rotating 360° (E2375 Fig.6)",
+    waveMode: "LW 0° Rotating 360°",
     frequency: "", make: "", probe: "", remarkDetails: "",
     enabled: false,
     entrySurface: "radial",
@@ -222,7 +224,9 @@ const getEntrySurfaceLabel = (surface?: string): string => {
   }
 };
 
-export const ScanDetailsTab = ({ data, onChange, partType, dimensions = {} }: ScanDetailsTabProps) => {
+export const ScanDetailsTab = ({ data, onChange, partType, standard = "AMS-STD-2154E", dimensions = {} }: ScanDetailsTabProps) => {
+  // Get frequency options for the selected standard
+  const frequencyOptions = getFrequencyOptionsForStandard(standard);
   const [highlightedDirection, setHighlightedDirection] = useState<string | null>(null);
 
   // Initialize with fixed scan details if empty
@@ -299,7 +303,8 @@ export const ScanDetailsTab = ({ data, onChange, partType, dimensions = {} }: Sc
                   <th className="text-center p-2 font-semibold text-sm w-20">Direction</th>
                   <th className="text-left p-2 font-semibold text-sm">Wave Mode</th>
                   <th className="text-left p-2 font-semibold text-sm">Frequency (MHz)</th>
-                  <th className="text-left p-2 font-semibold text-sm">Make</th>
+                  <th className="text-left p-2 font-semibold text-sm">Technique</th>
+                  <th className="text-left p-2 font-semibold text-sm">Active Element</th>
                   <th className="text-left p-2 font-semibold text-sm">Probe</th>
                   <th className="text-left p-2 font-semibold text-sm">Remarks</th>
                 </tr>
@@ -331,23 +336,44 @@ export const ScanDetailsTab = ({ data, onChange, partType, dimensions = {} }: Sc
                       </span>
                     </td>
                     <td className="p-2">
-                      <Input
-                        type="text"
+                      <Select
                         value={detail.frequency}
-                        onChange={(e) => updateScanDetail(index, "frequency", e.target.value)}
-                        placeholder="e.g., 5.0"
-                        className="h-9"
-                        data-testid={`input-frequency-${index}`}
-                      />
+                        onValueChange={(value) => updateScanDetail(index, "frequency", value)}
+                      >
+                        <SelectTrigger className="h-9" data-testid={`select-frequency-${index}`}>
+                          <SelectValue placeholder="Select..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {frequencyOptions.map((freq) => (
+                            <SelectItem key={freq} value={freq}>
+                              {freq} MHz
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </td>
+                    <td className="p-2">
+                      <Select
+                        value={detail.technique || ""}
+                        onValueChange={(value) => updateScanDetail(index, "technique", value)}
+                      >
+                        <SelectTrigger className="h-9" data-testid={`select-technique-${index}`}>
+                          <SelectValue placeholder="Select..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="CONVENTIONAL">CONVENTIONAL</SelectItem>
+                          <SelectItem value="PHASED ARRAY">PHASED ARRAY</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </td>
                     <td className="p-2">
                       <Input
                         type="text"
-                        value={detail.make}
-                        onChange={(e) => updateScanDetail(index, "make", e.target.value)}
-                        placeholder="Manufacturer"
+                        value={detail.activeElement || ""}
+                        onChange={(e) => updateScanDetail(index, "activeElement", e.target.value)}
+                        placeholder="e.g., 0.5 inch"
                         className="h-9"
-                        data-testid={`input-make-${index}`}
+                        data-testid={`input-activeElement-${index}`}
                       />
                     </td>
                     <td className="p-2">

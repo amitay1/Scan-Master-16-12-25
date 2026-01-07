@@ -1413,7 +1413,8 @@ class TechniqueSheetPDFBuilder {
           detail.waveMode || '-',
           detail.angle !== undefined ? `${detail.angle}°` : '-',
           detail.frequency ? `${detail.frequency} MHz` : '-',
-          detail.make || '-',
+          detail.technique || '-',
+          detail.activeElement || '-',
           detail.probe || '-',
           detail.remarkDetails || '-',
         ]);
@@ -1423,19 +1424,20 @@ class TechniqueSheetPDFBuilder {
     if (directionRows.length > 0) {
       autoTable(this.pdf, {
         startY: y,
-        head: [['Dir.', 'Wave Mode', 'Angle', 'Freq.', 'Make', 'Probe', 'Remarks']],
+        head: [['Dir.', 'Wave Mode', 'Angle', 'Freq.', 'Technique', 'Active El.', 'Probe', 'Remarks']],
         body: directionRows,
         theme: 'grid',
         styles: { fontSize: 8, cellPadding: 2 },
         headStyles: { fillColor: COLORS.primary, textColor: [255, 255, 255], fontSize: 9 },
         columnStyles: {
           0: { fontStyle: 'bold', cellWidth: 15, halign: 'center' },
-          1: { cellWidth: 40 },
-          2: { cellWidth: 16, halign: 'center' },
-          3: { cellWidth: 18, halign: 'center' },
-          4: { cellWidth: 25 },
-          5: { cellWidth: 25 },
-          6: { cellWidth: 'auto' },  // Remarks gets remaining space
+          1: { cellWidth: 35 },
+          2: { cellWidth: 14, halign: 'center' },
+          3: { cellWidth: 16, halign: 'center' },
+          4: { cellWidth: 22 },
+          5: { cellWidth: 18 },
+          6: { cellWidth: 22 },
+          7: { cellWidth: 'auto' },  // Remarks gets remaining space
         },
         margin: { left: PAGE.marginLeft, right: PAGE.marginRight },
       });
