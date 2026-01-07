@@ -27,6 +27,9 @@ const standards = [
     iconBg: "bg-red-600",
     bgColor: "bg-red-50",
     borderColor: "border-red-300",
+    badgeBg: "#fef2f2",
+    badgeText: "#dc2626",
+    badgeBorder: "#fca5a5",
     features: ["5 classes (AAA-C)", "#1 FBH (0.8mm)", "30% overlap", "90% linearity"]
   },
   {
@@ -40,6 +43,9 @@ const standards = [
     iconBg: "bg-blue-600",
     bgColor: "bg-blue-50",
     borderColor: "border-blue-300",
+    badgeBg: "#eff6ff",
+    badgeText: "#2563eb",
+    badgeBorder: "#93c5fd",
     features: ["4 quality levels", "DGS method", "10-15% overlap", "Heavy forgings"]
   },
   {
@@ -53,6 +59,9 @@ const standards = [
     iconBg: "bg-green-600",
     bgColor: "bg-green-50",
     borderColor: "border-green-300",
+    badgeBg: "#f0fdf4",
+    badgeText: "#16a34a",
+    badgeBorder: "#86efac",
     features: ["4 quality classes", "DAC curve", "2-10 MHz", "Ferritic steel"]
   },
   {
@@ -66,6 +75,9 @@ const standards = [
     iconBg: "bg-purple-600",
     bgColor: "bg-purple-50",
     borderColor: "border-purple-300",
+    badgeBg: "#faf5ff",
+    badgeText: "#9333ea",
+    badgeBorder: "#d8b4fe",
     features: ["Coarse grain", "0.5-2 MHz", "20% overlap", "Austenitic steel"]
   }
 ] as const;
@@ -141,7 +153,15 @@ export const StandardSelector = ({ value, onChange, showComparisonIndicator = fa
           </label>
           
           {currentStandard && (
-            <Badge variant="outline" className={`${currentStandard.borderColor} ${currentStandard.color} shrink-0`}>
+            <Badge 
+              variant="outline" 
+              className="shrink-0 font-medium"
+              style={{ 
+                backgroundColor: currentStandard.badgeBg, 
+                color: currentStandard.badgeText,
+                borderColor: currentStandard.badgeBorder 
+              }}
+            >
               {currentStandard.stringency}
             </Badge>
           )}
@@ -171,8 +191,8 @@ export const StandardSelector = ({ value, onChange, showComparisonIndicator = fa
                   className="py-4"
                 >
                   <div className="flex items-start gap-2 sm:gap-3 w-full">
-                    <div className={`p-1.5 sm:p-2 rounded-lg ${standard.bgColor} ${standard.borderColor} border shrink-0`}>
-                      <Icon className={`h-3 w-3 sm:h-4 sm:w-4 ${standard.color}`} />
+                    <div className={`p-1.5 sm:p-2 rounded-lg ${standard.iconBg} shrink-0`}>
+                      <Icon className="h-3 w-3 sm:h-4 sm:w-4 text-white" />
                     </div>
                     
                     <div className="flex-1 min-w-0">
@@ -266,18 +286,25 @@ export const StandardSelector = ({ value, onChange, showComparisonIndicator = fa
         )}
         
         {currentStandard && (
-          <div className={`p-3 rounded-xl bg-gradient-to-br from-slate-800 to-slate-900 border-2 ${currentStandard.borderColor} mt-4 w-full shadow-lg`}>
+          <div className={`p-3 rounded-xl bg-gradient-to-br from-slate-800 to-slate-900 border-2 ${currentStandard.borderColor} mt-4 w-full shadow-lg ring-1 ring-offset-1 ring-offset-slate-900 ${currentStandard.borderColor.replace('border-', 'ring-')}`}>
             {/* Header Row with Icon and Badge - more prominent */}
             <div className="flex items-center justify-between gap-2 mb-3">
               <div className="flex items-center gap-2 min-w-0 flex-1">
-                <div className={`p-1.5 rounded-lg ${currentStandard.bgColor}`}>
-                  <currentStandard.icon className={`h-4 w-4 ${currentStandard.color}`} />
+                <div className={`p-1.5 rounded-lg ${currentStandard.iconBg}`}>
+                  <currentStandard.icon className="h-4 w-4 text-white" />
                 </div>
                 <span className="text-sm font-bold text-white truncate">
                   {currentStandard.value}
                 </span>
               </div>
-              <Badge className={`${currentStandard.bgColor} ${currentStandard.color} font-semibold text-xs px-2 py-1 border-2 ${currentStandard.borderColor}`}>
+              <Badge 
+                className="font-semibold text-xs px-2 py-1 border-2"
+                style={{ 
+                  backgroundColor: currentStandard.badgeBg, 
+                  color: currentStandard.badgeText,
+                  borderColor: currentStandard.badgeBorder 
+                }}
+              >
                 {currentStandard.stringency}
               </Badge>
             </div>
