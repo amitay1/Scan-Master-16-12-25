@@ -1,6 +1,6 @@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { StandardType } from "@/types/techniqueSheet";
-import { Lock, Check, AlertCircle, Info, ShieldCheck, Factory, Globe, FlaskConical, DollarSign } from "lucide-react";
+import { Lock, Check, AlertCircle, Info, ShieldCheck, Factory, Globe, FlaskConical, DollarSign, Wrench, Beaker } from "lucide-react";
 import { useStandardAccess } from "@/hooks/useStandardAccess";
 import { useLicense } from "@/contexts/LicenseContext";
 import { Button } from "@/components/ui/button";

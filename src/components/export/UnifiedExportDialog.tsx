@@ -396,7 +396,7 @@ export const UnifiedExportDialog: React.FC<UnifiedExportDialogProps> = ({
             </div>
           </div>
 
-          {/* Warning for low completion */}}
+          {/* Warning for low completion */}
           {readinessData.percentage < 50 && (
             <div className="flex items-start gap-3 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
               <FileWarning className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
