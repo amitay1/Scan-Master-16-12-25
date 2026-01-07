@@ -22,7 +22,7 @@ const getSavedPosition = () => {
     if (saved) {
       return JSON.parse(saved);
     }
-  } catch (e) {}
+  } catch { /* ignore parse errors */ }
   return null;
 };
 
@@ -30,7 +30,7 @@ const getSavedPosition = () => {
 const savePosition = (position: { x: number; y: number }) => {
   try {
     localStorage.setItem('viewer3DPosition', JSON.stringify(position));
-  } catch (e) {}
+  } catch { /* ignore storage errors */ }
 };
 
 // Get saved floating mode from localStorage
@@ -38,7 +38,7 @@ const getSavedFloatingMode = () => {
   try {
     const saved = localStorage.getItem('viewer3DFloating');
     return saved === 'true';
-  } catch (e) {}
+  } catch { /* ignore storage errors */ }
   return false;
 };
 
@@ -46,7 +46,7 @@ const getSavedFloatingMode = () => {
 const saveFloatingMode = (isFloating: boolean) => {
   try {
     localStorage.setItem('viewer3DFloating', isFloating.toString());
-  } catch (e) {}
+  } catch { /* ignore storage errors */ }
 };
 
 // Check if running in Electron (desktop app)

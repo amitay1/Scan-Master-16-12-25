@@ -181,13 +181,6 @@ export function FBHStraightBeamDrawing({
         {/* Dimension labels */}
         {showDimensions && (
           <>
-            {/* A - Left height */}
-            <g>
-              <line x1={blockLeft - 25} y1={blockTop} x2={blockLeft - 25} y2={blockBottom} stroke="#333" strokeWidth={1} />
-              <line x1={blockLeft - 30} y1={blockTop} x2={blockLeft - 20} y2={blockTop} stroke="#333" strokeWidth={1} />
-              <line x1={blockLeft - 30} y1={blockBottom} x2={blockLeft - 20} y2={blockBottom} stroke="#333" strokeWidth={1} />
-            </g>
-
             {/* E - Right height */}
             <g>
               <line x1={blockRight + 25} y1={blockTop} x2={blockRight + 25} y2={blockBottom} stroke="#333" strokeWidth={1} />

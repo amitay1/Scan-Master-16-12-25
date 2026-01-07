@@ -988,17 +988,27 @@ class TechniqueSheetPDFBuilder {
 
     if (this.data.calibrationBlockDiagram) {
       try {
-        // Use full available space for better quality
-        const maxWidth = PAGE.contentWidth;
-        const maxHeight = PAGE.height - y - PAGE.footerHeight - 20; // Available space
+        // Calibration Block: max 140mm height, maintain 4:3 aspect ratio
+        const maxHeight = 140;
+        const aspectRatio = 4 / 3; // width:height = 4:3
+        const imgHeight = maxHeight;
+        const imgWidth = imgHeight * aspectRatio;
+        
+        // Center horizontally
+        const xPos = PAGE.marginLeft + (PAGE.contentWidth - imgWidth) / 2;
+
+        // Draw border frame (gray)
+        this.pdf.setDrawColor(180, 180, 180);
+        this.pdf.setLineWidth(0.5);
+        this.pdf.rect(xPos - 1, y - 1, imgWidth + 2, imgHeight + 2);
 
         this.pdf.addImage(
           this.data.calibrationBlockDiagram,
           'PNG',
-          PAGE.marginLeft,
+          xPos,
           y,
-          maxWidth,
-          Math.min(maxHeight, 200), // Cap at 200mm
+          imgWidth,
+          imgHeight,
           undefined,
           'MEDIUM' // Better quality
         );
@@ -1044,17 +1054,27 @@ class TechniqueSheetPDFBuilder {
 
     if (this.data.angleBeamDiagram) {
       try {
-        // Use full available space for better quality
-        const maxWidth = PAGE.contentWidth;
-        const maxHeight = PAGE.height - y - PAGE.footerHeight - 20;
+        // Angle Beam Block: max 130mm height, maintain 4:3 aspect ratio
+        const maxHeight = 130;
+        const aspectRatio = 4 / 3; // width:height = 4:3
+        const imgHeight = maxHeight;
+        const imgWidth = imgHeight * aspectRatio;
+        
+        // Center horizontally
+        const xPos = PAGE.marginLeft + (PAGE.contentWidth - imgWidth) / 2;
+
+        // Draw border frame (gray)
+        this.pdf.setDrawColor(180, 180, 180);
+        this.pdf.setLineWidth(0.5);
+        this.pdf.rect(xPos - 1, y - 1, imgWidth + 2, imgHeight + 2);
 
         this.pdf.addImage(
           this.data.angleBeamDiagram,
           'PNG',
-          PAGE.marginLeft,
+          xPos,
           y,
-          maxWidth,
-          Math.min(maxHeight, 180),
+          imgWidth,
+          imgHeight,
           undefined,
           'MEDIUM'
         );
@@ -1098,23 +1118,33 @@ class TechniqueSheetPDFBuilder {
 
     if (this.data.e2375Diagram) {
       try {
-        // Use full available space
-        const maxWidth = PAGE.contentWidth;
-        const maxHeight = PAGE.height - y - PAGE.footerHeight - 30;
+        // E2375 Diagram: max 120mm height, maintain 4:3 aspect ratio
+        const maxHeight = 120;
+        const aspectRatio = 4 / 3; // width:height = 4:3
+        const imgHeight = maxHeight;
+        const imgWidth = imgHeight * aspectRatio;
+        
+        // Center horizontally
+        const xPos = PAGE.marginLeft + (PAGE.contentWidth - imgWidth) / 2;
+
+        // Draw border frame (gray)
+        this.pdf.setDrawColor(180, 180, 180);
+        this.pdf.setLineWidth(0.5);
+        this.pdf.rect(xPos - 1, y - 1, imgWidth + 2, imgHeight + 2);
 
         this.pdf.addImage(
           this.data.e2375Diagram,
           'PNG',
-          PAGE.marginLeft,
+          xPos,
           y,
-          maxWidth,
-          Math.min(maxHeight, 160),
+          imgWidth,
+          imgHeight,
           undefined,
           'MEDIUM'
         );
 
         // Add note below the diagram
-        const noteY = y + Math.min(maxHeight, 160) + 10;
+        const noteY = y + imgHeight + 10;
         this.pdf.setFontSize(8);
         this.pdf.setTextColor(...COLORS.lightText);
         this.pdf.text(
@@ -1434,23 +1464,33 @@ class TechniqueSheetPDFBuilder {
 
     if (this.data.scanDirectionsDrawing) {
       try {
-        // Use full available space for better quality
-        const maxWidth = PAGE.contentWidth;
-        const maxHeight = PAGE.height - y - PAGE.footerHeight - 25; // Available space
+        // Scan Directions: max 150mm height, maintain 4:3 aspect ratio
+        const maxHeight = 150;
+        const aspectRatio = 4 / 3; // width:height = 4:3
+        const imgHeight = maxHeight;
+        const imgWidth = imgHeight * aspectRatio;
+        
+        // Center horizontally
+        const xPos = PAGE.marginLeft + (PAGE.contentWidth - imgWidth) / 2;
+
+        // Draw border frame (gray)
+        this.pdf.setDrawColor(180, 180, 180);
+        this.pdf.setLineWidth(0.5);
+        this.pdf.rect(xPos - 1, y - 1, imgWidth + 2, imgHeight + 2);
 
         this.pdf.addImage(
           this.data.scanDirectionsDrawing,
           'PNG',
-          PAGE.marginLeft,
+          xPos,
           y,
-          maxWidth,
-          Math.min(maxHeight, 200), // Cap at 200mm
+          imgWidth,
+          imgHeight,
           undefined,
           'MEDIUM' // Better quality
         );
 
         // Add caption below the image
-        const captionY = y + Math.min(maxHeight, 200) + 5;
+        const captionY = y + imgHeight + 5;
         this.pdf.setFontSize(9);
         this.pdf.setTextColor(...COLORS.lightText);
         this.pdf.text(
@@ -1494,18 +1534,28 @@ class TechniqueSheetPDFBuilder {
 
     if (this.data.capturedDrawing) {
       try {
-        // Use full page width and auto-calculate height to maintain aspect ratio
-        const maxWidth = PAGE.contentWidth;
-        const maxHeight = PAGE.height - y - PAGE.footerHeight - 20; // Available space
+        // Technical Drawing: max 160mm height, maintain 4:3 aspect ratio
+        const maxHeight = 160;
+        const aspectRatio = 4 / 3; // width:height = 4:3
+        const imgHeight = maxHeight;
+        const imgWidth = imgHeight * aspectRatio;
+        
+        // Center horizontally
+        const xPos = PAGE.marginLeft + (PAGE.contentWidth - imgWidth) / 2;
+
+        // Draw border frame (gray)
+        this.pdf.setDrawColor(180, 180, 180);
+        this.pdf.setLineWidth(0.5);
+        this.pdf.rect(xPos - 1, y - 1, imgWidth + 2, imgHeight + 2);
 
         // Add image with better quality settings
         this.pdf.addImage(
           this.data.capturedDrawing,
           'PNG',
-          PAGE.marginLeft,
+          xPos,
           y,
-          maxWidth,
-          Math.min(maxHeight, 200), // Cap at 200mm but allow more space
+          imgWidth,
+          imgHeight,
           undefined,
           'MEDIUM' // Better quality than FAST
         );

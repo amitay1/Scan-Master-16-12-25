@@ -148,6 +148,38 @@ export async function captureImage(
       return { success: false, error: 'Failed to get canvas context' };
     }
 
+    // For cross-origin images, we need to handle CORS properly
+    // If the image has crossOrigin set or is from external source, try to load fresh
+    const isExternal = img.crossOrigin !== null || !img.src.startsWith(window.location.origin);
+    
+    if (isExternal) {
+      // For external/CORS images, create a new image with crossOrigin
+      const corsImg = new Image();
+      corsImg.crossOrigin = 'anonymous';
+      
+      try {
+        await new Promise<void>((resolve, reject) => {
+          corsImg.onload = () => resolve();
+          corsImg.onerror = () => reject(new Error('CORS image load failed'));
+          // Add cache-busting to avoid cached non-CORS response
+          const separator = img.src.includes('?') ? '&' : '?';
+          corsImg.src = img.src + separator + '_cors=' + Date.now();
+          setTimeout(() => reject(new Error('CORS image timeout')), 5000);
+        });
+        
+        // Use the CORS-enabled image
+        ctx.fillStyle = backgroundColor;
+        ctx.fillRect(0, 0, width, height);
+        ctx.drawImage(corsImg, 0, 0, width, height);
+        
+        const data = canvas.toDataURL('image/png', quality);
+        return { success: true, data, width, height };
+      } catch (corsError) {
+        // CORS failed, try direct draw as fallback (might work for same-origin)
+        console.warn('CORS capture failed, trying direct:', corsError);
+      }
+    }
+
     // Fill background
     ctx.fillStyle = backgroundColor;
     ctx.fillRect(0, 0, width, height);

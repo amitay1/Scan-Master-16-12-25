@@ -156,7 +156,7 @@ const PDFViewer: React.FC<{
 
       try {
         if (renderTaskRef.current) {
-          try { renderTaskRef.current.cancel(); } catch (e) {}
+          try { renderTaskRef.current.cancel(); } catch { /* ignore cancel errors */ }
         }
 
         const loadingTask = pdfjsLib.getDocument(pdfPath);
@@ -202,7 +202,7 @@ const PDFViewer: React.FC<{
     return () => {
       isMounted = false;
       if (renderTaskRef.current) {
-        try { renderTaskRef.current.cancel(); } catch (e) {}
+        try { renderTaskRef.current.cancel(); } catch { /* ignore cancel errors */ }
       }
     };
   }, [pdfPath, pageNumber, scale, renderMethod]);

@@ -177,9 +177,3 @@ export const PDFViewer = ({ file, onLoadError }: PDFViewerProps) => {
     </div>
   );
 };
-          sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
-        />
-      )}
-    </div>
-  );
-};

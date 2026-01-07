@@ -12,10 +12,6 @@ export const CScanGenerator = ({ scanData, onImageGenerated }: CScanGeneratorPro
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const processor = useRef(new CScanProcessor());
 
-  useEffect(() => {
-    generateCScan();
-  }, [scanData]);
-
   const generateCScan = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -192,6 +188,12 @@ export const CScanGenerator = ({ scanData, onImageGenerated }: CScanGeneratorPro
     const imageDataUrl = canvas.toDataURL('image/png');
     onImageGenerated(imageDataUrl);
   };
+
+  // Generate C-scan when scanData changes
+  useEffect(() => {
+    generateCScan();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scanData]);
 
   return (
     <div className="hidden">

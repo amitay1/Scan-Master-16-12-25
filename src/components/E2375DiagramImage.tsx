@@ -356,7 +356,6 @@ export const E2375DiagramImage: React.FC<E2375DiagramImageProps> = ({
                     style={{ transform: `scale(${zoom})` }}
                     onError={() => setImageError(true)}
                     data-testid="e2375-diagram-img"
-                    crossOrigin="anonymous"
                   />
                 )}
               </div>

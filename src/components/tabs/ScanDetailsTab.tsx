@@ -230,6 +230,7 @@ export const ScanDetailsTab = ({ data, onChange, partType, dimensions = {} }: Sc
     if (!data?.scanDetails || data.scanDetails.length === 0) {
       onChange({ scanDetails: FIXED_SCAN_DETAILS });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Ensure we have all fixed scan details (merge with existing data)

@@ -90,6 +90,7 @@ export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E" }
       const newIndex = 100 - requiredOverlap;
       updateField("scanIndex", newIndex);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [standard]);
 
   // Show phased array fields when PA technique is selected

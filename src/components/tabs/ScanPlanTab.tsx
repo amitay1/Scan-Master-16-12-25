@@ -45,6 +45,7 @@ export const ScanPlanTab = ({ data, onChange }: ScanPlanTabProps) => {
       });
       setOpenDocs(initialOpenState);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeDocuments]);
 
   // Load individual document
@@ -79,6 +80,7 @@ export const ScanPlanTab = ({ data, onChange }: ScanPlanTabProps) => {
     activeDocuments.forEach(doc => {
       loadDocument(doc.id, doc.filePath, doc.title);
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, activeDocuments.length]);
 
   const handleRefresh = (docId: string) => {

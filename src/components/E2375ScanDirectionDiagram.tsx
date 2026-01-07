@@ -662,7 +662,7 @@ const ScanDirectionLegend: React.FC<{ scanDetails?: ScanDetail[]; highlighted?: 
                 : 'hover:bg-gray-50'
             }`}
             style={{ 
-              // @ts-ignore - ringColor is a CSS custom property
+              // @ts-expect-error - ringColor is a CSS custom property
               '--tw-ring-color': isHighlighted ? info.color : undefined
             } as React.CSSProperties}
             onClick={() => onHighlight?.(isHighlighted ? null : detail.scanningDirection)}

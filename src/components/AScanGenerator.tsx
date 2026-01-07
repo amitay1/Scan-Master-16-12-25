@@ -9,10 +9,6 @@ interface AScanGeneratorProps {
 export const AScanGenerator = ({ scanData, onImageGenerated }: AScanGeneratorProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  useEffect(() => {
-    generateAScan();
-  }, [scanData]);
-
   const generateAScan = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -242,6 +238,12 @@ export const AScanGenerator = ({ scanData, onImageGenerated }: AScanGeneratorPro
     const imageDataUrl = canvas.toDataURL('image/png');
     onImageGenerated(imageDataUrl);
   };
+
+  // Generate A-scan when scanData changes
+  useEffect(() => {
+    generateAScan();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scanData]);
 
   return (
     <div className="hidden">

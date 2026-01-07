@@ -127,6 +127,7 @@ export const CalibrationTab = ({
         metalTravelDistance: avgMetalTravel,
       });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleSelectModel = (modelId: string) => {

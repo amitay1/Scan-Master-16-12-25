@@ -219,7 +219,7 @@ class DiagnosticTestRunner {
         // Estimate storage used
         let totalSize = 0;
         for (const key in localStorage) {
-          if (localStorage.hasOwnProperty(key)) {
+          if (Object.prototype.hasOwnProperty.call(localStorage, key)) {
             totalSize += localStorage.getItem(key)?.length || 0;
           }
         }
@@ -539,7 +539,7 @@ class DiagnosticTestRunner {
       const benchStart = performance.now();
       for (let i = 0; i < iterations; i++) {
         testDiv.innerHTML = `<div style="background: red; width: 100px; height: 100px;">Test ${i}</div>`;
-        testDiv.offsetHeight; // Force reflow
+        void testDiv.offsetHeight; // Force reflow
       }
       const benchEnd = performance.now();
       document.body.removeChild(testDiv);

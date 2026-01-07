@@ -50,6 +50,7 @@ export const DocumentViewer = ({ file, onLoadError }: DocumentViewerProps) => {
     };
 
     loadDocx();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [file, isDocx]);
 
   // PDF loading logic
@@ -67,6 +68,7 @@ export const DocumentViewer = ({ file, onLoadError }: DocumentViewerProps) => {
     }, 5000);
 
     return () => clearTimeout(timeout);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [file, isPdf]);
 
   useEffect(() => {
@@ -79,7 +81,8 @@ export const DocumentViewer = ({ file, onLoadError }: DocumentViewerProps) => {
 
       return () => clearTimeout(timeout);
     }
-  }, [useEmbed, isLoading, isPdf, onLoadError]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPdf, useEmbed, isLoading]);
 
   const handleLoad = () => {
     setIsLoading(false);

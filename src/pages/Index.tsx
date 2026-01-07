@@ -1237,13 +1237,26 @@ const Index = () => {
           console.log('[PDF Export] Angle tab trigger found:', !!angleTabTrigger);
           if (angleTabTrigger) {
             angleTabTrigger.click();
-            await new Promise(resolve => setTimeout(resolve, 800)); // Wait for angle beam component to render
+            await new Promise(resolve => setTimeout(resolve, 500)); // Initial wait for tab switch
+            
+            // Wait for the image to actually load
+            const angleImg = document.querySelector('[data-testid="angle-beam-calibration-block"] img') as HTMLImageElement;
+            if (angleImg && !angleImg.complete) {
+              console.log('[PDF Export] Waiting for angle beam image to load...');
+              await new Promise<void>((resolve) => {
+                angleImg.onload = () => resolve();
+                angleImg.onerror = () => resolve();
+                setTimeout(resolve, 3000); // Max wait 3 seconds
+              });
+            }
+            await new Promise(resolve => setTimeout(resolve, 300)); // Extra buffer after load
           }
 
           const angleBeamResult = await smartCapture([
-            '[data-testid="angle-beam-calibration-block"]',
-            '.angle-beam-calibration-block',
-            '.angle-beam-calibration-block svg',
+            '[data-testid="angle-beam-calibration-block"] img',  // Image inside container (primary)
+            '[data-testid="angle-beam-calibration-block"]',      // Container element
+            '.angle-beam-calibration-block img',                  // Class-based img selector
+            '.angle-beam-calibration-block',                      // Container fallback
           ], { scale: 3, quality: 1.0, backgroundColor: 'white', maxWidth: 1800, maxHeight: 1200 });
 
           console.log('[PDF Export] Angle beam capture result:', angleBeamResult.success, angleBeamResult.data?.length || 0);
@@ -1255,11 +1268,21 @@ const Index = () => {
         // Step 3: Go to scan details tab and capture E2375 diagram
         console.log('[PDF Export] Step 3: Going to Scan Details tab for E2375 diagram...');
         setActiveTab('scandetails');
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait for image to render
+        await new Promise(resolve => setTimeout(resolve, 500)); // Initial wait for tab switch
 
-        // Check if E2375 image element exists before capture
-        const e2375ImgElement = document.querySelector('[data-testid="e2375-diagram-img"]');
+        // Wait for the E2375 image to actually load
+        const e2375ImgElement = document.querySelector('[data-testid="e2375-diagram-img"]') as HTMLImageElement;
         console.log('[PDF Export] E2375 img element found:', !!e2375ImgElement);
+        
+        if (e2375ImgElement && !e2375ImgElement.complete) {
+          console.log('[PDF Export] Waiting for E2375 image to load...');
+          await new Promise<void>((resolve) => {
+            e2375ImgElement.onload = () => resolve();
+            e2375ImgElement.onerror = () => resolve();
+            setTimeout(resolve, 3000); // Max wait 3 seconds
+          });
+        }
+        await new Promise(resolve => setTimeout(resolve, 300)); // Extra buffer after load
 
         // Capture E2375 standard diagram (look for the actual img element first)
         const e2375Result = await smartCapture([
