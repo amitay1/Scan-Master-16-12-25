@@ -676,8 +676,8 @@ const ScanDirectionLegend: React.FC<{ scanDetails?: ScanDetail[]; highlighted?: 
               {detail.scanningDirection}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium truncate">{info.name}</p>
-              <p className="text-[10px] text-muted-foreground">{info.wave}</p>
+              <p className="text-xs font-medium truncate text-gray-700">{info.name}</p>
+              <p className="text-[10px] text-gray-500">{info.wave}</p>
             </div>
           </motion.div>
         );

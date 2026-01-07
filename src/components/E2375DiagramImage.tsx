@@ -226,15 +226,15 @@ const ScanDirectionLegend: React.FC<{
             />
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <span className="font-bold text-sm">{detail.scanningDirection}</span>
-                <span className="text-xs text-muted-foreground truncate">{info.name}</span>
+                <span className="font-bold text-sm text-gray-900">{detail.scanningDirection}</span>
+                <span className="text-xs text-gray-600 truncate">{info.name}</span>
                 {isRecommended && (
                   <span className="text-[10px] bg-green-500 text-white px-1.5 py-0.5 rounded">
                     Recommended
                   </span>
                 )}
               </div>
-              <p className="text-[10px] text-muted-foreground">{info.wave}</p>
+              <p className="text-[10px] text-gray-500">{info.wave}</p>
             </div>
           </div>
         );

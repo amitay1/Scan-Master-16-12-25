@@ -403,27 +403,26 @@ class TechniqueSheetPDFBuilder {
   }
 
   private addSectionTitle(title: string, y: number): number {
+    const sectionHeight = 10;
+    this.pdf.setFillColor(...COLORS.primary);
+    this.pdf.roundedRect(PAGE.marginLeft, y - 4, PAGE.contentWidth, sectionHeight, 2, 2, 'F');
+    this.pdf.setTextColor(255, 255, 255);
     this.pdf.setFontSize(FONTS.sectionTitle.size);
     this.pdf.setFont('helvetica', 'bold');
-    this.pdf.setTextColor(...COLORS.primary);
-    this.pdf.text(title, PAGE.marginLeft, y);
-
-    // Underline
-    this.pdf.setDrawColor(...COLORS.primary);
-    this.pdf.setLineWidth(0.5);
-    this.pdf.line(PAGE.marginLeft, y + 2, PAGE.marginLeft + 60, y + 2);
-
+    this.pdf.text(title, PAGE.marginLeft + 6, y + 3);
     this.pdf.setTextColor(...COLORS.text);
-    return y + 10;
+    return y + 14;
   }
 
   private addSubsectionTitle(title: string, y: number): number {
+    this.pdf.setFillColor(...COLORS.accent);
+    this.pdf.rect(PAGE.marginLeft, y - 3, 3, 8, 'F');
     this.pdf.setFontSize(FONTS.subsectionTitle.size);
     this.pdf.setFont('helvetica', 'bold');
-    this.pdf.setTextColor(...COLORS.secondary);
-    this.pdf.text(title, PAGE.marginLeft, y);
+    this.pdf.setTextColor(...COLORS.primary);
+    this.pdf.text(title, PAGE.marginLeft + 6, y + 2);
     this.pdf.setTextColor(...COLORS.text);
-    return y + 7;
+    return y + 10;
   }
 
   // =========================================================================
