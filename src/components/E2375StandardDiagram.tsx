@@ -422,17 +422,17 @@ export const E2375StandardDiagram: React.FC<E2375StandardDiagramProps> = ({
               </div>
 
               {/* Enabled Scan Directions */}
-              <div className="bg-slate-50 rounded-lg p-4 border">
-                <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+              <div className="bg-slate-100 rounded-lg p-4 border border-slate-300">
+                <h4 className="text-sm font-bold mb-3 flex items-center gap-2 text-slate-900">
                   <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
                   Active Scan Directions ({enabledDirections.length})
                 </h4>
                 
                 {enabledDirections.length === 0 ? (
-                  <div className="text-center text-muted-foreground py-4">
+                  <div className="text-center text-slate-600 py-4">
                     <Info className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                    <p className="text-xs">No scan directions enabled</p>
-                    <p className="text-xs opacity-70">Enable directions from the table below</p>
+                    <p className="text-sm font-medium">No scan directions enabled</p>
+                    <p className="text-xs text-slate-500">Enable directions from the table below</p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 gap-2 max-h-[300px] overflow-y-auto">
@@ -445,24 +445,24 @@ export const E2375StandardDiagram: React.FC<E2375StandardDiagramProps> = ({
                       return (
                         <div
                           key={detail.scanningDirection}
-                          className={`flex items-center gap-2 p-2 rounded-lg transition-all ${
+                          className={`flex items-center gap-3 p-3 rounded-lg border-2 transition-all ${
                             isHighlighted 
-                              ? 'bg-gray-100 ring-2 ring-offset-1' 
-                              : 'hover:bg-gray-50'
+                              ? 'bg-white ring-2 ring-offset-1 border-slate-400' 
+                              : 'bg-white hover:bg-slate-50 border-slate-300'
                           }`}
                           style={{ 
                             '--tw-ring-color': isHighlighted ? info.color : undefined
                           } as React.CSSProperties}
                         >
                           <div 
-                            className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-sm flex-shrink-0"
+                            className="w-7 h-7 rounded-full flex items-center justify-center text-white text-sm font-bold shadow-md flex-shrink-0 border-2 border-white"
                             style={{ backgroundColor: info.color }}
                           >
                             {detail.scanningDirection}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-xs font-medium truncate text-gray-700">{info.name}</p>
-                            <p className="text-[10px] text-gray-500">{info.wave}</p>
+                            <p className="text-sm font-semibold text-slate-900">{info.name}</p>
+                            <p className="text-xs font-medium text-slate-700">{info.wave}</p>
                           </div>
                         </div>
                       );

@@ -234,7 +234,7 @@ export const UnifiedExportDialog: React.FC<UnifiedExportDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md p-0 gap-0 overflow-hidden border-0 shadow-2xl">
+      <DialogContent className="max-w-md p-0 gap-0 overflow-hidden border-0 shadow-2xl [&>button]:hidden">
         {/* Header */}
         <div className="relative bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 px-6 py-5">
           <button

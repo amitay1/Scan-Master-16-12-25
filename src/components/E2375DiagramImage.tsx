@@ -216,25 +216,25 @@ const ScanDirectionLegend: React.FC<{
         return (
           <div 
             key={detail.scanningDirection}
-            className={`flex items-center gap-3 p-2 rounded-lg border transition-colors ${
-              isRecommended ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'
+            className={`flex items-center gap-3 p-3 rounded-lg border-2 transition-colors ${
+              isRecommended ? 'bg-green-100 border-green-400' : 'bg-white border-slate-300'
             }`}
           >
             <div 
-              className="w-4 h-4 rounded-full flex-shrink-0 shadow-sm"
+              className="w-5 h-5 rounded-full flex-shrink-0 shadow-md border-2 border-white"
               style={{ backgroundColor: info.color }}
             />
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-sm text-gray-900">{detail.scanningDirection}</span>
-                <span className="text-xs text-gray-600 truncate">{info.name}</span>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-bold text-base text-slate-900">{detail.scanningDirection}</span>
+                <span className="text-sm font-medium text-slate-800">{info.name}</span>
                 {isRecommended && (
-                  <span className="text-[10px] bg-green-500 text-white px-1.5 py-0.5 rounded">
+                  <span className="text-[10px] font-bold bg-green-600 text-white px-2 py-0.5 rounded shadow-sm">
                     Recommended
                   </span>
                 )}
               </div>
-              <p className="text-[10px] text-gray-500">{info.wave}</p>
+              <p className="text-xs font-medium text-slate-700">{info.wave}</p>
             </div>
           </div>
         );
@@ -356,6 +356,7 @@ export const E2375DiagramImage: React.FC<E2375DiagramImageProps> = ({
                     style={{ transform: `scale(${zoom})` }}
                     onError={() => setImageError(true)}
                     data-testid="e2375-diagram-img"
+                    crossOrigin="anonymous"
                   />
                 )}
               </div>
@@ -374,8 +375,8 @@ export const E2375DiagramImage: React.FC<E2375DiagramImageProps> = ({
               </div>
 
               {/* Active Directions Legend */}
-              <div className="bg-slate-50 rounded-lg p-4 border">
-                <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+              <div className="bg-slate-100 rounded-lg p-4 border border-slate-300">
+                <h4 className="text-sm font-bold mb-3 flex items-center gap-2 text-slate-900">
                   <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
                   Active Scan Directions ({scanDetails?.filter(d => d.enabled).length || 0})
                 </h4>
