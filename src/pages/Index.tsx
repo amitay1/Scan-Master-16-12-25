@@ -1593,7 +1593,7 @@ const Index = () => {
                         <WebGLLiquidProgress
                           value={completionPercent}
                           completedFields={completedFieldsCount}
-                          totalFields={reportMode === "Technique" ? 50 : 40}
+                          totalFields={40}
                         />
                       </div>
                     </div>
@@ -1770,11 +1770,6 @@ const Index = () => {
                     coneBottomDiameter: currentData.inspectionSetup.coneBottomDiameter,
                     coneHeight: currentData.inspectionSetup.coneHeight,
                   }}
-                  scanDirections={currentData.scanDetails.scanDetails.map(detail => ({
-                    direction: detail.scanningDirection,
-                    waveMode: detail.waveMode,
-                    isVisible: detail.isVisible || false
-                  }))}
                 />
               </Collapsible3DPanel>
             </div>

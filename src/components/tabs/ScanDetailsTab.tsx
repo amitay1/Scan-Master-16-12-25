@@ -16,7 +16,7 @@ import { E2375DiagramImage } from "@/components/E2375DiagramImage";
 interface ScanDetailsTabProps {
   data: ScanDetailsData;
   onChange: (data: ScanDetailsData) => void;
-  partType?: PartGeometry;
+  partType?: PartGeometry | "";
   dimensions?: {
     diameter?: number;
     length?: number;

@@ -96,8 +96,6 @@ const STRAIGHT_ONLY_GEOMETRIES: PartGeometry[] = [
   "near_net_forging",
 
   // Other geometries
-  "sphere",
-  "cone",
   "pyramid",
   "ellipse",
   "irregular",
