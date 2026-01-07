@@ -4,7 +4,7 @@ import { EquipmentData, StandardType } from "@/types/techniqueSheet";
 import { FieldWithHelp } from "@/components/FieldWithHelp";
 import { Badge } from "@/components/ui/badge";
 import { Info, AlertTriangle, ChevronDown, ChevronRight } from "lucide-react";
-import { useMemo, useEffect, useState, useRef } from "react";
+import { useMemo, useState } from "react";
 import {
   equipmentParametersByStandard,
   getRecommendedFrequencyForStandard,
@@ -59,12 +59,6 @@ export const EquipmentTab = ({ data, onChange, partThickness, standard = "AMS-ST
   // State to control Phased Array section visibility
   const [showPASection, setShowPASection] = useState(false);
 
-  // Refs to avoid stale closures in useEffect
-  const dataRef = useRef(data);
-  const onChangeRef = useRef(onChange);
-  dataRef.current = data;
-  onChangeRef.current = onChange;
-
   // Get equipment parameters for current standard
   const equipmentParams = useMemo(() => {
     return equipmentParametersByStandard[standard];
@@ -86,37 +80,9 @@ export const EquipmentTab = ({ data, onChange, partThickness, standard = "AMS-ST
     return frequencies.includes(data.frequency);
   }, [data.frequency, frequencies]);
 
-  // Check linearity compliance
-  const linearityCompliance = useMemo(() => {
-    const vMin = equipmentParams.verticalLinearity.min;
-    const vMax = equipmentParams.verticalLinearity.max;
-    const hMin = equipmentParams.horizontalLinearity?.min || 0;
-
-    const verticalOk = data.verticalLinearity >= vMin && data.verticalLinearity <= vMax;
-    const horizontalOk = !hMin || data.horizontalLinearity >= hMin;
-
-    return { verticalOk, horizontalOk };
-  }, [data.verticalLinearity, data.horizontalLinearity, equipmentParams]);
-
   const updateField = (field: keyof EquipmentData, value: any) => {
     onChange({ ...data, [field]: value });
   };
-
-  // Update linearity defaults when standard changes
-  useEffect(() => {
-    const vMin = equipmentParams.verticalLinearity.min;
-    const hMin = equipmentParams.horizontalLinearity?.min || 0;
-    const currentData = dataRef.current;
-
-    // Only update if current values don't meet minimum requirements
-    if (currentData.verticalLinearity < vMin || currentData.horizontalLinearity < hMin) {
-      onChangeRef.current({
-        ...currentData,
-        verticalLinearity: Math.max(currentData.verticalLinearity, vMin),
-        horizontalLinearity: Math.max(currentData.horizontalLinearity, hMin),
-      });
-    }
-  }, [standard, equipmentParams]);
 
   // Warn if frequency is invalid for standard
   const showFrequencyWarning = !isFrequencyValid && data.frequency;
@@ -273,85 +239,6 @@ export const EquipmentTab = ({ data, onChange, partThickness, standard = "AMS-ST
           />
         </FieldWithHelp>
 
-        <FieldWithHelp
-          label="Vertical Linearity (%)"
-          fieldKey="verticalLinearity"
-          help={`Per ${standard}: ${equipmentParams.verticalLinearity.min}-${equipmentParams.verticalLinearity.max}% FSH range required`}
-          required
-        >
-          <Input
-            type="number"
-            value={data.verticalLinearity}
-            onChange={(e) => updateField("verticalLinearity", parseFloat(e.target.value) || 0)}
-            min={equipmentParams.verticalLinearity.min}
-            max={100}
-            className={`bg-background ${!linearityCompliance.verticalOk ? "border-destructive" : ""}`}
-          />
-          {!linearityCompliance.verticalOk && (
-            <p className="text-xs text-destructive mt-1">
-              Below minimum requirement ({equipmentParams.verticalLinearity.min}%)
-            </p>
-          )}
-        </FieldWithHelp>
-
-        <FieldWithHelp
-          label="Horizontal Linearity (%)"
-          fieldKey="horizontalLinearity"
-          help={equipmentParams.horizontalLinearity
-            ? `Per ${standard}: Minimum ${equipmentParams.horizontalLinearity.min}% required`
-            : `Not specified in ${standard}`}
-          required={!!equipmentParams.horizontalLinearity}
-        >
-          <Input
-            type="number"
-            value={data.horizontalLinearity}
-            onChange={(e) => updateField("horizontalLinearity", parseFloat(e.target.value) || 0)}
-            min={equipmentParams.horizontalLinearity?.min || 0}
-            max={100}
-            className={`bg-background ${!linearityCompliance.horizontalOk ? "border-destructive" : ""}`}
-            disabled={!equipmentParams.horizontalLinearity}
-          />
-          {equipmentParams.horizontalLinearity && !linearityCompliance.horizontalOk && (
-            <p className="text-xs text-destructive mt-1">
-              Below minimum requirement ({equipmentParams.horizontalLinearity.min}%)
-            </p>
-          )}
-          {!equipmentParams.horizontalLinearity && (
-            <p className="text-xs text-muted-foreground mt-1">
-              Not required by {standard}
-            </p>
-          )}
-        </FieldWithHelp>
-
-        <FieldWithHelp
-          label="Entry Surface Resolution (inches)"
-          fieldKey="entrySurfaceResolution"
-          required
-          autoFilled
-        >
-          <Input
-            type="number"
-            value={data.entrySurfaceResolution}
-            onChange={(e) => updateField("entrySurfaceResolution", parseFloat(e.target.value) || 0)}
-            className="bg-background"
-            disabled
-          />
-        </FieldWithHelp>
-
-        <FieldWithHelp
-          label="Back Surface Resolution (inches)"
-          fieldKey="backSurfaceResolution"
-          required
-          autoFilled
-        >
-          <Input
-            type="number"
-            value={data.backSurfaceResolution}
-            onChange={(e) => updateField("backSurfaceResolution", parseFloat(e.target.value) || 0)}
-            className="bg-background"
-            disabled
-          />
-        </FieldWithHelp>
       </div>
 
       {/* Phased Array Settings Section (Collapsible) */}

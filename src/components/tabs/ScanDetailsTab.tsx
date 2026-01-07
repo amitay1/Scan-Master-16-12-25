@@ -281,32 +281,37 @@ export const ScanDetailsTab = ({ data, onChange, partType, standard = "AMS-STD-2
       {/* Scan Details Table */}
       <Card className="p-6">
         <div className="space-y-4">
-          <div className="flex items-center gap-2 mb-4">
-            <h3 className="text-lg font-semibold">Scan Details Configuration</h3>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger>
-                  <Info className="h-4 w-4 text-muted-foreground" />
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p className="max-w-xs">Configure scanning parameters for each direction according to part geometry and inspection requirements</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-semibold">Scan Details Configuration</h3>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <Info className="h-4 w-4 text-muted-foreground" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="max-w-xs">Configure scanning parameters for each direction according to part geometry and inspection requirements</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+            <span className="text-xs text-muted-foreground">
+              {scanDetails.filter(d => d.enabled).length} of {scanDetails.length} enabled
+            </span>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-center p-2 font-semibold text-sm w-16">Export</th>
-                  <th className="text-center p-2 font-semibold text-sm w-20">Direction</th>
-                  <th className="text-left p-2 font-semibold text-sm">Wave Mode</th>
-                  <th className="text-left p-2 font-semibold text-sm">Frequency (MHz)</th>
-                  <th className="text-left p-2 font-semibold text-sm">Technique</th>
-                  <th className="text-left p-2 font-semibold text-sm">Active Element</th>
-                  <th className="text-left p-2 font-semibold text-sm">Probe</th>
-                  <th className="text-left p-2 font-semibold text-sm">Remarks</th>
+          <div className="overflow-x-auto max-h-[400px] overflow-y-auto border rounded-lg">
+            <table className="w-full border-collapse text-xs">
+              <thead className="sticky top-0 bg-background z-10">
+                <tr className="border-b bg-muted/50">
+                  <th className="text-center px-1.5 py-1.5 font-medium w-10"></th>
+                  <th className="text-center px-1.5 py-1.5 font-medium w-10">Dir</th>
+                  <th className="text-left px-1.5 py-1.5 font-medium">Wave Mode</th>
+                  <th className="text-left px-1.5 py-1.5 font-medium">Freq</th>
+                  <th className="text-left px-1.5 py-1.5 font-medium">Tech</th>
+                  <th className="text-left px-1.5 py-1.5 font-medium">Active El.</th>
+                  <th className="text-left px-1.5 py-1.5 font-medium">Probe</th>
+                  <th className="text-left px-1.5 py-1.5 font-medium">Remarks</th>
                 </tr>
               </thead>
               <tbody>
@@ -317,82 +322,82 @@ export const ScanDetailsTab = ({ data, onChange, partType, standard = "AMS-STD-2
                     onMouseEnter={() => setHighlightedDirection(detail.scanningDirection)}
                     onMouseLeave={() => setHighlightedDirection(null)}
                   >
-                    <td className="p-2 text-center">
+                    <td className="px-1.5 py-1 text-center">
                       <Checkbox
                         checked={detail.enabled}
                         onCheckedChange={() => toggleScanDetail(index)}
-                        className="h-5 w-5"
+                        className="h-4 w-4"
                         data-testid={`checkbox-${detail.scanningDirection}`}
                       />
                     </td>
-                    <td className="p-2 text-center">
-                      <Badge variant="outline" className="font-bold text-base">
+                    <td className="px-1.5 py-1 text-center">
+                      <Badge variant="outline" className="font-bold text-xs">
                         {detail.scanningDirection}
                       </Badge>
                     </td>
-                    <td className="p-2">
-                      <span className="text-sm text-muted-foreground font-medium">
+                    <td className="px-1.5 py-1">
+                      <span className="text-xs text-muted-foreground font-medium">
                         {detail.waveMode}
                       </span>
                     </td>
-                    <td className="p-2">
+                    <td className="px-1.5 py-1">
                       <Select
                         value={detail.frequency}
                         onValueChange={(value) => updateScanDetail(index, "frequency", value)}
                       >
-                        <SelectTrigger className="h-9" data-testid={`select-frequency-${index}`}>
+                        <SelectTrigger className="h-7 text-xs px-2" data-testid={`select-frequency-${index}`}>
                           <SelectValue placeholder="Select..." />
                         </SelectTrigger>
                         <SelectContent>
                           {frequencyOptions.map((freq) => (
-                            <SelectItem key={freq} value={freq}>
+                            <SelectItem key={freq} value={freq} className="text-xs">
                               {freq} MHz
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                     </td>
-                    <td className="p-2">
+                    <td className="px-1.5 py-1">
                       <Select
                         value={detail.technique || ""}
                         onValueChange={(value) => updateScanDetail(index, "technique", value)}
                       >
-                        <SelectTrigger className="h-9" data-testid={`select-technique-${index}`}>
+                        <SelectTrigger className="h-7 text-xs px-2" data-testid={`select-technique-${index}`}>
                           <SelectValue placeholder="Select..." />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="CONVENTIONAL">CONVENTIONAL</SelectItem>
-                          <SelectItem value="PHASED ARRAY">PHASED ARRAY</SelectItem>
+                          <SelectItem value="CONVENTIONAL" className="text-xs">CONV</SelectItem>
+                          <SelectItem value="PHASED ARRAY" className="text-xs">PA</SelectItem>
                         </SelectContent>
                       </Select>
                     </td>
-                    <td className="p-2">
+                    <td className="px-1.5 py-1">
                       <Input
                         type="text"
                         value={detail.activeElement || ""}
                         onChange={(e) => updateScanDetail(index, "activeElement", e.target.value)}
                         placeholder="e.g., 0.5 inch"
-                        className="h-9"
+                        className="h-7 text-xs px-2"
                         data-testid={`input-activeElement-${index}`}
                       />
                     </td>
-                    <td className="p-2">
+                    <td className="px-1.5 py-1">
                       <Input
                         type="text"
                         value={detail.probe}
                         onChange={(e) => updateScanDetail(index, "probe", e.target.value)}
                         placeholder="Probe model"
-                        className="h-9"
+                        className="h-7 text-xs px-2"
                         data-testid={`input-probe-${index}`}
                       />
                     </td>
-                    <td className="p-2">
+                    <td className="px-1.5 py-1">
                       <Input
                         type="text"
                         value={detail.remarkDetails}
                         onChange={(e) => updateScanDetail(index, "remarkDetails", e.target.value)}
                         placeholder="Additional notes"
-                        className="h-9"
+                        className="h-7 text-xs px-2"
                         data-testid={`input-remarks-${index}`}
                       />
                     </td>

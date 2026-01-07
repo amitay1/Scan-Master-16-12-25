@@ -13,11 +13,10 @@ import {
   TableRow,
   TableCell,
   WidthType,
-  BorderStyle,
   AlignmentType,
   HeadingLevel,
   ShadingType,
-  convertInchesToTwip,
+  PageBreak,
 } from 'docx';
 import { saveAs } from 'file-saver';
 import type {
@@ -113,6 +112,204 @@ const createSection = (title: string, rows: [string, string][]): (Paragraph | Ta
 };
 
 // ============================================================================
+// TABLE OF CONTENTS
+// ============================================================================
+const buildTableOfContents = (): (Paragraph | Table)[] => {
+  const elements: (Paragraph | Table)[] = [];
+
+  // Title
+  elements.push(new Paragraph({
+    children: [new TextRun({ text: 'TABLE OF CONTENTS', bold: true, size: 28 })],
+    heading: HeadingLevel.HEADING_1,
+    alignment: AlignmentType.CENTER,
+    spacing: { before: 200, after: 400 },
+  }));
+
+  // TOC items - simple list without page numbers
+  const tocItems: string[] = [
+    '1. Part Information',
+    '2. Equipment',
+    '3. Calibration',
+    '   3.1 FBH Reference Diagram',
+    '   3.2 Block Configuration',
+    '4. Scan Parameters',
+    '5. Acceptance Criteria',
+    '6. Scan Details',
+    '   6.1 Scanning Directions',
+    '   6.2 Technical Drawing',
+    '7. Documentation',
+    '8. Approvals & Signatures',
+  ];
+
+  tocItems.forEach(item => {
+    const isSubsection = item.startsWith('   ');
+    elements.push(new Paragraph({
+      children: [new TextRun({
+        text: isSubsection ? item.trim() : item,
+        size: isSubsection ? 20 : 22,
+        bold: !isSubsection,
+      })],
+      spacing: { before: isSubsection ? 80 : 160, after: isSubsection ? 80 : 160 },
+      indent: { left: isSubsection ? 400 : 0 },
+    }));
+  });
+
+  // Note about page numbers
+  elements.push(new Paragraph({
+    children: [new TextRun({
+      text: 'Note: Page numbers may vary based on content.',
+      italics: true,
+      size: 18,
+      color: '666666',
+    })],
+    spacing: { before: 300, after: 200 },
+    alignment: AlignmentType.CENTER,
+  }));
+
+  // Page break after TOC
+  elements.push(new Paragraph({
+    children: [new PageBreak()],
+  }));
+
+  return elements;
+};
+
+// ============================================================================
+// APPROVALS SECTION
+// ============================================================================
+interface ExtendedDocumentationData extends DocumentationData {
+  levelIIIName?: string;
+  levelIIIDate?: string;
+}
+
+const buildApprovalsSection = (documentation: ExtendedDocumentationData, approvalRequired?: boolean): (Paragraph | Table)[] => {
+  const elements: (Paragraph | Table)[] = [];
+
+  // Section title
+  elements.push(new Paragraph({
+    children: [new TextRun({ text: '8. APPROVALS & SIGNATURES', bold: true, size: 26 })],
+    heading: HeadingLevel.HEADING_2,
+    spacing: { before: 400, after: 200 },
+  }));
+
+  // Signature table with 4 columns like PDF
+  const signatureRows: TableRow[] = [];
+
+  // Header row
+  signatureRows.push(new TableRow({
+    children: ['Role', 'Name / Signature', 'Date', 'Comments'].map(text => new TableCell({
+      children: [new Paragraph({
+        children: [new TextRun({ text, bold: true, size: 20, color: 'FFFFFF' })],
+        alignment: AlignmentType.CENTER,
+      })],
+      shading: { fill: '1e3a5f', type: ShadingType.SOLID, color: 'FFFFFF' },
+      width: { size: 25, type: WidthType.PERCENTAGE },
+    })),
+  }));
+
+  // Inspector row
+  signatureRows.push(new TableRow({
+    children: [
+      new TableCell({
+        children: [new Paragraph({ children: [new TextRun({ text: 'UT Inspector', bold: true, size: 20 })] })],
+      }),
+      new TableCell({
+        children: [new Paragraph({ children: [new TextRun({ text: documentation.inspectorName || '', size: 20 })] })],
+      }),
+      new TableCell({
+        children: [new Paragraph({ children: [new TextRun({ text: formatDate(documentation.inspectionDate), size: 20 })] })],
+      }),
+      new TableCell({
+        children: [new Paragraph({ children: [new TextRun({ text: `Level ${documentation.inspectorLevel || '-'}`, size: 20 })] })],
+      }),
+    ],
+  }));
+
+  // Level III row
+  signatureRows.push(new TableRow({
+    children: [
+      new TableCell({
+        children: [new Paragraph({ children: [new TextRun({ text: 'Level III Approval', bold: true, size: 20 })] })],
+      }),
+      new TableCell({
+        children: [new Paragraph({ children: [new TextRun({ text: documentation.levelIIIName || '', size: 20 })] })],
+      }),
+      new TableCell({
+        children: [new Paragraph({ children: [new TextRun({ text: formatDate(documentation.levelIIIDate), size: 20 })] })],
+      }),
+      new TableCell({
+        children: [new Paragraph({ children: [new TextRun({ text: '', size: 20 })] })],
+      }),
+    ],
+  }));
+
+  // Customer Representative row (if approval required)
+  if (approvalRequired) {
+    signatureRows.push(new TableRow({
+      children: [
+        new TableCell({
+          children: [new Paragraph({ children: [new TextRun({ text: 'Customer Representative', bold: true, size: 20 })] })],
+        }),
+        new TableCell({
+          children: [new Paragraph({ children: [new TextRun({ text: '', size: 20 })] })],
+        }),
+        new TableCell({
+          children: [new Paragraph({ children: [new TextRun({ text: '', size: 20 })] })],
+        }),
+        new TableCell({
+          children: [new Paragraph({ children: [new TextRun({ text: '', size: 20 })] })],
+        }),
+      ],
+    }));
+  }
+
+  elements.push(new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    rows: signatureRows,
+  }));
+
+  // NOTICE message with yellow background (if approval required)
+  if (approvalRequired) {
+    elements.push(new Paragraph({
+      children: [new TextRun({
+        text: 'NOTICE: This technique sheet requires Level III approval before use.',
+        bold: true,
+        size: 20,
+        color: '856404',
+      })],
+      shading: { fill: 'FFF3CD', type: ShadingType.SOLID, color: '856404' },
+      spacing: { before: 300, after: 200 },
+      alignment: AlignmentType.CENTER,
+    }));
+  }
+
+  // Document control text
+  elements.push(new Paragraph({
+    children: [new TextRun({
+      text: 'This document is controlled. Unauthorized reproduction or distribution is prohibited.',
+      italics: true,
+      size: 18,
+      color: '666666',
+    })],
+    spacing: { before: 200, after: 100 },
+    alignment: AlignmentType.CENTER,
+  }));
+
+  elements.push(new Paragraph({
+    children: [new TextRun({
+      text: `Document generated on ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} by Scan-Master.`,
+      italics: true,
+      size: 18,
+      color: '666666',
+    })],
+    spacing: { before: 100, after: 200 },
+    alignment: AlignmentType.CENTER,
+  }));
+
+  return elements;
+};
+
+// ============================================================================
 // MAIN EXPORT FUNCTION
 // ============================================================================
 export async function exportTechniqueSheetWord(
@@ -147,6 +344,9 @@ export async function exportTechniqueSheetWord(
       spacing: { after: 400 },
     }));
   }
+
+  // Table of Contents
+  children.push(...buildTableOfContents());
 
   // Part Information
   children.push(...createSection('1. PART INFORMATION', [
@@ -237,6 +437,9 @@ export async function exportTechniqueSheetWord(
     ['Inspection Date', formatDate(documentation.inspectionDate)],
     ['Procedure Number', formatValue(documentation.procedureNumber)],
   ]));
+
+  // Approvals & Signatures
+  children.push(...buildApprovalsSection(documentation as ExtendedDocumentationData, documentation.approvalRequired));
 
   // Create document
   const doc = new Document({

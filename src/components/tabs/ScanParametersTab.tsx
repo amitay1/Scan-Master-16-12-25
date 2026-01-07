@@ -4,7 +4,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ScanParametersData, StandardType, CouplingMethod, PhasedArraySettings } from "@/types/techniqueSheet";
+import { ScanParametersData, StandardType, CouplingMethod, PhasedArraySettings, EquipmentData } from "@/types/techniqueSheet";
 import { FieldWithHelp } from "@/components/FieldWithHelp";
 import { Badge } from "@/components/ui/badge";
 import { Info, AlertTriangle, Radio } from "lucide-react";
@@ -12,6 +12,7 @@ import { useMemo, useEffect } from "react";
 import {
   scanParametersByStandard,
   calibrationByStandard,
+  equipmentParametersByStandard,
 } from "@/data/standardsDifferences";
 import { getFrequencyOptionsForStandard } from "@/utils/frequencyUtils";
 
@@ -21,6 +22,8 @@ interface ScanParametersTabProps {
   standard: StandardType;
   equipmentFrequency?: string;
   onEquipmentFrequencyChange?: (frequency: string) => void;
+  equipmentData?: EquipmentData;
+  onEquipmentDataChange?: (data: EquipmentData) => void;
 }
 
 // Get standard label
@@ -35,7 +38,7 @@ const getStandardLabel = (standard: StandardType): string => {
   return labels[standard] || standard;
 };
 
-export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E", equipmentFrequency, onEquipmentFrequencyChange }: ScanParametersTabProps) => {
+export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E", equipmentFrequency, onEquipmentFrequencyChange, equipmentData, onEquipmentDataChange }: ScanParametersTabProps) => {
   // Ensure we have valid data object with defaults
   const safeData = data || {
     scanMethod: "",
@@ -79,8 +82,30 @@ export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E", 
     return { speedOk, overlapOk, coverageOk };
   }, [data.scanSpeed, data.scanIndex, data.coverage, maxSpeed, scanParams]);
 
+  // Get equipment parameters for current standard
+  const equipmentParams = useMemo(() => {
+    return equipmentParametersByStandard[standard];
+  }, [standard]);
+
+  // Check linearity compliance
+  const linearityCompliance = useMemo(() => {
+    if (!equipmentData) return { verticalOk: true, horizontalOk: true };
+    const vMin = equipmentParams.verticalLinearity.min;
+    const vMax = equipmentParams.verticalLinearity.max;
+    const hMin = equipmentParams.horizontalLinearity?.min || 0;
+    const verticalOk = equipmentData.verticalLinearity >= vMin && equipmentData.verticalLinearity <= vMax;
+    const horizontalOk = !hMin || equipmentData.horizontalLinearity >= hMin;
+    return { verticalOk, horizontalOk };
+  }, [equipmentData?.verticalLinearity, equipmentData?.horizontalLinearity, equipmentParams]);
+
   const updateField = (field: keyof ScanParametersData, value: any) => {
     onChange({ ...data, [field]: value });
+  };
+
+  const updateEquipmentField = (field: keyof EquipmentData, value: any) => {
+    if (equipmentData && onEquipmentDataChange) {
+      onEquipmentDataChange({ ...equipmentData, [field]: value });
+    }
   };
 
   // Update defaults when standard changes
@@ -148,9 +173,9 @@ export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E", 
       )}
 
       {/* Scan Method - Multi-select buttons */}
-      <div className="bg-blue-500/5 border border-blue-500/20 rounded-lg p-4 mb-4">
-        <Label className="text-sm font-semibold mb-3 block">Scan Method</Label>
-        <div className="flex gap-4">
+      <div className="bg-blue-500/5 border border-blue-500/20 rounded-lg p-2 mb-2">
+        <Label className="text-sm font-semibold mb-1.5 block">Scan Method</Label>
+        <div className="flex gap-2">
           <button
             type="button"
             onClick={() => {
@@ -158,16 +183,15 @@ export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E", 
               const newMethods = current.includes('immersion')
                 ? current.filter(m => m !== 'immersion')
                 : [...current, 'immersion'];
-              // Update both fields at once to avoid double render
-              onChange({ 
-                ...data, 
+              onChange({
+                ...data,
                 scanMethods: newMethods,
                 scanMethod: newMethods.length > 0 ? newMethods[0] : data.scanMethod
               });
             }}
-            className={`px-6 py-3 rounded-lg font-medium transition-all border-2 ${
+            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all border ${
               (data.scanMethods || []).includes('immersion')
-                ? 'bg-blue-600 text-white border-blue-600 shadow-lg'
+                ? 'bg-blue-600 text-white border-blue-600'
                 : 'bg-gray-100 hover:bg-gray-200 text-gray-800 border-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-600'
             }`}
           >
@@ -180,16 +204,15 @@ export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E", 
               const newMethods = current.includes('contact')
                 ? current.filter(m => m !== 'contact')
                 : [...current, 'contact'];
-              // Update both fields at once to avoid double render
-              onChange({ 
-                ...data, 
+              onChange({
+                ...data,
                 scanMethods: newMethods,
                 scanMethod: newMethods.length > 0 ? newMethods[0] : data.scanMethod
               });
             }}
-            className={`px-6 py-3 rounded-lg font-medium transition-all border-2 ${
+            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all border ${
               (data.scanMethods || []).includes('contact')
-                ? 'bg-blue-600 text-white border-blue-600 shadow-lg'
+                ? 'bg-blue-600 text-white border-blue-600'
                 : 'bg-gray-100 hover:bg-gray-200 text-gray-800 border-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-600'
             }`}
           >
@@ -197,20 +220,20 @@ export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E", 
           </button>
         </div>
         {(data.scanMethods || []).length === 0 && (
-          <p className="text-xs text-muted-foreground mt-2">Select one or more scan methods</p>
+          <p className="text-xs text-muted-foreground mt-1">Select one or more scan methods</p>
         )}
       </div>
 
       {/* Technique Selection */}
-      <div className="bg-purple-500/5 border border-purple-500/20 rounded-lg p-4 mb-4">
-        <Label className="text-sm font-semibold mb-3 block">Technique</Label>
-        <div className="flex flex-wrap gap-3">
+      <div className="bg-purple-500/5 border border-purple-500/20 rounded-lg p-2 mb-2">
+        <Label className="text-sm font-semibold mb-1.5 block">Technique</Label>
+        <div className="flex flex-wrap gap-2">
           <button
             type="button"
             onClick={() => updateField("technique", "conventional")}
-            className={`px-5 py-2.5 rounded-lg font-medium transition-all ${
+            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
               data.technique === 'conventional'
-                ? 'bg-purple-600 text-white shadow-lg'
+                ? 'bg-purple-600 text-white'
                 : 'bg-muted hover:bg-muted/80 text-foreground'
             }`}
           >
@@ -219,9 +242,9 @@ export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E", 
           <button
             type="button"
             onClick={() => updateField("technique", "bubbler")}
-            className={`px-5 py-2.5 rounded-lg font-medium transition-all ${
+            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
               data.technique === 'bubbler'
-                ? 'bg-purple-600 text-white shadow-lg'
+                ? 'bg-purple-600 text-white'
                 : 'bg-muted hover:bg-muted/80 text-foreground'
             }`}
           >
@@ -230,9 +253,9 @@ export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E", 
           <button
             type="button"
             onClick={() => updateField("technique", "squirt")}
-            className={`px-5 py-2.5 rounded-lg font-medium transition-all ${
+            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
               data.technique === 'squirt'
-                ? 'bg-purple-600 text-white shadow-lg'
+                ? 'bg-purple-600 text-white'
                 : 'bg-muted hover:bg-muted/80 text-foreground'
             }`}
           >
@@ -241,9 +264,9 @@ export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E", 
           <button
             type="button"
             onClick={() => updateField("technique", "phased_array")}
-            className={`px-5 py-2.5 rounded-lg font-medium transition-all ${
+            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
               data.technique === 'phased_array'
-                ? 'bg-purple-600 text-white shadow-lg'
+                ? 'bg-purple-600 text-white'
                 : 'bg-muted hover:bg-muted/80 text-foreground'
             }`}
           >
@@ -253,7 +276,7 @@ export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E", 
       </div>
 
       {/* Frequency Selection - Standard-aware */}
-      <div className="bg-green-500/5 border border-green-500/20 rounded-lg p-4 mb-4">
+      <div className="bg-green-500/5 border border-green-500/20 rounded-lg p-2 mb-2">
         <FieldWithHelp
           label="Frequency (MHz)"
           fieldKey="frequency"
@@ -264,7 +287,7 @@ export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E", 
             value={equipmentFrequency || ""}
             onValueChange={(value) => onEquipmentFrequencyChange?.(value)}
           >
-            <SelectTrigger className="bg-background max-w-xs">
+            <SelectTrigger className="bg-background max-w-xs h-8">
               <SelectValue placeholder="Select frequency..." />
             </SelectTrigger>
             <SelectContent className="bg-popover z-50">
@@ -277,6 +300,92 @@ export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E", 
           </Select>
         </FieldWithHelp>
       </div>
+
+      {/* Equipment Compliance - Linearity & Resolution */}
+      {equipmentData && (
+        <div className="bg-green-500/5 border border-green-500/20 rounded-lg p-2 mb-2">
+          <Label className="text-sm font-semibold mb-1.5 block">Linearity & Resolution</Label>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            <FieldWithHelp
+              label="Vertical Linearity (%)"
+              fieldKey="verticalLinearity"
+              help={`Per ${standard}: ${equipmentParams.verticalLinearity.min}-${equipmentParams.verticalLinearity.max}% FSH range required`}
+              required
+            >
+              <Input
+                type="number"
+                value={equipmentData.verticalLinearity}
+                onChange={(e) => updateEquipmentField("verticalLinearity", parseFloat(e.target.value) || 0)}
+                min={equipmentParams.verticalLinearity.min}
+                max={100}
+                className={`bg-background ${!linearityCompliance.verticalOk ? "border-destructive" : ""}`}
+              />
+              {!linearityCompliance.verticalOk && (
+                <p className="text-xs text-destructive mt-1">
+                  Below minimum requirement ({equipmentParams.verticalLinearity.min}%)
+                </p>
+              )}
+            </FieldWithHelp>
+
+            <FieldWithHelp
+              label="Horizontal Linearity (%)"
+              fieldKey="horizontalLinearity"
+              help={equipmentParams.horizontalLinearity
+                ? `Per ${standard}: Minimum ${equipmentParams.horizontalLinearity.min}% required`
+                : `Not specified in ${standard}`}
+              required={!!equipmentParams.horizontalLinearity}
+            >
+              <Input
+                type="number"
+                value={equipmentData.horizontalLinearity}
+                onChange={(e) => updateEquipmentField("horizontalLinearity", parseFloat(e.target.value) || 0)}
+                min={equipmentParams.horizontalLinearity?.min || 0}
+                max={100}
+                className={`bg-background ${!linearityCompliance.horizontalOk ? "border-destructive" : ""}`}
+                disabled={!equipmentParams.horizontalLinearity}
+              />
+              {equipmentParams.horizontalLinearity && !linearityCompliance.horizontalOk && (
+                <p className="text-xs text-destructive mt-1">
+                  Below minimum requirement ({equipmentParams.horizontalLinearity.min}%)
+                </p>
+              )}
+              {!equipmentParams.horizontalLinearity && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Not required by {standard}
+                </p>
+              )}
+            </FieldWithHelp>
+
+            <FieldWithHelp
+              label="Entry Surface Resolution (inches)"
+              fieldKey="entrySurfaceResolution"
+              required
+              autoFilled
+            >
+              <Input
+                type="number"
+                value={equipmentData.entrySurfaceResolution}
+                className="bg-background"
+                disabled
+              />
+            </FieldWithHelp>
+
+            <FieldWithHelp
+              label="Back Surface Resolution (inches)"
+              fieldKey="backSurfaceResolution"
+              required
+              autoFilled
+            >
+              <Input
+                type="number"
+                value={equipmentData.backSurfaceResolution}
+                className="bg-background"
+                disabled
+              />
+            </FieldWithHelp>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2">
 

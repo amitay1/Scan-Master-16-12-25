@@ -34,9 +34,9 @@ export function FBHStraightBeamDrawing({
   const commonCenterY = height * 0.45; // shared vertical center for both views
 
   // ============================================
-  // SIDE VIEW (Left part of drawing)
+  // SIDE VIEW (Centered in drawing)
   // ============================================
-  const sideViewCenterX = width * 0.30;
+  const sideViewCenterX = width * 0.50;
 
   // Block dimensions - STRAIGHT RECTANGLE (no taper!)
   const blockWidth = 100;

@@ -1683,6 +1683,8 @@ const Index = () => {
                               backSurfaceResolution: resolution.back,
                             });
                           }}
+                          equipmentData={currentData.equipment}
+                          onEquipmentDataChange={currentData.setEquipment}
                         />
                       </TabsContent>
 
