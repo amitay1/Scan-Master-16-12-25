@@ -68,6 +68,7 @@ import { DiagnosticsExportDialog } from "@/components/support/DiagnosticsExportD
 import { SelfDiagnosticPanel } from "@/components/diagnostics/SelfDiagnosticPanel";
 import { OfflineUpdateDialog } from "@/components/updates/OfflineUpdateDialog";
 import { LicenseWarningBanner } from "@/components/LicenseWarningBanner";
+import { requiresAngleBeam } from "@/utils/beamTypeClassification";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -402,15 +403,25 @@ const Index = () => {
         if (success && exportCaptures.calibrationBlockDiagram) {
           setCalibrationBlockDiagram(exportCaptures.calibrationBlockDiagram);
         }
-        // Also try to capture angle beam if available
-        const angleSuccess = await captureAngleBeamBlock();
-        if (angleSuccess && exportCaptures.angleBeamCalibrationDiagram) {
-          setAngleBeamDiagram(exportCaptures.angleBeamCalibrationDiagram);
+        // Only capture angle beam if the part type requires it (circular parts like tubes, rings, cylinders)
+        // Box, plate, bar and other flat geometries do NOT require angle beam calibration
+        // Use the active part's geometry in split mode
+        const currentPartType = isSplitMode && activePart === "B" ? inspectionSetupB.partType : inspectionSetup.partType;
+        const currentIsHollow = isSplitMode && activePart === "B" ? inspectionSetupB.isHollow : inspectionSetup.isHollow;
+        const partNeedsAngleBeam = requiresAngleBeam(currentPartType, currentIsHollow);
+        if (partNeedsAngleBeam) {
+          const angleSuccess = await captureAngleBeamBlock();
+          if (angleSuccess && exportCaptures.angleBeamCalibrationDiagram) {
+            setAngleBeamDiagram(exportCaptures.angleBeamCalibrationDiagram);
+          }
+        } else {
+          // Clear any stale angle beam diagram for non-applicable shapes
+          setAngleBeamDiagram(undefined);
         }
       }, 500);
       return () => clearTimeout(timer);
     }
-  }, [activeTab, reportMode, captureCalibrationBlock, captureAngleBeamBlock, exportCaptures.calibrationBlockDiagram, exportCaptures.angleBeamCalibrationDiagram]);
+  }, [activeTab, reportMode, captureCalibrationBlock, captureAngleBeamBlock, exportCaptures.calibrationBlockDiagram, exportCaptures.angleBeamCalibrationDiagram, inspectionSetup.partType, inspectionSetup.isHollow, isSplitMode, activePart, inspectionSetupB.partType, inspectionSetupB.isHollow]);
 
   // Auto-capture E2375 diagram when visiting the scandetails tab
   useEffect(() => {
@@ -1796,7 +1807,14 @@ const Index = () => {
         scanPlan={isSplitMode && activePart === "B" ? scanPlanB : scanPlan}
         capturedDrawing={capturedDrawing}
         calibrationBlockDiagram={calibrationBlockDiagram}
-        angleBeamDiagram={angleBeamDiagram}
+        angleBeamDiagram={
+          // Only include angle beam diagram for shapes that require it (tubes, rings, cylinders, etc.)
+          // Box, plate, bar and other flat parts should NOT show angle beam calibration
+          requiresAngleBeam(
+            isSplitMode && activePart === "B" ? inspectionSetupB.partType : inspectionSetup.partType,
+            isSplitMode && activePart === "B" ? inspectionSetupB.isHollow : inspectionSetup.isHollow
+          ) ? angleBeamDiagram : undefined
+        }
         e2375Diagram={e2375Diagram}
         scanDirectionsDrawing={capturedScanDirections}
         onExport={(format, template) => {
