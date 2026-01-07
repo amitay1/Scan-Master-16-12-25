@@ -23,9 +23,10 @@ const standards = [
     stringency: "Most Stringent",
     badge: "Aerospace",
     icon: ShieldCheck,
-    color: "text-red-500",
+    color: "text-red-600",
+    iconBg: "bg-red-600",
     bgColor: "bg-red-50",
-    borderColor: "border-red-200",
+    borderColor: "border-red-300",
     features: ["5 classes (AAA-C)", "#1 FBH (0.8mm)", "30% overlap", "90% linearity"]
   },
   {
@@ -34,10 +35,11 @@ const standards = [
     description: "Ultrasonic Examination of Heavy Steel Forgings",
     stringency: "Standard",
     badge: "Industrial",
-    icon: Wrench,
-    color: "text-blue-500",
+    icon: Factory,
+    color: "text-blue-600",
+    iconBg: "bg-blue-600",
     bgColor: "bg-blue-50",
-    borderColor: "border-blue-200",
+    borderColor: "border-blue-300",
     features: ["4 quality levels", "DGS method", "10-15% overlap", "Heavy forgings"]
   },
   {
@@ -47,9 +49,10 @@ const standards = [
     stringency: "European",
     badge: "EU Ferritic",
     icon: Globe,
-    color: "text-green-500",
+    color: "text-green-600",
+    iconBg: "bg-green-600",
     bgColor: "bg-green-50",
-    borderColor: "border-green-200",
+    borderColor: "border-green-300",
     features: ["4 quality classes", "DAC curve", "2-10 MHz", "Ferritic steel"]
   },
   {
@@ -58,10 +61,11 @@ const standards = [
     description: "Testing of austenitic stainless steel forgings",
     stringency: "Specialized",
     badge: "EU Austenitic",
-    icon: Beaker,
-    color: "text-purple-500",
+    icon: FlaskConical,
+    color: "text-purple-600",
+    iconBg: "bg-purple-600",
     bgColor: "bg-purple-50",
-    borderColor: "border-purple-200",
+    borderColor: "border-purple-300",
     features: ["Coarse grain", "0.5-2 MHz", "20% overlap", "Austenitic steel"]
   }
 ] as const;

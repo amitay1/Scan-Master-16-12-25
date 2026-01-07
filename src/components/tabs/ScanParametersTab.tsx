@@ -126,24 +126,6 @@ export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E" }
 
   return (
     <div className="space-y-2 p-2">
-      {/* Standard-specific header */}
-      <div className="bg-primary/5 border border-primary/20 rounded p-2">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-sm font-semibold text-foreground">Scan Parameters</h3>
-            <p className="text-xs text-muted-foreground mt-1">Per {getStandardLabel(standard)}</p>
-          </div>
-          <div className="flex gap-2">
-            <Badge variant="outline" className="text-xs">
-              {scanParams.minOverlap}% min overlap
-            </Badge>
-            <Badge variant="outline" className="text-xs">
-              Max {maxSpeed} mm/s
-            </Badge>
-          </div>
-        </div>
-      </div>
-
       {/* Austenitic specific note */}
       {isAustenitic && (
         <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
