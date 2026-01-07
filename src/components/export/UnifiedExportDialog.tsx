@@ -367,7 +367,36 @@ export const UnifiedExportDialog: React.FC<UnifiedExportDialogProps> = ({
             </div>
           </div>
 
-          {/* Warning for low completion */}
+          {/* Company Logo Upload */}
+          <div className="space-y-3">
+            <div className="text-sm font-medium text-slate-700 dark:text-slate-300">Company Logo</div>
+            <div className="flex items-center gap-3">
+              {companyLogo ? (
+                <div className="flex items-center gap-3 flex-1 p-3 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg">
+                  <img src={companyLogo} alt="Logo" className="h-10 w-10 object-contain rounded" />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-emerald-700 dark:text-emerald-300 truncate">
+                      {logoFileName || "Logo uploaded"}
+                    </div>
+                    <div className="text-xs text-emerald-600 dark:text-emerald-400">
+                      Will appear on all pages
+                    </div>
+                  </div>
+                  <button onClick={removeLogo} className="p-1.5 text-emerald-600 hover:text-red-500 hover:bg-red-50 rounded transition-colors" title="Remove logo">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <label className="flex-1 flex items-center justify-center gap-2 p-4 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-lg cursor-pointer hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors">
+                  <input type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
+                  <FileText className="w-5 h-5 text-slate-400" />
+                  <span className="text-sm text-slate-500">Click to upload company logo</span>
+                </label>
+              )}
+            </div>
+          </div>
+
+          {/* Warning for low completion */}}
           {readinessData.percentage < 50 && (
             <div className="flex items-start gap-3 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
               <FileWarning className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />

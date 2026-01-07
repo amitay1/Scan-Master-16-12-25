@@ -156,6 +156,7 @@ export const CalibrationTab = ({
           minHoles={1}
           showPartNumber={true}
           showDeltaType={true}
+          standard={standard}
         />
       </div>
     </>

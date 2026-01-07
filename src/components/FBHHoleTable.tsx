@@ -14,13 +14,12 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2, Settings2 } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import {
   FBH_DIAMETER_OPTIONS,
   METAL_TRAVEL_OPTIONS,
   DISTANCE_B_OPTIONS,
   DELTA_TYPE_OPTIONS,
-  AVAILABLE_STANDARDS,
   inchFractionToMm,
   type FBHHoleRowData,
   type FBHDiameterOption,
@@ -35,6 +34,7 @@ interface FBHHoleTableProps {
   minHoles?: number;
   showPartNumber?: boolean;
   showDeltaType?: boolean;
+  standard?: string;
 }
 
 export function FBHHoleTable({
@@ -44,22 +44,22 @@ export function FBHHoleTable({
   minHoles = 1,
   showPartNumber = true,
   showDeltaType = true,
+  standard = "All",
 }: FBHHoleTableProps) {
-  const [selectedStandard, setSelectedStandard] = useState<string>("All");
   const [customInputs, setCustomInputs] = useState<Record<number, Record<string, boolean>>>({});
 
   // Filter options by selected standard
-  const filteredDiameters = selectedStandard === "All"
+  const filteredDiameters = standard === "All"
     ? FBH_DIAMETER_OPTIONS
-    : FBH_DIAMETER_OPTIONS.filter(opt => opt.standard.includes(selectedStandard));
+    : FBH_DIAMETER_OPTIONS.filter(opt => opt.standard.includes(standard));
 
-  const filteredMetalTravel = selectedStandard === "All"
+  const filteredMetalTravel = standard === "All"
     ? METAL_TRAVEL_OPTIONS
-    : METAL_TRAVEL_OPTIONS.filter(opt => opt.standard.includes(selectedStandard));
+    : METAL_TRAVEL_OPTIONS.filter(opt => opt.standard.includes(standard));
 
-  const filteredDistanceB = selectedStandard === "All"
+  const filteredDistanceB = standard === "All"
     ? DISTANCE_B_OPTIONS
-    : DISTANCE_B_OPTIONS.filter(opt => opt.standard.includes(selectedStandard));
+    : DISTANCE_B_OPTIONS.filter(opt => opt.standard.includes(standard));
 
   const updateHole = useCallback((id: number, field: keyof FBHHoleRowData, value: any) => {
     const newHoles = holes.map(hole => {
@@ -116,24 +116,6 @@ export function FBHHoleTable({
 
   return (
     <div className="space-y-4">
-      {/* Standard Filter */}
-      <div className="flex items-center gap-4 pb-2 border-b">
-        <div className="flex items-center gap-2">
-          <Settings2 className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm font-medium">Filter by Standard:</span>
-        </div>
-        <Select value={selectedStandard} onValueChange={setSelectedStandard}>
-          <SelectTrigger className="w-48">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {AVAILABLE_STANDARDS.map(std => (
-              <SelectItem key={std.id} value={std.id}>{std.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
       {/* Table */}
       <div className="overflow-x-auto">
         <table className="w-full border-collapse">
