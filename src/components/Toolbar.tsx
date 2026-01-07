@@ -72,60 +72,7 @@ export const Toolbar = ({
         <span className="hidden sm:inline">Export</span>
       </Button>
 
-      <Button variant="ghost" size="icon" onClick={onValidate} title="Validate" className="h-10 w-10 md:h-11 md:w-11">
-        <CheckCircle className="h-5 w-5 md:h-5 md:w-5" />
-      </Button>
-
       <Separator orientation="vertical" className="h-8 md:h-10 mx-1 md:mx-2" />
-
-      {/* Split Mode Toggle */}
-      {reportMode === "Technique" && onSplitModeChange && (
-        <>
-          <Button
-            variant={isSplitMode ? "secondary" : "ghost"}
-            size="sm"
-            onClick={() => onSplitModeChange(!isSplitMode)}
-            className="h-9 md:h-10 text-sm md:text-base font-semibold px-3"
-            title="Split to Part A & B"
-          >
-            <RefreshCw className="h-4 w-4 md:mr-2" />
-            {isSplitMode && <span className="hidden sm:inline">Part A+B</span>}
-          </Button>
-          
-          {isSplitMode && onActivePartChange && (
-            <>
-              <Button
-                variant={activePart === "A" ? "default" : "ghost"}
-                size="sm"
-                onClick={() => onActivePartChange("A")}
-                className="h-9 md:h-10 text-sm md:text-base font-semibold px-3"
-              >
-                A
-              </Button>
-              <Button
-                variant={activePart === "B" ? "default" : "ghost"}
-                size="sm"
-                onClick={() => onActivePartChange("B")}
-                className="h-9 md:h-10 text-sm md:text-base font-semibold px-3"
-              >
-                B
-              </Button>
-              {onCopyAToB && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={onCopyAToB}
-                  className="h-9 md:h-10 text-sm md:text-base font-semibold px-3"
-                  title="Copy Part A to Part B"
-                >
-                  A→B
-                </Button>
-              )}
-            </>
-          )}
-          <Separator orientation="vertical" className="h-8 md:h-10 mx-1 md:mx-2" />
-        </>
-      )}
 
       {/* Mode Selection - Compact on mobile */}
       <div className="flex gap-1 md:gap-2 bg-muted p-1 md:p-1.5 rounded-lg">

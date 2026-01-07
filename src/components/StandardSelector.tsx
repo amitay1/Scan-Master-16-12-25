@@ -1,6 +1,6 @@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { StandardType } from "@/types/techniqueSheet";
-import { Lock, Check, AlertCircle, Info, Shield, Globe, Wrench, Beaker, DollarSign } from "lucide-react";
+import { Lock, Check, AlertCircle, Info, ShieldCheck, Factory, Globe, FlaskConical, DollarSign } from "lucide-react";
 import { useStandardAccess } from "@/hooks/useStandardAccess";
 import { useLicense } from "@/contexts/LicenseContext";
 import { Button } from "@/components/ui/button";
@@ -22,7 +22,7 @@ const standards = [
     description: "Aerospace Materials Specification - Ultrasonic Inspection",
     stringency: "Most Stringent",
     badge: "Aerospace",
-    icon: Shield,
+    icon: ShieldCheck,
     color: "text-red-500",
     bgColor: "bg-red-50",
     borderColor: "border-red-200",

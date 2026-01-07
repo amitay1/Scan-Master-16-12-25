@@ -208,10 +208,10 @@ export const CalibrationTab = ({
             className="w-full"
           >
             <TabsList className="grid w-full grid-cols-2 mb-4">
-              <TabsTrigger value="straight" className="data-[state=active]:bg-blue-100">
+              <TabsTrigger value="straight" className="data-[state=active]:bg-blue-100 data-[state=active]:text-blue-900">
                 {BEAM_TYPE_LABELS.straight.short}
               </TabsTrigger>
-              <TabsTrigger value="angle" className="data-[state=active]:bg-orange-100">
+              <TabsTrigger value="angle" className="data-[state=active]:bg-orange-100 data-[state=active]:text-orange-900">
                 {BEAM_TYPE_LABELS.angle.short}
               </TabsTrigger>
             </TabsList>
