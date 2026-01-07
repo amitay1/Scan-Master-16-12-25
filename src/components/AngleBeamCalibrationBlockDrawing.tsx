@@ -99,7 +99,8 @@ export function AngleBeamCalibrationBlockDrawing({
 
       {/* Image Display Area */}
       <div
-        className="flex-1 flex items-center justify-center p-6 overflow-auto bg-gray-50"
+        className="flex-1 flex items-center justify-center p-6 overflow-auto bg-gray-50 angle-beam-image-capture"
+        data-testid="angle-beam-image-capture"
         style={{ 
           width: isFullscreen ? '100%' : width,
           minHeight: isFullscreen ? 'calc(100vh - 150px)' : height - 120 
@@ -112,7 +113,8 @@ export function AngleBeamCalibrationBlockDrawing({
           <img
             src={imageSrc}
             alt="Shear Wave Calibration Block - Technical Drawing with Cross Sections A-A, B-B, C-C"
-            className="max-w-full h-auto object-contain rounded-lg shadow-md"
+            className="max-w-full h-auto object-contain rounded-lg shadow-md angle-beam-calibration-image"
+            crossOrigin="anonymous"
             style={{ 
               maxHeight: isFullscreen ? '85vh' : height - 160,
               backgroundColor: 'white',

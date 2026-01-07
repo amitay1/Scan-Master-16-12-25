@@ -1253,10 +1253,10 @@ const Index = () => {
           }
 
           const angleBeamResult = await smartCapture([
-            '[data-testid="angle-beam-calibration-block"] img',  // Image inside container (primary)
-            '[data-testid="angle-beam-calibration-block"]',      // Container element
-            '.angle-beam-calibration-block img',                  // Class-based img selector
-            '.angle-beam-calibration-block',                      // Container fallback
+            '[data-testid="angle-beam-image-capture"]',
+            '.angle-beam-image-capture',
+            '.angle-beam-calibration-image',
+            '[data-testid="angle-beam-calibration-block"]',
           ], { scale: 3, quality: 1.0, backgroundColor: 'white', maxWidth: 1800, maxHeight: 1200 });
 
           console.log('[PDF Export] Angle beam capture result:', angleBeamResult.success, angleBeamResult.data?.length || 0);

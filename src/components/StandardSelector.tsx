@@ -262,36 +262,38 @@ export const StandardSelector = ({ value, onChange, showComparisonIndicator = fa
         )}
         
         {currentStandard && (
-          <div className={`p-2 rounded-lg ${currentStandard.bgColor} ${currentStandard.borderColor} border mt-4 w-full`}>
-            {/* Header Row with Icon and Badge only - compact */}
-            <div className="flex items-center justify-between gap-2 mb-2">
-              <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                <currentStandard.icon className={`h-3 w-3 ${currentStandard.color} shrink-0`} />
-                <span className={`text-[9px] font-semibold ${currentStandard.color} truncate block overflow-hidden`}>
+          <div className={`p-3 rounded-xl bg-gradient-to-br from-slate-800 to-slate-900 border-2 ${currentStandard.borderColor} mt-4 w-full shadow-lg`}>
+            {/* Header Row with Icon and Badge - more prominent */}
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <div className="flex items-center gap-2 min-w-0 flex-1">
+                <div className={`p-1.5 rounded-lg ${currentStandard.bgColor}`}>
+                  <currentStandard.icon className={`h-4 w-4 ${currentStandard.color}`} />
+                </div>
+                <span className="text-sm font-bold text-white truncate">
                   {currentStandard.value}
                 </span>
               </div>
-              <Badge variant="outline" className={`${currentStandard.borderColor} ${currentStandard.color} shrink-0 text-[8px] px-1 py-0 whitespace-nowrap leading-tight`}>
+              <Badge className={`${currentStandard.bgColor} ${currentStandard.color} font-semibold text-xs px-2 py-1 border-2 ${currentStandard.borderColor}`}>
                 {currentStandard.stringency}
               </Badge>
             </div>
             
-            {/* Description - hidden, too long */}
-            
-            {/* Feature Tags - Compact 2x2 Grid */}
-            <div className="grid grid-cols-2 gap-0.5">
+            {/* Feature Tags - 2x2 Grid with better visibility */}
+            <div className="grid grid-cols-2 gap-2">
               {currentStandard.features.slice(0, 4).map((feature, idx) => (
                 <Tooltip key={idx}>
                   <TooltipTrigger asChild>
-                    <Badge 
-                      variant="secondary" 
-                      className="text-[8px] px-1 py-0 text-center truncate leading-tight h-4"
-                    >
-                      {feature.split(' ')[0]}
-                    </Badge>
+                    <div className="bg-slate-700/80 rounded-lg p-2 border border-slate-600 hover:bg-slate-600/80 transition-colors cursor-help">
+                      <div className="text-white font-bold text-sm text-center">
+                        {feature.split(' ')[0]}
+                      </div>
+                      <div className="text-slate-300 text-[10px] text-center truncate">
+                        {feature.split(' ').slice(1).join(' ')}
+                      </div>
+                    </div>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p className="text-xs">{feature}</p>
+                    <p className="text-xs font-medium">{feature}</p>
                   </TooltipContent>
                 </Tooltip>
               ))}

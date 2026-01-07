@@ -75,9 +75,11 @@ const SCAN_DIRECTIONS_SELECTORS = [
 
 // Angle beam calibration block selectors
 const ANGLE_BEAM_SELECTORS = [
+  '[data-testid="angle-beam-image-capture"]',  // New - image capture container
+  '.angle-beam-image-capture',                  // New - class selector
+  '.angle-beam-calibration-image',              // New - direct image selector
   '[data-testid="angle-beam-calibration-block"]',
   '.angle-beam-calibration-block',
-  '.angle-beam-calibration-block img',
 ];
 
 // E2375 scan directions diagram selectors
