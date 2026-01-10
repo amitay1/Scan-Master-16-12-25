@@ -190,7 +190,7 @@ export function AngleBeamCalibrationBlockDrawing({
   title = 'Shear Wave Calibration Block - Reference Standard for Circular Parts',
   useParametric = true,
   partDimensions,
-  initialTemplateId = 'EN_10228_DAC_REF_BLOCK',
+  initialTemplateId = 'TUV_STYLE_REF_BLOCK',
   onBlockResolved,
 }: AngleBeamCalibrationBlockDrawingProps) {
   // State
