@@ -1,0 +1,1966 @@
+/**
+ * Professional Ring Segment Block Drawing Module - TUV-17 Quality
+ *
+ * Creates professional-grade technical drawings matching TUV-17 reference quality.
+ *
+ * Features:
+ * - Multi-view layout (Top View, Section A-A, Section B-B, Section C-E, Isometric)
+ * - ISO 128 compliant line standards
+ * - Ordinate dimensioning chains
+ * - Professional cross-hatching (45° ISO pattern)
+ * - Section cut indicators with proper ISO arrows
+ * - Hidden line representation for projected holes
+ * - Isometric 3D projection
+ */
+
+import paper from 'paper';
+
+// ============================================================================
+// TYPE DEFINITIONS
+// ============================================================================
+
+export interface BlockGeometry {
+  outerDiameterMm: number;
+  innerDiameterMm: number;
+  axialWidthMm: number;
+  segmentAngleDeg: number;
+}
+
+export interface HoleData {
+  label: string;
+  angleOnArcDeg: number;
+  axialPositionMm: number;
+  depthMm: number;
+  diameterMm: number;
+  reflectorType?: 'SDH' | 'FBH';
+}
+
+export interface DrawingConfig {
+  canvasWidth: number;
+  canvasHeight: number;
+  backgroundColor: string;
+  showDimensions: boolean;
+  showCenterlines: boolean;
+  showHatching: boolean;
+  showHiddenLines: boolean;
+  language: 'en' | 'fr' | 'he';
+}
+
+export interface ViewPort {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  scale: number;
+  label: string;
+}
+
+// ============================================================================
+// LINE STANDARDS (ISO 128-24:1999) - Professional Quality
+// ============================================================================
+
+const LINE_STYLES = {
+  // Type A - Visible outlines/edges (continuous thick) - 0.7mm
+  visible: {
+    strokeWidth: 1.0,
+    strokeColor: '#000000',
+    dashArray: null as number[] | null,
+  },
+  // Type A - Extra thick for main outlines
+  visibleThick: {
+    strokeWidth: 1.4,
+    strokeColor: '#000000',
+    dashArray: null as number[] | null,
+  },
+  // Type B - Hidden edges (dashed thin) - 0.35mm
+  hidden: {
+    strokeWidth: 0.5,
+    strokeColor: '#666666',
+    dashArray: [8, 3],
+  },
+  // Type G - Center lines (chain thin: long-short-long) - 0.35mm
+  center: {
+    strokeWidth: 0.4,
+    strokeColor: '#000000',
+    dashArray: [25, 4, 3, 4],
+  },
+  // Type B - Dimension/leader lines (continuous thin) - 0.25mm
+  dimension: {
+    strokeWidth: 0.35,
+    strokeColor: '#000000',
+    dashArray: null as number[] | null,
+  },
+  // Type H - Section cutting plane (chain thick) - 0.7mm
+  section: {
+    strokeWidth: 1.0,
+    strokeColor: '#000000',
+    dashArray: [25, 4, 3, 4],
+  },
+  // Section arrows
+  sectionArrow: {
+    strokeWidth: 0.7,
+    strokeColor: '#000000',
+    dashArray: null as number[] | null,
+  },
+  // Type J - Hatching lines (continuous extra-thin) - 0.18mm
+  hatching: {
+    strokeWidth: 0.25,
+    strokeColor: '#000000',
+    dashArray: null as number[] | null,
+  },
+  // Construction/reference lines (for hole annotations)
+  holeAnnotation: {
+    strokeWidth: 0.4,
+    strokeColor: '#CC0000',
+    dashArray: [4, 2],
+  },
+  // Phantom lines for motion/reference
+  phantom: {
+    strokeWidth: 0.35,
+    strokeColor: '#000000',
+    dashArray: [30, 4, 3, 4, 3, 4],
+  },
+};
+
+// Font settings for dimensions - Professional quality
+const FONT_SETTINGS = {
+  dimension: { size: 11, family: 'Arial', weight: 'normal' },
+  dimensionBold: { size: 11, family: 'Arial', weight: 'bold' },
+  label: { size: 13, family: 'Arial', weight: 'bold' },
+  holeLabel: { size: 12, family: 'Arial', weight: 'bold' },
+  title: { size: 14, family: 'Arial', weight: 'bold' },
+  sectionLabel: { size: 15, family: 'Arial', weight: 'bold' },
+  note: { size: 9, family: 'Arial', weight: 'normal' },
+};
+
+// Drawing constants for professional appearance
+const DRAWING_CONSTANTS = {
+  HATCHING_SPACING: 4, // mm between hatching lines (slightly wider for clarity)
+  HATCHING_ANGLE: 45, // degrees
+  DIMENSION_ARROW_SIZE: 8, // pixels
+  DIMENSION_TEXT_OFFSET: 12, // pixels from dimension line
+  SECTION_ARROW_SIZE: 12, // pixels for section cut arrows
+  SECTION_LABEL_OFFSET: 20, // pixels from section line
+  CENTERLINE_OVERHANG: 10, // pixels beyond outline
+  HOLE_LABEL_OFFSET: 15, // pixels from hole center
+};
+
+// ============================================================================
+// PROFESSIONAL DRAWING CLASS
+// ============================================================================
+
+export class ProfessionalRingSegmentDrawing {
+  private scope: paper.PaperScope;
+  private canvas: HTMLCanvasElement;
+  private config: DrawingConfig;
+  private geometry: BlockGeometry;
+  private holes: HoleData[];
+
+  // Calculated values
+  private wallThickness: number = 0;
+  private meanRadius: number = 0;
+  private outerRadius: number = 0;
+  private innerRadius: number = 0;
+
+  // View references for section cut positioning
+  private sectionAngles: { A: number; B: number; CE: number } = { A: 0, B: 0, CE: 0 };
+
+  constructor(
+    canvas: HTMLCanvasElement,
+    geometry: BlockGeometry,
+    holes: HoleData[],
+    config: Partial<DrawingConfig> = {}
+  ) {
+    this.canvas = canvas;
+    this.geometry = geometry;
+    this.holes = holes.sort((a, b) => a.angleOnArcDeg - b.angleOnArcDeg);
+    this.config = {
+      canvasWidth: config.canvasWidth || 1400,
+      canvasHeight: config.canvasHeight || 1000,
+      backgroundColor: config.backgroundColor || '#FFFFFF',
+      showDimensions: config.showDimensions ?? true,
+      showCenterlines: config.showCenterlines ?? true,
+      showHatching: config.showHatching ?? true,
+      showHiddenLines: config.showHiddenLines ?? true,
+      language: config.language || 'en',
+    };
+
+    // Initialize Paper.js with robust setup
+    this.scope = new paper.PaperScope();
+
+    // Ensure canvas has proper dimensions before setup
+    canvas.width = this.config.canvasWidth;
+    canvas.height = this.config.canvasHeight;
+
+    try {
+      // Setup Paper.js with the canvas
+      this.scope.setup(canvas);
+
+      // Activate this scope to ensure it's the current drawing context
+      this.scope.activate();
+
+      // Explicitly set view size to match canvas dimensions
+      if (this.scope.view) {
+        this.scope.view.viewSize = new paper.Size(
+          this.config.canvasWidth,
+          this.config.canvasHeight
+        );
+      } else {
+        console.error('Paper.js view not initialized properly');
+        throw new Error('Failed to initialize Paper.js view');
+      }
+    } catch (err) {
+      console.error('Error initializing Paper.js:', err);
+      throw new Error(`Failed to setup Paper.js: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    }
+
+    // Validate and calculate derived values
+    this.validateGeometry();
+    this.calculateDerivedValues();
+    this.calculateSectionAngles();
+  }
+
+  private validateGeometry(): void {
+    // Ensure geometry values are valid numbers
+    if (
+      !Number.isFinite(this.geometry.outerDiameterMm) ||
+      !Number.isFinite(this.geometry.innerDiameterMm) ||
+      !Number.isFinite(this.geometry.axialWidthMm) ||
+      !Number.isFinite(this.geometry.segmentAngleDeg)
+    ) {
+      throw new Error('Invalid geometry: all dimensions must be finite numbers');
+    }
+
+    // Ensure positive values
+    if (
+      this.geometry.outerDiameterMm <= 0 ||
+      this.geometry.innerDiameterMm <= 0 ||
+      this.geometry.axialWidthMm <= 0 ||
+      this.geometry.segmentAngleDeg <= 0
+    ) {
+      throw new Error('Invalid geometry: all dimensions must be positive');
+    }
+
+    // Ensure OD > ID
+    if (this.geometry.outerDiameterMm <= this.geometry.innerDiameterMm) {
+      throw new Error('Invalid geometry: outer diameter must be greater than inner diameter');
+    }
+  }
+
+  private calculateDerivedValues(): void {
+    this.outerRadius = this.geometry.outerDiameterMm / 2;
+    this.innerRadius = this.geometry.innerDiameterMm / 2;
+    this.wallThickness = this.outerRadius - this.innerRadius;
+    this.meanRadius = (this.outerRadius + this.innerRadius) / 2;
+  }
+
+  private calculateSectionAngles(): void {
+    // Calculate section angles based on hole positions (like TUV-17)
+    const startAngle = -this.geometry.segmentAngleDeg / 2;
+
+    if (this.holes.length >= 2) {
+      // Section A-A at first hole
+      this.sectionAngles.A = startAngle + this.holes[0].angleOnArcDeg;
+      // Section B-B at second hole
+      this.sectionAngles.B = startAngle + this.holes[1].angleOnArcDeg;
+      // Section C-E at middle of arc
+      this.sectionAngles.CE = startAngle + this.geometry.segmentAngleDeg / 2;
+    } else {
+      // Default positions if not enough holes
+      this.sectionAngles.A = startAngle + this.geometry.segmentAngleDeg * 0.2;
+      this.sectionAngles.B = startAngle + this.geometry.segmentAngleDeg * 0.4;
+      this.sectionAngles.CE = startAngle + this.geometry.segmentAngleDeg * 0.5;
+    }
+  }
+
+  // ============================================================================
+  // MAIN DRAWING METHOD
+  // ============================================================================
+
+  public draw(): void {
+    try {
+      // Ensure this scope is active
+      this.scope.activate();
+
+      // Clear any previous content
+      this.scope.project.clear();
+
+      // Set background
+      const background = new this.scope.Path.Rectangle(
+        new this.scope.Rectangle(0, 0, this.config.canvasWidth, this.config.canvasHeight)
+      );
+      background.fillColor = new this.scope.Color(this.config.backgroundColor);
+
+      // Calculate viewport layout (matching TUV-17)
+      const viewports = this.calculateTUV17Layout();
+
+      // Draw each view in correct order
+      this.drawTopView(viewports.topView);
+      this.drawSectionAA(viewports.sectionAA);
+      this.drawSectionBB(viewports.sectionBB);
+      this.drawSectionCE(viewports.sectionCE);
+      this.drawIsometricView(viewports.isometric);
+
+      // Draw title block and border
+      this.drawTitleBlock();
+      this.drawBorderFrame();
+
+      // Add drawing notes
+      this.drawDrawingNotes(viewports);
+
+      // Force view update and redraw
+      if (this.scope.view) {
+        this.scope.view.update();
+      }
+    } catch (error) {
+      console.error('Error in ProfessionalRingSegmentDrawing.draw():', error);
+      throw error;
+    }
+  }
+
+  // ============================================================================
+  // TUV-17 STYLE LAYOUT
+  // ============================================================================
+
+  private calculateTUV17Layout(): {
+    topView: ViewPort;
+    sectionAA: ViewPort;
+    sectionBB: ViewPort;
+    sectionCE: ViewPort;
+    isometric: ViewPort;
+  } {
+    const margin = 30;
+    const w = this.config.canvasWidth;
+    const h = this.config.canvasHeight;
+
+    // TUV-17 Layout:
+    // ┌─────────────────────────────────────────────────┐
+    // │  Section A-A    │        TOP VIEW               │
+    // │  (small)        │        (large, main view)     │
+    // ├─────────────────┤                               │
+    // │  Section B-B    │                               │
+    // │  (small)        │                               │
+    // ├────────┬────────┼───────────────────────────────┤
+    // │ Note   │ C-E    │     ISOMETRIC                 │
+    // └────────┴────────┴───────────────────────────────┘
+
+    const leftColWidth = w * 0.20;
+    const topViewWidth = w * 0.55;
+    const isoWidth = w * 0.25;
+    const sectionHeight = h * 0.30;
+
+    return {
+      sectionAA: {
+        x: margin,
+        y: margin,
+        width: leftColWidth - margin,
+        height: sectionHeight,
+        scale: this.calculateSectionScale(leftColWidth - margin * 2, sectionHeight - 40),
+        label: 'A - A',
+      },
+      sectionBB: {
+        x: margin,
+        y: margin + sectionHeight + 20,
+        width: leftColWidth - margin,
+        height: sectionHeight,
+        scale: this.calculateSectionScale(leftColWidth - margin * 2, sectionHeight - 40),
+        label: 'B - B',
+      },
+      sectionCE: {
+        x: margin,
+        y: margin + sectionHeight * 2 + 50,
+        width: leftColWidth - margin,
+        height: h * 0.25,
+        scale: this.calculateSectionScale(leftColWidth - margin * 2, h * 0.2),
+        label: 'C - E',
+      },
+      topView: {
+        x: leftColWidth + margin,
+        y: margin,
+        width: topViewWidth,
+        height: h * 0.65,
+        scale: this.calculateTopViewScale(topViewWidth - margin, h * 0.6),
+        label: '',
+      },
+      isometric: {
+        x: leftColWidth + topViewWidth + margin,
+        y: h * 0.5,
+        width: isoWidth - margin * 2,
+        height: h * 0.45,
+        scale: this.calculateIsometricScale(isoWidth - margin * 3, h * 0.4),
+        label: '',
+      },
+    };
+  }
+
+  private calculateTopViewScale(width: number, height: number): number {
+    const maxDim = Math.max(
+      this.geometry.outerDiameterMm * 1.4,
+      this.geometry.axialWidthMm * 2
+    );
+    return Math.min(width / maxDim, height / maxDim) * 0.75;
+  }
+
+  private calculateSectionScale(width: number, height: number): number {
+    const sectionWidth = this.wallThickness * 2;
+    const sectionHeight = this.geometry.axialWidthMm * 1.5;
+    return Math.min(width / sectionWidth, height / sectionHeight) * 0.6;
+  }
+
+  private calculateIsometricScale(width: number, height: number): number {
+    const maxDim = this.geometry.outerDiameterMm * 1.3;
+    return Math.min(width / maxDim, height / maxDim) * 0.5;
+  }
+
+  // ============================================================================
+  // TOP VIEW (Main Arc Segment View with all dimensions like TUV-17)
+  // ============================================================================
+
+  private drawTopView(vp: ViewPort): void {
+    const cx = vp.x + vp.width * 0.45;
+    const cy = vp.y + vp.height * 0.55;
+    const scale = vp.scale;
+
+    const outerR = this.outerRadius * scale;
+    const innerR = this.innerRadius * scale;
+    const meanR = this.meanRadius * scale;
+    const startAngle = -this.geometry.segmentAngleDeg / 2;
+    const endAngle = this.geometry.segmentAngleDeg / 2;
+
+    // 1. Draw arc segment outline (thick visible lines)
+    this.drawArcSegmentOutline(cx, cy, innerR, outerR, startAngle, endAngle);
+
+    // 2. Draw center lines
+    if (this.config.showCenterlines) {
+      this.drawTopViewCenterlines(cx, cy, innerR, outerR, startAngle, endAngle);
+    }
+
+    // 3. Draw hidden lines (hole projections through the block)
+    if (this.config.showHiddenLines) {
+      this.drawHiddenHoleProjections(cx, cy, scale, startAngle);
+    }
+
+    // 4. Draw section cut lines (A-A, B-B, C-E)
+    this.drawAllSectionCutLines(cx, cy, innerR, outerR, startAngle);
+
+    // 5. Draw holes on arc (as circles with labels)
+    this.drawHolesOnTopView(cx, cy, scale, startAngle);
+
+    // 6. Draw comprehensive dimensions (TUV-17 style)
+    if (this.config.showDimensions) {
+      this.drawTopViewDimensionsTUV17(cx, cy, scale, outerR, innerR, meanR, startAngle, endAngle);
+    }
+  }
+
+  private drawArcSegmentOutline(
+    cx: number,
+    cy: number,
+    innerR: number,
+    outerR: number,
+    startAngle: number,
+    endAngle: number
+  ): void {
+    // Use thicker line for main outlines (like in TUV-17)
+    const style = LINE_STYLES.visibleThick;
+
+    // Outer arc (main outline - thick)
+    const outerArc = this.createArc(cx, cy, outerR, startAngle, endAngle);
+    this.applyStyle(outerArc, style);
+
+    // Inner arc (main outline - thick)
+    const innerArc = this.createArc(cx, cy, innerR, startAngle, endAngle);
+    this.applyStyle(innerArc, style);
+
+    // Start edge (radial line from outer to inner at start angle - thick)
+    const startOuter = this.polarToCartesian(cx, cy, outerR, startAngle);
+    const startInner = this.polarToCartesian(cx, cy, innerR, startAngle);
+    const startEdge = new this.scope.Path.Line(
+      new this.scope.Point(startOuter.x, startOuter.y),
+      new this.scope.Point(startInner.x, startInner.y)
+    );
+    this.applyStyle(startEdge, style);
+
+    // End edge (thick)
+    const endOuter = this.polarToCartesian(cx, cy, outerR, endAngle);
+    const endInner = this.polarToCartesian(cx, cy, innerR, endAngle);
+    const endEdge = new this.scope.Path.Line(
+      new this.scope.Point(endOuter.x, endOuter.y),
+      new this.scope.Point(endInner.x, endInner.y)
+    );
+    this.applyStyle(endEdge, style);
+  }
+
+  private drawTopViewCenterlines(
+    cx: number,
+    cy: number,
+    innerR: number,
+    outerR: number,
+    startAngle: number,
+    endAngle: number
+  ): void {
+    const style = LINE_STYLES.center;
+    const extend = 40;
+
+    // Radial centerlines at key angles
+    const angles = [startAngle, endAngle, 0]; // Start, end, and mid-point
+
+    for (const angle of angles) {
+      const outerPt = this.polarToCartesian(cx, cy, outerR + extend, angle);
+      const centerLine = new this.scope.Path.Line(
+        new this.scope.Point(cx, cy),
+        new this.scope.Point(outerPt.x, outerPt.y)
+      );
+      this.applyStyle(centerLine, style);
+    }
+
+    // Arc centerline at mean radius
+    const meanR = (innerR + outerR) / 2;
+    const meanArc = this.createArc(cx, cy, meanR, startAngle - 5, endAngle + 5);
+    this.applyStyle(meanArc, style);
+  }
+
+  private drawHiddenHoleProjections(
+    cx: number,
+    cy: number,
+    scale: number,
+    startAngle: number
+  ): void {
+    const style = LINE_STYLES.hidden;
+
+    for (const hole of this.holes) {
+      const angle = startAngle + hole.angleOnArcDeg;
+
+      // Draw hidden line from outer surface through hole to inner surface
+      const outerPt = this.polarToCartesian(cx, cy, this.outerRadius * scale, angle);
+      const holeEndPt = this.polarToCartesian(
+        cx,
+        cy,
+        (this.outerRadius - hole.depthMm) * scale,
+        angle
+      );
+
+      // Dashed line showing hole projection
+      const projectionLine = new this.scope.Path.Line(
+        new this.scope.Point(outerPt.x, outerPt.y),
+        new this.scope.Point(holeEndPt.x, holeEndPt.y)
+      );
+      this.applyStyle(projectionLine, style);
+    }
+  }
+
+  private drawAllSectionCutLines(
+    cx: number,
+    cy: number,
+    innerR: number,
+    outerR: number,
+    startAngle: number
+  ): void {
+    // Section A-A
+    this.drawSectionCutLineISO(cx, cy, innerR, outerR, this.sectionAngles.A, 'A', 'A');
+
+    // Section B-B
+    this.drawSectionCutLineISO(cx, cy, innerR, outerR, this.sectionAngles.B, 'B', 'B');
+
+    // Section C-E (if within arc range)
+    if (this.holes.length >= 3) {
+      const ceAngle = startAngle + this.holes[Math.floor(this.holes.length / 2)].angleOnArcDeg;
+      this.drawSectionCutLineISO(cx, cy, innerR, outerR, ceAngle, 'C', 'E');
+    }
+  }
+
+  private drawSectionCutLineISO(
+    cx: number,
+    cy: number,
+    innerR: number,
+    outerR: number,
+    angle: number,
+    labelStart: string,
+    labelEnd: string
+  ): void {
+    const style = LINE_STYLES.section;
+    const extend = 50;
+
+    // Calculate cut line endpoints
+    const innerPt = this.polarToCartesian(cx, cy, innerR - extend, angle);
+    const outerPt = this.polarToCartesian(cx, cy, outerR + extend, angle);
+
+    // Draw the section cut line
+    const cutLine = new this.scope.Path.Line(
+      new this.scope.Point(innerPt.x, innerPt.y),
+      new this.scope.Point(outerPt.x, outerPt.y)
+    );
+    this.applyStyle(cutLine, style);
+
+    // Draw ISO-style section arrows (perpendicular to cut line, pointing toward view direction)
+    this.drawISOSectionArrow(innerPt.x, innerPt.y, angle - 90, labelStart);
+    this.drawISOSectionArrow(outerPt.x, outerPt.y, angle + 90, labelEnd);
+  }
+
+  private drawISOSectionArrow(
+    x: number,
+    y: number,
+    directionAngle: number,
+    label: string
+  ): void {
+    // ISO 128-40 compliant section arrow
+    const arrowLength = 18;
+    const arrowHeadLength = 10;
+    const arrowHeadWidth = 5;
+    const rad = (directionAngle - 90) * Math.PI / 180;
+
+    // Arrow shaft
+    const shaftEndX = x + arrowLength * Math.cos(rad);
+    const shaftEndY = y + arrowLength * Math.sin(rad);
+
+    const shaft = new this.scope.Path.Line(
+      new this.scope.Point(x, y),
+      new this.scope.Point(shaftEndX, shaftEndY)
+    );
+    this.applyStyle(shaft, LINE_STYLES.visible);
+
+    // Arrow head (filled triangle)
+    const headTipX = shaftEndX + arrowHeadLength * Math.cos(rad);
+    const headTipY = shaftEndY + arrowHeadLength * Math.sin(rad);
+
+    const arrow = new this.scope.Path();
+    arrow.add(new this.scope.Point(headTipX, headTipY));
+    arrow.add(new this.scope.Point(
+      shaftEndX + arrowHeadWidth * Math.cos(rad + Math.PI / 2),
+      shaftEndY + arrowHeadWidth * Math.sin(rad + Math.PI / 2)
+    ));
+    arrow.add(new this.scope.Point(
+      shaftEndX + arrowHeadWidth * Math.cos(rad - Math.PI / 2),
+      shaftEndY + arrowHeadWidth * Math.sin(rad - Math.PI / 2)
+    ));
+    arrow.closed = true;
+    arrow.fillColor = new this.scope.Color('#000000');
+
+    // Label (circled letter)
+    const labelX = headTipX + 15 * Math.cos(rad);
+    const labelY = headTipY + 15 * Math.sin(rad);
+
+    // Circle around label
+    const labelCircle = new this.scope.Path.Circle(
+      new this.scope.Point(labelX, labelY),
+      10
+    );
+    labelCircle.strokeColor = new this.scope.Color('#000000');
+    labelCircle.strokeWidth = LINE_STYLES.dimension.strokeWidth;
+    labelCircle.fillColor = new this.scope.Color('#FFFFFF');
+
+    // Label text
+    const text = new this.scope.PointText(new this.scope.Point(labelX, labelY + 3));
+    text.content = label;
+    text.fontSize = FONT_SETTINGS.label.size;
+    text.fontWeight = FONT_SETTINGS.label.weight;
+    text.fontFamily = FONT_SETTINGS.label.family;
+    text.fillColor = new this.scope.Color('#000000');
+    text.justification = 'center';
+  }
+
+  private drawHolesOnTopView(
+    cx: number,
+    cy: number,
+    scale: number,
+    startAngle: number
+  ): void {
+    for (const hole of this.holes) {
+      const angle = startAngle + hole.angleOnArcDeg;
+
+      // Hole position at mid-depth on outer surface
+      const holeRadius = this.outerRadius * scale;
+      const pos = this.polarToCartesian(cx, cy, holeRadius, angle);
+
+      // Draw hole circle (visible from top)
+      const holeSize = Math.max((hole.diameterMm / 2) * scale, 4);
+      const circle = new this.scope.Path.Circle(
+        new this.scope.Point(pos.x, pos.y),
+        holeSize
+      );
+      circle.strokeColor = new this.scope.Color('#000000');
+      circle.strokeWidth = LINE_STYLES.visible.strokeWidth;
+      circle.fillColor = new this.scope.Color('#FFFFFF');
+
+      // Cross in hole center (drilling symbol)
+      const crossSize = holeSize * 0.5;
+      const cross1 = new this.scope.Path.Line(
+        new this.scope.Point(pos.x - crossSize, pos.y),
+        new this.scope.Point(pos.x + crossSize, pos.y)
+      );
+      cross1.strokeColor = new this.scope.Color('#000000');
+      cross1.strokeWidth = LINE_STYLES.dimension.strokeWidth;
+
+      const cross2 = new this.scope.Path.Line(
+        new this.scope.Point(pos.x, pos.y - crossSize),
+        new this.scope.Point(pos.x, pos.y + crossSize)
+      );
+      cross2.strokeColor = new this.scope.Color('#000000');
+      cross2.strokeWidth = LINE_STYLES.dimension.strokeWidth;
+
+      // Hole label with balloon (red, like TUV-17)
+      const labelRadius = holeRadius + 35;
+      const labelPos = this.polarToCartesian(cx, cy, labelRadius, angle);
+
+      // Balloon circle
+      const balloon = new this.scope.Path.Circle(
+        new this.scope.Point(labelPos.x, labelPos.y),
+        8
+      );
+      balloon.strokeColor = new this.scope.Color('#CC0000');
+      balloon.strokeWidth = 0.5;
+      balloon.fillColor = new this.scope.Color('#FFFFFF');
+
+      // Label text
+      const label = new this.scope.PointText(new this.scope.Point(labelPos.x, labelPos.y + 3));
+      label.content = hole.label;
+      label.fontSize = FONT_SETTINGS.holeLabel.size;
+      label.fontWeight = FONT_SETTINGS.holeLabel.weight;
+      label.fontFamily = FONT_SETTINGS.holeLabel.family;
+      label.fillColor = new this.scope.Color('#CC0000');
+      label.justification = 'center';
+
+      // Leader line from balloon to hole
+      const leader = new this.scope.Path.Line(
+        new this.scope.Point(pos.x, pos.y),
+        new this.scope.Point(labelPos.x, labelPos.y)
+      );
+      this.applyStyle(leader, LINE_STYLES.holeAnnotation);
+    }
+  }
+
+  private drawTopViewDimensionsTUV17(
+    cx: number,
+    cy: number,
+    scale: number,
+    outerR: number,
+    innerR: number,
+    meanR: number,
+    startAngle: number,
+    endAngle: number
+  ): void {
+    // 1. Outer diameter dimension
+    this.drawRadiusDimensionLeader(
+      cx,
+      cy,
+      outerR,
+      endAngle - 15,
+      `Ø${this.geometry.outerDiameterMm}`,
+      60
+    );
+
+    // 2. Inner diameter dimension
+    this.drawRadiusDimensionLeader(
+      cx,
+      cy,
+      innerR,
+      startAngle + 15,
+      `Ø${this.geometry.innerDiameterMm}`,
+      -40
+    );
+
+    // 3. Segment angle dimension (arc with arrows)
+    this.drawAngleDimensionArc(cx, cy, outerR + 70, startAngle, endAngle, `${this.geometry.segmentAngleDeg}°`);
+
+    // 4. Wall thickness dimension
+    const midAngle = 0;
+    const outerPt = this.polarToCartesian(cx, cy, outerR, midAngle);
+    const innerPt = this.polarToCartesian(cx, cy, innerR, midAngle);
+    this.drawLinearDimensionWithArrows(
+      outerPt.x,
+      outerPt.y,
+      innerPt.x,
+      innerPt.y,
+      `${this.wallThickness.toFixed(1)}`,
+      25,
+      'perpendicular'
+    );
+
+    // 5. Angular positions for each hole (ordinate style)
+    for (let i = 0; i < this.holes.length; i++) {
+      const hole = this.holes[i];
+      const angle = startAngle + hole.angleOnArcDeg;
+
+      // Angle from start
+      if (i === 0) {
+        this.drawAngularDimension(
+          cx,
+          cy,
+          outerR + 40,
+          startAngle,
+          angle,
+          `${hole.angleOnArcDeg.toFixed(0)}°`
+        );
+      } else {
+        // Cumulative angle
+        this.drawAngularDimension(
+          cx,
+          cy,
+          outerR + 40 + i * 15,
+          startAngle,
+          angle,
+          `${hole.angleOnArcDeg.toFixed(0)}°`
+        );
+      }
+    }
+
+    // 6. Radial depth dimensions for holes
+    for (const hole of this.holes) {
+      const angle = startAngle + hole.angleOnArcDeg;
+      const outerPt = this.polarToCartesian(cx, cy, outerR, angle);
+      const depthPt = this.polarToCartesian(cx, cy, (this.outerRadius - hole.depthMm) * scale, angle);
+
+      // Small dimension showing hole depth
+      this.drawSmallRadialDimension(
+        outerPt.x,
+        outerPt.y,
+        depthPt.x,
+        depthPt.y,
+        `${hole.depthMm}`,
+        angle
+      );
+    }
+  }
+
+  // ============================================================================
+  // SECTION VIEWS (A-A, B-B, C-E)
+  // ============================================================================
+
+  private drawSectionAA(vp: ViewPort): void {
+    // Section A-A shows the first hole position
+    const holesInSection = this.holes.filter((h) => {
+      const holeAngle = -this.geometry.segmentAngleDeg / 2 + h.angleOnArcDeg;
+      return Math.abs(holeAngle - this.sectionAngles.A) < 10;
+    });
+
+    if (holesInSection.length === 0 && this.holes.length > 0) {
+      holesInSection.push(this.holes[0]);
+    }
+
+    this.drawDetailedSectionView(vp, holesInSection, 'A - A');
+  }
+
+  private drawSectionBB(vp: ViewPort): void {
+    // Section B-B shows the second hole position
+    const holesInSection = this.holes.filter((h) => {
+      const holeAngle = -this.geometry.segmentAngleDeg / 2 + h.angleOnArcDeg;
+      return Math.abs(holeAngle - this.sectionAngles.B) < 10;
+    });
+
+    if (holesInSection.length === 0 && this.holes.length > 1) {
+      holesInSection.push(this.holes[1]);
+    }
+
+    this.drawDetailedSectionView(vp, holesInSection, 'B - B');
+  }
+
+  private drawSectionCE(vp: ViewPort): void {
+    // Section C-E - middle holes or general section
+    const middleHoles =
+      this.holes.length > 2
+        ? this.holes.slice(Math.floor(this.holes.length / 2) - 1, Math.floor(this.holes.length / 2) + 1)
+        : this.holes;
+
+    this.drawDetailedSectionView(vp, middleHoles, 'C - E');
+  }
+
+  private drawDetailedSectionView(vp: ViewPort, holes: HoleData[], label: string): void {
+    const scale = vp.scale;
+    const sectionWidth = this.wallThickness * scale;
+    const sectionHeight = this.geometry.axialWidthMm * scale;
+
+    // Center the section in viewport
+    const rectX = vp.x + (vp.width - sectionWidth) / 2;
+    const rectY = vp.y + 40 + (vp.height - 40 - sectionHeight) / 2;
+
+    // Draw section label with professional styling (like TUV-17)
+    const labelText = new this.scope.PointText(
+      new this.scope.Point(vp.x + vp.width / 2, vp.y + 20)
+    );
+    labelText.content = label;
+    labelText.fontSize = FONT_SETTINGS.sectionLabel.size;
+    labelText.fontWeight = FONT_SETTINGS.sectionLabel.weight;
+    labelText.fontFamily = FONT_SETTINGS.sectionLabel.family;
+    labelText.fillColor = new this.scope.Color('#000000');
+    labelText.justification = 'center';
+    
+    // Add underline to section label (professional touch like TUV-17)
+    const underlineY = vp.y + 25;
+    const underlineLine = new this.scope.Path.Line(
+      new this.scope.Point(vp.x + vp.width / 2 - 40, underlineY),
+      new this.scope.Point(vp.x + vp.width / 2 + 40, underlineY)
+    );
+    underlineLine.strokeColor = new this.scope.Color('#000000');
+    underlineLine.strokeWidth = 0.7;
+
+    // Draw section outline (thick visible line for main outline)
+    const outline = new this.scope.Path.Rectangle(
+      new this.scope.Rectangle(rectX, rectY, sectionWidth, sectionHeight)
+    );
+    this.applyStyle(outline, LINE_STYLES.visibleThick);
+
+    // Draw cross-hatching (45° at optimized spacing for clarity)
+    if (this.config.showHatching) {
+      this.drawPreciseCrossHatching(
+        rectX, 
+        rectY, 
+        sectionWidth, 
+        sectionHeight, 
+        DRAWING_CONSTANTS.HATCHING_ANGLE, 
+        DRAWING_CONSTANTS.HATCHING_SPACING * scale
+      );
+    }
+
+    // Draw holes in section (as circles punched through hatching)
+    for (const hole of holes) {
+      // Hole Y position (axial)
+      const holeY = rectY + hole.axialPositionMm * scale;
+
+      // Hole X position (depth from outer surface - outer is on the RIGHT in section view)
+      const holeX = rectX + sectionWidth - hole.depthMm * scale;
+
+      // Hole radius
+      const holeRadius = (hole.diameterMm / 2) * scale;
+
+      // White circle to clear hatching
+      const holeBg = new this.scope.Path.Circle(
+        new this.scope.Point(holeX, holeY),
+        Math.max(holeRadius + 1, 3)
+      );
+      holeBg.fillColor = new this.scope.Color('#FFFFFF');
+
+      // Hole outline (red like TUV-17)
+      const holeCircle = new this.scope.Path.Circle(
+        new this.scope.Point(holeX, holeY),
+        Math.max(holeRadius, 2)
+      );
+      holeCircle.strokeColor = new this.scope.Color('#CC0000');
+      holeCircle.strokeWidth = LINE_STYLES.visible.strokeWidth;
+      holeCircle.fillColor = new this.scope.Color('#FFEEEE');
+
+      // Hole label
+      const holeLabel = new this.scope.PointText(
+        new this.scope.Point(holeX, holeY - holeRadius - 8)
+      );
+      holeLabel.content = hole.label;
+      holeLabel.fontSize = FONT_SETTINGS.holeLabel.size - 1;
+      holeLabel.fontWeight = FONT_SETTINGS.holeLabel.weight;
+      holeLabel.fillColor = new this.scope.Color('#CC0000');
+      holeLabel.justification = 'center';
+
+      // Draw hole depth dimension
+      if (this.config.showDimensions) {
+        this.drawHoleDepthDimension(
+          rectX + sectionWidth,
+          holeY,
+          holeX,
+          holeY,
+          hole.depthMm
+        );
+      }
+    }
+
+    // Draw dimensions
+    if (this.config.showDimensions) {
+      // Wall thickness (horizontal, bottom)
+      this.drawLinearDimensionWithArrows(
+        rectX,
+        rectY + sectionHeight + 25,
+        rectX + sectionWidth,
+        rectY + sectionHeight + 25,
+        `${this.wallThickness.toFixed(1)}`,
+        0,
+        'horizontal'
+      );
+
+      // Axial width (vertical, left side)
+      this.drawLinearDimensionWithArrows(
+        rectX - 25,
+        rectY,
+        rectX - 25,
+        rectY + sectionHeight,
+        `${this.geometry.axialWidthMm}`,
+        0,
+        'vertical'
+      );
+
+      // Ordinate dimensions for hole axial positions
+      this.drawOrdinateAxialDimensions(rectX, rectY, sectionHeight, scale, holes);
+    }
+
+    // Draw centerline
+    if (this.config.showCenterlines) {
+      const centerY = rectY + sectionHeight / 2;
+      const centerLine = new this.scope.Path.Line(
+        new this.scope.Point(rectX - 15, centerY),
+        new this.scope.Point(rectX + sectionWidth + 15, centerY)
+      );
+      this.applyStyle(centerLine, LINE_STYLES.center);
+    }
+  }
+
+  private drawPreciseCrossHatching(
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    angle: number = 45,
+    spacing: number = 4
+  ): void {
+    const style = LINE_STYLES.hatching;
+    const angleRad = angle * Math.PI / 180;
+
+    // Create clipping path
+    const clipRect = new this.scope.Path.Rectangle(
+      new this.scope.Rectangle(x, y, width, height)
+    );
+    clipRect.clipMask = true;
+
+    const group = new this.scope.Group([clipRect]);
+
+    // Calculate hatching lines
+    const diagonal = Math.sqrt(width * width + height * height);
+    const numLines = Math.ceil(diagonal / spacing) * 2 + 10;
+
+    for (let i = -numLines; i <= numLines; i++) {
+      const offset = i * spacing;
+
+      // Line perpendicular offset
+      const centerX = x + width / 2;
+      const centerY = y + height / 2;
+
+      const lineStartX = centerX + offset * Math.cos(angleRad + Math.PI / 2) - diagonal * Math.cos(angleRad);
+      const lineStartY = centerY + offset * Math.sin(angleRad + Math.PI / 2) - diagonal * Math.sin(angleRad);
+      const lineEndX = centerX + offset * Math.cos(angleRad + Math.PI / 2) + diagonal * Math.cos(angleRad);
+      const lineEndY = centerY + offset * Math.sin(angleRad + Math.PI / 2) + diagonal * Math.sin(angleRad);
+
+      const line = new this.scope.Path.Line(
+        new this.scope.Point(lineStartX, lineStartY),
+        new this.scope.Point(lineEndX, lineEndY)
+      );
+      this.applyStyle(line, style);
+      group.addChild(line);
+    }
+
+    group.clipped = true;
+  }
+
+  private drawOrdinateAxialDimensions(
+    rectX: number,
+    rectY: number,
+    sectionHeight: number,
+    scale: number,
+    holes: HoleData[]
+  ): void {
+    // Draw ordinate dimension chain for axial positions
+    const dimX = rectX - 45;
+
+    // Baseline at bottom
+    const baseLine = new this.scope.Path.Line(
+      new this.scope.Point(dimX - 5, rectY + sectionHeight),
+      new this.scope.Point(dimX + 5, rectY + sectionHeight)
+    );
+    this.applyStyle(baseLine, LINE_STYLES.dimension);
+
+    // Zero label
+    const zeroLabel = new this.scope.PointText(
+      new this.scope.Point(dimX, rectY + sectionHeight + 10)
+    );
+    zeroLabel.content = '0';
+    zeroLabel.fontSize = FONT_SETTINGS.dimension.size;
+    zeroLabel.fillColor = new this.scope.Color('#000000');
+    zeroLabel.justification = 'center';
+
+    // Dimension for each hole
+    for (const hole of holes) {
+      const holeY = rectY + hole.axialPositionMm * scale;
+
+      // Extension line
+      const extLine = new this.scope.Path.Line(
+        new this.scope.Point(rectX - 5, holeY),
+        new this.scope.Point(dimX + 5, holeY)
+      );
+      this.applyStyle(extLine, LINE_STYLES.dimension);
+
+      // Tick mark
+      const tick = new this.scope.Path.Line(
+        new this.scope.Point(dimX - 3, holeY),
+        new this.scope.Point(dimX + 3, holeY)
+      );
+      this.applyStyle(tick, LINE_STYLES.dimension);
+
+      // Dimension value
+      const dimLabel = new this.scope.PointText(
+        new this.scope.Point(dimX - 12, holeY + 3)
+      );
+      dimLabel.content = hole.axialPositionMm.toFixed(0);
+      dimLabel.fontSize = FONT_SETTINGS.dimension.size;
+      dimLabel.fillColor = new this.scope.Color('#000000');
+      dimLabel.justification = 'right';
+    }
+  }
+
+  // ============================================================================
+  // ISOMETRIC VIEW
+  // ============================================================================
+
+  private drawIsometricView(vp: ViewPort): void {
+    const scale = vp.scale * 0.8; // Scale down a bit for better fit
+    const cx = vp.x + vp.width / 2;
+    const cy = vp.y + vp.height / 2 + 20; // Move down slightly
+
+    // Isometric projection angles (30° from horizontal)
+    const isoAngleX = 30 * Math.PI / 180;
+    const isoAngleY = 150 * Math.PI / 180;
+
+    // Transform function for isometric projection
+    const toIso = (x: number, y: number, z: number): { x: number; y: number } => {
+      return {
+        x: cx + (x * Math.cos(isoAngleX) + y * Math.cos(isoAngleY)) * scale * 0.85,
+        y: cy - (x * Math.sin(isoAngleX) + y * Math.sin(isoAngleY)) * scale * 0.85 - z * scale * 0.85,
+      };
+    };
+
+    // Draw simple isometric arc segment (clean lines, no hatching)
+    this.drawSimpleIsometricBlock(toIso, scale);
+
+    // Draw holes as simple circles
+    this.drawSimpleIsometricHoles(toIso, scale);
+
+    // Label with professional styling
+    const label = new this.scope.PointText(
+      new this.scope.Point(vp.x + vp.width / 2, vp.y + vp.height - 10)
+    );
+    label.content = 'ISOMETRIC VIEW';
+    label.fontSize = FONT_SETTINGS.label.size;
+    label.fontWeight = FONT_SETTINGS.label.weight;
+    label.fillColor = new this.scope.Color('#000000');
+    label.justification = 'center';
+  }
+
+  private drawSimpleIsometricBlock(
+    toIso: (x: number, y: number, z: number) => { x: number; y: number },
+    scale: number
+  ): void {
+    const startAngle = -this.geometry.segmentAngleDeg / 2;
+    const endAngle = this.geometry.segmentAngleDeg / 2;
+    const numPoints = 30;
+    const axialWidth = this.geometry.axialWidthMm;
+    const style = LINE_STYLES.visible; // Use regular visible lines, not thick
+
+    // Draw top surface arcs (z = 0)
+    const topOuterPath = new this.scope.Path();
+    for (let i = 0; i <= numPoints; i++) {
+      const angle = startAngle + (endAngle - startAngle) * (i / numPoints);
+      const rad = angle * Math.PI / 180;
+      const x = this.outerRadius * Math.cos(rad);
+      const y = this.outerRadius * Math.sin(rad);
+      const pt = toIso(x, y, 0);
+      topOuterPath.add(new this.scope.Point(pt.x, pt.y));
+    }
+    this.applyStyle(topOuterPath, style);
+
+    const topInnerPath = new this.scope.Path();
+    for (let i = 0; i <= numPoints; i++) {
+      const angle = startAngle + (endAngle - startAngle) * (i / numPoints);
+      const rad = angle * Math.PI / 180;
+      const x = this.innerRadius * Math.cos(rad);
+      const y = this.innerRadius * Math.sin(rad);
+      const pt = toIso(x, y, 0);
+      topInnerPath.add(new this.scope.Point(pt.x, pt.y));
+    }
+    this.applyStyle(topInnerPath, style);
+
+    // Draw bottom surface arcs (z = axialWidth) 
+    const bottomOuterPath = new this.scope.Path();
+    for (let i = 0; i <= numPoints; i++) {
+      const angle = startAngle + (endAngle - startAngle) * (i / numPoints);
+      const rad = angle * Math.PI / 180;
+      const x = this.outerRadius * Math.cos(rad);
+      const y = this.outerRadius * Math.sin(rad);
+      const pt = toIso(x, y, axialWidth);
+      bottomOuterPath.add(new this.scope.Point(pt.x, pt.y));
+    }
+    this.applyStyle(bottomOuterPath, style);
+
+    const bottomInnerPath = new this.scope.Path();
+    for (let i = 0; i <= numPoints; i++) {
+      const angle = startAngle + (endAngle - startAngle) * (i / numPoints);
+      const rad = angle * Math.PI / 180;
+      const x = this.innerRadius * Math.cos(rad);
+      const y = this.innerRadius * Math.sin(rad);
+      const pt = toIso(x, y, axialWidth);
+      bottomInnerPath.add(new this.scope.Point(pt.x, pt.y));
+    }
+    this.applyStyle(bottomInnerPath, LINE_STYLES.hidden); // Bottom inner arc is hidden
+
+    // Draw vertical edges at cut faces
+    for (const angle of [startAngle, endAngle]) {
+      const rad = angle * Math.PI / 180;
+
+      // Outer vertical edge
+      const outerX = this.outerRadius * Math.cos(rad);
+      const outerY = this.outerRadius * Math.sin(rad);
+      const outer0 = toIso(outerX, outerY, 0);
+      const outer1 = toIso(outerX, outerY, axialWidth);
+      const outerEdge = new this.scope.Path.Line(
+        new this.scope.Point(outer0.x, outer0.y),
+        new this.scope.Point(outer1.x, outer1.y)
+      );
+      this.applyStyle(outerEdge, style);
+
+      // Inner vertical edge
+      const innerX = this.innerRadius * Math.cos(rad);
+      const innerY = this.innerRadius * Math.sin(rad);
+      const inner0 = toIso(innerX, innerY, 0);
+      const inner1 = toIso(innerX, innerY, axialWidth);
+      const innerEdge = new this.scope.Path.Line(
+        new this.scope.Point(inner0.x, inner0.y),
+        new this.scope.Point(inner1.x, inner1.y)
+      );
+      this.applyStyle(innerEdge, style);
+
+      // Radial edges on top and bottom faces
+      const topRadial = new this.scope.Path.Line(
+        new this.scope.Point(outer0.x, outer0.y),
+        new this.scope.Point(inner0.x, inner0.y)
+      );
+      this.applyStyle(topRadial, style);
+
+      const bottomRadial = new this.scope.Path.Line(
+        new this.scope.Point(outer1.x, outer1.y),
+        new this.scope.Point(inner1.x, inner1.y)
+      );
+      this.applyStyle(bottomRadial, style);
+    }
+  }
+
+  private drawSimpleIsometricHoles(
+    toIso: (x: number, y: number, z: number) => { x: number; y: number },
+    scale: number
+  ): void {
+    const startAngle = -this.geometry.segmentAngleDeg / 2;
+
+    for (const hole of this.holes) {
+      const angle = startAngle + hole.angleOnArcDeg;
+      const rad = angle * Math.PI / 180;
+
+      // Hole position on outer surface
+      const holeX = this.outerRadius * Math.cos(rad);
+      const holeY = this.outerRadius * Math.sin(rad);
+      const holeZ = hole.axialPositionMm;
+
+      // Draw hole as simple circle
+      const holePt = toIso(holeX, holeY, holeZ);
+      const holeRadius = Math.max((hole.diameterMm / 2) * scale * 0.6, 3);
+
+      // Simple circle for hole
+      const holeCircle = new this.scope.Path.Circle(
+        new this.scope.Point(holePt.x, holePt.y),
+        holeRadius
+      );
+      holeCircle.strokeColor = new this.scope.Color('#000000');
+      holeCircle.strokeWidth = LINE_STYLES.visible.strokeWidth;
+      holeCircle.fillColor = new this.scope.Color('#FFFFFF');
+    }
+  }
+
+  // Keep old detailed methods for potential future use but rename them
+  private drawIsometricArcSegmentDetailed(
+    toIso: (x: number, y: number, z: number) => { x: number; y: number },
+    scale: number
+  ): void {
+    const startAngle = -this.geometry.segmentAngleDeg / 2;
+    const endAngle = this.geometry.segmentAngleDeg / 2;
+    const numPoints = 40;
+    const axialWidth = this.geometry.axialWidthMm;
+
+    // Draw visible surfaces with thick lines for main outlines
+
+    // 1. Top face (z = 0) - outer arc (VISIBLE, THICK)
+    const topOuterPath = new this.scope.Path();
+    for (let i = 0; i <= numPoints; i++) {
+      const angle = startAngle + (endAngle - startAngle) * (i / numPoints);
+      const rad = angle * Math.PI / 180;
+      const x = this.outerRadius * Math.cos(rad);
+      const y = this.outerRadius * Math.sin(rad);
+      const pt = toIso(x, y, 0);
+      topOuterPath.add(new this.scope.Point(pt.x, pt.y));
+    }
+    this.applyStyle(topOuterPath, LINE_STYLES.visibleThick);
+
+    // 2. Top face (z = 0) - inner arc (VISIBLE, THICK)
+    const topInnerPath = new this.scope.Path();
+    for (let i = 0; i <= numPoints; i++) {
+      const angle = startAngle + (endAngle - startAngle) * (i / numPoints);
+      const rad = angle * Math.PI / 180;
+      const x = this.innerRadius * Math.cos(rad);
+      const y = this.innerRadius * Math.sin(rad);
+      const pt = toIso(x, y, 0);
+      topInnerPath.add(new this.scope.Point(pt.x, pt.y));
+    }
+    this.applyStyle(topInnerPath, LINE_STYLES.visibleThick);
+
+    // 3. Bottom face (z = axialWidth) - outer arc (VISIBLE, THICK)
+    const bottomOuterPath = new this.scope.Path();
+    for (let i = 0; i <= numPoints; i++) {
+      const angle = startAngle + (endAngle - startAngle) * (i / numPoints);
+      const rad = angle * Math.PI / 180;
+      const x = this.outerRadius * Math.cos(rad);
+      const y = this.outerRadius * Math.sin(rad);
+      const pt = toIso(x, y, axialWidth);
+      bottomOuterPath.add(new this.scope.Point(pt.x, pt.y));
+    }
+    this.applyStyle(bottomOuterPath, LINE_STYLES.visibleThick);
+
+    // 4. Bottom face inner arc (may be hidden)
+    const bottomInnerPath = new this.scope.Path();
+    for (let i = 0; i <= numPoints; i++) {
+      const angle = startAngle + (endAngle - startAngle) * (i / numPoints);
+      const rad = angle * Math.PI / 180;
+      const x = this.innerRadius * Math.cos(rad);
+      const y = this.innerRadius * Math.sin(rad);
+      const pt = toIso(x, y, axialWidth);
+      bottomInnerPath.add(new this.scope.Point(pt.x, pt.y));
+    }
+    this.applyStyle(bottomInnerPath, LINE_STYLES.hidden);
+
+    // 5. Vertical edges at cut faces (THICK for main outline)
+    for (const angle of [startAngle, endAngle]) {
+      const rad = angle * Math.PI / 180;
+
+      // Outer vertical edge (THICK)
+      const outerX = this.outerRadius * Math.cos(rad);
+      const outerY = this.outerRadius * Math.sin(rad);
+      const outer0 = toIso(outerX, outerY, 0);
+      const outer1 = toIso(outerX, outerY, axialWidth);
+
+      const outerEdge = new this.scope.Path.Line(
+        new this.scope.Point(outer0.x, outer0.y),
+        new this.scope.Point(outer1.x, outer1.y)
+      );
+      this.applyStyle(outerEdge, LINE_STYLES.visibleThick);
+
+      // Inner vertical edge (THICK)
+      const innerX = this.innerRadius * Math.cos(rad);
+      const innerY = this.innerRadius * Math.sin(rad);
+      const inner0 = toIso(innerX, innerY, 0);
+      const inner1 = toIso(innerX, innerY, axialWidth);
+
+      const innerEdge = new this.scope.Path.Line(
+        new this.scope.Point(inner0.x, inner0.y),
+        new this.scope.Point(inner1.x, inner1.y)
+      );
+      this.applyStyle(innerEdge, LINE_STYLES.visibleThick);
+
+      // Radial edges on top face (THICK)
+      const topRadial = new this.scope.Path.Line(
+        new this.scope.Point(outer0.x, outer0.y),
+        new this.scope.Point(inner0.x, inner0.y)
+      );
+      this.applyStyle(topRadial, LINE_STYLES.visibleThick);
+
+      // Radial edges on bottom face (THICK)
+      const bottomRadial = new this.scope.Path.Line(
+        new this.scope.Point(outer1.x, outer1.y),
+        new this.scope.Point(inner1.x, inner1.y)
+      );
+      this.applyStyle(bottomRadial, LINE_STYLES.visibleThick);
+    }
+
+    // Add hatching to cut faces (like in TUV-17)
+    if (this.config.showHatching) {
+      this.drawIsometricCutFaceHatching(toIso, startAngle, endAngle, axialWidth);
+    }
+
+    // Add hatching to cut faces (like in TUV-17)
+    if (this.config.showHatching) {
+      this.drawIsometricCutFaceHatching(toIso, startAngle, endAngle, axialWidth);
+    }
+  }
+
+  private drawIsometricCutFaceHatching(
+    toIso: (x: number, y: number, z: number) => { x: number; y: number },
+    startAngle: number,
+    endAngle: number,
+    axialWidth: number
+  ): void {
+    // Draw hatching on the two radial cut faces (start and end)
+    const style = LINE_STYLES.hatching;
+    const hatchSpacing = 8; // pixels between hatching lines
+    
+    // Hatching for START cut face (visible)
+    this.drawRadialCutFaceHatching(toIso, startAngle, axialWidth, hatchSpacing, style);
+    
+    // Hatching for END cut face (may be partially visible)
+    this.drawRadialCutFaceHatching(toIso, endAngle, axialWidth, hatchSpacing, style);
+  }
+
+  private drawRadialCutFaceHatching(
+    toIso: (x: number, y: number, z: number) => { x: number; y: number },
+    angle: number,
+    axialWidth: number,
+    spacing: number,
+    style: any
+  ): void {
+    const rad = angle * Math.PI / 180;
+    const numLines = Math.ceil(this.wallThickness / 3); // Number of hatching lines
+    
+    // Draw hatching lines from inner to outer radius at 45° to the face
+    for (let i = 0; i <= numLines; i++) {
+      const t = i / numLines;
+      const r1 = this.innerRadius + t * this.wallThickness;
+      const r2 = r1;
+      
+      // Hatching at 45° angle across the width
+      const z1 = 0;
+      const z2 = axialWidth;
+      
+      const x1 = r1 * Math.cos(rad);
+      const y1 = r1 * Math.sin(rad);
+      
+      const pt1 = toIso(x1, y1, z1);
+      const pt2 = toIso(x1, y1, z2);
+      
+      const hatchLine = new this.scope.Path.Line(
+        new this.scope.Point(pt1.x, pt1.y),
+        new this.scope.Point(pt2.x, pt2.y)
+      );
+      this.applyStyle(hatchLine, style);
+    }
+    
+    // Add diagonal hatching for better effect
+    const numDiag = Math.ceil(axialWidth / spacing);
+    for (let i = 0; i <= numDiag; i++) {
+      const z = (i / numDiag) * axialWidth;
+      
+      const innerPt = toIso(
+        this.innerRadius * Math.cos(rad),
+        this.innerRadius * Math.sin(rad),
+        z
+      );
+      const outerPt = toIso(
+        this.outerRadius * Math.cos(rad),
+        this.outerRadius * Math.sin(rad),
+        z
+      );
+      
+      const diagLine = new this.scope.Path.Line(
+        new this.scope.Point(innerPt.x, innerPt.y),
+        new this.scope.Point(outerPt.x, outerPt.y)
+      );
+      this.applyStyle(diagLine, style);
+    }
+  }
+
+  private drawIsometricHolesDetailed(
+    toIso: (x: number, y: number, z: number) => { x: number; y: number },
+    scale: number
+  ): void {
+    const startAngle = -this.geometry.segmentAngleDeg / 2;
+
+    for (const hole of this.holes) {
+      const angle = startAngle + hole.angleOnArcDeg;
+      const rad = angle * Math.PI / 180;
+
+      // Hole position on outer surface
+      const holeX = this.outerRadius * Math.cos(rad);
+      const holeY = this.outerRadius * Math.sin(rad);
+      const holeZ = hole.axialPositionMm;
+
+      // Draw hole as circle with depth indication
+      const holePt = toIso(holeX, holeY, holeZ);
+      const holeRadius = Math.max((hole.diameterMm / 2) * scale * 0.6, 4);
+
+      // Hole opening - visible circle with fill
+      const holeCircle = new this.scope.Path.Circle(
+        new this.scope.Point(holePt.x, holePt.y),
+        holeRadius
+      );
+      holeCircle.fillColor = new this.scope.Color('#CCCCCC'); // Light gray for hole depth
+      holeCircle.strokeColor = new this.scope.Color('#000000');
+      holeCircle.strokeWidth = LINE_STYLES.visible.strokeWidth;
+      
+      // Add inner darker circle to show depth
+      const innerHoleCircle = new this.scope.Path.Circle(
+        new this.scope.Point(holePt.x + 1, holePt.y + 1),
+        holeRadius * 0.5
+      );
+      innerHoleCircle.fillColor = new this.scope.Color('#666666'); // Darker for depth effect
+      
+      // Optional: Add hole label if needed
+      if (hole.label) {
+        const labelPt = new this.scope.PointText(
+          new this.scope.Point(holePt.x, holePt.y - holeRadius - 8)
+        );
+        labelPt.content = hole.label;
+        labelPt.fontSize = FONT_SETTINGS.holeLabel.size - 2;
+        labelPt.fontWeight = 'bold';
+        labelPt.fillColor = new this.scope.Color('#CC0000');
+        labelPt.justification = 'center';
+      }
+    }
+  }
+
+  // ============================================================================
+  // DIMENSION HELPER METHODS
+  // ============================================================================
+
+  private drawLinearDimensionWithArrows(
+    x1: number,
+    y1: number,
+    x2: number,
+    y2: number,
+    label: string,
+    offset: number,
+    orientation: 'horizontal' | 'vertical' | 'perpendicular'
+  ): void {
+    const style = LINE_STYLES.dimension;
+
+    let ox1 = x1,
+      oy1 = y1,
+      ox2 = x2,
+      oy2 = y2;
+
+    if (orientation === 'perpendicular' && offset !== 0) {
+      const dx = x2 - x1;
+      const dy = y2 - y1;
+      const length = Math.sqrt(dx * dx + dy * dy);
+      const nx = -dy / length;
+      const ny = dx / length;
+
+      ox1 = x1 + nx * offset;
+      oy1 = y1 + ny * offset;
+      ox2 = x2 + nx * offset;
+      oy2 = y2 + ny * offset;
+
+      // Extension lines
+      const ext1 = new this.scope.Path.Line(
+        new this.scope.Point(x1, y1),
+        new this.scope.Point(ox1 + nx * 3, oy1 + ny * 3)
+      );
+      this.applyStyle(ext1, style);
+
+      const ext2 = new this.scope.Path.Line(
+        new this.scope.Point(x2, y2),
+        new this.scope.Point(ox2 + nx * 3, oy2 + ny * 3)
+      );
+      this.applyStyle(ext2, style);
+    }
+
+    // Dimension line
+    const dimLine = new this.scope.Path.Line(
+      new this.scope.Point(ox1, oy1),
+      new this.scope.Point(ox2, oy2)
+    );
+    this.applyStyle(dimLine, style);
+
+    // Arrows at both ends
+    const angle = Math.atan2(oy2 - oy1, ox2 - ox1);
+    this.drawDimensionArrowhead(ox1, oy1, angle);
+    this.drawDimensionArrowhead(ox2, oy2, angle + Math.PI);
+
+    // Label at center
+    const labelX = (ox1 + ox2) / 2;
+    const labelY = (oy1 + oy2) / 2 - 6;
+
+    // White background for label
+    const textWidth = label.length * 5;
+    const labelBg = new this.scope.Path.Rectangle(
+      new this.scope.Rectangle(labelX - textWidth / 2 - 2, labelY - 8, textWidth + 4, 12)
+    );
+    labelBg.fillColor = new this.scope.Color('#FFFFFF');
+
+    const text = new this.scope.PointText(new this.scope.Point(labelX, labelY));
+    text.content = label;
+    text.fontSize = FONT_SETTINGS.dimension.size;
+    text.fontFamily = FONT_SETTINGS.dimension.family;
+    text.fillColor = new this.scope.Color('#000000');
+    text.justification = 'center';
+  }
+
+  private drawRadiusDimensionLeader(
+    cx: number,
+    cy: number,
+    radius: number,
+    angle: number,
+    label: string,
+    offset: number
+  ): void {
+    const surfacePt = this.polarToCartesian(cx, cy, radius, angle);
+    const labelPt = this.polarToCartesian(cx, cy, radius + offset, angle);
+
+    // Leader line
+    const leader = new this.scope.Path.Line(
+      new this.scope.Point(surfacePt.x, surfacePt.y),
+      new this.scope.Point(labelPt.x, labelPt.y)
+    );
+    this.applyStyle(leader, LINE_STYLES.dimension);
+
+    // Arrow at surface
+    const angleRad = (angle - 90) * Math.PI / 180;
+    const arrowDir = offset > 0 ? angleRad : angleRad + Math.PI;
+    this.drawDimensionArrowhead(surfacePt.x, surfacePt.y, arrowDir);
+
+    // Label
+    const text = new this.scope.PointText(new this.scope.Point(labelPt.x, labelPt.y - 3));
+    text.content = label;
+    text.fontSize = FONT_SETTINGS.dimension.size;
+    text.fontFamily = FONT_SETTINGS.dimension.family;
+    text.fillColor = new this.scope.Color('#000000');
+    text.justification = 'center';
+  }
+
+  private drawAngleDimensionArc(
+    cx: number,
+    cy: number,
+    radius: number,
+    startAngle: number,
+    endAngle: number,
+    label: string
+  ): void {
+    // Arc
+    const arc = this.createArc(cx, cy, radius, startAngle, endAngle);
+    this.applyStyle(arc, LINE_STYLES.dimension);
+
+    // Extension lines
+    const startExt1 = this.polarToCartesian(cx, cy, radius - 10, startAngle);
+    const startExt2 = this.polarToCartesian(cx, cy, radius + 10, startAngle);
+    const ext1 = new this.scope.Path.Line(
+      new this.scope.Point(startExt1.x, startExt1.y),
+      new this.scope.Point(startExt2.x, startExt2.y)
+    );
+    this.applyStyle(ext1, LINE_STYLES.dimension);
+
+    const endExt1 = this.polarToCartesian(cx, cy, radius - 10, endAngle);
+    const endExt2 = this.polarToCartesian(cx, cy, radius + 10, endAngle);
+    const ext2 = new this.scope.Path.Line(
+      new this.scope.Point(endExt1.x, endExt1.y),
+      new this.scope.Point(endExt2.x, endExt2.y)
+    );
+    this.applyStyle(ext2, LINE_STYLES.dimension);
+
+    // Arrows
+    const startPt = this.polarToCartesian(cx, cy, radius, startAngle);
+    const endPt = this.polarToCartesian(cx, cy, radius, endAngle);
+
+    // Tangent directions for arrows
+    const startTangent = (startAngle + 90 - 90) * Math.PI / 180;
+    const endTangent = (endAngle - 90 - 90) * Math.PI / 180;
+
+    this.drawDimensionArrowhead(startPt.x, startPt.y, startTangent);
+    this.drawDimensionArrowhead(endPt.x, endPt.y, endTangent);
+
+    // Label at arc midpoint
+    const midAngle = (startAngle + endAngle) / 2;
+    const labelPt = this.polarToCartesian(cx, cy, radius + 12, midAngle);
+
+    const text = new this.scope.PointText(new this.scope.Point(labelPt.x, labelPt.y + 3));
+    text.content = label;
+    text.fontSize = FONT_SETTINGS.dimension.size;
+    text.fontFamily = FONT_SETTINGS.dimension.family;
+    text.fillColor = new this.scope.Color('#000000');
+    text.justification = 'center';
+  }
+
+  private drawAngularDimension(
+    cx: number,
+    cy: number,
+    radius: number,
+    fromAngle: number,
+    toAngle: number,
+    label: string
+  ): void {
+    // Small arc with label
+    const arc = this.createArc(cx, cy, radius, fromAngle, toAngle);
+    this.applyStyle(arc, LINE_STYLES.holeAnnotation);
+
+    // Label at midpoint
+    const midAngle = (fromAngle + toAngle) / 2;
+    const labelPt = this.polarToCartesian(cx, cy, radius + 8, midAngle);
+
+    const text = new this.scope.PointText(new this.scope.Point(labelPt.x, labelPt.y + 3));
+    text.content = label;
+    text.fontSize = FONT_SETTINGS.dimension.size - 1;
+    text.fillColor = new this.scope.Color('#CC0000');
+    text.justification = 'center';
+  }
+
+  private drawSmallRadialDimension(
+    x1: number,
+    y1: number,
+    x2: number,
+    y2: number,
+    label: string,
+    angle: number
+  ): void {
+    // Small dimension line with label
+    const midX = (x1 + x2) / 2;
+    const midY = (y1 + y2) / 2;
+
+    // Label position offset perpendicular to line
+    const perpAngle = (angle) * Math.PI / 180;
+    const labelX = midX + 15 * Math.cos(perpAngle);
+    const labelY = midY + 15 * Math.sin(perpAngle);
+
+    // Leader
+    const leader = new this.scope.Path.Line(
+      new this.scope.Point(midX, midY),
+      new this.scope.Point(labelX, labelY)
+    );
+    this.applyStyle(leader, LINE_STYLES.dimension);
+
+    const text = new this.scope.PointText(new this.scope.Point(labelX + 10, labelY + 3));
+    text.content = label;
+    text.fontSize = FONT_SETTINGS.dimension.size - 1;
+    text.fillColor = new this.scope.Color('#000000');
+    text.justification = 'left';
+  }
+
+  private drawHoleDepthDimension(
+    x1: number,
+    y1: number,
+    x2: number,
+    y2: number,
+    depth: number
+  ): void {
+    const offsetY = 12;
+
+    // Dimension line above hole
+    const dimLine = new this.scope.Path.Line(
+      new this.scope.Point(x1, y1 - offsetY),
+      new this.scope.Point(x2, y2 - offsetY)
+    );
+    this.applyStyle(dimLine, LINE_STYLES.dimension);
+
+    // Extension lines
+    const ext1 = new this.scope.Path.Line(
+      new this.scope.Point(x1, y1 - 3),
+      new this.scope.Point(x1, y1 - offsetY - 3)
+    );
+    this.applyStyle(ext1, LINE_STYLES.dimension);
+
+    const ext2 = new this.scope.Path.Line(
+      new this.scope.Point(x2, y2 - 3),
+      new this.scope.Point(x2, y2 - offsetY - 3)
+    );
+    this.applyStyle(ext2, LINE_STYLES.dimension);
+
+    // Arrows
+    this.drawDimensionArrowhead(x1, y1 - offsetY, 0);
+    this.drawDimensionArrowhead(x2, y2 - offsetY, Math.PI);
+
+    // Label
+    const labelX = (x1 + x2) / 2;
+    const text = new this.scope.PointText(new this.scope.Point(labelX, y1 - offsetY - 6));
+    text.content = depth.toString();
+    text.fontSize = FONT_SETTINGS.dimension.size - 1;
+    text.fillColor = new this.scope.Color('#000000');
+    text.justification = 'center';
+  }
+
+  private drawDimensionArrowhead(x: number, y: number, angle: number): void {
+    // Professional closed arrow (filled triangle) like TUV-17
+    const size = DRAWING_CONSTANTS.DIMENSION_ARROW_SIZE;
+    const arrowWidth = size * 0.3; // Width of arrow base
+    
+    const arrow = new this.scope.Path();
+    // Arrow tip
+    arrow.add(new this.scope.Point(x, y));
+    // Arrow sides (forming filled triangle)
+    arrow.add(new this.scope.Point(
+      x - size * Math.cos(angle - Math.PI / 6),
+      y - size * Math.sin(angle - Math.PI / 6)
+    ));
+    arrow.add(new this.scope.Point(
+      x - size * Math.cos(angle + Math.PI / 6),
+      y - size * Math.sin(angle + Math.PI / 6)
+    ));
+    arrow.closed = true;
+    arrow.fillColor = new this.scope.Color('#000000');
+    arrow.strokeWidth = 0;
+  }
+
+  // ============================================================================
+  // TITLE BLOCK AND NOTES
+  // ============================================================================
+
+  private drawTitleBlock(): void {
+    const width = 220;
+    const height = 90;
+    const x = this.config.canvasWidth - width - 20;
+    const y = this.config.canvasHeight - height - 20;
+
+    // Border
+    const border = new this.scope.Path.Rectangle(
+      new this.scope.Rectangle(x, y, width, height)
+    );
+    this.applyStyle(border, LINE_STYLES.visible);
+
+    // Horizontal dividers
+    const divY1 = y + 25;
+    const divY2 = y + 50;
+    const divY3 = y + 70;
+
+    for (const divY of [divY1, divY2, divY3]) {
+      const div = new this.scope.Path.Line(
+        new this.scope.Point(x, divY),
+        new this.scope.Point(x + width, divY)
+      );
+      this.applyStyle(div, LINE_STYLES.visible);
+    }
+
+    // Title
+    const title = new this.scope.PointText(new this.scope.Point(x + width / 2, y + 17));
+    title.content = 'SCAN MASTER';
+    title.fontSize = 14;
+    title.fontWeight = 'bold';
+    title.fillColor = new this.scope.Color('#000000');
+    title.justification = 'center';
+
+    // Description
+    const desc = new this.scope.PointText(new this.scope.Point(x + width / 2, y + 40));
+    desc.content = 'Ring Segment Calibration Block';
+    desc.fontSize = 10;
+    desc.fillColor = new this.scope.Color('#000000');
+    desc.justification = 'center';
+
+    // Dimensions
+    const dims = new this.scope.PointText(new this.scope.Point(x + width / 2, y + 63));
+    dims.content = `OD${this.geometry.outerDiameterMm} × ID${this.geometry.innerDiameterMm} × W${this.geometry.axialWidthMm}`;
+    dims.fontSize = 9;
+    dims.fillColor = new this.scope.Color('#000000');
+    dims.justification = 'center';
+
+    // Angle
+    const angleText = new this.scope.PointText(new this.scope.Point(x + width / 2, y + 82));
+    angleText.content = `Segment: ${this.geometry.segmentAngleDeg}° | Holes: ${this.holes.length}`;
+    angleText.fontSize = 8;
+    angleText.fillColor = new this.scope.Color('#666666');
+    angleText.justification = 'center';
+  }
+
+  private drawDrawingNotes(viewports: { sectionBB: ViewPort }): void {
+    // Reference note like TUV-17
+    const noteX = 30;
+    const noteY = viewports.sectionBB.y + viewports.sectionBB.height + 30;
+
+    const note = new this.scope.PointText(new this.scope.Point(noteX, noteY));
+    note.content = 'Voir rapport 5354 pour Coupe A-A et B-B';
+    note.fontSize = 8;
+    note.fillColor = new this.scope.Color('#666666');
+  }
+
+  private drawBorderFrame(): void {
+    const margin = 10;
+    const frame = new this.scope.Path.Rectangle(
+      new this.scope.Rectangle(
+        margin,
+        margin,
+        this.config.canvasWidth - margin * 2,
+        this.config.canvasHeight - margin * 2
+      )
+    );
+    this.applyStyle(frame, LINE_STYLES.visible);
+  }
+
+  // ============================================================================
+  // UTILITY METHODS
+  // ============================================================================
+
+  private createArc(
+    cx: number,
+    cy: number,
+    radius: number,
+    startAngle: number,
+    endAngle: number
+  ): paper.Path {
+    const path = new this.scope.Path();
+    const numPoints = Math.max(Math.abs(endAngle - startAngle), 30);
+
+    for (let i = 0; i <= numPoints; i++) {
+      const angle = startAngle + (endAngle - startAngle) * (i / numPoints);
+      const pt = this.polarToCartesian(cx, cy, radius, angle);
+      path.add(new this.scope.Point(pt.x, pt.y));
+    }
+
+    return path;
+  }
+
+  private polarToCartesian(
+    cx: number,
+    cy: number,
+    radius: number,
+    angleDeg: number
+  ): { x: number; y: number } {
+    // Angle convention: 0° at top (+Y), CCW positive
+    const angleRad = (angleDeg - 90) * Math.PI / 180;
+    return {
+      x: cx + radius * Math.cos(angleRad),
+      y: cy + radius * Math.sin(angleRad),
+    };
+  }
+
+  private applyStyle(
+    path: paper.Path,
+    style: { strokeWidth: number; strokeColor: string; dashArray: number[] | null }
+  ): void {
+    path.strokeColor = new this.scope.Color(style.strokeColor);
+    path.strokeWidth = style.strokeWidth;
+    if (style.dashArray) {
+      path.dashArray = style.dashArray;
+    }
+  }
+
+  // ============================================================================
+  // EXPORT METHODS
+  // ============================================================================
+
+  public exportToSVG(): string {
+    return this.scope.project.exportSVG({ asString: true }) as string;
+  }
+
+  public exportToPNG(): string {
+    return this.canvas.toDataURL('image/png');
+  }
+
+  public getCanvas(): HTMLCanvasElement {
+    return this.canvas;
+  }
+
+  public destroy(): void {
+    try {
+      // Clear all items in the project
+      if (this.scope && this.scope.project) {
+        this.scope.project.clear();
+        
+        // Remove the scope to prevent memory leaks
+        if (this.scope.view) {
+          this.scope.view.remove();
+        }
+      }
+      
+      // Clear the canvas
+      const ctx = this.canvas.getContext('2d');
+      if (ctx) {
+        ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+      }
+    } catch (err) {
+      console.warn('Error during Paper.js cleanup:', err);
+    }
+  }
+}
+
+// ============================================================================
+// FACTORY FUNCTION
+// ============================================================================
+
+export function createProfessionalRingSegmentDrawing(
+  canvas: HTMLCanvasElement,
+  geometry: BlockGeometry,
+  holes: HoleData[],
+  config?: Partial<DrawingConfig>
+): ProfessionalRingSegmentDrawing {
+  const drawing = new ProfessionalRingSegmentDrawing(canvas, geometry, holes, config);
+  drawing.draw();
+  return drawing;
+}

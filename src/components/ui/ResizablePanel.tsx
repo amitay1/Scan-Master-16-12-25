@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, ReactNode, useEffect } from 'react';
+import { useState, useRef, useCallback, ReactNode, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Eye, GripHorizontal, ZoomIn, ZoomOut, Move, Maximize2, Minimize2 } from 'lucide-react';
 import { useSettings } from '@/hooks/useSettings';
@@ -145,35 +145,56 @@ export const Collapsible3DPanel = ({
   const panelRef = useRef<HTMLDivElement>(null);
   const startPos = useRef({ x: 0, y: 0, width: 0, height: 0 });
 
+  // Memoize min and max sizes to prevent recreating objects
+  const memoizedMinSize = useMemo(() => minSize, [minSize.width, minSize.height]);
+  const memoizedMaxSize = useMemo(() => maxSize, [maxSize.width, maxSize.height]);
+
   // Update size when settings change or component mounts
   useEffect(() => {
     if (!defaultSize) {
       const currentPresets = getPresetSizes();
       const newSize = currentPresets[settings.viewer.viewer3DDefaultSize as keyof typeof currentPresets] || currentPresets.M;
-      setSize(clampSizeToViewport(newSize, minSize, maxSize));
+      setSize(prevSize => {
+        const clamped = clampSizeToViewport(newSize, memoizedMinSize, memoizedMaxSize);
+        // Only update if size actually changed
+        if (clamped.width === prevSize.width && clamped.height === prevSize.height) {
+          return prevSize;
+        }
+        return clamped;
+      });
       setActivePreset(settings.viewer.viewer3DDefaultSize || "M");
     }
-  }, [settings.viewer.viewer3DDefaultSize, defaultSize, minSize, maxSize]);
+  }, [settings.viewer.viewer3DDefaultSize, defaultSize, memoizedMinSize, memoizedMaxSize]);
 
   // Handle window resize to keep panel within bounds
   useEffect(() => {
     const handleWindowResize = () => {
-      setSize(prevSize => clampSizeToViewport(prevSize, minSize, maxSize));
+      setSize(prevSize => {
+        const clamped = clampSizeToViewport(prevSize, memoizedMinSize, memoizedMaxSize);
+        // Only update if size actually changed
+        if (clamped.width === prevSize.width && clamped.height === prevSize.height) {
+          return prevSize;
+        }
+        return clamped;
+      });
       // Keep floating panel in viewport when window resizes
       if (isFloating) {
-        setPosition(prev => ({
-          x: Math.max(0, Math.min(prev.x, window.innerWidth - 100)),
-          y: Math.max(0, Math.min(prev.y, window.innerHeight - 100))
-        }));
+        setPosition(prev => {
+          const newX = Math.max(0, Math.min(prev.x, window.innerWidth - 100));
+          const newY = Math.max(0, Math.min(prev.y, window.innerHeight - 100));
+          // Only update if position actually changed
+          if (newX === prev.x && newY === prev.y) {
+            return prev;
+          }
+          return { x: newX, y: newY };
+        });
       }
     };
     
     window.addEventListener('resize', handleWindowResize);
-    // Also call immediately to ensure proper sizing on mount
-    handleWindowResize();
     
     return () => window.removeEventListener('resize', handleWindowResize);
-  }, [minSize, maxSize, isFloating]);
+  }, [memoizedMinSize, memoizedMaxSize, isFloating]);
 
   // Drag handlers for floating mode
   const handleDragStart = useCallback((e: React.MouseEvent) => {
@@ -228,25 +249,32 @@ export const Collapsible3DPanel = ({
     
     // Set initial position when entering floating mode
     if (newFloating) {
-      const newPos = {
-        x: window.innerWidth - size.width - 20,
-        y: Math.max(80, (window.innerHeight - size.height) / 2)
-      };
-      setPosition(newPos);
-      savePosition(newPos);
+      setSize(currentSize => {
+        const newPos = {
+          x: window.innerWidth - currentSize.width - 20,
+          y: Math.max(80, (window.innerHeight - currentSize.height) / 2)
+        };
+        setPosition(newPos);
+        savePosition(newPos);
+        return currentSize; // Don't change size
+      });
     }
-  }, [isFloating, size]);
+  }, [isFloating]);
 
   const handleResizeStart = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     setIsResizing(true);
-    startPos.current = {
-      x: e.clientX,
-      y: e.clientY,
-      width: size.width,
-      height: size.height
-    };
-  }, [size]);
+    // Use current size from ref to avoid dependency
+    setSize(currentSize => {
+      startPos.current = {
+        x: e.clientX,
+        y: e.clientY,
+        width: currentSize.width,
+        height: currentSize.height
+      };
+      return currentSize; // Don't change size
+    });
+  }, []);
 
   const handleResizeMove = useCallback((e: MouseEvent) => {
     if (!isResizing) return;
@@ -259,9 +287,16 @@ export const Collapsible3DPanel = ({
     const newHeight = startPos.current.height + deltaY;
 
     // Clamp to both min/max and viewport bounds
-    setSize(clampSizeToViewport({ width: newWidth, height: newHeight }, minSize, maxSize));
+    setSize(prevSize => {
+      const clamped = clampSizeToViewport({ width: newWidth, height: newHeight }, memoizedMinSize, memoizedMaxSize);
+      // Only update if size actually changed
+      if (clamped.width === prevSize.width && clamped.height === prevSize.height) {
+        return prevSize;
+      }
+      return clamped;
+    });
     setActivePreset(null); // Clear preset when manually resizing
-  }, [isResizing, minSize, maxSize, isFloating]);
+  }, [isResizing, memoizedMinSize, memoizedMaxSize, isFloating]);
 
   const handleResizeEnd = useCallback(() => {
     setIsResizing(false);
@@ -278,31 +313,42 @@ export const Collapsible3DPanel = ({
     }
   }, [isResizing, handleResizeMove, handleResizeEnd]);
 
-  const applyPreset = (preset: typeof presets[0]) => {
+  const applyPreset = useCallback((preset: typeof presets[0]) => {
     // Clamp preset size to viewport bounds
-    setSize(clampSizeToViewport(preset.size, minSize, maxSize));
+    setSize(prevSize => {
+      const clamped = clampSizeToViewport(preset.size, memoizedMinSize, memoizedMaxSize);
+      // Only update if size actually changed
+      if (clamped.width === prevSize.width && clamped.height === prevSize.height) {
+        return prevSize;
+      }
+      return clamped;
+    });
     setActivePreset(preset.label);
-  };
+  }, [memoizedMinSize, memoizedMaxSize]);
 
   // Zoom in - increase size by 20%
   const handleZoomIn = useCallback(() => {
-    const newSize = {
-      width: size.width * 1.2,
-      height: size.height * 1.2
-    };
-    setSize(clampSizeToViewport(newSize, minSize, maxSize));
+    setSize(prevSize => {
+      const newSize = {
+        width: prevSize.width * 1.2,
+        height: prevSize.height * 1.2
+      };
+      return clampSizeToViewport(newSize, memoizedMinSize, memoizedMaxSize);
+    });
     setActivePreset(null);
-  }, [size, minSize, maxSize]);
+  }, [memoizedMinSize, memoizedMaxSize]);
 
   // Zoom out - decrease size by 20%
   const handleZoomOut = useCallback(() => {
-    const newSize = {
-      width: size.width * 0.8,
-      height: size.height * 0.8
-    };
-    setSize(clampSizeToViewport(newSize, minSize, maxSize));
+    setSize(prevSize => {
+      const newSize = {
+        width: prevSize.width * 0.8,
+        height: prevSize.height * 0.8
+      };
+      return clampSizeToViewport(newSize, memoizedMinSize, memoizedMaxSize);
+    });
     setActivePreset(null);
-  }, [size, minSize, maxSize]);
+  }, [memoizedMinSize, memoizedMaxSize]);
 
   // Floating button when collapsed
   if (!isOpen) {
