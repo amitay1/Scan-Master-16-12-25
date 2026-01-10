@@ -14,6 +14,7 @@
  */
 
 import paper from 'paper';
+import { calculateArcBoundingBox } from '@/utils/ringSegmentBlock/geometry';
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -113,6 +114,12 @@ const LINE_STYLES = {
     strokeWidth: 0.35,
     strokeColor: '#000000',
     dashArray: null as number[] | null,  // Solid line instead of dashed
+  },
+  // Scan path overlay arcs (red dashed)
+  scan: {
+    strokeWidth: 0.5,
+    strokeColor: '#CC0000',
+    dashArray: [8, 4],
   },
   // Phantom lines for motion/reference
   phantom: {
@@ -257,19 +264,20 @@ export class ProfessionalRingSegmentDrawing {
   private calculateSectionAngles(): void {
     // Calculate section angles based on hole positions (like TUV-17)
     const startAngle = -this.geometry.segmentAngleDeg / 2;
+    const midAngle = startAngle + this.geometry.segmentAngleDeg / 2;
 
-    if (this.holes.length >= 2) {
+    // Section B-B centered on the segment (vertical centerline in top view)
+    this.sectionAngles.B = midAngle;
+
+    if (this.holes.length > 0) {
       // Section A-A at first hole
       this.sectionAngles.A = startAngle + this.holes[0].angleOnArcDeg;
-      // Section B-B at second hole
-      this.sectionAngles.B = startAngle + this.holes[1].angleOnArcDeg;
-      // Section C-E at middle of arc
-      this.sectionAngles.CE = startAngle + this.geometry.segmentAngleDeg / 2;
+      // Section C-E at last hole (right-side cut)
+      this.sectionAngles.CE = startAngle + this.holes[this.holes.length - 1].angleOnArcDeg;
     } else {
       // Default positions if not enough holes
       this.sectionAngles.A = startAngle + this.geometry.segmentAngleDeg * 0.2;
-      this.sectionAngles.B = startAngle + this.geometry.segmentAngleDeg * 0.4;
-      this.sectionAngles.CE = startAngle + this.geometry.segmentAngleDeg * 0.5;
+      this.sectionAngles.CE = startAngle + this.geometry.segmentAngleDeg * 0.8;
     }
   }
 
@@ -394,11 +402,13 @@ export class ProfessionalRingSegmentDrawing {
   }
 
   private calculateTopViewScale(width: number, height: number): number {
-    const maxDim = Math.max(
-      this.geometry.outerDiameterMm * 1.4,
-      this.geometry.axialWidthMm * 2
-    );
-    return Math.min(width / maxDim, height / maxDim) * 0.75;
+    const startAngle = -this.geometry.segmentAngleDeg / 2;
+    const endAngle = this.geometry.segmentAngleDeg / 2;
+    const bbox = calculateArcBoundingBox(0, 0, this.outerRadius, startAngle, endAngle);
+    const margin = 140;
+    const availableWidth = Math.max(1, width - margin * 2);
+    const availableHeight = Math.max(1, height - margin * 2);
+    return Math.min(availableWidth / bbox.width, availableHeight / bbox.height);
   }
 
   private calculateSectionScale(width: number, height: number): number {
@@ -417,15 +427,20 @@ export class ProfessionalRingSegmentDrawing {
   // ============================================================================
 
   private drawTopView(vp: ViewPort): void {
-    const cx = vp.x + vp.width * 0.45;
-    const cy = vp.y + vp.height * 0.55;
     const scale = vp.scale;
+    const startAngle = -this.geometry.segmentAngleDeg / 2;
+    const endAngle = this.geometry.segmentAngleDeg / 2;
+    const bbox = calculateArcBoundingBox(0, 0, this.outerRadius, startAngle, endAngle);
+    const viewCenterX = vp.x + vp.width / 2;
+    const viewCenterY = vp.y + vp.height / 2;
+    const bboxCenterX = (bbox.minX + bbox.maxX) / 2;
+    const bboxCenterY = (bbox.minY + bbox.maxY) / 2;
+    const cx = viewCenterX - bboxCenterX * scale;
+    const cy = viewCenterY - bboxCenterY * scale;
 
     const outerR = this.outerRadius * scale;
     const innerR = this.innerRadius * scale;
     const meanR = this.meanRadius * scale;
-    const startAngle = -this.geometry.segmentAngleDeg / 2;
-    const endAngle = this.geometry.segmentAngleDeg / 2;
 
     console.log('[RingSegment] drawTopView - cx:', cx, 'cy:', cy, 'scale:', scale, 'outerR:', outerR, 'innerR:', innerR);
 
@@ -458,7 +473,17 @@ export class ProfessionalRingSegmentDrawing {
     }
 
     try {
-      // 4. Draw section cut lines (A-A, B-B, C-E)
+      // 4. Draw scan path overlays (red dashed arcs)
+      if (this.config.showDimensions) {
+        this.drawScanPathArcs(cx, cy, innerR, outerR, startAngle, endAngle);
+        console.log('[RingSegment] drawScanPathArcs done');
+      }
+    } catch (err) {
+      console.error('[RingSegment] Error in drawScanPathArcs:', err);
+    }
+
+    try {
+      // 5. Draw section cut lines (A-A, B-B, C-E)
       this.drawAllSectionCutLines(cx, cy, innerR, outerR, startAngle);
       console.log('[RingSegment] drawAllSectionCutLines done');
     } catch (err) {
@@ -466,7 +491,7 @@ export class ProfessionalRingSegmentDrawing {
     }
 
     try {
-      // 5. Draw holes on arc (as circles with labels)
+      // 6. Draw holes on arc (as circles with labels)
       this.drawHolesOnTopView(cx, cy, scale, startAngle);
       console.log('[RingSegment] drawHolesOnTopView done');
     } catch (err) {
@@ -474,7 +499,7 @@ export class ProfessionalRingSegmentDrawing {
     }
 
     try {
-      // 6. Draw comprehensive dimensions (TUV-17 style)
+      // 7. Draw comprehensive dimensions (TUV-17 style)
       if (this.config.showDimensions) {
         this.drawTopViewDimensionsTUV17(cx, cy, scale, outerR, innerR, meanR, startAngle, endAngle);
         console.log('[RingSegment] drawTopViewDimensionsTUV17 done');
@@ -662,6 +687,59 @@ export class ProfessionalRingSegmentDrawing {
     // this.drawInternalContourLines(cx, cy, scale, startAngle);
   }
 
+  private drawScanPathArcs(
+    cx: number,
+    cy: number,
+    innerR: number,
+    outerR: number,
+    startAngle: number,
+    endAngle: number
+  ): void {
+    const style = LINE_STYLES.scan;
+    const thickness = outerR - innerR;
+
+    if (thickness <= 0) {
+      return;
+    }
+
+    const scale = outerR / this.outerRadius;
+    const radii: number[] = [];
+    const minMargin = Math.max(6, thickness * 0.08);
+    const minR = innerR + minMargin;
+    const maxR = outerR - minMargin;
+
+    const addRadius = (radius: number) => {
+      const clamped = Math.min(Math.max(radius, minR), maxR);
+      if (!radii.some((r) => Math.abs(r - clamped) < 3)) {
+        radii.push(clamped);
+      }
+    };
+
+    for (const hole of this.holes) {
+      const isRadial = hole.reflectorType !== 'FBH';
+      if (!isRadial) {
+        continue;
+      }
+      const radius = (this.outerRadius - hole.depthMm) * scale;
+      addRadius(radius);
+    }
+
+    if (radii.length < 3) {
+      const targetCount = Math.max(3, radii.length);
+      const step = targetCount > 1 ? (maxR - minR) / (targetCount - 1) : 0;
+      for (let i = 0; i < targetCount; i++) {
+        addRadius(minR + step * i);
+      }
+    }
+
+    radii.sort((a, b) => a - b);
+
+    for (const radius of radii) {
+      const arc = this.createArc(cx, cy, radius, startAngle + 1, endAngle - 1);
+      this.applyStyle(arc, style);
+    }
+  }
+
   /**
    * Draw hidden lines for internal stepped features/contours
    * These show the stepped profile of the part from the top view
@@ -711,10 +789,9 @@ export class ProfessionalRingSegmentDrawing {
     // Section B-B
     this.drawSectionCutLineISO(cx, cy, innerR, outerR, this.sectionAngles.B, 'B', 'B');
 
-    // Section C-E (if within arc range)
-    if (this.holes.length >= 3) {
-      const ceAngle = startAngle + this.holes[Math.floor(this.holes.length / 2)].angleOnArcDeg;
-      this.drawSectionCutLineISO(cx, cy, innerR, outerR, ceAngle, 'C', 'E');
+    // Section C-E (if defined)
+    if (Number.isFinite(this.sectionAngles.CE)) {
+      this.drawSectionCutLineISO(cx, cy, innerR, outerR, this.sectionAngles.CE, 'C', 'E');
     }
   }
 
@@ -845,8 +922,11 @@ export class ProfessionalRingSegmentDrawing {
       const hole = this.holes[i];
       const angle = startAngle + hole.angleOnArcDeg;
 
-      // Hole position at outer surface
-      const holeRadius = this.outerRadius * scale;
+      // Hole position (radial depth for SDH, outer surface for FBH)
+      const isRadial = hole.reflectorType !== 'FBH';
+      const rawRadius = isRadial ? (this.outerRadius - hole.depthMm) : this.outerRadius;
+      const clampedRadius = Math.min(Math.max(rawRadius, this.innerRadius), this.outerRadius);
+      const holeRadius = clampedRadius * scale;
       const pos = this.polarToCartesian(cx, cy, holeRadius, angle);
 
       // Draw hole circle (visible from top) - use thicker line for visibility
@@ -875,7 +955,7 @@ export class ProfessionalRingSegmentDrawing {
       cross2.strokeColor = new this.scope.Color('#000000');
       cross2.strokeWidth = LINE_STYLES.center.strokeWidth;
 
-      // Hole label with numbered balloon (#1, #2, #3 style)
+      // Hole label with lettered balloon (A, B, C ...)
       // Position balloons at staggered distances to avoid overlap
       const labelRadiusOffset = 50 + (i % 2) * 20; // Alternate distances
       const labelRadius = holeRadius + labelRadiusOffset;
@@ -891,8 +971,8 @@ export class ProfessionalRingSegmentDrawing {
       balloon.strokeWidth = 1.2;
       balloon.fillColor = new this.scope.Color('#FFFFFF');
 
-      // Label text - use number format (#1, #2, #3)
-      const labelText = `#${i + 1}`;
+      // Label text - use hole label when available
+      const labelText = hole.label || `#${i + 1}`;
       const label = new this.scope.PointText(new this.scope.Point(labelPos.x, labelPos.y + 4));
       label.content = labelText;
       label.fontSize = FONT_SETTINGS.holeLabel.size - 1;
@@ -906,9 +986,97 @@ export class ProfessionalRingSegmentDrawing {
         new this.scope.Point(pos.x, pos.y),
         new this.scope.Point(labelPos.x, labelPos.y)
       );
-      leaderLine.strokeColor = new this.scope.Color('#000000');
-      leaderLine.strokeWidth = LINE_STYLES.dimension.strokeWidth;
+      this.applyStyle(leaderLine, LINE_STYLES.holeAnnotation);
     }
+  }
+
+  private drawHoleAngleMarkers(
+    cx: number,
+    cy: number,
+    innerR: number,
+    startAngle: number
+  ): void {
+    const tickLength = 6;
+    const labelOffset = 16;
+    const radius = innerR > 40 ? innerR - 25 : innerR + 20;
+
+    for (const hole of this.holes) {
+      const angle = startAngle + hole.angleOnArcDeg;
+
+      const tickStart = this.polarToCartesian(cx, cy, radius - tickLength, angle);
+      const tickEnd = this.polarToCartesian(cx, cy, radius + tickLength, angle);
+      const tick = new this.scope.Path.Line(
+        new this.scope.Point(tickStart.x, tickStart.y),
+        new this.scope.Point(tickEnd.x, tickEnd.y)
+      );
+      this.applyStyle(tick, LINE_STYLES.dimension);
+
+      const labelPos = this.polarToCartesian(cx, cy, radius + labelOffset, angle);
+      const label = new this.scope.PointText(new this.scope.Point(labelPos.x, labelPos.y + 3));
+      label.content = `${hole.angleOnArcDeg.toFixed(0)} deg`;
+      label.fontSize = FONT_SETTINGS.dimension.size - 1;
+      label.fillColor = new this.scope.Color(LINE_STYLES.dimension.strokeColor);
+      label.justification = 'center';
+    }
+  }
+
+  private drawDepthDiameterGuides(
+    cx: number,
+    cy: number,
+    scale: number,
+    innerR: number,
+    outerR: number,
+    startAngle: number,
+    endAngle: number
+  ): void {
+    const formatMm = (value: number) => (
+      Number.isInteger(value) ? value.toFixed(0) : value.toFixed(2)
+    );
+    const uniqueDepths = Array.from(
+      new Set(
+        this.holes
+          .filter((hole) => hole.reflectorType !== 'FBH')
+          .map((hole) => Math.round(hole.depthMm * 100) / 100)
+      )
+    ).sort((a, b) => a - b);
+
+    const minAngle = startAngle + 6;
+    const maxAngle = endAngle - 6;
+
+    uniqueDepths.forEach((depth, index) => {
+      const radiusMm = this.outerRadius - depth;
+      const radiusPx = radiusMm * scale;
+
+      if (radiusPx <= innerR + 2 || radiusPx >= outerR - 2) {
+        return;
+      }
+
+      const arc = this.createArc(cx, cy, radiusPx, startAngle + 1, endAngle - 1);
+      this.applyStyle(arc, LINE_STYLES.dimension);
+
+      const diameterMm = radiusMm * 2;
+      if (
+        Math.abs(diameterMm - this.geometry.outerDiameterMm) < 0.1 ||
+        Math.abs(diameterMm - this.geometry.innerDiameterMm) < 0.1
+      ) {
+        return;
+      }
+
+      const angleBase = index % 2 === 0 ? maxAngle : minAngle;
+      const angleShift = Math.min(12, index * 4);
+      let labelAngle = index % 2 === 0 ? angleBase - angleShift : angleBase + angleShift;
+      labelAngle = Math.max(minAngle, Math.min(maxAngle, labelAngle));
+      const offset = 24 + index * 8;
+
+      this.drawRadiusDimensionLeader(
+        cx,
+        cy,
+        radiusPx,
+        labelAngle,
+        `D ${formatMm(diameterMm)}`,
+        offset
+      );
+    });
   }
 
   private drawTopViewDimensionsTUV17(
@@ -921,7 +1089,9 @@ export class ProfessionalRingSegmentDrawing {
     startAngle: number,
     endAngle: number
   ): void {
-    // SIMPLIFIED DIMENSIONS - Only essential measurements to reduce clutter
+    const formatMm = (value: number) => (
+      Number.isInteger(value) ? value.toFixed(0) : value.toFixed(2)
+    );
 
     // 1. Outer diameter dimension (positioned at top-right)
     this.drawRadiusDimensionLeader(
@@ -929,7 +1099,7 @@ export class ProfessionalRingSegmentDrawing {
       cy,
       outerR,
       endAngle - 20,
-      `Ø${this.geometry.outerDiameterMm}`,
+      `OD ${formatMm(this.geometry.outerDiameterMm)}`,
       70
     );
 
@@ -939,13 +1109,15 @@ export class ProfessionalRingSegmentDrawing {
       cy,
       innerR,
       startAngle + 20,
-      `Ø${this.geometry.innerDiameterMm}`,
+      `ID ${formatMm(this.geometry.innerDiameterMm)}`,
       -50
     );
 
-    // 3. Segment angle dimension (clean arc at top with clear label)
-    // Temporarily disabled for debugging - use original method
-    this.drawAngleDimensionArc(cx, cy, outerR + 70, startAngle, endAngle, `${this.geometry.segmentAngleDeg}°`);
+    // 2b. Internal diameter guides based on reflector depths
+    this.drawDepthDiameterGuides(cx, cy, scale, innerR, outerR, startAngle, endAngle);
+
+    // 3. Segment angle extent (clean arc with centered label)
+    this.drawCleanArcExtent(cx, cy, outerR, startAngle, endAngle);
 
     // 4. Wall thickness dimension (only shown once at one edge)
     const edgeAngle = startAngle + 5; // Near start edge for clarity
@@ -961,23 +1133,8 @@ export class ProfessionalRingSegmentDrawing {
       'perpendicular'
     );
 
-    // 5. Single angular reference dimension (angle from start to first hole only)
-    // Other hole positions are clear from the numbered labels
-    if (this.holes.length > 0) {
-      const firstHole = this.holes[0];
-      const holeAngle = startAngle + firstHole.angleOnArcDeg;
-      this.drawAngularDimension(
-        cx,
-        cy,
-        innerR - 30,
-        startAngle,
-        holeAngle,
-        `${firstHole.angleOnArcDeg.toFixed(0)}°`
-      );
-    }
-
-    // Note: Removed per-hole radial depth dimensions from top view
-    // These are shown more clearly in the section views
+    // 5. Hole angle markers along the inner arc
+    this.drawHoleAngleMarkers(cx, cy, innerR, startAngle);
   }
 
   /**
@@ -1027,18 +1184,20 @@ export class ProfessionalRingSegmentDrawing {
     this.drawDimensionArrowhead(startPt.x, startPt.y, startTangent);
     this.drawDimensionArrowhead(endPt.x, endPt.y, endTangent);
 
-    // Label centered above the arc (at 0° = top)
+    // Label centered above the arc (at 0 deg = top)
     const midAngle = (startAngle + endAngle) / 2;
     const labelPt = this.polarToCartesian(cx, cy, arcRadius + 20, midAngle);
+    const labelText = `${totalAngle.toFixed(0)} deg`;
+    const labelWidth = labelText.length * 6;
 
     // White background for label
     const labelBg = new this.scope.Path.Rectangle(
-      new this.scope.Rectangle(labelPt.x - 20, labelPt.y - 10, 40, 16)
+      new this.scope.Rectangle(labelPt.x - labelWidth / 2 - 4, labelPt.y - 10, labelWidth + 8, 16)
     );
     labelBg.fillColor = new this.scope.Color('#FFFFFF');
 
     const label = new this.scope.PointText(new this.scope.Point(labelPt.x, labelPt.y + 3));
-    label.content = `${totalAngle.toFixed(0)}°`;
+    label.content = labelText;
     label.fontSize = FONT_SETTINGS.dimensionBold.size;
     label.fontWeight = FONT_SETTINGS.dimensionBold.weight;
     label.fillColor = new this.scope.Color('#000000');
@@ -1078,13 +1237,17 @@ export class ProfessionalRingSegmentDrawing {
   }
 
   private drawSectionCE(vp: ViewPort): void {
-    // Section C-E - middle holes or general section
-    const middleHoles =
-      this.holes.length > 2
-        ? this.holes.slice(Math.floor(this.holes.length / 2) - 1, Math.floor(this.holes.length / 2) + 1)
-        : this.holes;
+    // Section C-E - align with the right-side cut
+    const holesInSection = this.holes.filter((h) => {
+      const holeAngle = -this.geometry.segmentAngleDeg / 2 + h.angleOnArcDeg;
+      return Math.abs(holeAngle - this.sectionAngles.CE) < 10;
+    });
 
-    this.drawDetailedSectionView(vp, middleHoles, 'C - E');
+    if (holesInSection.length === 0 && this.holes.length > 0) {
+      holesInSection.push(this.holes[this.holes.length - 1]);
+    }
+
+    this.drawDetailedSectionView(vp, holesInSection, 'C - E');
   }
 
   private drawDetailedSectionView(vp: ViewPort, holes: HoleData[], label: string): void {
@@ -1172,6 +1335,14 @@ export class ProfessionalRingSegmentDrawing {
       holeLabel.fontWeight = FONT_SETTINGS.holeLabel.weight;
       holeLabel.fillColor = new this.scope.Color('#CC0000');
       holeLabel.justification = 'center';
+
+      const diaLabel = new this.scope.PointText(
+        new this.scope.Point(holeX + holeRadius + 10, holeY + 4)
+      );
+      diaLabel.content = `D${hole.diameterMm.toFixed(2)}`;
+      diaLabel.fontSize = FONT_SETTINGS.dimension.size - 1;
+      diaLabel.fillColor = new this.scope.Color('#000000');
+      diaLabel.justification = 'left';
 
       // Draw hole depth dimension
       if (this.config.showDimensions) {
@@ -2120,9 +2291,14 @@ export class ProfessionalRingSegmentDrawing {
     note4.fontSize = 8;
     note4.fillColor = new this.scope.Color('#000000');
 
+    // Note 5: Report reference (matches TUV-17)
+    const note5 = new this.scope.PointText(new this.scope.Point(noteX, noteY + 67));
+    note5.content = '5. VOIR RAPPORT 5394 POUR COUPE A-A ET B-B';
+    note5.fontSize = 8;
+    note5.fillColor = new this.scope.Color('#000000');
+
     // Draw surface finish symbol on top view (Ra symbol near outer surface)
-    // Temporarily disabled for debugging
-    // this.drawSurfaceFinishSymbol(viewports.topView);
+    this.drawSurfaceFinishSymbol(viewports.topView);
   }
 
   /**

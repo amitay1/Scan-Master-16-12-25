@@ -19,7 +19,7 @@ const standards = [
   {
     value: "AMS-STD-2154E" as StandardType,
     label: "AMS-STD-2154E (Revision E)",
-    description: "Aerospace Materials Specification - Ultrasonic Inspection",
+    description: "Ultrasonic Inspection of Wrought Metals - Aerospace",
     stringency: "Most Stringent",
     badge: "Aerospace",
     icon: ShieldCheck,
@@ -51,7 +51,7 @@ const standards = [
   {
     value: "BS-EN-10228-3" as StandardType,
     label: "BS EN 10228-3:2016",
-    description: "Testing of ferritic/martensitic steel forgings",
+    description: "Ultrasonic Testing of Ferritic/Martensitic Steel Forgings",
     stringency: "European",
     badge: "EU Ferritic",
     icon: Globe,
@@ -67,7 +67,7 @@ const standards = [
   {
     value: "BS-EN-10228-4" as StandardType,
     label: "BS EN 10228-4:2016",
-    description: "Testing of austenitic stainless steel forgings",
+    description: "Ultrasonic Testing of Austenitic-Ferritic Stainless Steel Forgings",
     stringency: "Specialized",
     badge: "EU Austenitic",
     icon: FlaskConical,
