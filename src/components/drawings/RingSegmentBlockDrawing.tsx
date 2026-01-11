@@ -124,6 +124,16 @@ export function RingSegmentBlockDrawing({
 
   // Get available templates
   const templates = useMemo(() => getAvailableTemplates(), []);
+  const canvasSize = useMemo(() => {
+    const od = resolvedBlock?.geometry.outerDiameterMm ?? 0;
+    const isLarge = od >= 600;
+
+    return {
+      width: isLarge ? Math.max(width, 1400) : width,
+      height: isLarge ? Math.max(height, 1000) : height,
+      isLarge,
+    };
+  }, [resolvedBlock?.geometry.outerDiameterMm, width, height]);
 
   // Resolve block when template or dimensions change
   useEffect(() => {
@@ -180,8 +190,8 @@ export function RingSegmentBlockDrawing({
     console.log('[RingSegmentDraw] useLayoutEffect triggered', {
       hasCanvas: !!canvasRef.current,
       hasResolvedBlock: !!resolvedBlock,
-      width,
-      height,
+      width: canvasSize.width,
+      height: canvasSize.height,
     });
 
     if (!canvasRef.current || !resolvedBlock) {
@@ -215,10 +225,13 @@ export function RingSegmentBlockDrawing({
     }
 
     // Set canvas dimensions explicitly AFTER cleanup
-    canvas.width = width;
-    canvas.height = height;
+    canvas.width = canvasSize.width;
+    canvas.height = canvasSize.height;
 
-    console.log('[RingSegmentDraw] Canvas dimensions set:', { width, height });
+    console.log('[RingSegmentDraw] Canvas dimensions set:', {
+      width: canvasSize.width,
+      height: canvasSize.height,
+    });
 
     // Small delay to ensure DOM is fully ready
     const timeoutId = setTimeout(() => {
@@ -252,8 +265,8 @@ export function RingSegmentBlockDrawing({
         }));
 
         const config: Partial<DrawingConfig> = {
-          canvasWidth: width,
-          canvasHeight: height,
+          canvasWidth: canvasSize.width,
+          canvasHeight: canvasSize.height,
           showDimensions: true,
           showCenterlines: true,
           showHatching: true,
@@ -295,7 +308,7 @@ export function RingSegmentBlockDrawing({
         drawingRef.current = null;
       }
     };
-  }, [resolvedBlock, width, height]);
+  }, [resolvedBlock, canvasSize.width, canvasSize.height]);
 
   // Handle dimension input change
   const handleDimensionChange = useCallback(
@@ -523,7 +536,9 @@ export function RingSegmentBlockDrawing({
       <div
         className="flex-1 border-2 border-gray-200 rounded-lg bg-white overflow-auto relative"
         style={{
-          maxHeight: isFullscreen ? 'calc(100vh - 300px)' : height + 50,
+          maxHeight: isFullscreen
+            ? 'calc(100vh - 300px)'
+            : Math.max(height + 50, canvasSize.height + 50),
         }}
       >
         {isDrawing && (
@@ -543,8 +558,8 @@ export function RingSegmentBlockDrawing({
         >
           <canvas
             ref={canvasRef}
-            width={width}
-            height={height}
+            width={canvasSize.width}
+            height={canvasSize.height}
             className="ring-segment-block-canvas"
             data-testid="ring-segment-canvas"
           />

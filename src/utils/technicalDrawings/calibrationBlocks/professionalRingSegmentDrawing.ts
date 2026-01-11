@@ -177,6 +177,7 @@ export class ProfessionalRingSegmentDrawing {
 
   // View references for section cut positioning
   private sectionAngles: { A: number; B: number; CE: number } = { A: 0, B: 0, CE: 0 };
+  private topViewLabelBounds: paper.Rectangle[] = [];
 
   constructor(
     canvas: HTMLCanvasElement,
@@ -346,6 +347,7 @@ export class ProfessionalRingSegmentDrawing {
     const margin = 30;
     const w = this.config.canvasWidth;
     const h = this.config.canvasHeight;
+    const isLargeBlock = this.geometry.outerDiameterMm >= 600;
 
     // TUV-17 Layout:
     // ┌─────────────────────────────────────────────────┐
@@ -358,10 +360,13 @@ export class ProfessionalRingSegmentDrawing {
     // │ Note   │ C-E    │     ISOMETRIC                 │
     // └────────┴────────┴───────────────────────────────┘
 
-    const leftColWidth = w * 0.20;
-    const topViewWidth = w * 0.55;
-    const isoWidth = w * 0.25;
-    const sectionHeight = h * 0.30;
+    const leftColWidth = w * (isLargeBlock ? 0.22 : 0.20);
+    const topViewWidth = w * (isLargeBlock ? 0.58 : 0.55);
+    const isoWidth = Math.max(
+      w - leftColWidth - topViewWidth,
+      w * (isLargeBlock ? 0.20 : 0.22)
+    );
+    const sectionHeight = h * (isLargeBlock ? 0.30 : 0.30);
 
     return {
       sectionAA: {
@@ -384,16 +389,19 @@ export class ProfessionalRingSegmentDrawing {
         x: margin,
         y: margin + sectionHeight * 2 + 50,
         width: leftColWidth - margin,
-        height: h * 0.25,
+        height: h * (isLargeBlock ? 0.22 : 0.25),
         scale: this.calculateSectionScale(leftColWidth - margin * 2, h * 0.2),
-        label: 'C - E',
+        label: 'C - C',
       },
       topView: {
         x: leftColWidth + margin,
         y: margin,
         width: topViewWidth,
-        height: h * 0.65,
-        scale: this.calculateTopViewScale(topViewWidth - margin, h * 0.6),
+        height: h * (isLargeBlock ? 0.68 : 0.65),
+        scale: this.calculateTopViewScale(
+          topViewWidth - margin,
+          h * (isLargeBlock ? 0.63 : 0.6)
+        ),
         label: '',
       },
       isometric: {
@@ -411,7 +419,10 @@ export class ProfessionalRingSegmentDrawing {
     const startAngle = -this.geometry.segmentAngleDeg / 2;
     const endAngle = this.geometry.segmentAngleDeg / 2;
     const bbox = calculateArcBoundingBox(0, 0, this.outerRadius, startAngle, endAngle);
-    const margin = Math.max(60, Math.min(width, height) * 0.18);
+    const baseMargin = this.geometry.outerDiameterMm >= 600
+      ? Math.min(width, height) * 0.26
+      : Math.min(width, height) * 0.18;
+    const margin = Math.max(60, baseMargin);
     const availableWidth = Math.max(1, width - margin * 2);
     const availableHeight = Math.max(1, height - margin * 2);
     return Math.min(availableWidth / bbox.width, availableHeight / bbox.height);
@@ -420,7 +431,8 @@ export class ProfessionalRingSegmentDrawing {
   private calculateSectionScale(width: number, height: number): number {
     const sectionWidth = this.wallThickness * 2;
     const sectionHeight = this.geometry.axialWidthMm * 1.5;
-    return Math.min(width / sectionWidth, height / sectionHeight) * 0.6;
+    const baseScale = Math.min(width / sectionWidth, height / sectionHeight);
+    return baseScale * (this.geometry.outerDiameterMm >= 600 ? 0.85 : 0.7);
   }
 
   private calculateIsometricScale(width: number, height: number): number {
@@ -447,6 +459,8 @@ export class ProfessionalRingSegmentDrawing {
     const outerR = this.outerRadius * scale;
     const innerR = this.innerRadius * scale;
     const meanR = this.meanRadius * scale;
+
+    this.resetTopViewLabelBounds();
 
     console.log('[RingSegment] drawTopView - cx:', cx, 'cy:', cy, 'scale:', scale, 'outerR:', outerR, 'innerR:', innerR);
 
@@ -585,18 +599,24 @@ export class ProfessionalRingSegmentDrawing {
     }
 
     // Concentric arc centerlines showing circular nature
-    // Outer reference arc
-    const outerRefArc = this.createArc(cx, cy, outerR + 15, startAngle - 3, endAngle + 3);
-    this.applyStyle(outerRefArc, style);
-
-    // Mean radius centerline arc (main reference)
     const meanR = (innerR + outerR) / 2;
-    const meanArc = this.createArc(cx, cy, meanR, startAngle - 5, endAngle + 5);
-    this.applyStyle(meanArc, style);
+    if (this.geometry.outerDiameterMm < 600) {
+      // Outer reference arc
+      const outerRefArc = this.createArc(cx, cy, outerR + 15, startAngle - 3, endAngle + 3);
+      this.applyStyle(outerRefArc, style);
 
-    // Inner reference arc
-    const innerRefArc = this.createArc(cx, cy, innerR - 15, startAngle - 3, endAngle + 3);
-    this.applyStyle(innerRefArc, style);
+      // Mean radius centerline arc (main reference)
+      const meanArc = this.createArc(cx, cy, meanR, startAngle - 5, endAngle + 5);
+      this.applyStyle(meanArc, style);
+
+      // Inner reference arc
+      const innerRefArc = this.createArc(cx, cy, innerR - 15, startAngle - 3, endAngle + 3);
+      this.applyStyle(innerRefArc, style);
+    } else {
+      // Large blocks: keep only the mean radius to reduce clutter
+      const meanArc = this.createArc(cx, cy, meanR, startAngle - 5, endAngle + 5);
+      this.applyStyle(meanArc, style);
+    }
 
     // Draw centermarks (small crosses) at hole PCD positions
     // Temporarily disabled for debugging
@@ -652,7 +672,9 @@ export class ProfessionalRingSegmentDrawing {
     scale: number,
     startAngle: number
   ): void {
-    const style = LINE_STYLES.hidden;
+    const style = this.geometry.outerDiameterMm >= 600
+      ? { ...LINE_STYLES.hidden, strokeWidth: 0.35, strokeColor: '#888888' }
+      : LINE_STYLES.hidden;
 
     for (const hole of this.holes) {
       const angle = startAngle + hole.angleOnArcDeg;
@@ -1005,13 +1027,19 @@ export class ProfessionalRingSegmentDrawing {
     cx: number,
     cy: number,
     innerR: number,
+    outerR: number,
     startAngle: number
   ): void {
-    const tickLength = 6;
-    const labelOffset = 16;
-    const radius = innerR > 40 ? innerR - 25 : innerR + 20;
+    const isLarge = this.geometry.outerDiameterMm >= 600;
+    const tickLength = isLarge ? 7 : 6;
+    const labelOffset = isLarge ? 20 : 16;
+    const radius = innerR - Math.max(
+      isLarge ? 30 : 20,
+      (outerR - innerR) * (isLarge ? 0.35 : 0.25)
+    );
 
-    for (const hole of this.holes) {
+    for (let i = 0; i < this.holes.length; i++) {
+      const hole = this.holes[i];
       const angle = startAngle + hole.angleOnArcDeg;
 
       const tickStart = this.polarToCartesian(cx, cy, radius - tickLength, angle);
@@ -1022,12 +1050,37 @@ export class ProfessionalRingSegmentDrawing {
       );
       this.applyStyle(tick, LINE_STYLES.dimension);
 
-      const labelPos = this.polarToCartesian(cx, cy, radius + labelOffset, angle);
-      const label = new this.scope.PointText(new this.scope.Point(labelPos.x, labelPos.y + 3));
+      const baseRadius = radius + labelOffset;
+      const radiusCandidates = [
+        baseRadius,
+        baseRadius - 12,
+        baseRadius - 24,
+        baseRadius + 12,
+        baseRadius + 24,
+      ].filter((r) => r > innerR * 0.2);
+      const angleOffsets = isLarge ? [0, -3, 3, -6, 6] : [0, -2, 2];
+      const candidatePoints: Array<{ x: number; y: number }> = [];
+
+      for (const candidateRadius of radiusCandidates) {
+        for (const angleOffset of angleOffsets) {
+          candidatePoints.push(
+            this.polarToCartesian(cx, cy, candidateRadius, angle + angleOffset)
+          );
+        }
+      }
+
+      if (candidatePoints.length === 0) {
+        candidatePoints.push(this.polarToCartesian(cx, cy, baseRadius, angle));
+      }
+
+      const label = new this.scope.PointText(new this.scope.Point(0, 0));
       label.content = `${hole.angleOnArcDeg.toFixed(0)} deg`;
-      label.fontSize = FONT_SETTINGS.dimension.size - 1;
+      label.fontSize = this.getTopViewSmallFontSize();
       label.fillColor = new this.scope.Color(LINE_STYLES.dimension.strokeColor);
       label.justification = 'center';
+
+      const placement = this.placeTopViewLabel(label, candidatePoints, 4, 2);
+      placement.group.bringToFront();
     }
   }
 
@@ -1072,8 +1125,11 @@ export class ProfessionalRingSegmentDrawing {
       return;
     }
 
-    const minAngle = startAngle + 6;
-    const maxAngle = endAngle - 6;
+    const isLarge = this.geometry.outerDiameterMm >= 600;
+    const minAngle = startAngle + (isLarge ? 10 : 6);
+    const maxAngle = endAngle - (isLarge ? 10 : 6);
+    const baseOffset = isLarge ? 44 : 24;
+    const stepOffset = isLarge ? 16 : 8;
 
     uniqueDepths.forEach((depth, index) => {
       const radiusMm = this.outerRadius - depth;
@@ -1095,10 +1151,10 @@ export class ProfessionalRingSegmentDrawing {
       }
 
       const angleBase = index % 2 === 0 ? maxAngle : minAngle;
-      const angleShift = Math.min(12, index * 4);
+      const angleShift = Math.min(isLarge ? 18 : 12, index * (isLarge ? 5 : 4));
       let labelAngle = index % 2 === 0 ? angleBase - angleShift : angleBase + angleShift;
       labelAngle = Math.max(minAngle, Math.min(maxAngle, labelAngle));
-      const offset = 24 + index * 8;
+      const offset = baseOffset + index * stepOffset;
 
       this.drawRadiusDimensionLeader(
         cx,
@@ -1168,7 +1224,7 @@ export class ProfessionalRingSegmentDrawing {
     );
 
     // 5. Hole angle markers along the inner arc
-    this.drawHoleAngleMarkers(cx, cy, innerR, startAngle);
+    this.drawHoleAngleMarkers(cx, cy, innerR, outerR, startAngle);
     // 6. Radial guide lines for hole angles
     this.drawHoleRadialGuides(cx, cy, innerR, outerR, startAngle);
   }
@@ -1245,23 +1301,26 @@ export class ProfessionalRingSegmentDrawing {
 
     // Label centered above the arc (at 0 deg = top)
     const midAngle = (startAngle + endAngle) / 2;
-    const labelOffset = Math.max(18, outerR * 0.07);
-    const labelPt = this.polarToCartesian(cx, cy, arcRadius + labelOffset, midAngle);
-    const labelText = `${totalAngle.toFixed(0)} deg`;
-    const labelWidth = labelText.length * 6;
-
-    // White background for label
-    const labelBg = new this.scope.Path.Rectangle(
-      new this.scope.Rectangle(labelPt.x - labelWidth / 2 - 4, labelPt.y - 10, labelWidth + 8, 16)
+    const labelOffset = Math.max(
+      18,
+      outerR * (this.geometry.outerDiameterMm >= 600 ? 0.1 : 0.07)
     );
-    labelBg.fillColor = new this.scope.Color('#FFFFFF');
-
-    const label = new this.scope.PointText(new this.scope.Point(labelPt.x, labelPt.y + 3));
+    const labelText = `${totalAngle.toFixed(0)} deg`;
+    const label = new this.scope.PointText(new this.scope.Point(0, 0));
     label.content = labelText;
-    label.fontSize = FONT_SETTINGS.dimensionBold.size;
+    label.fontSize = this.getTopViewDimensionFontSize();
     label.fontWeight = FONT_SETTINGS.dimensionBold.weight;
     label.fillColor = new this.scope.Color('#000000');
     label.justification = 'center';
+
+    const labelPt = this.polarToCartesian(cx, cy, arcRadius + labelOffset, midAngle);
+    const candidatePoints = [
+      labelPt,
+      this.polarToCartesian(cx, cy, arcRadius + labelOffset + 14, midAngle),
+      this.polarToCartesian(cx, cy, arcRadius + labelOffset + 28, midAngle),
+    ];
+    const placement = this.placeTopViewLabel(label, candidatePoints, 4, 2);
+    placement.group.bringToFront();
   }
 
   // ============================================================================
@@ -2044,12 +2103,29 @@ export class ProfessionalRingSegmentDrawing {
     offset: number
   ): void {
     const surfacePt = this.polarToCartesian(cx, cy, radius, angle);
-    const labelPt = this.polarToCartesian(cx, cy, radius + offset, angle);
+
+    const offsetDir = offset >= 0 ? 1 : -1;
+    const step = Math.max(12, Math.abs(offset) * 0.25);
+    const candidateOffsets = Array.from({ length: 8 }, (_, i) => offset + offsetDir * step * i);
+    const candidatePoints = candidateOffsets.map((candidate) =>
+      this.polarToCartesian(cx, cy, radius + candidate, angle)
+    );
+
+    const text = new this.scope.PointText(new this.scope.Point(0, 0));
+    text.content = label;
+    text.fontSize = this.getTopViewDimensionFontSize();
+    text.fontFamily = FONT_SETTINGS.dimension.family;
+    text.fillColor = new this.scope.Color('#000000');
+    text.justification = 'center';
+
+    const paddingX = this.geometry.outerDiameterMm >= 600 ? 5 : 4;
+    const paddingY = this.geometry.outerDiameterMm >= 600 ? 3 : 2;
+    const placement = this.placeTopViewLabel(text, candidatePoints, paddingX, paddingY);
 
     // Leader line
     const leader = new this.scope.Path.Line(
       new this.scope.Point(surfacePt.x, surfacePt.y),
-      new this.scope.Point(labelPt.x, labelPt.y)
+      new this.scope.Point(placement.point.x, placement.point.y)
     );
     this.applyStyle(leader, LINE_STYLES.dimension);
 
@@ -2058,13 +2134,7 @@ export class ProfessionalRingSegmentDrawing {
     const arrowDir = offset > 0 ? angleRad : angleRad + Math.PI;
     this.drawDimensionArrowhead(surfacePt.x, surfacePt.y, arrowDir);
 
-    // Label
-    const text = new this.scope.PointText(new this.scope.Point(labelPt.x, labelPt.y - 3));
-    text.content = label;
-    text.fontSize = FONT_SETTINGS.dimension.size;
-    text.fontFamily = FONT_SETTINGS.dimension.family;
-    text.fillColor = new this.scope.Color('#000000');
-    text.justification = 'center';
+    placement.group.bringToFront();
   }
 
   private drawAngleDimensionArc(
@@ -2418,6 +2488,74 @@ export class ProfessionalRingSegmentDrawing {
       )
     );
     this.applyStyle(frame, LINE_STYLES.visible);
+  }
+
+  private resetTopViewLabelBounds(): void {
+    this.topViewLabelBounds = [];
+  }
+
+  private getTopViewDimensionFontSize(): number {
+    return this.geometry.outerDiameterMm >= 600
+      ? Math.max(FONT_SETTINGS.dimension.size - 2, 8)
+      : FONT_SETTINGS.dimension.size;
+  }
+
+  private getTopViewSmallFontSize(): number {
+    return this.geometry.outerDiameterMm >= 600
+      ? Math.max(FONT_SETTINGS.dimension.size - 3, 7)
+      : FONT_SETTINGS.dimension.size - 1;
+  }
+
+  private doesLabelOverlap(bounds: paper.Rectangle): boolean {
+    return this.topViewLabelBounds.some((existing) => existing.intersects(bounds));
+  }
+
+  private expandLabelBounds(
+    bounds: paper.Rectangle,
+    paddingX: number,
+    paddingY: number
+  ): paper.Rectangle {
+    return new this.scope.Rectangle(
+      bounds.x - paddingX,
+      bounds.y - paddingY,
+      bounds.width + paddingX * 2,
+      bounds.height + paddingY * 2
+    );
+  }
+
+  private placeTopViewLabel(
+    text: paper.PointText,
+    candidatePoints: Array<{ x: number; y: number }>,
+    paddingX: number,
+    paddingY: number
+  ): { point: paper.Point; bounds: paper.Rectangle; group: paper.Group } {
+    let chosenPoint = candidatePoints[candidatePoints.length - 1];
+    let chosenBounds = this.expandLabelBounds(text.bounds, paddingX, paddingY);
+
+    for (const pt of candidatePoints) {
+      text.point = new this.scope.Point(pt.x, pt.y);
+      const bounds = this.expandLabelBounds(text.bounds, paddingX, paddingY);
+      if (!this.doesLabelOverlap(bounds)) {
+        chosenPoint = pt;
+        chosenBounds = bounds;
+        break;
+      }
+      chosenBounds = bounds;
+    }
+
+    text.point = new this.scope.Point(chosenPoint.x, chosenPoint.y);
+    const labelBg = new this.scope.Path.Rectangle(chosenBounds);
+    labelBg.fillColor = new this.scope.Color('#FFFFFF');
+    labelBg.strokeColor = null;
+
+    const group = new this.scope.Group([labelBg, text]);
+    this.topViewLabelBounds.push(chosenBounds);
+
+    return {
+      point: text.point,
+      bounds: chosenBounds,
+      group,
+    };
   }
 
   // ============================================================================
