@@ -115,6 +115,12 @@ const LINE_STYLES = {
     strokeColor: '#000000',
     dashArray: null as number[] | null,  // Solid line instead of dashed
   },
+  // Guide lines for angular hole positions
+  guide: {
+    strokeWidth: 0.35,
+    strokeColor: '#000000',
+    dashArray: [4, 4],
+  },
   // Scan path overlay arcs (red dashed)
   scan: {
     strokeWidth: 0.5,
@@ -405,7 +411,7 @@ export class ProfessionalRingSegmentDrawing {
     const startAngle = -this.geometry.segmentAngleDeg / 2;
     const endAngle = this.geometry.segmentAngleDeg / 2;
     const bbox = calculateArcBoundingBox(0, 0, this.outerRadius, startAngle, endAngle);
-    const margin = 140;
+    const margin = Math.max(60, Math.min(width, height) * 0.18);
     const availableWidth = Math.max(1, width - margin * 2);
     const availableHeight = Math.max(1, height - margin * 2);
     return Math.min(availableWidth / bbox.width, availableHeight / bbox.height);
@@ -715,17 +721,15 @@ export class ProfessionalRingSegmentDrawing {
       }
     };
 
-    for (const hole of this.holes) {
-      const isRadial = hole.reflectorType !== 'FBH';
-      if (!isRadial) {
-        continue;
-      }
-      const radius = (this.outerRadius - hole.depthMm) * scale;
+    const depthGuides = this.getReferenceDepthsMm();
+    for (const depth of depthGuides) {
+      const radius = (this.outerRadius - depth) * scale;
       addRadius(radius);
     }
 
-    if (radii.length < 3) {
-      const targetCount = Math.max(3, radii.length);
+    const targetCount = Math.max(3, depthGuides.length);
+
+    if (radii.length < targetCount) {
       const step = targetCount > 1 ? (maxR - minR) / (targetCount - 1) : 0;
       for (let i = 0; i < targetCount; i++) {
         addRadius(minR + step * i);
@@ -791,7 +795,7 @@ export class ProfessionalRingSegmentDrawing {
 
     // Section C-E (if defined)
     if (Number.isFinite(this.sectionAngles.CE)) {
-      this.drawSectionCutLineISO(cx, cy, innerR, outerR, this.sectionAngles.CE, 'C', 'E');
+      this.drawSectionCutLineISO(cx, cy, innerR, outerR, this.sectionAngles.CE, 'C', 'C');
     }
   }
 
@@ -918,6 +922,9 @@ export class ProfessionalRingSegmentDrawing {
     scale: number,
     startAngle: number
   ): void {
+    const showBalloons = this.geometry.outerDiameterMm < 500;
+    const showCross = this.geometry.outerDiameterMm < 500;
+
     for (let i = 0; i < this.holes.length; i++) {
       const hole = this.holes[i];
       const angle = startAngle + hole.angleOnArcDeg;
@@ -930,7 +937,7 @@ export class ProfessionalRingSegmentDrawing {
       const pos = this.polarToCartesian(cx, cy, holeRadius, angle);
 
       // Draw hole circle (visible from top) - use thicker line for visibility
-      const holeSize = Math.max((hole.diameterMm / 2) * scale, 5);
+      const holeSize = Math.max((hole.diameterMm / 2) * scale, showBalloons ? 5 : 3);
       const circle = new this.scope.Path.Circle(
         new this.scope.Point(pos.x, pos.y),
         holeSize
@@ -939,54 +946,58 @@ export class ProfessionalRingSegmentDrawing {
       circle.strokeWidth = LINE_STYLES.visible.strokeWidth;
       circle.fillColor = new this.scope.Color('#FFFFFF');
 
-      // Cross in hole center (drilling/center symbol) - subtle thin lines
-      const crossSize = holeSize * 0.6;
-      const cross1 = new this.scope.Path.Line(
-        new this.scope.Point(pos.x - crossSize, pos.y),
-        new this.scope.Point(pos.x + crossSize, pos.y)
-      );
-      cross1.strokeColor = new this.scope.Color('#000000');
-      cross1.strokeWidth = LINE_STYLES.center.strokeWidth;
+      if (showCross) {
+        // Cross in hole center (drilling/center symbol) - subtle thin lines
+        const crossSize = holeSize * 0.6;
+        const cross1 = new this.scope.Path.Line(
+          new this.scope.Point(pos.x - crossSize, pos.y),
+          new this.scope.Point(pos.x + crossSize, pos.y)
+        );
+        cross1.strokeColor = new this.scope.Color('#000000');
+        cross1.strokeWidth = LINE_STYLES.center.strokeWidth;
 
-      const cross2 = new this.scope.Path.Line(
-        new this.scope.Point(pos.x, pos.y - crossSize),
-        new this.scope.Point(pos.x, pos.y + crossSize)
-      );
-      cross2.strokeColor = new this.scope.Color('#000000');
-      cross2.strokeWidth = LINE_STYLES.center.strokeWidth;
+        const cross2 = new this.scope.Path.Line(
+          new this.scope.Point(pos.x, pos.y - crossSize),
+          new this.scope.Point(pos.x, pos.y + crossSize)
+        );
+        cross2.strokeColor = new this.scope.Color('#000000');
+        cross2.strokeWidth = LINE_STYLES.center.strokeWidth;
+      }
 
-      // Hole label with lettered balloon (A, B, C ...)
-      // Position balloons at staggered distances to avoid overlap
-      const labelRadiusOffset = 50 + (i % 2) * 20; // Alternate distances
-      const labelRadius = holeRadius + labelRadiusOffset;
-      const labelPos = this.polarToCartesian(cx, cy, labelRadius, angle);
+      if (showBalloons) {
+        // Hole label with lettered balloon (A, B, C ...)
+        // Position balloons at staggered distances to avoid overlap
+        const labelRadiusOffset = 50 + (i % 2) * 20; // Alternate distances
+        const labelRadius = holeRadius + labelRadiusOffset;
+        const labelPos = this.polarToCartesian(cx, cy, labelRadius, angle);
 
-      // Balloon circle (black outline, cleaner look)
-      const balloonSize = 11;
-      const balloon = new this.scope.Path.Circle(
-        new this.scope.Point(labelPos.x, labelPos.y),
-        balloonSize
-      );
-      balloon.strokeColor = new this.scope.Color('#CC0000');
-      balloon.strokeWidth = 1.2;
-      balloon.fillColor = new this.scope.Color('#FFFFFF');
+        // Balloon circle (black outline, cleaner look)
+        const balloonSize = 11;
+        const balloon = new this.scope.Path.Circle(
+          new this.scope.Point(labelPos.x, labelPos.y),
+          balloonSize
+        );
+        balloon.strokeColor = new this.scope.Color('#CC0000');
+        balloon.strokeWidth = 1.2;
+        balloon.fillColor = new this.scope.Color('#FFFFFF');
 
-      // Label text - use hole label when available
-      const labelText = hole.label || `#${i + 1}`;
-      const label = new this.scope.PointText(new this.scope.Point(labelPos.x, labelPos.y + 4));
-      label.content = labelText;
-      label.fontSize = FONT_SETTINGS.holeLabel.size - 1;
-      label.fontWeight = FONT_SETTINGS.holeLabel.weight;
-      label.fontFamily = FONT_SETTINGS.holeLabel.family;
-      label.fillColor = new this.scope.Color('#CC0000');
-      label.justification = 'center';
+        // Label text - use hole label when available
+        const labelText = hole.label || `#${i + 1}`;
+        const label = new this.scope.PointText(new this.scope.Point(labelPos.x, labelPos.y + 4));
+        label.content = labelText;
+        label.fontSize = FONT_SETTINGS.holeLabel.size - 1;
+        label.fontWeight = FONT_SETTINGS.holeLabel.weight;
+        label.fontFamily = FONT_SETTINGS.holeLabel.family;
+        label.fillColor = new this.scope.Color('#CC0000');
+        label.justification = 'center';
 
-      // Leader line from balloon to hole - use thin black line instead of red dashed
-      const leaderLine = new this.scope.Path.Line(
-        new this.scope.Point(pos.x, pos.y),
-        new this.scope.Point(labelPos.x, labelPos.y)
-      );
-      this.applyStyle(leaderLine, LINE_STYLES.holeAnnotation);
+        // Leader line from balloon to hole - use thin black line instead of red dashed
+        const leaderLine = new this.scope.Path.Line(
+          new this.scope.Point(pos.x, pos.y),
+          new this.scope.Point(labelPos.x, labelPos.y)
+        );
+        this.applyStyle(leaderLine, LINE_STYLES.holeAnnotation);
+      }
     }
   }
 
@@ -1020,6 +1031,30 @@ export class ProfessionalRingSegmentDrawing {
     }
   }
 
+  private drawHoleRadialGuides(
+    cx: number,
+    cy: number,
+    innerR: number,
+    outerR: number,
+    startAngle: number
+  ): void {
+    const style = LINE_STYLES.guide;
+    const innerOffset = 4;
+    const outerOffset = 6;
+
+    for (const hole of this.holes) {
+      const angle = startAngle + hole.angleOnArcDeg;
+      const startPt = this.polarToCartesian(cx, cy, innerR + innerOffset, angle);
+      const endPt = this.polarToCartesian(cx, cy, outerR - outerOffset, angle);
+
+      const line = new this.scope.Path.Line(
+        new this.scope.Point(startPt.x, startPt.y),
+        new this.scope.Point(endPt.x, endPt.y)
+      );
+      this.applyStyle(line, style);
+    }
+  }
+
   private drawDepthDiameterGuides(
     cx: number,
     cy: number,
@@ -1032,13 +1067,10 @@ export class ProfessionalRingSegmentDrawing {
     const formatMm = (value: number) => (
       Number.isInteger(value) ? value.toFixed(0) : value.toFixed(2)
     );
-    const uniqueDepths = Array.from(
-      new Set(
-        this.holes
-          .filter((hole) => hole.reflectorType !== 'FBH')
-          .map((hole) => Math.round(hole.depthMm * 100) / 100)
-      )
-    ).sort((a, b) => a - b);
+    const uniqueDepths = this.getReferenceDepthsMm();
+    if (uniqueDepths.length === 0) {
+      return;
+    }
 
     const minAngle = startAngle + 6;
     const maxAngle = endAngle - 6;
@@ -1092,6 +1124,8 @@ export class ProfessionalRingSegmentDrawing {
     const formatMm = (value: number) => (
       Number.isInteger(value) ? value.toFixed(0) : value.toFixed(2)
     );
+    const odOffset = Math.max(45, outerR * 0.25);
+    const idOffset = -Math.max(35, outerR * 0.18);
 
     // 1. Outer diameter dimension (positioned at top-right)
     this.drawRadiusDimensionLeader(
@@ -1100,7 +1134,7 @@ export class ProfessionalRingSegmentDrawing {
       outerR,
       endAngle - 20,
       `OD ${formatMm(this.geometry.outerDiameterMm)}`,
-      70
+      odOffset
     );
 
     // 2. Inner diameter dimension (positioned at bottom-left)
@@ -1110,7 +1144,7 @@ export class ProfessionalRingSegmentDrawing {
       innerR,
       startAngle + 20,
       `ID ${formatMm(this.geometry.innerDiameterMm)}`,
-      -50
+      idOffset
     );
 
     // 2b. Internal diameter guides based on reflector depths
@@ -1135,6 +1169,30 @@ export class ProfessionalRingSegmentDrawing {
 
     // 5. Hole angle markers along the inner arc
     this.drawHoleAngleMarkers(cx, cy, innerR, startAngle);
+    // 6. Radial guide lines for hole angles
+    this.drawHoleRadialGuides(cx, cy, innerR, outerR, startAngle);
+  }
+
+  private getReferenceDepthsMm(): number[] {
+    const depths = new Set<number>();
+
+    for (const hole of this.holes) {
+      if (hole.reflectorType === 'FBH') {
+        continue;
+      }
+      depths.add(Math.round(hole.depthMm * 100) / 100);
+    }
+
+    // Add extra scan/diameter guides for large TUV-style blocks
+    if (this.geometry.outerDiameterMm >= 600) {
+      const referenceDiameters = [613.02, 579, 544.02, 530.82, 486.26];
+      for (const diameter of referenceDiameters) {
+        const depth = (this.geometry.outerDiameterMm - diameter) / 2;
+        depths.add(Math.round(depth * 100) / 100);
+      }
+    }
+
+    return Array.from(depths).sort((a, b) => a - b);
   }
 
   /**
@@ -1148,7 +1206,8 @@ export class ProfessionalRingSegmentDrawing {
     startAngle: number,
     endAngle: number
   ): void {
-    const arcRadius = outerR + 80;
+    const arcOffset = Math.max(45, outerR * 0.18);
+    const arcRadius = outerR + arcOffset;
     const totalAngle = Math.abs(endAngle - startAngle);
 
     // Draw the arc (thin line)
@@ -1186,7 +1245,8 @@ export class ProfessionalRingSegmentDrawing {
 
     // Label centered above the arc (at 0 deg = top)
     const midAngle = (startAngle + endAngle) / 2;
-    const labelPt = this.polarToCartesian(cx, cy, arcRadius + 20, midAngle);
+    const labelOffset = Math.max(18, outerR * 0.07);
+    const labelPt = this.polarToCartesian(cx, cy, arcRadius + labelOffset, midAngle);
     const labelText = `${totalAngle.toFixed(0)} deg`;
     const labelWidth = labelText.length * 6;
 
@@ -1247,7 +1307,7 @@ export class ProfessionalRingSegmentDrawing {
       holesInSection.push(this.holes[this.holes.length - 1]);
     }
 
-    this.drawDetailedSectionView(vp, holesInSection, 'C - E');
+    this.drawDetailedSectionView(vp, holesInSection, 'C - C');
   }
 
   private drawDetailedSectionView(vp: ViewPort, holes: HoleData[], label: string): void {
