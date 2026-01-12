@@ -27,7 +27,7 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
     <div
       className={cn(
         'relative h-full transition-all duration-300 ease-in-out hidden md:flex flex-shrink-0',
-        isOpen ? 'w-[22%] min-w-[280px] max-w-[350px]' : 'w-12',
+        isOpen ? 'w-[clamp(220px,25vw,350px)]' : 'w-12',
         className
       )}
     >

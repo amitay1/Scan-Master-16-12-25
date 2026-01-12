@@ -1,12 +1,14 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useRef } from 'react';
 import {
   InspectorProfile,
   InspectorProfileFormData,
   InspectorProfileStorage,
   generateInitials,
 } from '@/types/inspectorProfile';
+import { getStorageData, setStorageData, STORAGE_KEYS } from '@/services/unifiedStorage';
 
-const STORAGE_KEY = 'scanmaster_inspector_profiles';
+const STORAGE_KEY = STORAGE_KEYS.INSPECTOR_PROFILES;
+const USER_ID_KEY = STORAGE_KEYS.USER_ID;
 const API_BASE_URL = '/api/inspector-profiles';
 
 interface InspectorProfileContextValue {
@@ -36,28 +38,68 @@ function generateUUID(): string {
   });
 }
 
-function loadFromStorage(): InspectorProfileStorage {
+const defaultStorage: InspectorProfileStorage = {
+  profiles: [],
+  currentProfileId: null,
+  rememberSelection: false,
+};
+
+async function loadFromStorage(): Promise<InspectorProfileStorage> {
   try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      return JSON.parse(stored);
-    }
+    const stored = await getStorageData<InspectorProfileStorage>(STORAGE_KEY, defaultStorage);
+    return stored;
   } catch (error) {
     console.error('Failed to load inspector profiles from storage:', error);
   }
-  return {
-    profiles: [],
-    currentProfileId: null,
-    rememberSelection: false,
-  };
+  return defaultStorage;
 }
 
-function saveToStorage(data: InspectorProfileStorage): void {
+async function saveToStorage(data: InspectorProfileStorage): Promise<void> {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    await setStorageData(STORAGE_KEY, data);
   } catch (error) {
     console.error('Failed to save inspector profiles to storage:', error);
   }
+}
+
+// User ID is stored separately and cached in memory for performance
+let cachedUserId: string | null = null;
+
+async function getUserIdAsync(): Promise<string> {
+  if (cachedUserId) {
+    return cachedUserId;
+  }
+
+  try {
+    const stored = await getStorageData<string>(USER_ID_KEY, '');
+    if (stored) {
+      cachedUserId = stored;
+      return stored;
+    }
+  } catch (error) {
+    console.error('Failed to load user ID:', error);
+  }
+
+  // Generate new user ID
+  const newUserId = generateUUID();
+  cachedUserId = newUserId;
+  await setStorageData(USER_ID_KEY, newUserId);
+  return newUserId;
+}
+
+// Synchronous getter for immediate use (returns cached or generates new)
+function getUserIdSync(): string {
+  if (cachedUserId) {
+    return cachedUserId;
+  }
+  // Fallback to localStorage for immediate access
+  let userId = localStorage.getItem('scanmaster_user_id');
+  if (!userId) {
+    userId = generateUUID();
+    localStorage.setItem('scanmaster_user_id', userId);
+  }
+  cachedUserId = userId;
+  return userId;
 }
 
 interface InspectorProfileProviderProps {
@@ -69,17 +111,19 @@ export function InspectorProfileProvider({ children }: InspectorProfileProviderP
   const [currentProfileId, setCurrentProfileId] = useState<string | null>(null);
   const [rememberSelection, setRememberSelectionState] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const initialLoadDone = useRef(false);
   // Check if offline mode is enabled via env variable or if we're in Electron
-  const isOfflineMode = import.meta.env.VITE_ENABLE_OFFLINE_MODE === 'true' || 
+  const isOfflineMode = import.meta.env.VITE_ENABLE_OFFLINE_MODE === 'true' ||
                         typeof window !== 'undefined' && (window as any).electronAPI;
   const [useServerSync, setUseServerSync] = useState(!isOfflineMode); // Disable server sync in offline mode
 
   // Fetch profiles from server
   const fetchProfilesFromServer = useCallback(async () => {
     try {
+      const userId = await getUserIdAsync();
       const response = await fetch(API_BASE_URL, {
         headers: {
-          'x-user-id': getUserId(),
+          'x-user-id': userId,
         },
       });
 
@@ -95,17 +139,7 @@ export function InspectorProfileProvider({ children }: InspectorProfileProviderP
     }
   }, []);
 
-  // Get or create user ID for anonymous users
-  function getUserId(): string {
-    let userId = localStorage.getItem('scanmaster_user_id');
-    if (!userId) {
-      userId = generateUUID();
-      localStorage.setItem('scanmaster_user_id', userId);
-    }
-    return userId;
-  }
-
-  // Load from server or localStorage on mount
+  // Load from server or unified storage on mount
   useEffect(() => {
     const loadProfiles = async () => {
       if (useServerSync) {
@@ -116,8 +150,8 @@ export function InspectorProfileProvider({ children }: InspectorProfileProviderP
           // Successfully loaded from server
           setProfiles(serverProfiles);
 
-          // Load remember selection from localStorage
-          const stored = loadFromStorage();
+          // Load remember selection from unified storage
+          const stored = await loadFromStorage();
           setRememberSelectionState(stored.rememberSelection);
 
           // Only auto-select if remember is enabled
@@ -128,16 +162,16 @@ export function InspectorProfileProvider({ children }: InspectorProfileProviderP
             }
           }
 
-          // Also save to localStorage as backup
-          saveToStorage({
+          // Also save to unified storage as backup
+          await saveToStorage({
             profiles: serverProfiles,
             currentProfileId: stored.currentProfileId,
             rememberSelection: stored.rememberSelection,
           });
         } else {
-          // Fallback to localStorage if server fails
-          console.log('Falling back to localStorage');
-          const stored = loadFromStorage();
+          // Fallback to unified storage if server fails
+          console.log('Falling back to unified storage');
+          const stored = await loadFromStorage();
           setProfiles(stored.profiles);
           setRememberSelectionState(stored.rememberSelection);
 
@@ -149,8 +183,8 @@ export function InspectorProfileProvider({ children }: InspectorProfileProviderP
           }
         }
       } else {
-        // Use localStorage only
-        const stored = loadFromStorage();
+        // Use unified storage only
+        const stored = await loadFromStorage();
         setProfiles(stored.profiles);
         setRememberSelectionState(stored.rememberSelection);
 
@@ -163,14 +197,15 @@ export function InspectorProfileProvider({ children }: InspectorProfileProviderP
       }
 
       setIsLoading(false);
+      initialLoadDone.current = true;
     };
 
     loadProfiles();
   }, [useServerSync, fetchProfilesFromServer]);
 
-  // Save to localStorage whenever data changes (for offline backup)
+  // Save to unified storage whenever data changes
   useEffect(() => {
-    if (!isLoading) {
+    if (!isLoading && initialLoadDone.current) {
       saveToStorage({
         profiles,
         currentProfileId,
@@ -215,7 +250,7 @@ export function InspectorProfileProvider({ children }: InspectorProfileProviderP
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': getUserId(),
+          'x-user-id': getUserIdSync(),
         },
         body: JSON.stringify(newProfile),
       })
@@ -257,7 +292,7 @@ export function InspectorProfileProvider({ children }: InspectorProfileProviderP
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': getUserId(),
+          'x-user-id': getUserIdSync(),
         },
         body: JSON.stringify(updatedData),
       })
@@ -290,7 +325,7 @@ export function InspectorProfileProvider({ children }: InspectorProfileProviderP
       fetch(`${API_BASE_URL}/${id}`, {
         method: 'DELETE',
         headers: {
-          'x-user-id': getUserId(),
+          'x-user-id': getUserIdSync(),
         },
       })
         .then(response => {

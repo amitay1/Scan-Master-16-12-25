@@ -109,4 +109,6 @@ export {
   resolveTUVBlock,
   getAvailableTemplates,
   validatePartDimensions,
+  autoSelectTemplate,
+  resolveBlockAuto,
 } from './resolver';

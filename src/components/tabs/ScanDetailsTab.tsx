@@ -1,18 +1,25 @@
 import React, { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Info, Plus, Trash2, ArrowDown, ArrowUp, ArrowRight, ArrowLeft, RotateCw, RotateCcw, Circle, Disc } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Info } from "lucide-react";
 import type { PartGeometry, StandardType } from "@/types/techniqueSheet";
 import type { ScanDetail, ScanDetailsData } from "@/types/scanDetails";
-import { E2375DiagramImage } from "@/components/E2375DiagramImage";
+import { TubeScanDiagram } from "@/components/TubeScanDiagram";
+import { ConeScanDiagram } from "@/components/ConeScanDiagram";
 import { getFrequencyOptionsForStandard } from "@/utils/frequencyUtils";
+
+// Check if part type should use tube diagram
+const isTubeType = (partType?: PartGeometry | ""): boolean => {
+  return !!partType && ["tube", "pipe", "sleeve", "bushing"].includes(partType);
+};
+
+// Check if part type should use cone diagram
+const isConeType = (partType?: PartGeometry | ""): boolean => {
+  return !!partType && ["cone", "truncated_cone", "conical"].includes(partType);
+};
 
 interface ScanDetailsTabProps {
   data: ScanDetailsData;
@@ -256,129 +263,98 @@ export const ScanDetailsTab = ({ data, onChange, partType, standard = "AMS-STD-2
   };
 
   return (
-    <div className="space-y-2 p-2">      {/* CRITICAL: Info banner about calibration block linkage */}
-      <div className="bg-amber-50 border border-amber-300 rounded-lg p-4">
-        <div className="flex items-start gap-3">
-          <Info className="h-5 w-5 text-amber-700 mt-0.5 flex-shrink-0" />
-          <div className="flex-1">
-            <h4 className="font-semibold text-amber-900 text-sm mb-1">
-              ⚠️ Critical: Scan Type Affects Calibration Block
-            </h4>
-            <p className="text-xs text-amber-800">
-              <strong>Circumferential shear wave (D/E)</strong> → REQUIRES <strong>notched cylinder block</strong><br/>
-              <strong>Angle beam scans (F/G/H)</strong> → REQUIRES <strong>angle beam calibration blocks</strong><br/>
-              <span className="text-amber-700">Other scan directions (A/B/C) don't affect block selection.</span>
-            </p>
-          </div>
+    <div className="h-full flex flex-col overflow-hidden">
+      {/* Main content - side by side layout */}
+      <div className="flex-1 flex gap-2 min-h-0 p-1">
+        {/* LEFT: Diagram - direct display without wrapper */}
+        <div className="w-1/2 min-h-0 flex-shrink-0">
+          {isTubeType(partType) ? (
+            <TubeScanDiagram
+              scanDetails={scanDetails}
+              highlightedDirection={highlightedDirection}
+            />
+          ) : isConeType(partType) ? (
+            <ConeScanDiagram
+              scanDetails={scanDetails}
+              highlightedDirection={highlightedDirection}
+            />
+          ) : (
+            <Card className="h-full flex items-center justify-center bg-muted/30">
+              <div className="text-center p-4">
+                <Info className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                <p className="text-xs text-muted-foreground">
+                  {partType ? `Diagram for "${partType}" coming soon` : "Select Part Type in Setup"}
+                </p>
+              </div>
+            </Card>
+          )}
         </div>
-      </div>
-      {/* E2375 Standard Diagram - Interactive SVG visualization */}
-      {!partType ? (
-        <Card className="p-8 flex flex-col items-center justify-center min-h-[400px] bg-muted/30">
-          <div className="text-center space-y-3">
-            <div className="w-16 h-16 mx-auto rounded-full bg-muted flex items-center justify-center">
-              <Info className="h-8 w-8 text-muted-foreground" />
-            </div>
-            <h3 className="text-lg font-semibold text-muted-foreground">No Part Type Selected</h3>
-            <p className="text-sm text-muted-foreground max-w-md">
-              Please select a Part Type in the Setup tab first to view the ASTM E2375 standard diagram and configure scan directions.
-            </p>
-          </div>
-        </Card>
-      ) : (
-        <E2375DiagramImage
-          partType={partType}
-          scanDetails={scanDetails}
-          highlightedDirection={highlightedDirection}
-        />
-      )}
 
-      {/* Scan Details Table */}
-      <Card className="p-6">
-        <div className="space-y-4">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <h3 className="text-sm font-semibold">Scan Details Configuration</h3>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger>
-                    <Info className="h-4 w-4 text-muted-foreground" />
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p className="max-w-xs">Configure scanning parameters for each direction according to part geometry and inspection requirements</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-            <span className="text-xs text-muted-foreground">
-              {scanDetails.filter(d => d.enabled).length} of {scanDetails.length} enabled
+        {/* RIGHT: Scan Details Table */}
+        <div className="flex-1 flex flex-col min-h-0 min-w-0">
+          {/* Compact header with warning */}
+          <div className="flex items-center justify-between mb-1 text-[10px]">
+            <span className="text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">
+              D/E→notched | F/G/H→angle beam
+            </span>
+            <span className="text-muted-foreground">
+              {scanDetails.filter(d => d.enabled).length}/{scanDetails.length}
             </span>
           </div>
 
-          <div className="overflow-x-auto max-h-[400px] overflow-y-auto border rounded-lg">
-            <table className="w-full border-collapse text-xs">
-              <thead className="sticky top-0 bg-background z-10">
-                <tr className="border-b bg-muted/50">
-                  <th className="text-center px-1.5 py-1.5 font-medium w-10"></th>
-                  <th className="text-center px-1.5 py-1.5 font-medium w-10">Dir</th>
-                  <th className="text-left px-1.5 py-1.5 font-medium">Wave Mode</th>
-                  <th className="text-left px-1.5 py-1.5 font-medium">Freq</th>
-                  <th className="text-left px-1.5 py-1.5 font-medium">Tech</th>
-                  <th className="text-left px-1.5 py-1.5 font-medium">Active El.</th>
-                  <th className="text-left px-1.5 py-1.5 font-medium">Probe</th>
-                  <th className="text-left px-1.5 py-1.5 font-medium">Remarks</th>
+          <div className="flex-1 overflow-auto border rounded text-[10px]">
+            <table className="w-full border-collapse">
+              <thead className="sticky top-0 bg-muted z-10">
+                <tr className="border-b">
+                  <th className="px-0.5 py-0.5 w-5"></th>
+                  <th className="px-0.5 py-0.5 w-7 text-center">Direction</th>
+                  <th className="px-0.5 py-0.5 text-left">Wave Mode</th>
+                  <th className="px-0.5 py-0.5 w-12 text-left">Frequency</th>
+                  <th className="px-0.5 py-0.5 w-12 text-left">Technique</th>
+                  <th className="px-0.5 py-0.5 w-14 text-left">Active Element</th>
+                  <th className="px-0.5 py-0.5 w-16 text-left">Probe</th>
+                  <th className="px-0.5 py-0.5 w-20 text-left">Remarks</th>
                 </tr>
               </thead>
               <tbody>
                 {scanDetails.map((detail, index) => (
                   <tr
                     key={detail.scanningDirection}
-                    className={`border-b transition-all ${detail.enabled ? 'bg-blue-50/50' : 'hover:bg-muted/30'}`}
+                    className={`border-b ${detail.enabled ? 'bg-blue-50/50' : 'hover:bg-muted/20'}`}
                     onMouseEnter={() => setHighlightedDirection(detail.scanningDirection)}
                     onMouseLeave={() => setHighlightedDirection(null)}
                   >
-                    <td className="px-1.5 py-1 text-center">
+                    <td className="px-0.5 py-px text-center">
                       <Checkbox
                         checked={detail.enabled}
                         onCheckedChange={() => toggleScanDetail(index)}
-                        className="h-4 w-4"
-                        data-testid={`checkbox-${detail.scanningDirection}`}
+                        className="h-3 w-3"
                       />
                     </td>
-                    <td className="px-1.5 py-1 text-center">
-                      <Badge variant="outline" className="font-bold text-xs">
+                    <td className="px-0.5 py-px text-center">
+                      <Badge variant="outline" className="text-[9px] px-1 py-0 font-bold">
                         {detail.scanningDirection}
                       </Badge>
                     </td>
-                    <td className="px-1.5 py-1">
-                      <span className="text-xs text-muted-foreground font-medium">
+                    <td className="px-0.5 py-px">
+                      <span className="text-muted-foreground text-[9px] whitespace-nowrap">
                         {detail.waveMode}
                       </span>
                     </td>
-                    <td className="px-1.5 py-1">
-                      <Select
-                        value={detail.frequency}
-                        onValueChange={(value) => updateScanDetail(index, "frequency", value)}
-                      >
-                        <SelectTrigger className="h-7 text-xs px-2" data-testid={`select-frequency-${index}`}>
-                          <SelectValue placeholder="Select..." />
+                    <td className="px-0.5 py-px">
+                      <Select value={detail.frequency} onValueChange={(v) => updateScanDetail(index, "frequency", v)}>
+                        <SelectTrigger className="h-5 text-[9px] px-0.5 w-full border-0 bg-transparent">
+                          <SelectValue placeholder="-" />
                         </SelectTrigger>
                         <SelectContent>
-                          {frequencyOptions.map((freq) => (
-                            <SelectItem key={freq} value={freq} className="text-xs">
-                              {freq} MHz
-                            </SelectItem>
-                          ))}
+                          {frequencyOptions.map((f) => <SelectItem key={f} value={f} className="text-xs">{f}</SelectItem>)}
                         </SelectContent>
                       </Select>
                     </td>
-                    <td className="px-1.5 py-1">
-                      <Select
-                        value={detail.technique || ""}
-                        onValueChange={(value) => updateScanDetail(index, "technique", value)}
-                      >
-                        <SelectTrigger className="h-7 text-xs px-2" data-testid={`select-technique-${index}`}>
-                          <SelectValue placeholder="Select..." />
+                    <td className="px-0.5 py-px">
+                      <Select value={detail.technique || ""} onValueChange={(v) => updateScanDetail(index, "technique", v)}>
+                        <SelectTrigger className="h-5 text-[9px] px-0.5 w-full border-0 bg-transparent">
+                          <SelectValue placeholder="-" />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="CONVENTIONAL" className="text-xs">CONV</SelectItem>
@@ -386,34 +362,28 @@ export const ScanDetailsTab = ({ data, onChange, partType, standard = "AMS-STD-2
                         </SelectContent>
                       </Select>
                     </td>
-                    <td className="px-1.5 py-1">
+                    <td className="px-0.5 py-px">
                       <Input
-                        type="text"
                         value={detail.activeElement || ""}
                         onChange={(e) => updateScanDetail(index, "activeElement", e.target.value)}
-                        placeholder="e.g., 0.5 inch"
-                        className="h-7 text-xs px-2"
-                        data-testid={`input-activeElement-${index}`}
+                        className="h-5 text-[9px] px-0.5 border-0 bg-transparent"
+                        placeholder="-"
                       />
                     </td>
-                    <td className="px-1.5 py-1">
+                    <td className="px-0.5 py-px">
                       <Input
-                        type="text"
                         value={detail.probe}
                         onChange={(e) => updateScanDetail(index, "probe", e.target.value)}
-                        placeholder="Probe model"
-                        className="h-7 text-xs px-2"
-                        data-testid={`input-probe-${index}`}
+                        className="h-5 text-[9px] px-0.5 border-0 bg-transparent"
+                        placeholder="-"
                       />
                     </td>
-                    <td className="px-1.5 py-1">
+                    <td className="px-0.5 py-px">
                       <Input
-                        type="text"
                         value={detail.remarkDetails}
                         onChange={(e) => updateScanDetail(index, "remarkDetails", e.target.value)}
-                        placeholder="Additional notes"
-                        className="h-7 text-xs px-2"
-                        data-testid={`input-remarks-${index}`}
+                        className="h-5 text-[9px] px-0.5 border-0 bg-transparent"
+                        placeholder="-"
                       />
                     </td>
                   </tr>
@@ -421,12 +391,8 @@ export const ScanDetailsTab = ({ data, onChange, partType, standard = "AMS-STD-2
               </tbody>
             </table>
           </div>
-
-          <div className="text-xs text-muted-foreground mt-4 p-3 bg-muted/30 rounded-lg">
-            <p>💡 <strong>Tip:</strong> All scanning directions are displayed in the visual preview above. Check the box next to each direction you want to include in the exported document. The direction letter and wave mode are fixed for each row.</p>
-          </div>
         </div>
-      </Card>
+      </div>
     </div>
   );
 };

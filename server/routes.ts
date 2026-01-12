@@ -168,6 +168,128 @@ export function registerRoutes(app: Express) {
     res.json({ status: "ok", timestamp: new Date().toISOString() });
   });
 
+  // ==========================================================================
+  // UNIFIED STORAGE API
+  // Provides cross-browser/Electron data persistence via local files
+  // All browsers (Chrome, Edge) and Electron share the same data
+  // ==========================================================================
+
+  const unifiedStorageDir = path.join(process.cwd(), "data", "unified-storage");
+
+  // Ensure unified storage directory exists
+  if (!fs.existsSync(unifiedStorageDir)) {
+    fs.mkdirSync(unifiedStorageDir, { recursive: true });
+    logger.info("Created unified storage directory:", unifiedStorageDir);
+  }
+
+  // Valid storage keys (whitelist for security)
+  const VALID_STORAGE_KEYS = [
+    "scanmaster_saved_cards",
+    "scanmaster_settings",
+    "scanmaster_inspector_profiles",
+    "scanmaster_first_run_completed",
+    "scanmaster_first_run_data",
+    "scanmaster_user_id",
+  ];
+
+  function isValidStorageKey(key: string): boolean {
+    return VALID_STORAGE_KEYS.includes(key);
+  }
+
+  function getStorageFilePath(key: string): string {
+    return path.join(unifiedStorageDir, `${key}.json`);
+  }
+
+  // Health check for unified storage
+  app.get("/api/unified-storage/health", (req, res) => {
+    res.json({ status: "ok", storageDir: unifiedStorageDir });
+  });
+
+  // Get data for a specific key
+  app.get("/api/unified-storage/:key", (req, res) => {
+    const { key } = req.params;
+
+    if (!isValidStorageKey(key)) {
+      return res.status(400).json({ error: "Invalid storage key" });
+    }
+
+    const filePath = getStorageFilePath(key);
+
+    try {
+      if (fs.existsSync(filePath)) {
+        const content = fs.readFileSync(filePath, "utf-8");
+        const data = JSON.parse(content);
+        res.json({ data, timestamp: fs.statSync(filePath).mtime.toISOString() });
+      } else {
+        res.json({ data: null, timestamp: null });
+      }
+    } catch (error: any) {
+      logger.error(`Failed to read unified storage key ${key}:`, error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Set data for a specific key
+  app.post("/api/unified-storage/:key", (req, res) => {
+    const { key } = req.params;
+    const { data } = req.body;
+
+    if (!isValidStorageKey(key)) {
+      return res.status(400).json({ error: "Invalid storage key" });
+    }
+
+    const filePath = getStorageFilePath(key);
+
+    try {
+      fs.writeFileSync(filePath, JSON.stringify(data, null, 2), "utf-8");
+      logger.info(`Unified storage updated: ${key}`);
+      res.json({ success: true, timestamp: new Date().toISOString() });
+    } catch (error: any) {
+      logger.error(`Failed to write unified storage key ${key}:`, error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Delete data for a specific key
+  app.delete("/api/unified-storage/:key", (req, res) => {
+    const { key } = req.params;
+
+    if (!isValidStorageKey(key)) {
+      return res.status(400).json({ error: "Invalid storage key" });
+    }
+
+    const filePath = getStorageFilePath(key);
+
+    try {
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+        logger.info(`Unified storage deleted: ${key}`);
+      }
+      res.json({ success: true });
+    } catch (error: any) {
+      logger.error(`Failed to delete unified storage key ${key}:`, error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // List all stored keys
+  app.get("/api/unified-storage", (req, res) => {
+    try {
+      const files = fs.readdirSync(unifiedStorageDir);
+      const keys = files
+        .filter((f) => f.endsWith(".json"))
+        .map((f) => f.replace(".json", ""));
+      res.json({ keys });
+    } catch (error: any) {
+      logger.error("Failed to list unified storage keys:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ==========================================================================
+  // END UNIFIED STORAGE API
+  // ==========================================================================
+
   // Temporary mock organizations endpoint (until database migrations are run)
   // Use the module-level MOCK_ORG_ID constant (ensured to exist in DB)
   

@@ -51,7 +51,7 @@ import {
   resolveRingSegmentBlock,
   getAvailableTemplates,
   validatePartDimensions,
-  TEMPLATE_OPTIONS,
+  autoSelectTemplate,
 } from '@/utils/ringSegmentBlock';
 
 import type {
@@ -113,6 +113,7 @@ export function RingSegmentBlockDrawing({
   const [zoomLevel, setZoomLevel] = useState(1);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [isDrawing, setIsDrawing] = useState(false);
+  const [autoSelectReasoning, setAutoSelectReasoning] = useState<string | null>(null);
 
   // Refs
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -121,6 +122,23 @@ export function RingSegmentBlockDrawing({
   // Use ref for callback to avoid infinite loops
   const onBlockResolvedRef = useRef(onBlockResolved);
   onBlockResolvedRef.current = onBlockResolved;
+
+  // Auto-select template when part dimensions change (if provided from technique sheet)
+  useEffect(() => {
+    if (initialPartDims && (initialPartDims.outerDiameterMm || initialPartDims.innerDiameterMm)) {
+      const { templateId, reasoning } = autoSelectTemplate(initialPartDims);
+      console.log('[RingSegmentDraw] Auto-selecting template:', templateId, reasoning);
+      setSelectedTemplateId(templateId);
+      setAutoSelectReasoning(reasoning);
+    }
+  }, [initialPartDims]);
+
+  // Update partDims when initialPartDims changes
+  useEffect(() => {
+    if (initialPartDims) {
+      setPartDims(initialPartDims);
+    }
+  }, [initialPartDims]);
 
   // Get available templates
   const templates = useMemo(() => getAvailableTemplates(), []);
@@ -310,14 +328,22 @@ export function RingSegmentBlockDrawing({
     };
   }, [resolvedBlock, canvasSize.width, canvasSize.height]);
 
-  // Handle dimension input change
+  // Handle dimension input change - also triggers auto-selection
   const handleDimensionChange = useCallback(
     (field: keyof PartDimensionsOverride, value: string) => {
       const numValue = value === '' ? undefined : parseFloat(value);
-      setPartDims((prev) => ({
-        ...prev,
-        [field]: numValue,
-      }));
+      setPartDims((prev) => {
+        const newDims = { ...prev, [field]: numValue };
+        
+        // Auto-select template based on new dimensions
+        if (field === 'outerDiameterMm' || field === 'innerDiameterMm') {
+          const { templateId, reasoning } = autoSelectTemplate(newDims);
+          setSelectedTemplateId(templateId);
+          setAutoSelectReasoning(reasoning);
+        }
+        
+        return newDims;
+      });
     },
     []
   );
@@ -414,27 +440,17 @@ export function RingSegmentBlockDrawing({
                 {showAdvanced ? 'Simple' : 'Advanced'}
               </Button>
             </div>
+            {/* Auto-selection reasoning */}
+            {autoSelectReasoning && (
+              <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-lg text-sm text-green-800">
+                <Info className="inline h-4 w-4 mr-1" />
+                <strong>Auto-selected:</strong> {autoSelectReasoning}
+              </div>
+            )}
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-              {/* Template selector */}
-              <div className="col-span-2">
-                <Label htmlFor="template">Template</Label>
-                <Select value={selectedTemplateId} onValueChange={setSelectedTemplateId}>
-                  <SelectTrigger id="template">
-                    <SelectValue placeholder="Select template" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {TEMPLATE_OPTIONS.map((opt) => (
-                      <SelectItem key={opt.id} value={opt.id}>
-                        {opt.label} - {opt.description}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* OD input */}
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              {/* OD input - Primary */}
               <div>
                 <Label htmlFor="od">OD (mm)</Label>
                 <Input
@@ -446,7 +462,7 @@ export function RingSegmentBlockDrawing({
                 />
               </div>
 
-              {/* ID input */}
+              {/* ID input - Primary */}
               <div>
                 <Label htmlFor="id">ID (mm)</Label>
                 <Input

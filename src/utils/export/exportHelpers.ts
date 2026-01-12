@@ -4,16 +4,19 @@
  */
 
 // ============================================================================
-// COLORS - Professional blue theme
+// COLORS - Professional TUV-style blue theme
 // ============================================================================
 export const COLORS = {
   // Primary colors
-  primary: [0, 82, 147] as [number, number, number],       // Dark blue - headers
+  primary: [0, 82, 147] as [number, number, number],       // TUV blue - headers
+  primaryDark: [0, 60, 110] as [number, number, number],   // Darker blue - cover page
   secondary: [64, 128, 178] as [number, number, number],   // Medium blue - subheaders
   accent: [0, 122, 194] as [number, number, number],       // Light blue - highlights
+  accentGold: [212, 175, 55] as [number, number, number],  // Gold accent - premium styling
 
   // Background colors
   headerBg: [240, 245, 250] as [number, number, number],   // Light gray-blue
+  sectionBg: [245, 247, 250] as [number, number, number],  // Section backgrounds
   rowAlt: [248, 250, 252] as [number, number, number],     // Alternating row
   white: [255, 255, 255] as [number, number, number],
 
@@ -24,6 +27,8 @@ export const COLORS = {
   // Text colors
   text: [30, 30, 30] as [number, number, number],          // Dark text
   lightText: [100, 100, 100] as [number, number, number],  // Secondary text
+  mutedText: [130, 130, 130] as [number, number, number],  // Muted/subtle text
+  confidential: [180, 50, 50] as [number, number, number], // Confidential notice
 
   // Status colors
   success: [34, 139, 34] as [number, number, number],      // Green - Accept
@@ -51,6 +56,7 @@ export const PAGE = {
 // FONTS
 // ============================================================================
 export const FONTS = {
+  coverTitle: { size: 26, style: 'bold' as const },        // Main cover page title
   title: { size: 18, style: 'bold' as const },
   sectionTitle: { size: 14, style: 'bold' as const },
   subsectionTitle: { size: 12, style: 'bold' as const },
@@ -58,6 +64,16 @@ export const FONTS = {
   body: { size: 10, style: 'normal' as const },
   small: { size: 9, style: 'normal' as const },
   tiny: { size: 8, style: 'normal' as const },
+};
+
+// ============================================================================
+// VISUAL SETTINGS
+// ============================================================================
+export const VISUAL = {
+  radiusSmall: 1,
+  radiusMedium: 2,
+  radiusLarge: 3,
+  shadowOffset: 0.5,
 };
 
 // ============================================================================

@@ -36,6 +36,7 @@ import {
   COLORS,
   PAGE,
   FONTS,
+  VISUAL,
   formatValue,
   formatNumber,
   formatDate,
@@ -323,24 +324,28 @@ class TechniqueSheetPDFBuilder {
     const doc = this.data.documentation;
     const setup = this.data.inspectionSetup;
 
-    // Header background
+    // ========== ULTIMATE HEADER DESIGN ==========
+    // Main header background with TUV blue
     this.pdf.setFillColor(...COLORS.primary);
     this.pdf.rect(0, 0, PAGE.width, PAGE.headerHeight, 'F');
 
-    // Company logo / name area (left)
+    // Gold accent line at bottom
+    this.pdf.setFillColor(...COLORS.accentGold);
+    this.pdf.rect(0, PAGE.headerHeight - 1.5, PAGE.width, 1.5, 'F');
+
+    // Company logo (left side)
     const logoX = PAGE.marginLeft;
     const logoY = 3;
     const logoMaxHeight = PAGE.headerHeight - 6;
     const logoMaxWidth = 30;
 
-    let textStartX = logoX; // Default text position if no logo
+    let textStartX = logoX;
 
     if (this.options.companyLogo) {
       try {
-        // Add company logo image
         this.pdf.addImage(
           this.options.companyLogo,
-          'AUTO', // Auto-detect format (PNG, JPEG, etc.)
+          'AUTO',
           logoX,
           logoY,
           logoMaxWidth,
@@ -348,32 +353,39 @@ class TechniqueSheetPDFBuilder {
           undefined,
           'FAST'
         );
-        textStartX = logoX + logoMaxWidth + 3; // Position text after logo
+        textStartX = logoX + logoMaxWidth + 5;
       } catch (e) {
-        // If logo fails to load, fall back to text only
         console.warn('Failed to add company logo:', e);
       }
     }
 
-    // Company name (after logo or at start if no logo)
+    // Company name (after logo)
     this.pdf.setTextColor(255, 255, 255);
-    this.pdf.setFontSize(10);
+    this.pdf.setFontSize(9);
     this.pdf.setFont('helvetica', 'bold');
     if (this.options.companyName) {
       this.pdf.text(this.options.companyName, textStartX, 10);
     }
 
-    // Title (center)
+    // Document title (center) - Two lines
+    this.pdf.setTextColor(255, 255, 255);
     this.pdf.setFontSize(11);
-    this.pdf.text('ULTRASONIC INSPECTION TECHNIQUE SHEET', PAGE.width / 2, 10, { align: 'center' });
+    this.pdf.setFont('helvetica', 'bold');
+    this.pdf.text('UT TECHNIQUE SHEET', PAGE.width / 2, 10, { align: 'center' });
 
-    // Document number (right)
-    this.pdf.setFontSize(9);
-    this.pdf.setFont('helvetica', 'normal');
-    const docNum = setup.partNumber ? `P/N: ${setup.partNumber}` : '';
-    this.pdf.text(docNum, PAGE.width - PAGE.marginRight, 10, { align: 'right' });
+    // Part number & Revision badge (right side)
+    const rightX = PAGE.width - PAGE.marginRight;
+    if (setup.partNumber) {
+      this.pdf.setFontSize(7);
+      this.pdf.setFont('helvetica', 'normal');
+      this.pdf.setTextColor(180, 200, 220);
+      this.pdf.text('P/N', rightX, 6, { align: 'right' });
+      this.pdf.setFontSize(9);
+      this.pdf.setFont('helvetica', 'bold');
+      this.pdf.setTextColor(255, 255, 255);
+      this.pdf.text(setup.partNumber, rightX, 12, { align: 'right' });
+    }
 
-    // Reset text color
     this.pdf.setTextColor(...COLORS.text);
   }
 
@@ -381,199 +393,363 @@ class TechniqueSheetPDFBuilder {
     const doc = this.data.documentation;
     const y = PAGE.height - PAGE.footerHeight;
 
-    // Footer line
-    this.pdf.setDrawColor(...COLORS.divider);
-    this.pdf.line(PAGE.marginLeft, y, PAGE.width - PAGE.marginRight, y);
+    // ========== ULTIMATE FOOTER DESIGN ==========
+    // Top accent line
+    this.pdf.setFillColor(...COLORS.primary);
+    this.pdf.rect(0, y - 1, PAGE.width, 1, 'F');
+
+    // Footer background
+    this.pdf.setFillColor(...COLORS.sectionBg);
+    this.pdf.rect(0, y, PAGE.width, PAGE.footerHeight, 'F');
+
+    // Left section: Document info
+    this.pdf.setFontSize(7);
+    this.pdf.setFont('helvetica', 'bold');
+    this.pdf.setTextColor(...COLORS.primary);
+    this.pdf.text(`Rev. ${doc.revision || 'A'}`, PAGE.marginLeft, y + 5);
+
+    this.pdf.setFont('helvetica', 'normal');
+    this.pdf.setTextColor(...COLORS.lightText);
+    this.pdf.text(`| ${formatValue(this.data.standard)}`, PAGE.marginLeft + 16, y + 5);
+
+    // Date below
+    this.pdf.setFontSize(6);
+    this.pdf.text(formatDate(doc.inspectionDate), PAGE.marginLeft, y + 9);
+
+    // Center: Confidentiality notice
+    this.pdf.setFontSize(6);
+    this.pdf.setTextColor(...COLORS.confidential);
+    this.pdf.setFont('helvetica', 'bold');
+    this.pdf.text('CONFIDENTIAL', PAGE.width / 2, y + 5, { align: 'center' });
+    this.pdf.setFont('helvetica', 'normal');
+    this.pdf.setTextColor(...COLORS.mutedText);
+    this.pdf.text('Proprietary Inspection Document', PAGE.width / 2, y + 9, { align: 'center' });
+
+    // Right: Page number with premium styling
+    const pageX = PAGE.width - PAGE.marginRight;
+
+    // Page number circle background
+    this.pdf.setFillColor(...COLORS.primary);
+    this.pdf.circle(pageX - 6, y + 6, 5, 'F');
 
     this.pdf.setFontSize(8);
+    this.pdf.setFont('helvetica', 'bold');
+    this.pdf.setTextColor(255, 255, 255);
+    this.pdf.text(`${this.currentPage}`, pageX - 6, y + 8, { align: 'center' });
+
+    this.pdf.setFontSize(7);
     this.pdf.setTextColor(...COLORS.lightText);
+    this.pdf.setFont('helvetica', 'normal');
+    this.pdf.text(`of ${this.totalPages}`, pageX, y + 8, { align: 'right' });
 
-    // Left: Document info
-    const revision = doc.revision || 'A';
-    this.pdf.text(`Rev. ${revision}`, PAGE.marginLeft, y + 5);
-
-    // Center: Date
-    this.pdf.text(formatDate(doc.inspectionDate), PAGE.width / 2, y + 5, { align: 'center' });
-
-    // Right: Page number
-    this.pdf.text(`Page ${this.currentPage} of ${this.totalPages}`, PAGE.width - PAGE.marginRight, y + 5, { align: 'right' });
-
-    // Reset
     this.pdf.setTextColor(...COLORS.text);
   }
 
   private addSectionTitle(title: string, y: number): number {
-    const sectionHeight = 10;
+    // ========== ULTIMATE SECTION HEADER ==========
+    const sectionHeight = 12;
+
+    // Subtle shadow
+    this.pdf.setFillColor(...COLORS.divider);
+    this.pdf.roundedRect(PAGE.marginLeft + 0.5, y - 3.5, PAGE.contentWidth, sectionHeight, VISUAL.radiusMedium, VISUAL.radiusMedium, 'F');
+
+    // Background bar with TUV blue
     this.pdf.setFillColor(...COLORS.primary);
-    this.pdf.roundedRect(PAGE.marginLeft, y - 4, PAGE.contentWidth, sectionHeight, 2, 2, 'F');
+    this.pdf.roundedRect(PAGE.marginLeft, y - 4, PAGE.contentWidth, sectionHeight, VISUAL.radiusMedium, VISUAL.radiusMedium, 'F');
+
+    // Gold left accent bar
+    this.pdf.setFillColor(...COLORS.accentGold);
+    this.pdf.roundedRect(PAGE.marginLeft, y - 4, 4, sectionHeight, VISUAL.radiusMedium, VISUAL.radiusMedium, 'F');
+    this.pdf.rect(PAGE.marginLeft + 2, y - 4, 2, sectionHeight, 'F');
+
+    // Section title text
     this.pdf.setTextColor(255, 255, 255);
     this.pdf.setFontSize(FONTS.sectionTitle.size);
     this.pdf.setFont('helvetica', 'bold');
-    this.pdf.text(title, PAGE.marginLeft + 6, y + 3);
+    this.pdf.text(title, PAGE.marginLeft + 10, y + 4);
+
     this.pdf.setTextColor(...COLORS.text);
-    return y + 14;
+    return y + 16;
   }
 
   private addSubsectionTitle(title: string, y: number): number {
-    this.pdf.setFillColor(...COLORS.accent);
-    this.pdf.rect(PAGE.marginLeft, y - 3, 3, 8, 'F');
+    // ========== PREMIUM SUBSECTION HEADER ==========
+    // Dual-color accent bar
+    this.pdf.setFillColor(...COLORS.primary);
+    this.pdf.rect(PAGE.marginLeft, y - 3, 2, 9, 'F');
+    this.pdf.setFillColor(...COLORS.accentGold);
+    this.pdf.rect(PAGE.marginLeft + 2, y - 3, 2, 9, 'F');
+
+    // Subtle background
+    this.pdf.setFillColor(...COLORS.sectionBg);
+    this.pdf.rect(PAGE.marginLeft + 4, y - 3, PAGE.contentWidth - 4, 9, 'F');
+
     this.pdf.setFontSize(FONTS.subsectionTitle.size);
     this.pdf.setFont('helvetica', 'bold');
     this.pdf.setTextColor(...COLORS.primary);
-    this.pdf.text(title, PAGE.marginLeft + 6, y + 2);
+    this.pdf.text(title, PAGE.marginLeft + 8, y + 3);
     this.pdf.setTextColor(...COLORS.text);
-    return y + 10;
+    return y + 12;
   }
 
   // =========================================================================
-  // PAGE 1: COVER PAGE
+  // PAGE 1: COVER PAGE - Ultimate Professional Design
   // =========================================================================
 
   private buildCoverPage(): void {
     const setup = this.data.inspectionSetup;
     const doc = this.data.documentation;
+    const colWidth = PAGE.contentWidth / 2 - 5;
 
-    // Header banner
+    // ========== PREMIUM HEADER BANNER (TUV Style) ==========
+    // Main header - gradient effect with two layers (reduced height)
+    this.pdf.setFillColor(...COLORS.primaryDark);
+    this.pdf.rect(0, 0, PAGE.width, 55, 'F');
+
+    // Gradient overlay (lighter at bottom)
     this.pdf.setFillColor(...COLORS.primary);
-    this.pdf.rect(0, 0, PAGE.width, 50, 'F');
+    this.pdf.rect(0, 30, PAGE.width, 25, 'F');
 
-    // Title
+    // Gold accent line at bottom of header
+    this.pdf.setFillColor(...COLORS.accentGold);
+    this.pdf.rect(0, 55, PAGE.width, 2, 'F');
+
+    // Secondary accent line
+    this.pdf.setFillColor(...COLORS.accent);
+    this.pdf.rect(0, 57, PAGE.width, 1, 'F');
+
+    // Company logo on cover page (top-left)
+    let logoEndX = PAGE.marginLeft;
+    if (this.options.companyLogo) {
+      try {
+        this.pdf.addImage(
+          this.options.companyLogo,
+          'AUTO',
+          PAGE.marginLeft,
+          8,
+          40,
+          18,
+          undefined,
+          'FAST'
+        );
+        logoEndX = PAGE.marginLeft + 45;
+      } catch (e) {
+        console.warn('Failed to add company logo on cover:', e);
+      }
+    }
+
+    // Main Title - Large and prominent
     this.pdf.setTextColor(255, 255, 255);
-    this.pdf.setFontSize(22);
+    this.pdf.setFontSize(FONTS.coverTitle.size);
     this.pdf.setFont('helvetica', 'bold');
     this.pdf.text('ULTRASONIC INSPECTION', PAGE.width / 2, 25, { align: 'center' });
-    this.pdf.text('TECHNIQUE SHEET', PAGE.width / 2, 35, { align: 'center' });
 
-    // Company name
+    this.pdf.setFontSize(20);
+    this.pdf.text('TECHNIQUE SHEET', PAGE.width / 2, 38, { align: 'center' });
+
+    // Company name subtitle
     if (this.options.companyName) {
-      this.pdf.setFontSize(12);
+      this.pdf.setFontSize(10);
       this.pdf.setFont('helvetica', 'normal');
-      this.pdf.text(this.options.companyName, PAGE.width / 2, 45, { align: 'center' });
+      this.pdf.setTextColor(180, 200, 220);
+      this.pdf.text(this.options.companyName, PAGE.width / 2, 50, { align: 'center' });
     }
 
     this.pdf.setTextColor(...COLORS.text);
 
-    // Document Info Box
+    // ========== DOCUMENT INFO BAR ==========
     let y = 65;
-    this.pdf.setFillColor(...COLORS.headerBg);
-    this.pdf.roundedRect(PAGE.marginLeft, y, PAGE.contentWidth, 35, 3, 3, 'F');
-    this.pdf.setDrawColor(...COLORS.tableBorder);
-    this.pdf.roundedRect(PAGE.marginLeft, y, PAGE.contentWidth, 35, 3, 3, 'S');
+    this.pdf.setFillColor(...COLORS.sectionBg);
+    this.pdf.rect(0, y, PAGE.width, 22, 'F');
 
-    this.pdf.setFontSize(10);
-    this.pdf.setFont('helvetica', 'bold');
-    this.pdf.text('DOCUMENT INFORMATION', PAGE.marginLeft + 5, y + 8);
-
-    this.pdf.setFont('helvetica', 'normal');
-    this.pdf.setFontSize(9);
-
-    const docRows = [
-      ['Standard:', formatValue(this.data.standard)],
-      ['Revision:', formatValue(doc.revision)],
-      ['Date:', formatDate(doc.inspectionDate)],
-      ['Procedure:', formatValue(doc.procedureNumber)],
+    // Document info items with stylish icons/labels
+    const docInfoItems = [
+      { label: 'Document No:', value: formatValue(this.options.documentNumber || doc.procedureNumber) },
+      { label: 'Date:', value: formatDate(doc.inspectionDate) },
+      { label: 'Part No:', value: formatValue(setup.partNumber) },
     ];
 
-    const docY = y + 15;
-    const colWidth = PAGE.contentWidth / 2;
-    docRows.forEach((row, i) => {
-      const x = PAGE.marginLeft + 5 + (i % 2) * colWidth;
-      const rowY = docY + Math.floor(i / 2) * 8;
+    const infoWidth = PAGE.contentWidth / 3;
+    docInfoItems.forEach((item, i) => {
+      const x = PAGE.marginLeft + (i * infoWidth);
+
+      // Label with small accent dot
+      this.pdf.setFillColor(...COLORS.accentGold);
+      this.pdf.circle(x + 1, y + 8, 0.5, 'F');
+
+      this.pdf.setFontSize(7);
       this.pdf.setFont('helvetica', 'bold');
-      this.pdf.text(row[0], x, rowY);
-      this.pdf.setFont('helvetica', 'normal');
-      this.pdf.text(row[1], x + 30, rowY);
+      this.pdf.setTextColor(...COLORS.lightText);
+      this.pdf.text(item.label, x + 3, y + 9);
+
+      this.pdf.setFontSize(10);
+      this.pdf.setFont('helvetica', 'bold');
+      this.pdf.setTextColor(...COLORS.primaryDark);
+      this.pdf.text(item.value, x, y + 17);
     });
 
-    // Part Info Box
-    y = 110;
-    this.pdf.setFillColor(...COLORS.headerBg);
-    this.pdf.roundedRect(PAGE.marginLeft, y, PAGE.contentWidth, 55, 3, 3, 'F');
-    this.pdf.setDrawColor(...COLORS.tableBorder);
-    this.pdf.roundedRect(PAGE.marginLeft, y, PAGE.contentWidth, 55, 3, 3, 'S');
+    // ========== PART INFORMATION CARD ==========
+    y = 95;
+    const cardHeight = 55;
 
-    this.pdf.setFontSize(10);
+    // Card shadow effect
+    this.pdf.setFillColor(...COLORS.divider);
+    this.pdf.roundedRect(PAGE.marginLeft + 1, y + 1, PAGE.contentWidth, cardHeight, 3, 3, 'F');
+
+    // Card background
+    this.pdf.setFillColor(...COLORS.white);
+    this.pdf.roundedRect(PAGE.marginLeft, y, PAGE.contentWidth, cardHeight, 3, 3, 'F');
+
+    // Card header with icon-style number
+    this.pdf.setFillColor(...COLORS.primary);
+    this.pdf.roundedRect(PAGE.marginLeft, y, PAGE.contentWidth, 14, 3, 3, 'F');
+    this.pdf.rect(PAGE.marginLeft, y + 7, PAGE.contentWidth, 7, 'F');
+
+    // Section number badge
+    this.pdf.setFillColor(...COLORS.accentGold);
+    this.pdf.roundedRect(PAGE.marginLeft + 5, y + 2, 20, 10, 2, 2, 'F');
+    this.pdf.setTextColor(...COLORS.primaryDark);
+    this.pdf.setFontSize(8);
     this.pdf.setFont('helvetica', 'bold');
-    this.pdf.text('PART INFORMATION', PAGE.marginLeft + 5, y + 8);
+    this.pdf.text('01', PAGE.marginLeft + 15, y + 9, { align: 'center' });
 
-    // Part details
-    const partRows = [
-      ['Part Number:', formatValue(setup.partNumber)],
-      ['Part Name:', formatValue(setup.partName)],
-      ['Material:', formatMaterial(setup.material, setup.customMaterialName)],
-      ['Material Spec:', formatValue(setup.materialSpec)],
-      ['Part Type:', formatPartType(setup.partType)],
-      ['Drawing:', formatValue(setup.drawingNumber)],
+    this.pdf.setTextColor(255, 255, 255);
+    this.pdf.setFontSize(11);
+    this.pdf.text('PART IDENTIFICATION', PAGE.marginLeft + 32, y + 10);
+
+    // Part details in grid with better spacing and contrast
+    const partData = [
+      ['Part Number', formatValue(setup.partNumber)],
+      ['Part Name', formatValue(setup.partName)],
+      ['Material', formatMaterial(setup.material, setup.customMaterialName)],
+      ['Material Spec', formatValue(setup.materialSpec)],
+      ['Geometry', formatPartType(setup.partType)],
+      ['Drawing No', formatValue(setup.drawingNumber)],
     ];
 
-    const partY = y + 16;
-    partRows.forEach((row, i) => {
-      const x = PAGE.marginLeft + 5 + (i % 2) * colWidth;
-      const rowY = partY + Math.floor(i / 2) * 10;
+    const partY = y + 24;
+    partData.forEach((row, i) => {
+      const col = i % 2;
+      const x = PAGE.marginLeft + 10 + (col * (colWidth + 10));
+      const currY = partY + Math.floor(i / 2) * 12;
+
+      // Label
       this.pdf.setFont('helvetica', 'bold');
-      this.pdf.setFontSize(9);
-      this.pdf.text(row[0], x, rowY);
-      this.pdf.setFont('helvetica', 'normal');
-      this.pdf.text(row[1], x + 35, rowY);
+      this.pdf.setFontSize(7.5);
+      this.pdf.setTextColor(...COLORS.lightText);
+      this.pdf.text(row[0].toUpperCase(), x, currY);
+
+      // Value
+      this.pdf.setFont('helvetica', 'bold');
+      this.pdf.setFontSize(9.5);
+      this.pdf.setTextColor(...COLORS.text);
+      this.pdf.text(row[1], x, currY + 4.5);
+
+      // Decorative bottom line for each item
+      this.pdf.setDrawColor(...COLORS.divider);
+      this.pdf.setLineWidth(0.1);
+      this.pdf.line(x, currY + 6, x + colWidth - 15, currY + 6);
     });
 
-    // Inspector Info Box
-    y = 175;
-    this.pdf.setFillColor(...COLORS.headerBg);
-    this.pdf.roundedRect(PAGE.marginLeft, y, PAGE.contentWidth, 35, 3, 3, 'F');
-    this.pdf.setDrawColor(...COLORS.tableBorder);
-    this.pdf.roundedRect(PAGE.marginLeft, y, PAGE.contentWidth, 35, 3, 3, 'S');
+    // ========== INSPECTOR & CERTIFICATION CARD ==========
+    y = 160;
+    const certCardHeight = 45;
 
-    this.pdf.setFontSize(10);
+    // Card shadow
+    this.pdf.setFillColor(...COLORS.divider);
+    this.pdf.roundedRect(PAGE.marginLeft + 1, y + 1, PAGE.contentWidth, certCardHeight, 3, 3, 'F');
+
+    // Card background
+    this.pdf.setFillColor(...COLORS.white);
+    this.pdf.roundedRect(PAGE.marginLeft, y, PAGE.contentWidth, certCardHeight, 3, 3, 'F');
+
+    // Card header
+    this.pdf.setFillColor(...COLORS.secondary);
+    this.pdf.roundedRect(PAGE.marginLeft, y, PAGE.contentWidth, 14, 3, 3, 'F');
+    this.pdf.rect(PAGE.marginLeft, y + 7, PAGE.contentWidth, 7, 'F');
+
+    // Section number badge
+    this.pdf.setFillColor(...COLORS.accentGold);
+    this.pdf.roundedRect(PAGE.marginLeft + 5, y + 2, 20, 10, 2, 2, 'F');
+    this.pdf.setTextColor(...COLORS.primaryDark);
+    this.pdf.setFontSize(8);
     this.pdf.setFont('helvetica', 'bold');
-    this.pdf.text('INSPECTOR INFORMATION', PAGE.marginLeft + 5, y + 8);
+    this.pdf.text('02', PAGE.marginLeft + 15, y + 9, { align: 'center' });
 
-    const inspectorRows = [
-      ['Inspector:', formatValue(doc.inspectorName)],
-      ['Level:', formatValue(doc.inspectorLevel)],
-      ['Certification:', formatValue(doc.inspectorCertification)],
-      ['Organization:', formatValue(doc.certifyingOrganization)],
+    this.pdf.setTextColor(255, 255, 255);
+    this.pdf.setFontSize(11);
+    this.pdf.text('INSPECTOR & CERTIFICATION', PAGE.marginLeft + 32, y + 10);
+
+    const certData = [
+      ['Inspector', formatValue(doc.inspectorName)],
+      ['Level', formatValue(doc.inspectorLevel)],
+      ['Cert. Number', formatValue(doc.inspectorCertification)],
+      ['Organization', formatValue(doc.certifyingOrganization)],
     ];
 
-    const inspY = y + 16;
-    inspectorRows.forEach((row, i) => {
-      const x = PAGE.marginLeft + 5 + (i % 2) * colWidth;
-      const rowY = inspY + Math.floor(i / 2) * 10;
+    const certY = y + 24;
+    certData.forEach((row, i) => {
+      const col = i % 2;
+      const x = PAGE.marginLeft + 10 + (col * (colWidth + 10));
+      const currY = certY + Math.floor(i / 2) * 12;
+
       this.pdf.setFont('helvetica', 'bold');
-      this.pdf.setFontSize(9);
-      this.pdf.text(row[0], x, rowY);
-      this.pdf.setFont('helvetica', 'normal');
-      this.pdf.text(row[1], x + 30, rowY);
+      this.pdf.setFontSize(7.5);
+      this.pdf.setTextColor(...COLORS.lightText);
+      this.pdf.text(row[0].toUpperCase(), x, currY);
+
+      this.pdf.setFont('helvetica', 'bold');
+      this.pdf.setFontSize(9.5);
+      this.pdf.setTextColor(...COLORS.text);
+      this.pdf.text(row[1], x, currY + 4.5);
+
+      this.pdf.setDrawColor(...COLORS.divider);
+      this.pdf.setLineWidth(0.1);
+      this.pdf.line(x, currY + 6, x + colWidth - 15, currY + 6);
     });
 
-    // Acceptance Class Badge
-    y = 220;
+    // ========== ACCEPTANCE CLASS BADGE (Premium Gold Design) ==========
+    y = 215;
     const classInfo = formatAcceptanceClass(this.data.acceptanceCriteria.acceptanceClass);
     if (classInfo.class !== '-') {
-      // Badge background
-      const badgeWidth = 60;
+      const badgeWidth = 100;
+      const badgeHeight = 35;
       const badgeX = (PAGE.width - badgeWidth) / 2;
+
+      // Outer gold glow
+      this.pdf.setFillColor(...COLORS.accentGold);
+      this.pdf.roundedRect(badgeX - 2, y - 2, badgeWidth + 4, badgeHeight + 4, 5, 5, 'F');
+
+      // Main badge with gradient effect
+      this.pdf.setFillColor(...COLORS.primaryDark);
+      this.pdf.roundedRect(badgeX, y, badgeWidth, badgeHeight, 4, 4, 'F');
+
+      // Inner highlight
       this.pdf.setFillColor(...COLORS.primary);
-      this.pdf.roundedRect(badgeX, y, badgeWidth, 25, 3, 3, 'F');
+      this.pdf.roundedRect(badgeX + 2, y + 2, badgeWidth - 4, badgeHeight - 4, 3, 3, 'F');
+
+      this.pdf.setTextColor(...COLORS.accentGold);
+      this.pdf.setFontSize(8);
+      this.pdf.setFont('helvetica', 'bold');
+      this.pdf.text('ACCEPTANCE CLASS', PAGE.width / 2, y + 12, { align: 'center' });
 
       this.pdf.setTextColor(255, 255, 255);
-      this.pdf.setFontSize(12);
-      this.pdf.setFont('helvetica', 'bold');
-      this.pdf.text('ACCEPTANCE CLASS', PAGE.width / 2, y + 8, { align: 'center' });
       this.pdf.setFontSize(18);
-      this.pdf.text(classInfo.class, PAGE.width / 2, y + 20, { align: 'center' });
-
-      this.pdf.setTextColor(...COLORS.text);
+      this.pdf.text(classInfo.class, PAGE.width / 2, y + 27, { align: 'center' });
     }
 
-    // Footer note
-    this.pdf.setFontSize(8);
-    this.pdf.setTextColor(...COLORS.lightText);
-    this.pdf.text('This document contains confidential inspection information.', PAGE.width / 2, 270, { align: 'center' });
-    this.pdf.text('Unauthorized reproduction or distribution is prohibited.', PAGE.width / 2, 275, { align: 'center' });
+    // ========== CONFIDENTIALITY FOOTER ==========
+    y = PAGE.height - 20;
+    this.pdf.setFillColor(...COLORS.sectionBg);
+    this.pdf.rect(0, y - 5, PAGE.width, 18, 'F');
 
-    // Page number
-    this.addFooter();
+    this.pdf.setFontSize(7);
+    this.pdf.setFont('helvetica', 'bold');
+    this.pdf.setTextColor(...COLORS.confidential);
+    this.pdf.text('CONFIDENTIAL', PAGE.width / 2, y, { align: 'center' });
+    this.pdf.setFont('helvetica', 'normal');
+    this.pdf.setTextColor(...COLORS.lightText);
+    this.pdf.text('This document contains proprietary inspection data. Unauthorized reproduction or distribution is strictly prohibited.', PAGE.width / 2, y + 6, { align: 'center' });
   }
 
   // =========================================================================
@@ -987,19 +1163,27 @@ class TechniqueSheetPDFBuilder {
 
     if (this.data.calibrationBlockDiagram) {
       try {
-        // Calibration Block: max 140mm height, maintain 4:3 aspect ratio
-        const maxHeight = 140;
-        const aspectRatio = 4 / 3; // width:height = 4:3
-        const imgHeight = maxHeight;
-        const imgWidth = imgHeight * aspectRatio;
-        
+        // Calculate proper dimensions maintaining aspect ratio (4:3 typical for diagrams)
+        const maxWidth = PAGE.contentWidth * 0.85; // Leave some margin
+        const maxHeight = PAGE.height - y - PAGE.footerHeight - 30;
+        const aspectRatio = 4 / 3; // Typical diagram aspect ratio
+
+        let imgWidth = maxWidth;
+        let imgHeight = imgWidth / aspectRatio;
+
+        // If too tall, scale by height
+        if (imgHeight > Math.min(maxHeight, 140)) {
+          imgHeight = Math.min(maxHeight, 140);
+          imgWidth = imgHeight * aspectRatio;
+        }
+
         // Center horizontally
         const xPos = PAGE.marginLeft + (PAGE.contentWidth - imgWidth) / 2;
 
-        // Draw border frame (gray)
-        this.pdf.setDrawColor(180, 180, 180);
+        // Add border/frame around image
+        this.pdf.setDrawColor(200, 200, 200);
         this.pdf.setLineWidth(0.5);
-        this.pdf.rect(xPos - 1, y - 1, imgWidth + 2, imgHeight + 2);
+        this.pdf.rect(xPos - 2, y - 2, imgWidth + 4, imgHeight + 4);
 
         this.pdf.addImage(
           this.data.calibrationBlockDiagram,
@@ -1009,7 +1193,7 @@ class TechniqueSheetPDFBuilder {
           imgWidth,
           imgHeight,
           undefined,
-          'MEDIUM' // Better quality
+          'MEDIUM'
         );
       } catch {
         this.pdf.setFontSize(10);
@@ -1053,19 +1237,24 @@ class TechniqueSheetPDFBuilder {
 
     if (this.data.angleBeamDiagram) {
       try {
-        // Angle Beam Block: max 130mm height, maintain 4:3 aspect ratio
-        const maxHeight = 130;
-        const aspectRatio = 4 / 3; // width:height = 4:3
-        const imgHeight = maxHeight;
-        const imgWidth = imgHeight * aspectRatio;
-        
-        // Center horizontally
+        // Calculate proper dimensions maintaining aspect ratio
+        const maxWidth = PAGE.contentWidth * 0.85;
+        const maxHeight = PAGE.height - y - PAGE.footerHeight - 30;
+        const aspectRatio = 4 / 3;
+
+        let imgWidth = maxWidth;
+        let imgHeight = imgWidth / aspectRatio;
+
+        if (imgHeight > Math.min(maxHeight, 130)) {
+          imgHeight = Math.min(maxHeight, 130);
+          imgWidth = imgHeight * aspectRatio;
+        }
+
         const xPos = PAGE.marginLeft + (PAGE.contentWidth - imgWidth) / 2;
 
-        // Draw border frame (gray)
-        this.pdf.setDrawColor(180, 180, 180);
+        this.pdf.setDrawColor(200, 200, 200);
         this.pdf.setLineWidth(0.5);
-        this.pdf.rect(xPos - 1, y - 1, imgWidth + 2, imgHeight + 2);
+        this.pdf.rect(xPos - 2, y - 2, imgWidth + 4, imgHeight + 4);
 
         this.pdf.addImage(
           this.data.angleBeamDiagram,
@@ -1117,19 +1306,24 @@ class TechniqueSheetPDFBuilder {
 
     if (this.data.e2375Diagram) {
       try {
-        // E2375 Diagram: max 120mm height, maintain 4:3 aspect ratio
-        const maxHeight = 120;
-        const aspectRatio = 4 / 3; // width:height = 4:3
-        const imgHeight = maxHeight;
-        const imgWidth = imgHeight * aspectRatio;
-        
-        // Center horizontally
+        // Calculate proper dimensions maintaining aspect ratio
+        const maxWidth = PAGE.contentWidth * 0.85;
+        const maxHeight = PAGE.height - y - PAGE.footerHeight - 40;
+        const aspectRatio = 4 / 3;
+
+        let imgWidth = maxWidth;
+        let imgHeight = imgWidth / aspectRatio;
+
+        if (imgHeight > Math.min(maxHeight, 120)) {
+          imgHeight = Math.min(maxHeight, 120);
+          imgWidth = imgHeight * aspectRatio;
+        }
+
         const xPos = PAGE.marginLeft + (PAGE.contentWidth - imgWidth) / 2;
 
-        // Draw border frame (gray)
-        this.pdf.setDrawColor(180, 180, 180);
+        this.pdf.setDrawColor(200, 200, 200);
         this.pdf.setLineWidth(0.5);
-        this.pdf.rect(xPos - 1, y - 1, imgWidth + 2, imgHeight + 2);
+        this.pdf.rect(xPos - 2, y - 2, imgWidth + 4, imgHeight + 4);
 
         this.pdf.addImage(
           this.data.e2375Diagram,
@@ -1427,17 +1621,17 @@ class TechniqueSheetPDFBuilder {
         head: [['Dir.', 'Wave Mode', 'Angle', 'Freq.', 'Technique', 'Active El.', 'Probe', 'Remarks']],
         body: directionRows,
         theme: 'grid',
-        styles: { fontSize: 8, cellPadding: 2 },
-        headStyles: { fillColor: COLORS.primary, textColor: [255, 255, 255], fontSize: 9 },
+        styles: { fontSize: 7, cellPadding: 2 },
+        headStyles: { fillColor: COLORS.primary, textColor: [255, 255, 255], fontSize: 8 },
         columnStyles: {
-          0: { fontStyle: 'bold', cellWidth: 15, halign: 'center' },
+          0: { fontStyle: 'bold', cellWidth: 12, halign: 'center' },
           1: { cellWidth: 35 },
           2: { cellWidth: 14, halign: 'center' },
           3: { cellWidth: 16, halign: 'center' },
           4: { cellWidth: 22 },
           5: { cellWidth: 18 },
           6: { cellWidth: 22 },
-          7: { cellWidth: 'auto' },  // Remarks gets remaining space
+          7: { cellWidth: 'auto' },
         },
         margin: { left: PAGE.marginLeft, right: PAGE.marginRight },
       });
@@ -1465,19 +1659,24 @@ class TechniqueSheetPDFBuilder {
 
     if (this.data.scanDirectionsDrawing) {
       try {
-        // Scan Directions: max 150mm height, maintain 4:3 aspect ratio
-        const maxHeight = 150;
-        const aspectRatio = 4 / 3; // width:height = 4:3
-        const imgHeight = maxHeight;
-        const imgWidth = imgHeight * aspectRatio;
-        
-        // Center horizontally
+        // Calculate proper dimensions maintaining aspect ratio
+        const maxWidth = PAGE.contentWidth * 0.85;
+        const maxHeight = PAGE.height - y - PAGE.footerHeight - 35;
+        const aspectRatio = 4 / 3;
+
+        let imgWidth = maxWidth;
+        let imgHeight = imgWidth / aspectRatio;
+
+        if (imgHeight > Math.min(maxHeight, 150)) {
+          imgHeight = Math.min(maxHeight, 150);
+          imgWidth = imgHeight * aspectRatio;
+        }
+
         const xPos = PAGE.marginLeft + (PAGE.contentWidth - imgWidth) / 2;
 
-        // Draw border frame (gray)
-        this.pdf.setDrawColor(180, 180, 180);
+        this.pdf.setDrawColor(200, 200, 200);
         this.pdf.setLineWidth(0.5);
-        this.pdf.rect(xPos - 1, y - 1, imgWidth + 2, imgHeight + 2);
+        this.pdf.rect(xPos - 2, y - 2, imgWidth + 4, imgHeight + 4);
 
         this.pdf.addImage(
           this.data.scanDirectionsDrawing,
@@ -1487,11 +1686,11 @@ class TechniqueSheetPDFBuilder {
           imgWidth,
           imgHeight,
           undefined,
-          'MEDIUM' // Better quality
+          'MEDIUM'
         );
 
         // Add caption below the image
-        const captionY = y + imgHeight + 5;
+        const captionY = y + imgHeight + 8;
         this.pdf.setFontSize(9);
         this.pdf.setTextColor(...COLORS.lightText);
         this.pdf.text(
@@ -1535,21 +1734,28 @@ class TechniqueSheetPDFBuilder {
 
     if (this.data.capturedDrawing) {
       try {
-        // Technical Drawing: max 160mm height, maintain 4:3 aspect ratio
-        const maxHeight = 160;
-        const aspectRatio = 4 / 3; // width:height = 4:3
-        const imgHeight = maxHeight;
-        const imgWidth = imgHeight * aspectRatio;
-        
+        // Calculate proper dimensions maintaining aspect ratio
+        const maxWidth = PAGE.contentWidth * 0.9; // Use most of the width for technical drawings
+        const maxHeight = PAGE.height - y - PAGE.footerHeight - 25;
+        const aspectRatio = 4 / 3; // Standard technical drawing ratio
+
+        let imgWidth = maxWidth;
+        let imgHeight = imgWidth / aspectRatio;
+
+        // If too tall, scale by height
+        if (imgHeight > Math.min(maxHeight, 160)) {
+          imgHeight = Math.min(maxHeight, 160);
+          imgWidth = imgHeight * aspectRatio;
+        }
+
         // Center horizontally
         const xPos = PAGE.marginLeft + (PAGE.contentWidth - imgWidth) / 2;
 
-        // Draw border frame (gray)
-        this.pdf.setDrawColor(180, 180, 180);
+        // Add border/frame around image
+        this.pdf.setDrawColor(200, 200, 200);
         this.pdf.setLineWidth(0.5);
-        this.pdf.rect(xPos - 1, y - 1, imgWidth + 2, imgHeight + 2);
+        this.pdf.rect(xPos - 2, y - 2, imgWidth + 4, imgHeight + 4);
 
-        // Add image with better quality settings
         this.pdf.addImage(
           this.data.capturedDrawing,
           'PNG',
@@ -1558,7 +1764,7 @@ class TechniqueSheetPDFBuilder {
           imgWidth,
           imgHeight,
           undefined,
-          'MEDIUM' // Better quality than FAST
+          'MEDIUM'
         );
       } catch {
         this.pdf.setFontSize(10);

@@ -344,29 +344,31 @@ export class ProfessionalRingSegmentDrawing {
     sectionCE: ViewPort;
     isometric: ViewPort;
   } {
-    const margin = 30;
+    const margin = 25;
     const w = this.config.canvasWidth;
     const h = this.config.canvasHeight;
     const isLargeBlock = this.geometry.outerDiameterMm >= 600;
 
-    // TUV-17 Layout:
+    // TUV-17 Layout - Improved with more space for sections:
     // ┌─────────────────────────────────────────────────┐
     // │  Section A-A    │        TOP VIEW               │
-    // │  (small)        │        (large, main view)     │
+    // │  (clear)        │        (large, main view)     │
     // ├─────────────────┤                               │
     // │  Section B-B    │                               │
-    // │  (small)        │                               │
-    // ├────────┬────────┼───────────────────────────────┤
-    // │ Note   │ C-E    │     ISOMETRIC                 │
-    // └────────┴────────┴───────────────────────────────┘
+    // │  (clear)        │                               │
+    // ├─────────────────┼───────────────────────────────┤
+    // │  Section C-C    │     ISOMETRIC                 │
+    // └─────────────────┴───────────────────────────────┘
 
-    const leftColWidth = w * (isLargeBlock ? 0.22 : 0.20);
-    const topViewWidth = w * (isLargeBlock ? 0.58 : 0.55);
+    // Give more width to sections for clarity
+    const leftColWidth = w * (isLargeBlock ? 0.26 : 0.24);
+    const topViewWidth = w * (isLargeBlock ? 0.52 : 0.50);
     const isoWidth = Math.max(
       w - leftColWidth - topViewWidth,
-      w * (isLargeBlock ? 0.20 : 0.22)
+      w * (isLargeBlock ? 0.22 : 0.24)
     );
-    const sectionHeight = h * (isLargeBlock ? 0.30 : 0.30);
+    // Reduced section heights to fit all 3 sections above NOTES area
+    const sectionHeight = h * (isLargeBlock ? 0.22 : 0.20);
 
     return {
       sectionAA: {
@@ -374,23 +376,23 @@ export class ProfessionalRingSegmentDrawing {
         y: margin,
         width: leftColWidth - margin,
         height: sectionHeight,
-        scale: this.calculateSectionScale(leftColWidth - margin * 2, sectionHeight - 40),
+        scale: this.calculateSectionScale(leftColWidth - margin * 2, sectionHeight - 50),
         label: 'A - A',
       },
       sectionBB: {
         x: margin,
-        y: margin + sectionHeight + 20,
+        y: margin + sectionHeight + 15,
         width: leftColWidth - margin,
         height: sectionHeight,
-        scale: this.calculateSectionScale(leftColWidth - margin * 2, sectionHeight - 40),
+        scale: this.calculateSectionScale(leftColWidth - margin * 2, sectionHeight - 50),
         label: 'B - B',
       },
       sectionCE: {
         x: margin,
-        y: margin + sectionHeight * 2 + 50,
+        y: margin + sectionHeight * 2 + 20,
         width: leftColWidth - margin,
-        height: h * (isLargeBlock ? 0.22 : 0.25),
-        scale: this.calculateSectionScale(leftColWidth - margin * 2, h * 0.2),
+        height: sectionHeight,
+        scale: this.calculateSectionScale(leftColWidth - margin * 2, sectionHeight - 30),
         label: 'C - C',
       },
       topView: {
@@ -429,10 +431,12 @@ export class ProfessionalRingSegmentDrawing {
   }
 
   private calculateSectionScale(width: number, height: number): number {
-    const sectionWidth = this.geometry.axialWidthMm * 1.25;
-    const sectionHeight = this.wallThickness * 1.8;
+    // More generous margins for clearer sections
+    const sectionWidth = this.geometry.axialWidthMm * 1.4;
+    const sectionHeight = this.wallThickness * 2.2;
     const baseScale = Math.min(width / sectionWidth, height / sectionHeight);
-    return baseScale * (this.geometry.outerDiameterMm >= 600 ? 0.85 : 0.7);
+    // Use larger scale for better visibility
+    return baseScale * (this.geometry.outerDiameterMm >= 600 ? 0.75 : 0.65);
   }
 
   private calculateIsometricScale(width: number, height: number): number {
@@ -1328,44 +1332,26 @@ export class ProfessionalRingSegmentDrawing {
   // ============================================================================
 
   private drawSectionAA(vp: ViewPort): void {
-    // Section A-A shows the first hole position
-    const holesInSection = this.getSectionHoles(this.sectionAngles.A, 0);
-
-    this.drawDetailedSectionView(vp, holesInSection, 'A - A');
+    // Section A-A shows ALL holes (like TUV-17 reference)
+    const allHoles = [...this.holes].sort((a, b) => a.axialPositionMm - b.axialPositionMm);
+    this.drawDetailedSectionView(vp, allHoles, 'A - A');
   }
 
   private drawSectionBB(vp: ViewPort): void {
-    // Section B-B shows the second hole position
-    const holesInSection = this.getSectionHoles(this.sectionAngles.B, 1);
-
-    this.drawDetailedSectionView(vp, holesInSection, 'B - B');
+    // Section B-B shows ALL holes (like TUV-17 reference)
+    const allHoles = [...this.holes].sort((a, b) => a.axialPositionMm - b.axialPositionMm);
+    this.drawDetailedSectionView(vp, allHoles, 'B - B');
   }
 
   private drawSectionCE(vp: ViewPort): void {
-    // Section C-E - align with the right-side cut
-    const holesInSection = this.getSectionHoles(this.sectionAngles.CE, this.holes.length - 1);
-
-    this.drawDetailedSectionView(vp, holesInSection, 'C - C');
+    // Section C-C shows ALL holes (like TUV-17 reference)
+    const allHoles = [...this.holes].sort((a, b) => a.axialPositionMm - b.axialPositionMm);
+    this.drawDetailedSectionView(vp, allHoles, 'C - C');
   }
 
   private getSectionHoles(targetAngle: number, fallbackIndex: number): HoleData[] {
-    const useAllHoles = this.geometry.outerDiameterMm >= 600;
-
-    if (useAllHoles) {
-      return [...this.holes].sort((a, b) => a.axialPositionMm - b.axialPositionMm);
-    }
-
-    const holesInSection = this.holes.filter((h) => {
-      const holeAngle = -this.geometry.segmentAngleDeg / 2 + h.angleOnArcDeg;
-      return Math.abs(holeAngle - targetAngle) < 10;
-    });
-
-    if (holesInSection.length === 0 && this.holes.length > 0) {
-      const safeIndex = Math.min(Math.max(fallbackIndex, 0), this.holes.length - 1);
-      holesInSection.push(this.holes[safeIndex]);
-    }
-
-    return holesInSection;
+    // Always return all holes sorted by axial position (like TUV-17 reference)
+    return [...this.holes].sort((a, b) => a.axialPositionMm - b.axialPositionMm);
   }
 
   private drawDetailedSectionView(vp: ViewPort, holes: HoleData[], label: string): void {
@@ -1373,38 +1359,51 @@ export class ProfessionalRingSegmentDrawing {
     const sectionWidth = this.geometry.axialWidthMm * scale;
     const sectionHeight = this.wallThickness * scale;
 
-    // Center the section in viewport
-    const topMargin = 40;
-    const bottomMargin = this.config.showDimensions ? 45 : 25;
+    // Increase spacing for better clarity
+    const topMargin = 35;
+    const bottomMargin = this.config.showDimensions ? 55 : 30;
+    const leftMargin = this.config.showDimensions ? 35 : 15;
+    const rightMargin = 15;
+    
     const availableHeight = Math.max(1, vp.height - topMargin - bottomMargin);
-    const rectX = vp.x + (vp.width - sectionWidth) / 2;
-    const rectY = vp.y + topMargin + (availableHeight - sectionHeight) / 2;
+    const availableWidth = Math.max(1, vp.width - leftMargin - rightMargin);
+    
+    // Scale down section to fit in available space with padding
+    const fitScaleW = availableWidth / (this.geometry.axialWidthMm + 20);
+    const fitScaleH = availableHeight / (this.wallThickness + 20);
+    const fitScale = Math.min(fitScaleW, fitScaleH, scale);
+    
+    const actualWidth = this.geometry.axialWidthMm * fitScale;
+    const actualHeight = this.wallThickness * fitScale;
+    
+    const rectX = vp.x + leftMargin + (availableWidth - actualWidth) / 2;
+    const rectY = vp.y + topMargin + (availableHeight - actualHeight) / 2;
 
     // Draw section label with professional styling (ISO standard: "SECTION A-A")
     const sectionLabelText = label.includes('-') ? `SECTION ${label}` : `SECTION ${label.charAt(0)}-${label.charAt(label.length - 1)}`;
     const labelText = new this.scope.PointText(
-      new this.scope.Point(vp.x + vp.width / 2, vp.y + 20)
+      new this.scope.Point(vp.x + vp.width / 2, vp.y + 18)
     );
     labelText.content = sectionLabelText;
-    labelText.fontSize = FONT_SETTINGS.sectionLabel.size;
+    labelText.fontSize = Math.min(FONT_SETTINGS.sectionLabel.size, 11);
     labelText.fontWeight = FONT_SETTINGS.sectionLabel.weight;
     labelText.fontFamily = FONT_SETTINGS.sectionLabel.family;
     labelText.fillColor = new this.scope.Color('#000000');
     labelText.justification = 'center';
 
     // Add underline to section label (professional touch like TUV-17)
-    const underlineY = vp.y + 25;
-    const labelWidth = sectionLabelText.length * 6;
+    const underlineY = vp.y + 22;
+    const labelWidth = sectionLabelText.length * 5.5;
     const underlineLine = new this.scope.Path.Line(
       new this.scope.Point(vp.x + vp.width / 2 - labelWidth / 2, underlineY),
       new this.scope.Point(vp.x + vp.width / 2 + labelWidth / 2, underlineY)
     );
     underlineLine.strokeColor = new this.scope.Color('#000000');
-    underlineLine.strokeWidth = 0.7;
+    underlineLine.strokeWidth = 0.6;
 
     // Draw section outline (thick visible line for main outline)
     const outline = new this.scope.Path.Rectangle(
-      new this.scope.Rectangle(rectX, rectY, sectionWidth, sectionHeight)
+      new this.scope.Rectangle(rectX, rectY, actualWidth, actualHeight)
     );
     this.applyStyle(outline, LINE_STYLES.visibleThick);
 
@@ -1413,91 +1412,89 @@ export class ProfessionalRingSegmentDrawing {
       this.drawPreciseCrossHatching(
         rectX, 
         rectY, 
-        sectionWidth, 
-        sectionHeight, 
+        actualWidth, 
+        actualHeight, 
         DRAWING_CONSTANTS.HATCHING_ANGLE, 
-        DRAWING_CONSTANTS.HATCHING_SPACING * scale
+        Math.max(3, DRAWING_CONSTANTS.HATCHING_SPACING * fitScale * 0.8)
       );
     }
 
-    // Draw holes in section (slots with depth from outer surface)
+    // Draw holes in section - small rectangles at different depths (stair pattern)
+    // The hole depth represents how far from the TOP surface the hole bottom is
     const sortedHoles = [...holes].sort((a, b) => a.axialPositionMm - b.axialPositionMm);
+    
+    // Calculate the display height for each hole marker (small, fixed size)
+    const holeMarkerHeight = Math.max(3, Math.min(8, actualHeight * 0.15));
+    
     for (const hole of sortedHoles) {
-      const holeCenterX = rectX + hole.axialPositionMm * scale;
-      const slotWidth = Math.max(hole.diameterMm * scale, 2);
-      const slotHeight = Math.min(hole.depthMm * scale, sectionHeight);
+      const holeCenterX = rectX + hole.axialPositionMm * fitScale;
+      const slotWidth = Math.max(hole.diameterMm * fitScale * 1.5, 4);
+      
+      // Hole depth from top surface - scale it to fit within section
+      const depthFromTop = Math.min(hole.depthMm * fitScale, actualHeight - holeMarkerHeight - 2);
+      
       const slotX = holeCenterX - slotWidth / 2;
-      const slotY = rectY;
+      const slotY = rectY + depthFromTop; // Start at the depth position
 
-      // Clear hatching behind the slot
+      // Clear hatching behind the slot marker
       const slotClear = new this.scope.Path.Rectangle(
-        new this.scope.Rectangle(slotX - 1, slotY - 1, slotWidth + 2, slotHeight + 2)
+        new this.scope.Rectangle(slotX - 2, slotY - 1, slotWidth + 4, holeMarkerHeight + 2)
       );
       slotClear.fillColor = new this.scope.Color('#FFFFFF');
       slotClear.strokeColor = null;
 
-      // Slot outline (red like TUV-17)
+      // Small slot marker (red like TUV-17) - represents the FBH/SDH location
       const slot = new this.scope.Path.Rectangle(
-        new this.scope.Rectangle(slotX, slotY, slotWidth, slotHeight)
+        new this.scope.Rectangle(slotX, slotY, slotWidth, holeMarkerHeight)
       );
       slot.strokeColor = new this.scope.Color('#CC0000');
-      slot.strokeWidth = LINE_STYLES.visible.strokeWidth;
-      slot.fillColor = new this.scope.Color('#FFEEEE');
+      slot.strokeWidth = 1.2;
+      slot.fillColor = new this.scope.Color('#FF4444');
 
-      // Slot centerline (red dashed)
-      const slotCenter = new this.scope.Path.Line(
-        new this.scope.Point(holeCenterX, slotY),
-        new this.scope.Point(holeCenterX, slotY + slotHeight)
+      // Centerline from top surface to hole (dashed red)
+      const centerLine = new this.scope.Path.Line(
+        new this.scope.Point(holeCenterX, rectY),
+        new this.scope.Point(holeCenterX, slotY)
       );
-      slotCenter.strokeColor = new this.scope.Color('#CC0000');
-      slotCenter.strokeWidth = 0.5;
-      slotCenter.dashArray = [6, 4];
-
-      if (this.config.showDimensions) {
-        this.drawLabelWithBackground(
-          holeCenterX,
-          rectY + Math.min(14, sectionHeight * 0.35),
-          `D${hole.diameterMm.toFixed(2)}`,
-          Math.max(FONT_SETTINGS.dimension.size - 1, 8),
-          'center'
-        );
-      }
+      centerLine.strokeColor = new this.scope.Color('#CC0000');
+      centerLine.strokeWidth = 0.5;
+      centerLine.dashArray = [3, 2];
     }
 
     // Draw dimensions
     if (this.config.showDimensions) {
-      // Axial width (horizontal, above)
+      // Axial width (horizontal dimension above the section)
       this.drawLinearDimensionWithArrows(
         rectX,
         rectY,
-        rectX + sectionWidth,
+        rectX + actualWidth,
         rectY,
         `${this.geometry.axialWidthMm}`,
-        -18,
+        -15,
         'perpendicular'
       );
 
-      // Wall thickness (vertical, left)
+      // Wall thickness (vertical dimension on the left)
       this.drawLinearDimensionWithArrows(
         rectX,
         rectY,
         rectX,
-        rectY + sectionHeight,
+        rectY + actualHeight,
         `${this.wallThickness.toFixed(1)}`,
-        22,
+        -20,
         'perpendicular'
       );
 
       // Ordinate dimensions for hole axial positions (bottom chain)
-      this.drawOrdinateAxialDimensions(rectX, rectY, sectionWidth, sectionHeight, scale, holes);
+      this.drawOrdinateAxialDimensions(rectX, rectY, actualWidth, actualHeight, fitScale, holes);
     }
 
-    // Draw centerline
+    // Draw centerline through middle of section
     if (this.config.showCenterlines && this.geometry.outerDiameterMm < 600) {
-      const centerY = rectY + sectionHeight / 2;
+      const centerY = rectY + actualHeight / 2;
       const centerLine = new this.scope.Path.Line(
-        new this.scope.Point(rectX - 10, centerY),
-        new this.scope.Point(rectX + sectionWidth + 10, centerY)
+        new this.scope.Point(rectX - 8, centerY),
+        new this.scope.Point(rectX + actualWidth + 8, centerY)
       );
       this.applyStyle(centerLine, LINE_STYLES.center);
     }
@@ -1557,39 +1554,47 @@ export class ProfessionalRingSegmentDrawing {
     scale: number,
     holes: HoleData[]
   ): void {
-    const dimY = rectY + sectionHeight + 20;
+    const dimY = rectY + sectionHeight + 15;
+    
+    // Baseline for ordinate dimensions
     const baseLine = new this.scope.Path.Line(
       new this.scope.Point(rectX, dimY),
       new this.scope.Point(rectX + sectionWidth, dimY)
     );
     this.applyStyle(baseLine, LINE_STYLES.dimension);
 
+    // Collect all positions: 0 (origin) and hole positions
     const positions = new Set<number>([0]);
     for (const hole of holes) {
       positions.add(Math.round(hole.axialPositionMm * 100) / 100);
     }
 
     const sortedPositions = Array.from(positions).sort((a, b) => a - b);
+    const fontSize = Math.min(8, FONT_SETTINGS.dimension.size - 1);
+    
     for (const pos of sortedPositions) {
       const x = rectX + pos * scale;
 
+      // Extension line from section bottom to dimension line
       const extLine = new this.scope.Path.Line(
-        new this.scope.Point(x, rectY + sectionHeight),
-        new this.scope.Point(x, dimY - 3)
+        new this.scope.Point(x, rectY + sectionHeight + 2),
+        new this.scope.Point(x, dimY - 2)
       );
       this.applyStyle(extLine, LINE_STYLES.dimension);
 
+      // Small tick mark at dimension line
       const tick = new this.scope.Path.Line(
-        new this.scope.Point(x, dimY - 3),
-        new this.scope.Point(x, dimY + 3)
+        new this.scope.Point(x, dimY - 2),
+        new this.scope.Point(x, dimY + 2)
       );
       this.applyStyle(tick, LINE_STYLES.dimension);
 
+      // Position label
       this.drawLabelWithBackground(
         x,
-        dimY + 12,
+        dimY + 10,
         pos.toFixed(0),
-        Math.max(FONT_SETTINGS.dimension.size - 1, 8),
+        fontSize,
         'center'
       );
     }

@@ -2,9 +2,11 @@
  * Saved Cards Context
  * Manages saving, loading, and organizing technique/report cards
  * Cards are stored per profile - each profile sees only its own cards
+ *
+ * Uses unified storage to share data across all browsers (Chrome, Edge) and Electron
  */
 
-import React, { createContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import React, { createContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react';
 import {
   StandardType,
   InspectionSetupData,
@@ -14,6 +16,7 @@ import {
   AcceptanceCriteriaData,
   DocumentationData,
 } from '@/types/techniqueSheet';
+import { getStorageData, setStorageData, STORAGE_KEYS } from '@/services/unifiedStorage';
 
 // Generate UUID using native crypto API
 const generateId = (): string => {
@@ -140,10 +143,10 @@ export interface SavedCardsContextType {
 export const SavedCardsContext = createContext<SavedCardsContextType | undefined>(undefined);
 
 // ============================================================================
-// STORAGE KEYS
+// STORAGE KEYS (using unified storage for cross-browser persistence)
 // ============================================================================
 
-const STORAGE_KEY = 'scanmaster_saved_cards';
+const STORAGE_KEY = STORAGE_KEYS.SAVED_CARDS;
 const AUTO_SAVE_KEY = 'scanmaster_autosave';
 
 // ============================================================================
@@ -179,34 +182,46 @@ export function SavedCardsProvider({ children }: { children: ReactNode }) {
   // Filter cards by current profile
   const cards = allCards.filter(card => card.profileId === currentProfileId);
 
-  // Load cards from localStorage on mount
+  // Ref to track if initial load is done
+  const initialLoadDone = useRef(false);
+
+  // Load cards from unified storage on mount
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        // Migrate old cards without profileId
-        const migratedCards = parsed.map((card: SavedCard) => ({
-          ...card,
-          profileId: card.profileId || 'default',
-        }));
-        setAllCards(migratedCards);
+    const loadCards = async () => {
+      try {
+        const stored = await getStorageData<SavedCard[]>(STORAGE_KEY, []);
+        if (stored && Array.isArray(stored)) {
+          // Migrate old cards without profileId
+          const migratedCards = stored.map((card: SavedCard) => ({
+            ...card,
+            profileId: card.profileId || 'default',
+          }));
+          setAllCards(migratedCards);
+        }
+      } catch (error) {
+        console.error('Failed to load saved cards:', error);
+      } finally {
+        setIsLoading(false);
+        initialLoadDone.current = true;
       }
-    } catch (error) {
-      console.error('Failed to load saved cards:', error);
-    } finally {
-      setIsLoading(false);
-    }
+    };
+
+    loadCards();
   }, []);
 
-  // Save cards to localStorage when they change
+  // Save cards to unified storage when they change
   useEffect(() => {
-    if (!isLoading) {
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(allCards));
-      } catch (error) {
-        console.error('Failed to save cards:', error);
-      }
+    // Only save after initial load is done to prevent overwriting
+    if (!isLoading && initialLoadDone.current) {
+      const saveCards = async () => {
+        try {
+          await setStorageData(STORAGE_KEY, allCards);
+        } catch (error) {
+          console.error('Failed to save cards:', error);
+        }
+      };
+
+      saveCards();
     }
   }, [allCards, isLoading]);
 

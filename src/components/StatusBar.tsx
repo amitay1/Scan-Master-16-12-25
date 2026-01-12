@@ -67,23 +67,23 @@ export const StatusBar = ({
   const autoSaveDisplay = getAutoSaveDisplay();
 
   return (
-    <div className="h-12 border-t-2 border-border bg-card flex items-center px-5 text-base text-muted-foreground flex-shrink-0 overflow-hidden">
+    <div className="h-10 md:h-12 border-t-2 border-border bg-card flex items-center px-3 md:px-5 text-sm md:text-base text-muted-foreground flex-shrink-0 overflow-hidden">
       {/* Connection Status */}
       <div className="flex items-center gap-2 flex-shrink-0">
         {isOnline ? (
           <>
-            <Wifi className="h-5 w-5 text-success" />
-            <span className="text-success font-semibold text-base">Online</span>
+            <Wifi className="h-4 w-4 md:h-5 md:w-5 text-success" />
+            <span className="text-success font-semibold text-sm md:text-base hidden sm:inline">Online</span>
           </>
         ) : (
           <>
-            <WifiOff className="h-5 w-5 text-warning" />
-            <span className="text-warning font-semibold text-base">Offline</span>
+            <WifiOff className="h-4 w-4 md:h-5 md:w-5 text-warning" />
+            <span className="text-warning font-semibold text-sm md:text-base hidden sm:inline">Offline</span>
           </>
         )}
       </div>
 
-      <Separator orientation="vertical" className="h-6 mx-4" />
+      <Separator orientation="vertical" className="h-5 md:h-6 mx-2 md:mx-4" />
 
       {/* Auto-save Status */}
       {autoSaveDisplay && (
@@ -92,7 +92,7 @@ export const StatusBar = ({
             {autoSaveDisplay.icon}
             <span className={`${autoSaveDisplay.color} text-base`}>{autoSaveDisplay.text}</span>
           </div>
-          <Separator orientation="vertical" className="h-6 mx-4" />
+          <Separator orientation="vertical" className="h-5 md:h-6 mx-2 md:mx-4" />
         </>
       )}
 

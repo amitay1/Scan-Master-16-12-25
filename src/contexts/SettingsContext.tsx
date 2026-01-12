@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
+import { getStorageData, setStorageData, STORAGE_KEYS } from '@/services/unifiedStorage';
 
 // ============================================================================
 // SETTINGS TYPES
@@ -197,39 +198,48 @@ export interface SettingsContextType {
 export const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
 // ============================================================================
-// PROVIDER
+// PROVIDER (uses unified storage for cross-browser persistence)
 // ============================================================================
 
-const STORAGE_KEY = 'scanmaster_settings';
+const STORAGE_KEY = STORAGE_KEYS.SETTINGS;
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<AppSettings>(defaultSettings);
   const [isLoading, setIsLoading] = useState(true);
+  const initialLoadDone = useRef(false);
 
-  // Load settings from localStorage on mount
+  // Load settings from unified storage on mount
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        // Merge with defaults to handle new settings
-        setSettings(prev => deepMerge(defaultSettings, parsed));
+    const loadSettings = async () => {
+      try {
+        const stored = await getStorageData<AppSettings>(STORAGE_KEY, defaultSettings);
+        if (stored) {
+          // Merge with defaults to handle new settings
+          setSettings(deepMerge(defaultSettings, stored));
+        }
+      } catch (error) {
+        console.error('Failed to load settings:', error);
+      } finally {
+        setIsLoading(false);
+        initialLoadDone.current = true;
       }
-    } catch (error) {
-      console.error('Failed to load settings:', error);
-    } finally {
-      setIsLoading(false);
-    }
+    };
+
+    loadSettings();
   }, []);
 
-  // Save settings to localStorage on change
+  // Save settings to unified storage on change
   useEffect(() => {
-    if (!isLoading) {
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
-      } catch (error) {
-        console.error('Failed to save settings:', error);
-      }
+    if (!isLoading && initialLoadDone.current) {
+      const saveSettings = async () => {
+        try {
+          await setStorageData(STORAGE_KEY, settings);
+        } catch (error) {
+          console.error('Failed to save settings:', error);
+        }
+      };
+
+      saveSettings();
     }
   }, [settings, isLoading]);
 

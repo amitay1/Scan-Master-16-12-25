@@ -408,6 +408,86 @@ export function validatePartDimensions(
 }
 
 // ============================================================================
+// AUTO-SELECT TEMPLATE BASED ON PART DIMENSIONS (ASME Rules)
+// ============================================================================
+
+/**
+ * Auto-select the best template based on part dimensions
+ * 
+ * Selection rules:
+ * 1. Large OD (>500mm): Use flat-style template (TUV)
+ * 2. Medium/Small OD: Use EN 10228-3 DAC template
+ * 3. ASTM standards: Use ASTM E428 FBH template
+ * 
+ * @param partDims - Part dimensions
+ * @param preferredStandard - Preferred standard family ('EN', 'ASTM', 'TUV')
+ * @returns Template ID and reasoning
+ */
+export function autoSelectTemplate(
+  partDims?: PartDimensionsOverride,
+  preferredStandard?: 'EN' | 'ASTM' | 'TUV'
+): { templateId: string; reasoning: string } {
+  const od = partDims?.outerDiameterMm;
+  const id = partDims?.innerDiameter;
+  const wallThickness = od && id ? (od - id) / 2 : undefined;
+  
+  // If no dimensions provided, use default EN template
+  if (!od) {
+    return {
+      templateId: preferredStandard === 'ASTM' 
+        ? 'ASTM_E428_FBH_BLOCK' 
+        : 'EN_10228_DAC_REF_BLOCK',
+      reasoning: 'No part dimensions specified - using default template',
+    };
+  }
+  
+  // Large diameter (>500mm) - flat surface behavior, TUV style preferred
+  if (od > 500) {
+    return {
+      templateId: 'TUV_STYLE_REF_BLOCK',
+      reasoning: `Large OD (${od}mm > 500mm): Surface curvature negligible. Using TUV-style flat reference block.`,
+    };
+  }
+  
+  // Based on standard preference
+  if (preferredStandard === 'ASTM') {
+    return {
+      templateId: 'ASTM_E428_FBH_BLOCK',
+      reasoning: `ASTM standard preferred. Using ASTM E428 FBH block for OD=${od}mm.`,
+    };
+  }
+  
+  // Default: EN 10228-3 DAC for curved parts
+  return {
+    templateId: 'EN_10228_DAC_REF_BLOCK',
+    reasoning: `Curved part (OD=${od}mm). Using EN 10228-3 DAC block with SDH reflectors.`,
+  };
+}
+
+/**
+ * Resolve block with automatic template selection based on part dimensions
+ * 
+ * This is the SMART resolver - automatically picks the best template
+ * for the given part geometry.
+ */
+export function resolveBlockAuto(
+  partDimensions: PartDimensionsOverride,
+  preferredStandard?: 'EN' | 'ASTM' | 'TUV'
+): ResolvedRingSegmentBlock & { autoSelectedTemplate: string; selectionReasoning: string } {
+  // Auto-select template
+  const { templateId, reasoning } = autoSelectTemplate(partDimensions, preferredStandard);
+  
+  // Resolve with selected template
+  const resolved = resolveRingSegmentBlock(templateId, partDimensions);
+  
+  return {
+    ...resolved,
+    autoSelectedTemplate: templateId,
+    selectionReasoning: reasoning,
+  };
+}
+
+// ============================================================================
 // INDEX EXPORT
 // ============================================================================
 

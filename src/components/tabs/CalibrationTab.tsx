@@ -62,6 +62,13 @@ export const CalibrationTab = ({
   );
   const needsBothBeams = beamRequirement === "both";
 
+  // Memoize partDimensions to prevent infinite re-renders in RingSegmentBlockDrawing
+  const partDimensions = useMemo(() => ({
+    outerDiameterMm: inspectionSetup.diameter || undefined,
+    innerDiameterMm: inspectionSetup.innerDiameter || undefined,
+    axialWidthMm: inspectionSetup.partLength || inspectionSetup.wallThickness || undefined,
+  }), [inspectionSetup.diameter, inspectionSetup.innerDiameter, inspectionSetup.partLength, inspectionSetup.wallThickness]);
+
   const updateField = (field: keyof CalibrationData, value: any) => {
     onChange({ ...data, [field]: value });
   };
@@ -164,29 +171,45 @@ export const CalibrationTab = ({
   );
 
   // Render the Angle Beam content (calibration block drawing)
-  const renderAngleBeamContent = () => (
-    <div className="space-y-4">
-      {/* Prominent notice for shear wave calibration */}
-      <div className="bg-gradient-to-r from-orange-50 to-amber-50 border-2 border-orange-200 rounded-xl p-4">
-        <h4 className="font-bold text-orange-800 text-lg mb-2">
-          🔊 Shear Wave Calibration Required
-        </h4>
-        <p className="text-orange-700 text-sm">
-          This part geometry (tube, cylinder, cone, or sphere) requires shear wave inspection 
-          for circumferential coverage. The reference standard below shows the required calibration 
-          block design with FBH positions and step wedge profiles.
-        </p>
+  // Note: partDimensions is memoized at component level to prevent infinite re-renders
+  const renderAngleBeamContent = () => {
+    return (
+      <div className="space-y-4">
+        {/* Prominent notice for shear wave calibration */}
+        <div className="bg-gradient-to-r from-orange-50 to-amber-50 border-2 border-orange-200 rounded-xl p-4">
+          <h4 className="font-bold text-orange-800 text-lg mb-2">
+            🔊 Shear Wave Calibration Required
+          </h4>
+          <p className="text-orange-700 text-sm">
+            This part geometry (tube, cylinder, cone, or sphere) requires shear wave inspection 
+            for circumferential coverage. The reference standard below shows the required calibration 
+            block design with FBH positions and step wedge profiles.
+          </p>
+          {/* Show part dimensions if available */}
+          {(inspectionSetup.diameter || inspectionSetup.innerDiameter) && (
+            <div className="mt-2 p-2 bg-white/50 rounded-lg">
+              <p className="text-sm text-orange-800 font-medium">
+                📐 Part Dimensions: 
+                {inspectionSetup.diameter && ` OD=${inspectionSetup.diameter}mm`}
+                {inspectionSetup.innerDiameter && ` ID=${inspectionSetup.innerDiameter}mm`}
+                {inspectionSetup.wallThickness && ` Wall=${inspectionSetup.wallThickness}mm`}
+              </p>
+            </div>
+          )}
+        </div>
+        
+        {/* Angle Beam Calibration Block Drawing - Now with Part Dimensions! */}
+        <AngleBeamCalibrationBlockDrawing
+          width={950}
+          height={700}
+          showDimensions={true}
+          title="Shear Wave Calibration Block - Reference Standard for Circular Parts"
+          partDimensions={partDimensions}
+          useParametric={true}
+        />
       </div>
-      
-      {/* Angle Beam Calibration Block Drawing - Large and Prominent */}
-      <AngleBeamCalibrationBlockDrawing
-        width={950}
-        height={700}
-        showDimensions={true}
-        title="Shear Wave Calibration Block - Reference Standard for Circular Parts"
-      />
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="space-y-2 p-2">

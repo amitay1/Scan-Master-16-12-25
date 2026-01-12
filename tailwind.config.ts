@@ -130,6 +130,11 @@ export default {
         "pulse-soft": "pulse-soft 2s ease-in-out infinite",
         "spin-slow": "spin-slow 3s linear infinite",
       },
+      // Additional breakpoints for better responsive scaling
+      screens: {
+        'xs': '480px',    // Small phones
+        '3xl': '1920px',  // Large screens / 4K
+      },
     },
   },
   plugins: [tailwindcssAnimate],

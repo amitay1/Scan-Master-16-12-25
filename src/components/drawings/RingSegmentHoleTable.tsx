@@ -44,13 +44,13 @@ export function RingSegmentHoleTable({
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-12 text-center">ID</TableHead>
-            <TableHead className="w-16 text-center">Type</TableHead>
-            <TableHead className="w-20 text-right">Dia (mm)</TableHead>
-            <TableHead className="w-24 text-right">Depth (mm)</TableHead>
-            <TableHead className="w-20 text-right">Angle (°)</TableHead>
-            <TableHead className="w-24 text-right">Axial (mm)</TableHead>
-            <TableHead className="w-32">Definition</TableHead>
+            <TableHead className="w-12 text-center text-gray-800">ID</TableHead>
+            <TableHead className="w-16 text-center text-gray-800">Type</TableHead>
+            <TableHead className="w-20 text-right text-gray-800">Dia (mm)</TableHead>
+            <TableHead className="w-24 text-right text-gray-800">Depth (mm)</TableHead>
+            <TableHead className="w-20 text-right text-gray-800">Angle (°)</TableHead>
+            <TableHead className="w-24 text-right text-gray-800">Axial (mm)</TableHead>
+            <TableHead className="w-32 text-gray-800">Definition</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -64,10 +64,10 @@ export function RingSegmentHoleTable({
                   {hole.reflectorType}
                 </Badge>
               </TableCell>
-              <TableCell className="text-right font-mono">
+              <TableCell className="text-right font-mono text-gray-900">
                 {hole.diameterMm.toFixed(2)}
               </TableCell>
-              <TableCell className="text-right">
+              <TableCell className="text-right text-gray-900">
                 <span className="font-mono">{hole.depthMm.toFixed(1)}</span>
                 {showAdjustedIndicator && hole.wasAdjusted && (
                   <span
@@ -78,13 +78,13 @@ export function RingSegmentHoleTable({
                   </span>
                 )}
               </TableCell>
-              <TableCell className="text-right font-mono">
+              <TableCell className="text-right font-mono text-gray-900">
                 {hole.angleOnArcDeg.toFixed(1)}
               </TableCell>
-              <TableCell className="text-right font-mono">
+              <TableCell className="text-right font-mono text-gray-900">
                 {hole.axialPositionMm.toFixed(1)}
               </TableCell>
-              <TableCell className="text-sm text-gray-600">
+              <TableCell className="text-sm text-gray-800">
                 {hole.depthDefinition === 'radial_depth' ? 'Radial' : 'Drill Axis'}
               </TableCell>
             </TableRow>

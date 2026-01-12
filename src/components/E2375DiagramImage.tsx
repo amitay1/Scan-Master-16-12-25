@@ -5,6 +5,18 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Info, Maximize2, ExternalLink, ZoomIn, ZoomOut } from "lucide-react";
 import type { PartGeometry } from "@/types/techniqueSheet";
 import type { ScanDetail } from "@/types/scanDetails";
+import { TubeScanDiagram } from "@/components/TubeScanDiagram";
+import { ConeScanDiagram } from "@/components/ConeScanDiagram";
+
+// Check if part type should use dynamic tube diagram
+const isTubeType = (partType: PartGeometry): boolean => {
+  return ["tube", "pipe", "sleeve", "bushing"].includes(partType);
+};
+
+// Check if part type should use cone diagram
+const isConeType = (partType: PartGeometry): boolean => {
+  return ["cone", "truncated_cone", "conical"].includes(partType);
+};
 
 interface E2375DiagramImageProps {
   partType: PartGeometry;
@@ -319,47 +331,61 @@ export const E2375DiagramImage: React.FC<E2375DiagramImageProps> = ({
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Diagram Image */}
+            {/* Diagram - Dynamic SVG for tube/cone types, Static image for others */}
             <div
               className="lg:col-span-2 overflow-hidden bg-white rounded-lg border-2 border-gray-200 e2375-diagram-container"
               data-testid="e2375-diagram"
             >
-              <div
-                className="flex items-center justify-center p-4 min-h-[400px] overflow-auto e2375-diagram-image"
-                style={{ maxHeight: '550px' }}
-              >
-                {imageError ? (
-                  <div className="text-center text-muted-foreground py-8">
-                    <Info className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                    <h4 className="font-semibold mb-2">Image Not Found</h4>
-                    <p className="text-sm mb-4">
-                      Please add the cropped diagram image to:
-                    </p>
-                    <code className="text-xs bg-gray-100 px-3 py-2 rounded block">
-                      public{imageInfo.imagePath}
-                    </code>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="mt-4"
-                      onClick={() => window.open('/standards/E2375.pdf', '_blank')}
-                    >
-                      <ExternalLink className="w-4 h-4 mr-2" />
-                      Open PDF to Crop
-                    </Button>
-                  </div>
-                ) : (
-                  <img
-                    src={imageInfo.imagePath}
-                    alt={`ASTM E2375 ${imageInfo.figure} - ${imageInfo.title}`}
-                    className="max-w-full h-auto transition-transform duration-200"
-                    style={{ transform: `scale(${zoom})` }}
-                    onError={() => setImageError(true)}
-                    data-testid="e2375-diagram-img"
-                    crossOrigin="anonymous"
-                  />
-                )}
-              </div>
+              {isTubeType(partType) ? (
+                /* Dynamic interactive SVG diagram for tube/pipe geometries */
+                <TubeScanDiagram
+                  scanDetails={scanDetails}
+                  highlightedDirection={highlightedDirection}
+                />
+              ) : isConeType(partType) ? (
+                /* Dynamic interactive SVG diagram for cone geometries */
+                <ConeScanDiagram
+                  scanDetails={scanDetails}
+                  highlightedDirection={highlightedDirection}
+                />
+              ) : (
+                <div
+                  className="flex items-center justify-center p-4 min-h-[400px] overflow-auto e2375-diagram-image"
+                  style={{ maxHeight: '550px' }}
+                >
+                  {imageError ? (
+                    <div className="text-center text-muted-foreground py-8">
+                      <Info className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                      <h4 className="font-semibold mb-2">Image Not Found</h4>
+                      <p className="text-sm mb-4">
+                        Please add the cropped diagram image to:
+                      </p>
+                      <code className="text-xs bg-gray-100 px-3 py-2 rounded block">
+                        public{imageInfo.imagePath}
+                      </code>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="mt-4"
+                        onClick={() => window.open('/standards/E2375.pdf', '_blank')}
+                      >
+                        <ExternalLink className="w-4 h-4 mr-2" />
+                        Open PDF to Crop
+                      </Button>
+                    </div>
+                  ) : (
+                    <img
+                      src={imageInfo.imagePath}
+                      alt={`ASTM E2375 ${imageInfo.figure} - ${imageInfo.title}`}
+                      className="max-w-full h-auto transition-transform duration-200"
+                      style={{ transform: `scale(${zoom})` }}
+                      onError={() => setImageError(true)}
+                      data-testid="e2375-diagram-img"
+                      crossOrigin="anonymous"
+                    />
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Legend & Info Panel */}

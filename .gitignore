@@ -49,6 +49,9 @@ coverage/
 *.tmp
 *.temp
 
+# User data (unified storage)
+data/
+
 # Large files and unrelated content
 *.rar
 *.zip

@@ -299,14 +299,14 @@ export const PartTypeVisualSelector: React.FC<PartTypeVisualSelectorProps> = ({
       </div>
 
       {/* Expand button for full visual picker dialog */}
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
               <DialogTrigger asChild>
-                <Button 
-                  variant="outline" 
-                  size="icon" 
+                <Button
+                  variant="outline"
+                  size="icon"
                   className={cn(
                     "h-9 w-9 flex-shrink-0 relative overflow-hidden",
                     "hover:border-primary/50 hover:bg-primary/5",
@@ -318,69 +318,69 @@ export const PartTypeVisualSelector: React.FC<PartTypeVisualSelectorProps> = ({
                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full hover:translate-x-full transition-transform duration-700" />
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-5xl max-h-[85vh] overflow-hidden p-0">
-                {/* Premium dialog header */}
-                <div className="relative bg-gradient-to-r from-primary/10 via-primary/5 to-transparent p-6 border-b">
-                  <div className="absolute inset-0 bg-grid-white/5 [mask-image:linear-gradient(to_bottom,white,transparent)]" />
-                  <DialogHeader className="relative">
-                    <DialogTitle className="text-xl font-semibold flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-primary/10">
-                        <Sparkles className="h-5 w-5 text-primary" />
-                      </div>
-                      Select Part Geometry
-                    </DialogTitle>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Choose the shape that best matches your part for accurate inspection planning
-                    </p>
-                  </DialogHeader>
+            </TooltipTrigger>
+            <TooltipContent side="top">
+              <p className="text-xs">Open 3D visual selector</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+        <DialogContent className="max-w-5xl max-h-[85vh] overflow-hidden p-0">
+          {/* Premium dialog header */}
+          <div className="relative bg-gradient-to-r from-primary/10 via-primary/5 to-transparent p-6 border-b">
+            <div className="absolute inset-0 bg-grid-white/5 [mask-image:linear-gradient(to_bottom,white,transparent)]" />
+            <DialogHeader className="relative">
+              <DialogTitle className="text-xl font-semibold flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-primary/10">
+                  <Sparkles className="h-5 w-5 text-primary" />
                 </div>
-                
-                {/* Cards grid */}
-                <div className="p-6 overflow-y-auto max-h-[calc(85vh-120px)]">
-                  <motion.div 
-                    className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4"
-                    initial="hidden"
-                    animate="visible"
-                    variants={{
-                      hidden: { opacity: 0 },
-                      visible: {
-                        opacity: 1,
-                        transition: {
-                          staggerChildren: 0.05
-                        }
-                      }
-                    }}
-                  >
-                    {allPartTypes.map((option, index) => (
-                      <motion.div
-                        key={option.value}
-                        variants={{
-                          hidden: { opacity: 0, y: 20, scale: 0.9 },
-                          visible: { opacity: 1, y: 0, scale: 1 }
-                        }}
-                        transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                      >
-                        <ShapeCard
-                          title={option.label}
-                          description={option.description}
-                          partType={option.value}
-                          color={option.color}
-                          material={material}
-                          isSelected={value === option.value}
-                          onClick={() => handleSelect(option.value)}
-                        />
-                      </motion.div>
-                    ))}
-                  </motion.div>
-                </div>
-              </DialogContent>
-            </Dialog>
-          </TooltipTrigger>
-          <TooltipContent side="top">
-            <p className="text-xs">Open 3D visual selector</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+                Select Part Geometry
+              </DialogTitle>
+              <p className="text-sm text-muted-foreground mt-1">
+                Choose the shape that best matches your part for accurate inspection planning
+              </p>
+            </DialogHeader>
+          </div>
+
+          {/* Cards grid */}
+          <div className="p-6 overflow-y-auto max-h-[calc(85vh-120px)]">
+            <motion.div
+              className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4"
+              initial="hidden"
+              animate="visible"
+              variants={{
+                hidden: { opacity: 0 },
+                visible: {
+                  opacity: 1,
+                  transition: {
+                    staggerChildren: 0.05
+                  }
+                }
+              }}
+            >
+              {allPartTypes.map((option, index) => (
+                <motion.div
+                  key={option.value}
+                  variants={{
+                    hidden: { opacity: 0, y: 20, scale: 0.9 },
+                    visible: { opacity: 1, y: 0, scale: 1 }
+                  }}
+                  transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                >
+                  <ShapeCard
+                    title={option.label}
+                    description={option.description}
+                    partType={option.value}
+                    color={option.color}
+                    material={material}
+                    isSelected={value === option.value}
+                    onClick={() => handleSelect(option.value)}
+                  />
+                </motion.div>
+              ))}
+            </motion.div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

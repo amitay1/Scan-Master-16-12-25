@@ -9,7 +9,8 @@ import "react-pdf/dist/Page/TextLayer.css";
 const root = document.getElementById("root");
 if (!root) throw new Error("Root element not found");
 
-if (typeof window !== "undefined" && window.electron) {
+// Enable fluid scaling system for all environments
+if (typeof window !== "undefined") {
   document.documentElement.classList.add("electron-ui");
 }
 
