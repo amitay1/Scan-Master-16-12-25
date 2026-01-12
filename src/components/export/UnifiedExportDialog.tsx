@@ -18,6 +18,7 @@ import {
   Upload,
   Building2,
   Trash2,
+  Eye,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
@@ -172,6 +173,30 @@ export const UnifiedExportDialog: React.FC<UnifiedExportDialogProps> = ({
       total: totalFields,
     };
   }, [inspectionSetup, equipment, calibration, acceptanceCriteria, documentation]);
+
+  // Preview PDF in new tab (for faster iteration while designing)
+  const handlePreview = () => {
+    exportTechniqueSheetPDF({
+      standard,
+      inspectionSetup,
+      equipment,
+      calibration,
+      scanParameters,
+      acceptanceCriteria,
+      documentation,
+      scanDetails,
+      scanPlan,
+      capturedDrawing,
+      calibrationBlockDiagram,
+      angleBeamDiagram,
+      e2375Diagram,
+      scanDirectionsDrawing,
+    }, {
+      companyName: companyName || undefined,
+      companyLogo: companyLogo || undefined,
+      previewInNewTab: true,
+    });
+  };
 
   const handleExport = async (format: "pdf" | "word") => {
     setIsExporting(true);
@@ -391,6 +416,16 @@ export const UnifiedExportDialog: React.FC<UnifiedExportDialogProps> = ({
                 </div>
               </button>
             </div>
+
+            {/* Preview Button */}
+            <button
+              onClick={handlePreview}
+              disabled={isExporting}
+              className="w-full flex items-center justify-center gap-2 p-2.5 mt-2 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-200 transition-colors"
+            >
+              <Eye className="w-4 h-4" />
+              <span className="text-sm">Preview PDF in New Tab</span>
+            </button>
           </div>
 
           {/* Company Logo Upload */}

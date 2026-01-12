@@ -266,8 +266,8 @@ export const ScanDetailsTab = ({ data, onChange, partType, standard = "AMS-STD-2
     <div className="h-full flex flex-col overflow-hidden">
       {/* Main content - side by side layout */}
       <div className="flex-1 flex gap-2 min-h-0 p-1">
-        {/* LEFT: Diagram - direct display without wrapper */}
-        <div className="w-1/2 min-h-0 flex-shrink-0">
+        {/* LEFT: Diagram - wrapped with data-testid for PDF export capture */}
+        <div className="w-1/2 min-h-0 flex-shrink-0" data-testid="e2375-diagram">
           {isTubeType(partType) ? (
             <TubeScanDiagram
               scanDetails={scanDetails}

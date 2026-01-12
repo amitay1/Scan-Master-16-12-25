@@ -82,9 +82,18 @@ const ANGLE_BEAM_SELECTORS = [
   '.angle-beam-calibration-block',
 ];
 
-// E2375 scan directions diagram selectors
+// E2375 scan directions diagram selectors (supports both SVG diagrams and images)
 const E2375_DIAGRAM_SELECTORS = [
+  // SVG-based diagrams (TubeScanDiagram, ConeScanDiagram)
+  '[data-testid="scan-direction-svg"]',
+  'svg[data-testid="scan-direction-svg"]',
+  '#scan-direction-svg',
+  'svg.scan-direction-diagram',
+  // Container with SVG inside
   '[data-testid="e2375-diagram"]',
+  '[data-testid="e2375-diagram"] svg',
+  // Legacy image-based diagrams
+  '[data-testid="e2375-diagram-img"]',
   '.e2375-diagram-image img',
   '.e2375-diagram-container img',
 ];

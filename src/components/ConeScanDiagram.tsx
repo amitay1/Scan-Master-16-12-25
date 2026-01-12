@@ -81,8 +81,10 @@ export const ConeScanDiagram: React.FC<ConeScanDiagramProps> = ({
     <div className="bg-white rounded-lg border-2 border-gray-200 p-4">
       <svg
         viewBox={`0 0 ${svgWidth} ${svgHeight}`}
-        className="w-full h-auto"
+        className="w-full h-auto scan-direction-diagram"
         style={{ maxHeight: '520px' }}
+        data-testid="scan-direction-svg"
+        id="scan-direction-svg"
       >
         {/* Grid background */}
         <defs>

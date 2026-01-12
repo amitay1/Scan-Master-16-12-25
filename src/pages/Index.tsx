@@ -1280,12 +1280,16 @@ const Index = () => {
         // Step 3: Go to scan details tab and capture E2375 diagram
         console.log('[PDF Export] Step 3: Going to Scan Details tab for E2375 diagram...');
         setActiveTab('scandetails');
-        await new Promise(resolve => setTimeout(resolve, 500)); // Initial wait for tab switch
+        await new Promise(resolve => setTimeout(resolve, 800)); // Wait for tab switch and SVG render
 
-        // Wait for the E2375 image to actually load
+        // Check if we have an SVG-based diagram (TubeScanDiagram or ConeScanDiagram) or image-based
+        const svgDiagram = document.querySelector('[data-testid="scan-direction-svg"]') as SVGElement;
         const e2375ImgElement = document.querySelector('[data-testid="e2375-diagram-img"]') as HTMLImageElement;
+
+        console.log('[PDF Export] SVG diagram found:', !!svgDiagram);
         console.log('[PDF Export] E2375 img element found:', !!e2375ImgElement);
-        
+
+        // For image-based diagrams, wait for load
         if (e2375ImgElement && !e2375ImgElement.complete) {
           console.log('[PDF Export] Waiting for E2375 image to load...');
           await new Promise<void>((resolve) => {
@@ -1296,14 +1300,22 @@ const Index = () => {
         }
         await new Promise(resolve => setTimeout(resolve, 300)); // Extra buffer after load
 
-        // Capture E2375 standard diagram (look for the actual img element first)
+        // Capture E2375 diagram - supports both SVG diagrams and images
         const e2375Result = await smartCapture([
-          '[data-testid="e2375-diagram-img"]',  // Direct image element with testid
-          '[data-testid="e2375-diagram"] img',  // Image inside container
+          // SVG-based diagrams (TubeScanDiagram, ConeScanDiagram) - HIGH PRIORITY
+          '[data-testid="scan-direction-svg"]',
+          'svg[data-testid="scan-direction-svg"]',
+          '#scan-direction-svg',
+          'svg.scan-direction-diagram',
+          // Container with SVG inside
+          '[data-testid="e2375-diagram"]',
+          '[data-testid="e2375-diagram"] svg',
+          // Legacy image-based diagrams
+          '[data-testid="e2375-diagram-img"]',
+          '[data-testid="e2375-diagram"] img',
           '.e2375-diagram-image img',
           '.e2375-diagram-container img',
-          '[data-testid="e2375-diagram"]',
-        ], { scale: 2, quality: 1.0, backgroundColor: 'white', maxWidth: 1200, maxHeight: 800 });
+        ], { scale: 3, quality: 1.0, backgroundColor: 'white', maxWidth: 1800, maxHeight: 1200 });
 
         console.log('[PDF Export] E2375 capture result:', e2375Result.success, e2375Result.data?.length || 0);
         if (e2375Result.success && e2375Result.data) {

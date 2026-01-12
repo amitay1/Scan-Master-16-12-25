@@ -77,6 +77,7 @@ export interface ExportOptions {
   companyName?: string;
   companyLogo?: string;
   documentNumber?: string;
+  previewInNewTab?: boolean; // Open PDF in new browser tab instead of downloading
 }
 
 // Type declaration for Electron API
@@ -105,6 +106,12 @@ export function exportTechniqueSheetPDF(
   const partNumber = data.inspectionSetup.partNumber || 'TechniqueSheet';
   const date = new Date().toISOString().split('T')[0];
   const filename = `${partNumber}_TechniqueSheet_${date}.pdf`;
+
+  // If preview mode - open in new tab instead of downloading
+  if (options.previewInNewTab) {
+    openPdfInNewTab(pdf, filename);
+    return;
+  }
 
   // Check if we're in Electron environment
   const electronApi = typeof window !== 'undefined'
@@ -143,6 +150,47 @@ export function exportTechniqueSheetPDF(
   } else {
     // For regular browser: use standard jsPDF save
     pdf.save(filename);
+  }
+}
+
+// Store reference to preview window for reuse
+let previewWindow: Window | null = null;
+let previousBlobUrl: string | null = null;
+
+// Open PDF in a browser tab for preview (reuses same window for live updates)
+function openPdfInNewTab(pdf: jsPDF, filename: string): void {
+  try {
+    // Clean up previous blob URL
+    if (previousBlobUrl) {
+      URL.revokeObjectURL(previousBlobUrl);
+    }
+
+    const pdfBlob = pdf.output('blob');
+    const blobUrl = URL.createObjectURL(pdfBlob);
+    previousBlobUrl = blobUrl;
+
+    // Try to reuse existing preview window
+    if (previewWindow && !previewWindow.closed) {
+      // Update the existing window
+      previewWindow.location.href = blobUrl;
+      previewWindow.focus();
+      console.log('PDF preview updated in existing tab:', filename);
+    } else {
+      // Open new window with a specific name so it can be reused
+      previewWindow = window.open(blobUrl, 'pdf_preview');
+
+      if (previewWindow) {
+        previewWindow.focus();
+        console.log('PDF preview opened in new tab:', filename);
+      } else {
+        // Popup blocked - fall back to download
+        console.warn('Popup blocked, falling back to download');
+        fallbackBlobDownload(pdf, filename);
+      }
+    }
+  } catch (error) {
+    console.error('Failed to open PDF in new tab:', error);
+    fallbackBlobDownload(pdf, filename);
   }
 }
 
@@ -217,19 +265,27 @@ class TechniqueSheetPDFBuilder {
 
     this.totalPages = pages;
 
-    // Build page mapping
+    // Build page mapping - ORDER MATCHES UI TABS
     let page = 1;
     this.pageMapping.set('cover', page++);
     this.pageMapping.set('toc', page++);
+
+    // 1. Setup (Part Information + Technical Drawing)
     this.pageMapping.set('setup', page++);
-    this.pageMapping.set('equipment', page++);
-    this.pageMapping.set('calibration', page++);
-    this.pageMapping.set('calibration-diagram', page++);
-    if (this.data.angleBeamDiagram) {
-      this.pageMapping.set('angle-beam-diagram', page++);
+    if (this.data.capturedDrawing) {
+      this.pageMapping.set('technical-drawing', page++);
     }
+
+    // 2. Equipment
+    this.pageMapping.set('equipment', page++);
+
+    // 3. Scan Parameters
     this.pageMapping.set('scan-parameters', page++);
+
+    // 4. Acceptance
     this.pageMapping.set('acceptance', page++);
+
+    // 5. Scan Details
     if (this.data.scanDetails) {
       this.pageMapping.set('scan-details', page++);
     }
@@ -239,44 +295,57 @@ class TechniqueSheetPDFBuilder {
     if (this.data.scanDirectionsDrawing) {
       this.pageMapping.set('scan-directions-drawing', page++);
     }
-    if (this.data.capturedDrawing) {
-      this.pageMapping.set('technical-drawing', page++);
+
+    // 6. Documentation
+    this.pageMapping.set('documentation', page++);
+
+    // 7. Reference Standard (Calibration)
+    this.pageMapping.set('calibration', page++);
+    this.pageMapping.set('calibration-diagram', page++);
+    if (this.data.angleBeamDiagram) {
+      this.pageMapping.set('angle-beam-diagram', page++);
     }
-    // Add scan plan page mapping - safe check
+
+    // 8. Scan Plan
     if (scanPlanDocs.filter(d => d && d.isActive).length > 0) {
       this.pageMapping.set('scan-plan', page++);
     }
-    this.pageMapping.set('documentation', page++);
+
+    // Approvals
     this.pageMapping.set('approvals', page++);
 
     this.totalPages = page - 1;
   }
 
   // Build the complete PDF
+  // ORDER MATCHES UI TABS: Setup → Equipment → Scan Params → Acceptance → Scan Details → Documentation → Reference Standard → Scan Plan
   public build(): void {
     this.buildCoverPage();
     this.addNewPage();
     this.buildTableOfContents();
+
+    // 1. SETUP (Part Information + Technical Drawing)
     this.addNewPage();
     this.buildPartInformation();
-    this.addNewPage();
-    this.buildEquipment();
-    this.addNewPage();
-    this.buildCalibration();
-    this.addNewPage();
-    this.buildCalibrationDiagram();
 
-    // Add angle beam calibration diagram if available (for circular parts)
-    if (this.data.angleBeamDiagram) {
+    if (this.data.capturedDrawing) {
       this.addNewPage();
-      this.buildAngleBeamDiagram();
+      this.buildTechnicalDrawing();
     }
 
+    // 2. EQUIPMENT
+    this.addNewPage();
+    this.buildEquipment();
+
+    // 3. SCAN PARAMETERS
     this.addNewPage();
     this.buildScanParameters();
+
+    // 4. ACCEPTANCE CRITERIA
     this.addNewPage();
     this.buildAcceptanceCriteria();
 
+    // 5. SCAN DETAILS (table + diagrams)
     if (this.data.scanDetails) {
       this.addNewPage();
       this.buildScanDetails();
@@ -293,20 +362,30 @@ class TechniqueSheetPDFBuilder {
       this.buildScanDirectionsDrawing();
     }
 
-    if (this.data.capturedDrawing) {
+    // 6. DOCUMENTATION (moved before calibration)
+    this.addNewPage();
+    this.buildDocumentation();
+
+    // 7. REFERENCE STANDARD (Calibration)
+    this.addNewPage();
+    this.buildCalibration();
+    this.addNewPage();
+    this.buildCalibrationDiagram();
+
+    // Add angle beam calibration diagram if available (for circular parts)
+    if (this.data.angleBeamDiagram) {
       this.addNewPage();
-      this.buildTechnicalDrawing();
+      this.buildAngleBeamDiagram();
     }
 
-    // Add scan plan page if documents exist - safe check
+    // 8. SCAN PLAN (last tab)
     const scanPlanDocsForBuild = this.data.scanPlan?.documents || [];
     if (scanPlanDocsForBuild.filter(d => d && d.isActive).length > 0) {
       this.addNewPage();
       this.buildScanPlan();
     }
 
-    this.addNewPage();
-    this.buildDocumentation();
+    // APPROVALS (final page)
     this.addNewPage();
     this.buildApprovals();
   }
@@ -343,17 +422,31 @@ class TechniqueSheetPDFBuilder {
 
     if (this.options.companyLogo) {
       try {
+        // Get actual image dimensions to preserve aspect ratio
+        const imgProps = this.pdf.getImageProperties(this.options.companyLogo);
+        const aspectRatio = imgProps.width / imgProps.height;
+
+        // Calculate dimensions that fit within bounds while preserving aspect ratio
+        let finalWidth = logoMaxWidth;
+        let finalHeight = logoMaxWidth / aspectRatio;
+
+        // If height exceeds max, scale based on height instead
+        if (finalHeight > logoMaxHeight) {
+          finalHeight = logoMaxHeight;
+          finalWidth = logoMaxHeight * aspectRatio;
+        }
+
         this.pdf.addImage(
           this.options.companyLogo,
           'AUTO',
           logoX,
           logoY,
-          logoMaxWidth,
-          logoMaxHeight,
+          finalWidth,
+          finalHeight,
           undefined,
           'FAST'
         );
-        textStartX = logoX + logoMaxWidth + 5;
+        textStartX = logoX + finalWidth + 5;
       } catch (e) {
         console.warn('Failed to add company logo:', e);
       }
@@ -391,58 +484,77 @@ class TechniqueSheetPDFBuilder {
 
   private addFooter(): void {
     const doc = this.data.documentation;
-    const y = PAGE.height - PAGE.footerHeight;
+    const footerY = PAGE.height - PAGE.footerHeight;
+    const centerY = footerY + PAGE.footerHeight / 2; // Center of footer area
 
-    // ========== ULTIMATE FOOTER DESIGN ==========
-    // Top accent line
+    // ========== CLEAN FOOTER DESIGN ==========
+    // Top accent line (blue + gold)
     this.pdf.setFillColor(...COLORS.primary);
-    this.pdf.rect(0, y - 1, PAGE.width, 1, 'F');
+    this.pdf.rect(0, footerY, PAGE.width, 0.5, 'F');
+    this.pdf.setFillColor(...COLORS.accentGold);
+    this.pdf.rect(0, footerY + 0.5, PAGE.width, 0.3, 'F');
 
     // Footer background
     this.pdf.setFillColor(...COLORS.sectionBg);
-    this.pdf.rect(0, y, PAGE.width, PAGE.footerHeight, 'F');
+    this.pdf.rect(0, footerY + 0.8, PAGE.width, PAGE.footerHeight - 0.8, 'F');
 
-    // Left section: Document info
+    // Left section: Revision and Standard
     this.pdf.setFontSize(7);
     this.pdf.setFont('helvetica', 'bold');
     this.pdf.setTextColor(...COLORS.primary);
-    this.pdf.text(`Rev. ${doc.revision || 'A'}`, PAGE.marginLeft, y + 5);
+    this.pdf.text(`Rev. ${doc.revision || 'A'}`, PAGE.marginLeft, centerY + 1);
 
     this.pdf.setFont('helvetica', 'normal');
     this.pdf.setTextColor(...COLORS.lightText);
-    this.pdf.text(`| ${formatValue(this.data.standard)}`, PAGE.marginLeft + 16, y + 5);
+    const revWidth = this.pdf.getTextWidth(`Rev. ${doc.revision || 'A'}`);
+    this.pdf.text(` | ${formatValue(this.data.standard)} | ${formatDate(doc.inspectionDate)}`, PAGE.marginLeft + revWidth, centerY + 1);
 
-    // Date below
-    this.pdf.setFontSize(6);
-    this.pdf.text(formatDate(doc.inspectionDate), PAGE.marginLeft, y + 9);
-
-    // Center: Confidentiality notice
+    // Center: Confidentiality notice (single line)
     this.pdf.setFontSize(6);
     this.pdf.setTextColor(...COLORS.confidential);
     this.pdf.setFont('helvetica', 'bold');
-    this.pdf.text('CONFIDENTIAL', PAGE.width / 2, y + 5, { align: 'center' });
-    this.pdf.setFont('helvetica', 'normal');
-    this.pdf.setTextColor(...COLORS.mutedText);
-    this.pdf.text('Proprietary Inspection Document', PAGE.width / 2, y + 9, { align: 'center' });
+    this.pdf.text('CONFIDENTIAL - Proprietary Document', PAGE.width / 2, centerY + 1, { align: 'center' });
 
-    // Right: Page number with premium styling
-    const pageX = PAGE.width - PAGE.marginRight;
-
-    // Page number circle background
-    this.pdf.setFillColor(...COLORS.primary);
-    this.pdf.circle(pageX - 6, y + 6, 5, 'F');
-
+    // Right: Page number (simple format without circle)
     this.pdf.setFontSize(8);
     this.pdf.setFont('helvetica', 'bold');
-    this.pdf.setTextColor(255, 255, 255);
-    this.pdf.text(`${this.currentPage}`, pageX - 6, y + 8, { align: 'center' });
-
-    this.pdf.setFontSize(7);
-    this.pdf.setTextColor(...COLORS.lightText);
-    this.pdf.setFont('helvetica', 'normal');
-    this.pdf.text(`of ${this.totalPages}`, pageX, y + 8, { align: 'right' });
+    this.pdf.setTextColor(...COLORS.primary);
+    this.pdf.text(`Page ${this.currentPage} of ${this.totalPages}`, PAGE.width - PAGE.marginRight, centerY + 1, { align: 'right' });
 
     this.pdf.setTextColor(...COLORS.text);
+  }
+
+  // Helper to calculate proper image dimensions preserving aspect ratio
+  private calculateImageDimensions(
+    imageData: string,
+    maxWidth: number,
+    maxHeight: number
+  ): { width: number; height: number } {
+    try {
+      const imgProps = this.pdf.getImageProperties(imageData);
+      const aspectRatio = imgProps.width / imgProps.height;
+
+      let imgWidth = maxWidth;
+      let imgHeight = maxWidth / aspectRatio;
+
+      // If height exceeds max, scale based on height instead
+      if (imgHeight > maxHeight) {
+        imgHeight = maxHeight;
+        imgWidth = maxHeight * aspectRatio;
+      }
+
+      return { width: imgWidth, height: imgHeight };
+    } catch {
+      // Fallback to 4:3 ratio if can't read image properties
+      const fallbackRatio = 4 / 3;
+      let imgWidth = maxWidth;
+      let imgHeight = maxWidth / fallbackRatio;
+      if (imgHeight > maxHeight) {
+        imgHeight = maxHeight;
+        imgWidth = maxHeight * fallbackRatio;
+      }
+      return { width: imgWidth, height: imgHeight };
+    }
   }
 
   private addSectionTitle(title: string, y: number): number {
@@ -501,66 +613,78 @@ class TechniqueSheetPDFBuilder {
     const doc = this.data.documentation;
     const colWidth = PAGE.contentWidth / 2 - 5;
 
-    // ========== PREMIUM HEADER BANNER (TUV Style) ==========
-    // Main header - gradient effect with two layers (reduced height)
-    this.pdf.setFillColor(...COLORS.primaryDark);
-    this.pdf.rect(0, 0, PAGE.width, 55, 'F');
+    // ========== CLEAN WHITE HEADER DESIGN ==========
+    // White background - no fill needed (page is already white)
 
-    // Gradient overlay (lighter at bottom)
-    this.pdf.setFillColor(...COLORS.primary);
-    this.pdf.rect(0, 30, PAGE.width, 25, 'F');
+    // Company logo on cover page (top-left, larger on white background)
+    const coverLogoMaxWidth = 55;
+    const coverLogoMaxHeight = 30;
+    let logoBottomY = 35;
 
-    // Gold accent line at bottom of header
-    this.pdf.setFillColor(...COLORS.accentGold);
-    this.pdf.rect(0, 55, PAGE.width, 2, 'F');
-
-    // Secondary accent line
-    this.pdf.setFillColor(...COLORS.accent);
-    this.pdf.rect(0, 57, PAGE.width, 1, 'F');
-
-    // Company logo on cover page (top-left)
-    let logoEndX = PAGE.marginLeft;
     if (this.options.companyLogo) {
       try {
+        // Get actual image dimensions to preserve aspect ratio
+        const imgProps = this.pdf.getImageProperties(this.options.companyLogo);
+        const aspectRatio = imgProps.width / imgProps.height;
+
+        // Calculate dimensions that fit within bounds while preserving aspect ratio
+        let finalWidth = coverLogoMaxWidth;
+        let finalHeight = coverLogoMaxWidth / aspectRatio;
+
+        // If height exceeds max, scale based on height instead
+        if (finalHeight > coverLogoMaxHeight) {
+          finalHeight = coverLogoMaxHeight;
+          finalWidth = coverLogoMaxHeight * aspectRatio;
+        }
+
         this.pdf.addImage(
           this.options.companyLogo,
           'AUTO',
           PAGE.marginLeft,
-          8,
-          40,
-          18,
+          10,
+          finalWidth,
+          finalHeight,
           undefined,
           'FAST'
         );
-        logoEndX = PAGE.marginLeft + 45;
+        logoBottomY = 10 + finalHeight + 5;
       } catch (e) {
         console.warn('Failed to add company logo on cover:', e);
       }
     }
 
-    // Main Title - Large and prominent
-    this.pdf.setTextColor(255, 255, 255);
+    // Main Title - Blue text on white background
+    this.pdf.setTextColor(...COLORS.primary);
     this.pdf.setFontSize(FONTS.coverTitle.size);
     this.pdf.setFont('helvetica', 'bold');
-    this.pdf.text('ULTRASONIC INSPECTION', PAGE.width / 2, 25, { align: 'center' });
+    this.pdf.text('ULTRASONIC INSPECTION', PAGE.width / 2, logoBottomY + 8, { align: 'center' });
 
     this.pdf.setFontSize(20);
-    this.pdf.text('TECHNIQUE SHEET', PAGE.width / 2, 38, { align: 'center' });
+    this.pdf.text('TECHNIQUE SHEET', PAGE.width / 2, logoBottomY + 20, { align: 'center' });
 
     // Company name subtitle
     if (this.options.companyName) {
       this.pdf.setFontSize(10);
       this.pdf.setFont('helvetica', 'normal');
-      this.pdf.setTextColor(180, 200, 220);
-      this.pdf.text(this.options.companyName, PAGE.width / 2, 50, { align: 'center' });
+      this.pdf.setTextColor(...COLORS.lightText);
+      this.pdf.text(this.options.companyName, PAGE.width / 2, logoBottomY + 30, { align: 'center' });
     }
+
+    // Accent line below title area
+    this.pdf.setFillColor(...COLORS.primary);
+    this.pdf.rect(PAGE.marginLeft, logoBottomY + 35, PAGE.contentWidth, 1.5, 'F');
+
+    // Gold accent line
+    this.pdf.setFillColor(...COLORS.accentGold);
+    this.pdf.rect(PAGE.marginLeft, logoBottomY + 37, PAGE.contentWidth, 1, 'F');
 
     this.pdf.setTextColor(...COLORS.text);
 
     // ========== DOCUMENT INFO BAR ==========
-    let y = 65;
+    let y = logoBottomY + 45;
+    const docInfoBarHeight = 22;
     this.pdf.setFillColor(...COLORS.sectionBg);
-    this.pdf.rect(0, y, PAGE.width, 22, 'F');
+    this.pdf.rect(0, y, PAGE.width, docInfoBarHeight, 'F');
 
     // Document info items with stylish icons/labels
     const docInfoItems = [
@@ -589,7 +713,7 @@ class TechniqueSheetPDFBuilder {
     });
 
     // ========== PART INFORMATION CARD ==========
-    y = 95;
+    y = y + docInfoBarHeight + 8; // Dynamic positioning after doc info bar
     const cardHeight = 55;
 
     // Card shadow effect
@@ -652,7 +776,7 @@ class TechniqueSheetPDFBuilder {
     });
 
     // ========== INSPECTOR & CERTIFICATION CARD ==========
-    y = 160;
+    y = y + cardHeight + 10; // Dynamic positioning after part info card
     const certCardHeight = 45;
 
     // Card shadow
@@ -708,34 +832,40 @@ class TechniqueSheetPDFBuilder {
       this.pdf.line(x, currY + 6, x + colWidth - 15, currY + 6);
     });
 
-    // ========== ACCEPTANCE CLASS BADGE (Premium Gold Design) ==========
-    y = 215;
+    // ========== ACCEPTANCE CLASS (Clean Inline Design) ==========
+    y = y + certCardHeight + 10; // Dynamic positioning after certification card
     const classInfo = formatAcceptanceClass(this.data.acceptanceCriteria.acceptanceClass);
     if (classInfo.class !== '-') {
-      const badgeWidth = 100;
-      const badgeHeight = 35;
-      const badgeX = (PAGE.width - badgeWidth) / 2;
+      // Simple horizontal line with class info
+      const lineY = y + 5;
 
-      // Outer gold glow
-      this.pdf.setFillColor(...COLORS.accentGold);
-      this.pdf.roundedRect(badgeX - 2, y - 2, badgeWidth + 4, badgeHeight + 4, 5, 5, 'F');
+      // Light background bar
+      this.pdf.setFillColor(248, 250, 252);
+      this.pdf.rect(PAGE.marginLeft, y, PAGE.contentWidth, 14, 'F');
 
-      // Main badge with gradient effect
-      this.pdf.setFillColor(...COLORS.primaryDark);
-      this.pdf.roundedRect(badgeX, y, badgeWidth, badgeHeight, 4, 4, 'F');
-
-      // Inner highlight
+      // Left accent line
       this.pdf.setFillColor(...COLORS.primary);
-      this.pdf.roundedRect(badgeX + 2, y + 2, badgeWidth - 4, badgeHeight - 4, 3, 3, 'F');
+      this.pdf.rect(PAGE.marginLeft, y, 3, 14, 'F');
 
-      this.pdf.setTextColor(...COLORS.accentGold);
-      this.pdf.setFontSize(8);
+      // Label text
+      this.pdf.setTextColor(...COLORS.lightText);
+      this.pdf.setFontSize(9);
+      this.pdf.setFont('helvetica', 'normal');
+      this.pdf.text('Acceptance Class:', PAGE.marginLeft + 8, lineY + 5);
+
+      // Class value
+      this.pdf.setTextColor(...COLORS.primary);
+      this.pdf.setFontSize(12);
       this.pdf.setFont('helvetica', 'bold');
-      this.pdf.text('ACCEPTANCE CLASS', PAGE.width / 2, y + 12, { align: 'center' });
+      this.pdf.text(classInfo.class, PAGE.marginLeft + 45, lineY + 5);
 
-      this.pdf.setTextColor(255, 255, 255);
-      this.pdf.setFontSize(18);
-      this.pdf.text(classInfo.class, PAGE.width / 2, y + 27, { align: 'center' });
+      // Standard reference (if available)
+      if (classInfo.description) {
+        this.pdf.setTextColor(...COLORS.lightText);
+        this.pdf.setFontSize(8);
+        this.pdf.setFont('helvetica', 'normal');
+        this.pdf.text(`(${classInfo.description})`, PAGE.marginLeft + 60, lineY + 5);
+      }
     }
 
     // ========== CONFIDENTIALITY FOOTER ==========
@@ -763,58 +893,63 @@ class TechniqueSheetPDFBuilder {
     y = this.addSectionTitle('TABLE OF CONTENTS', y);
     y += 5;
 
-    const tocItems = [
-      { title: '1. Part Information', page: this.pageMapping.get('setup') || 3 },
-      { title: '2. Equipment', page: this.pageMapping.get('equipment') || 4 },
-      { title: '3. Calibration', page: this.pageMapping.get('calibration') || 5 },
-      { title: '   3.1 Calibration Block Diagram', page: this.pageMapping.get('calibration-diagram') || 6 },
-    ];
+    // TOC ORDER MATCHES UI TABS: Setup → Equipment → Scan Params → Acceptance → Scan Details → Documentation → Reference Standard → Scan Plan
+    const tocItems: { title: string; page: number }[] = [];
+    let sectionNum = 1;
 
-    // Add angle beam calibration if available
-    if (this.data.angleBeamDiagram) {
-      tocItems.push({ title: '   3.2 Angle Beam Calibration Block', page: this.pageMapping.get('angle-beam-diagram') || 7 });
-    }
-
-    tocItems.push(
-      { title: '4. Scan Parameters', page: this.pageMapping.get('scan-parameters') || 7 },
-      { title: '5. Acceptance Criteria', page: this.pageMapping.get('acceptance') || 8 },
-    );
-
-    // Add optional sections with dynamic numbering
-    let sectionNum = 6;
-    if (this.data.scanDetails) {
-      tocItems.push({ title: `${sectionNum}. Scan Details & Directions`, page: this.pageMapping.get('scan-details') || 9 });
-      sectionNum++;
-    }
-    // Add E2375 scan directions diagram if available
-    if (this.data.e2375Diagram) {
-      const subSection = this.data.scanDetails ? `${sectionNum - 1}.1` : String(sectionNum);
-      tocItems.push({ title: `   ${subSection} E2375 Scan Directions Diagram`, page: this.pageMapping.get('e2375-diagram') || 10 });
-      if (!this.data.scanDetails) sectionNum++;
-    }
-    if (this.data.scanDirectionsDrawing) {
-      const subSection = this.data.scanDetails ? `${sectionNum - 1}.2` : String(sectionNum);
-      tocItems.push({ title: `   ${subSection} Inspection Plan Drawing`, page: this.pageMapping.get('scan-directions-drawing') || 10 });
-      if (!this.data.scanDetails) sectionNum++;
-    }
+    // 1. Part Information (Setup tab)
+    tocItems.push({ title: `${sectionNum}. Part Information`, page: this.pageMapping.get('setup') || 3 });
     if (this.data.capturedDrawing) {
-      tocItems.push({ title: `${sectionNum}. Technical Drawing`, page: this.pageMapping.get('technical-drawing') || 10 });
+      tocItems.push({ title: `   ${sectionNum}.1 Technical Drawing`, page: this.pageMapping.get('technical-drawing') || 4 });
+    }
+    sectionNum++;
+
+    // 2. Equipment
+    tocItems.push({ title: `${sectionNum}. Equipment`, page: this.pageMapping.get('equipment') || 4 });
+    sectionNum++;
+
+    // 3. Scan Parameters
+    tocItems.push({ title: `${sectionNum}. Scan Parameters`, page: this.pageMapping.get('scan-parameters') || 5 });
+    sectionNum++;
+
+    // 4. Acceptance Criteria
+    tocItems.push({ title: `${sectionNum}. Acceptance Criteria`, page: this.pageMapping.get('acceptance') || 6 });
+    sectionNum++;
+
+    // 5. Scan Details
+    if (this.data.scanDetails) {
+      tocItems.push({ title: `${sectionNum}. Scan Details & Directions`, page: this.pageMapping.get('scan-details') || 7 });
+      if (this.data.e2375Diagram) {
+        tocItems.push({ title: `   ${sectionNum}.1 E2375 Scan Directions Diagram`, page: this.pageMapping.get('e2375-diagram') || 8 });
+      }
+      if (this.data.scanDirectionsDrawing) {
+        const subNum = this.data.e2375Diagram ? `${sectionNum}.2` : `${sectionNum}.1`;
+        tocItems.push({ title: `   ${subNum} Inspection Plan Drawing`, page: this.pageMapping.get('scan-directions-drawing') || 9 });
+      }
       sectionNum++;
     }
 
-    // Add scan plan if available - safe check
+    // 6. Documentation
+    tocItems.push({ title: `${sectionNum}. Documentation`, page: this.pageMapping.get('documentation') || 10 });
+    sectionNum++;
+
+    // 7. Reference Standard (Calibration)
+    tocItems.push({ title: `${sectionNum}. Reference Standard`, page: this.pageMapping.get('calibration') || 11 });
+    tocItems.push({ title: `   ${sectionNum}.1 Calibration Block Diagram`, page: this.pageMapping.get('calibration-diagram') || 12 });
+    if (this.data.angleBeamDiagram) {
+      tocItems.push({ title: `   ${sectionNum}.2 Angle Beam Calibration Block`, page: this.pageMapping.get('angle-beam-diagram') || 13 });
+    }
+    sectionNum++;
+
+    // 8. Scan Plan (if available)
     const scanPlanDocsForToc = this.data.scanPlan?.documents || [];
     if (scanPlanDocsForToc.filter(d => d && d.isActive).length > 0) {
-      tocItems.push({ title: `${sectionNum}. Scan Plan & Reference Documents`, page: this.pageMapping.get('scan-plan') || 11 });
+      tocItems.push({ title: `${sectionNum}. Scan Plan & Reference Documents`, page: this.pageMapping.get('scan-plan') || 14 });
       sectionNum++;
     }
 
-    const docPage = this.pageMapping.get('documentation') || 11;
-    const appPage = this.pageMapping.get('approvals') || 12;
-    tocItems.push(
-      { title: `${sectionNum}. Documentation`, page: docPage },
-      { title: `${sectionNum + 1}. Approval Signatures`, page: appPage }
-    );
+    // Approvals (last)
+    tocItems.push({ title: `${sectionNum}. Approval Signatures`, page: this.pageMapping.get('approvals') || 15 });
 
     this.pdf.setFontSize(11);
     tocItems.forEach((item) => {
@@ -1163,19 +1298,14 @@ class TechniqueSheetPDFBuilder {
 
     if (this.data.calibrationBlockDiagram) {
       try {
-        // Calculate proper dimensions maintaining aspect ratio (4:3 typical for diagrams)
-        const maxWidth = PAGE.contentWidth * 0.85; // Leave some margin
-        const maxHeight = PAGE.height - y - PAGE.footerHeight - 30;
-        const aspectRatio = 4 / 3; // Typical diagram aspect ratio
-
-        let imgWidth = maxWidth;
-        let imgHeight = imgWidth / aspectRatio;
-
-        // If too tall, scale by height
-        if (imgHeight > Math.min(maxHeight, 140)) {
-          imgHeight = Math.min(maxHeight, 140);
-          imgWidth = imgHeight * aspectRatio;
-        }
+        // Calculate proper dimensions from actual image (preserves aspect ratio)
+        const maxWidth = PAGE.contentWidth * 0.9;
+        const maxHeight = Math.min(PAGE.height - y - PAGE.footerHeight - 30, 150);
+        const { width: imgWidth, height: imgHeight } = this.calculateImageDimensions(
+          this.data.calibrationBlockDiagram,
+          maxWidth,
+          maxHeight
+        );
 
         // Center horizontally
         const xPos = PAGE.marginLeft + (PAGE.contentWidth - imgWidth) / 2;
@@ -1193,7 +1323,7 @@ class TechniqueSheetPDFBuilder {
           imgWidth,
           imgHeight,
           undefined,
-          'MEDIUM'
+          'FAST' // High quality - minimal compression
         );
       } catch {
         this.pdf.setFontSize(10);
@@ -1237,18 +1367,14 @@ class TechniqueSheetPDFBuilder {
 
     if (this.data.angleBeamDiagram) {
       try {
-        // Calculate proper dimensions maintaining aspect ratio
-        const maxWidth = PAGE.contentWidth * 0.85;
-        const maxHeight = PAGE.height - y - PAGE.footerHeight - 30;
-        const aspectRatio = 4 / 3;
-
-        let imgWidth = maxWidth;
-        let imgHeight = imgWidth / aspectRatio;
-
-        if (imgHeight > Math.min(maxHeight, 130)) {
-          imgHeight = Math.min(maxHeight, 130);
-          imgWidth = imgHeight * aspectRatio;
-        }
+        // Calculate proper dimensions from actual image (preserves aspect ratio)
+        const maxWidth = PAGE.contentWidth * 0.9;
+        const maxHeight = Math.min(PAGE.height - y - PAGE.footerHeight - 30, 140);
+        const { width: imgWidth, height: imgHeight } = this.calculateImageDimensions(
+          this.data.angleBeamDiagram,
+          maxWidth,
+          maxHeight
+        );
 
         const xPos = PAGE.marginLeft + (PAGE.contentWidth - imgWidth) / 2;
 
@@ -1264,7 +1390,7 @@ class TechniqueSheetPDFBuilder {
           imgWidth,
           imgHeight,
           undefined,
-          'MEDIUM'
+          'FAST' // High quality - minimal compression
         );
       } catch {
         this.pdf.setFontSize(10);
@@ -1306,18 +1432,14 @@ class TechniqueSheetPDFBuilder {
 
     if (this.data.e2375Diagram) {
       try {
-        // Calculate proper dimensions maintaining aspect ratio
-        const maxWidth = PAGE.contentWidth * 0.85;
-        const maxHeight = PAGE.height - y - PAGE.footerHeight - 40;
-        const aspectRatio = 4 / 3;
-
-        let imgWidth = maxWidth;
-        let imgHeight = imgWidth / aspectRatio;
-
-        if (imgHeight > Math.min(maxHeight, 120)) {
-          imgHeight = Math.min(maxHeight, 120);
-          imgWidth = imgHeight * aspectRatio;
-        }
+        // Calculate proper dimensions from actual image (preserves aspect ratio)
+        const maxWidth = PAGE.contentWidth * 0.9;
+        const maxHeight = Math.min(PAGE.height - y - PAGE.footerHeight - 40, 140);
+        const { width: imgWidth, height: imgHeight } = this.calculateImageDimensions(
+          this.data.e2375Diagram,
+          maxWidth,
+          maxHeight
+        );
 
         const xPos = PAGE.marginLeft + (PAGE.contentWidth - imgWidth) / 2;
 
@@ -1333,7 +1455,7 @@ class TechniqueSheetPDFBuilder {
           imgWidth,
           imgHeight,
           undefined,
-          'MEDIUM'
+          'FAST' // High quality - minimal compression
         );
 
         // Add note below the diagram
@@ -1659,18 +1781,14 @@ class TechniqueSheetPDFBuilder {
 
     if (this.data.scanDirectionsDrawing) {
       try {
-        // Calculate proper dimensions maintaining aspect ratio
-        const maxWidth = PAGE.contentWidth * 0.85;
-        const maxHeight = PAGE.height - y - PAGE.footerHeight - 35;
-        const aspectRatio = 4 / 3;
-
-        let imgWidth = maxWidth;
-        let imgHeight = imgWidth / aspectRatio;
-
-        if (imgHeight > Math.min(maxHeight, 150)) {
-          imgHeight = Math.min(maxHeight, 150);
-          imgWidth = imgHeight * aspectRatio;
-        }
+        // Calculate proper dimensions from actual image (preserves aspect ratio)
+        const maxWidth = PAGE.contentWidth * 0.9;
+        const maxHeight = Math.min(PAGE.height - y - PAGE.footerHeight - 35, 160);
+        const { width: imgWidth, height: imgHeight } = this.calculateImageDimensions(
+          this.data.scanDirectionsDrawing,
+          maxWidth,
+          maxHeight
+        );
 
         const xPos = PAGE.marginLeft + (PAGE.contentWidth - imgWidth) / 2;
 
@@ -1686,7 +1804,7 @@ class TechniqueSheetPDFBuilder {
           imgWidth,
           imgHeight,
           undefined,
-          'MEDIUM'
+          'FAST' // High quality - minimal compression
         );
 
         // Add caption below the image
@@ -1734,19 +1852,14 @@ class TechniqueSheetPDFBuilder {
 
     if (this.data.capturedDrawing) {
       try {
-        // Calculate proper dimensions maintaining aspect ratio
-        const maxWidth = PAGE.contentWidth * 0.9; // Use most of the width for technical drawings
-        const maxHeight = PAGE.height - y - PAGE.footerHeight - 25;
-        const aspectRatio = 4 / 3; // Standard technical drawing ratio
-
-        let imgWidth = maxWidth;
-        let imgHeight = imgWidth / aspectRatio;
-
-        // If too tall, scale by height
-        if (imgHeight > Math.min(maxHeight, 160)) {
-          imgHeight = Math.min(maxHeight, 160);
-          imgWidth = imgHeight * aspectRatio;
-        }
+        // Calculate proper dimensions from actual image (preserves aspect ratio)
+        const maxWidth = PAGE.contentWidth * 0.9;
+        const maxHeight = Math.min(PAGE.height - y - PAGE.footerHeight - 25, 160);
+        const { width: imgWidth, height: imgHeight } = this.calculateImageDimensions(
+          this.data.capturedDrawing,
+          maxWidth,
+          maxHeight
+        );
 
         // Center horizontally
         const xPos = PAGE.marginLeft + (PAGE.contentWidth - imgWidth) / 2;
@@ -1764,7 +1877,7 @@ class TechniqueSheetPDFBuilder {
           imgWidth,
           imgHeight,
           undefined,
-          'MEDIUM'
+          'FAST' // High quality - minimal compression
         );
       } catch {
         this.pdf.setFontSize(10);
