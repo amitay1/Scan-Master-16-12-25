@@ -1,9 +1,9 @@
-import React, { useRef } from "react";
+import React, { useRef, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { InspectionSetupData, MaterialType, PartGeometry, AcceptanceClass } from "@/types/techniqueSheet";
-import { Upload, X } from "lucide-react";
+import { InspectionSetupData, MaterialType, PartGeometry, AcceptanceClass, StandardType } from "@/types/techniqueSheet";
+import { Upload, X, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { materialDatabase } from "@/utils/autoFillLogic";
@@ -11,11 +11,20 @@ import { PartTypeVisualSelector } from "@/components/PartTypeVisualSelector";
 import { Card } from "@/components/ui/card";
 import { FieldWithHelp } from "@/components/FieldWithHelp";
 import { RealTimeTechnicalDrawing } from "@/components/RealTimeTechnicalDrawing";
+import { 
+  generateCalibrationRecommendationV2, 
+  CalibrationRecommendationInput 
+} from "@/utils/calibrationRecommenderV2";
+import { logInfo, logWarn } from "@/lib/logger";
+import type { ScanDetailsData } from "@/types/scanDetails";
 
 interface InspectionSetupTabProps {
   data: InspectionSetupData;
   onChange: (data: InspectionSetupData) => void;
   acceptanceClass?: AcceptanceClass | "";
+  standardType?: StandardType;  // Added: for calibration recommendation
+  onCalibrationRecommendation?: (blockType: string, reasoning: string) => void;  // Added: callback to update calibration
+  scanDetails?: ScanDetailsData;  // NEW: Scan directions to influence calibration block selection
 }
 
 const materials: { value: MaterialType; label: string }[] = [
@@ -293,7 +302,14 @@ function classifyShape(
 
 // Using imported FieldWithHelp component
 
-export const InspectionSetupTab = ({ data, onChange, acceptanceClass }: InspectionSetupTabProps) => {
+export const InspectionSetupTab = ({ 
+  data, 
+  onChange, 
+  acceptanceClass,
+  standardType,
+  onCalibrationRecommendation,
+  scanDetails
+}: InspectionSetupTabProps) => {
   // Refs to avoid stale closures in useEffect with setTimeout
   const dataRef = useRef(data);
   const onChangeRef = useRef(onChange);
@@ -303,6 +319,83 @@ export const InspectionSetupTab = ({ data, onChange, acceptanceClass }: Inspecti
   const updateField = (field: keyof InspectionSetupData, value: any) => {
     onChange({ ...data, [field]: value });
   };
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // AUTO-RECOMMENDATION: Get calibration block recommendation based on part
+  // NOW WITH SCAN DIRECTIONS INTEGRATION! 🔗
+  // ═══════════════════════════════════════════════════════════════════════════
+  useEffect(() => {
+    // Only run if we have all required parameters
+    if (
+      !data.material ||
+      !data.partType ||
+      !data.partThickness ||
+      !acceptanceClass ||
+      !standardType ||
+      data.partType === "custom" ||  // Skip custom shapes
+      !onCalibrationRecommendation    // Skip if no callback provided
+    ) {
+      return;
+    }
+
+    try {
+      // Analyze CRITICAL scan directions that affect calibration block choice
+      // Only: Circumferential (D/E) and Angle Beam (F/G/H...) matter!
+      const scanDirectionInfo = scanDetails ? {
+        // Circumferential shear wave REQUIRES notched blocks
+        hasCircumferentialScan: scanDetails.scanDetails.some(s => 
+          s.enabled && ['D', 'E'].includes(s.scanningDirection)
+        ),
+        // Angle beam requires IIW/DSC blocks
+        hasAngleBeam: scanDetails.scanDetails.some(s => 
+          s.enabled && ['F', 'G', 'H', 'I', 'J', 'K'].includes(s.scanningDirection)
+        ),
+      } : undefined;
+
+      const recommendationInput: CalibrationRecommendationInput = {
+        material: data.material as MaterialType,
+        materialSpec: data.materialSpec || "",
+        partType: data.partType as PartGeometry,
+        standard: standardType,
+        thickness: data.partThickness,
+        length: data.partLength,
+        width: data.partWidth,
+        outerDiameter: data.diameter,
+        innerDiameter: data.innerDiameter,
+        acceptanceClass: acceptanceClass as AcceptanceClass,
+        beamType: scanDirectionInfo?.hasAngleBeam ? 'angle' : 'straight',
+        scanDirections: scanDirectionInfo, // 🔗 NEW: Pass scan directions!
+      };
+
+      const recommendation = generateCalibrationRecommendationV2(recommendationInput);
+      
+      logInfo("📋 Auto-recommendation (with scan directions):", {
+        partType: data.partType,
+        scanDirections: scanDirectionInfo,
+        recommendedBlock: recommendation.primaryBlock.category,
+        reasoning: recommendation.reasoning.blockSelection
+      });
+
+      // Pass back the recommendation to parent (e.g., to update CalibrationTab)
+      onCalibrationRecommendation(
+        recommendation.primaryBlock.category,
+        recommendation.reasoning.blockSelection
+      );
+
+    } catch (error) {
+      logWarn("Failed to generate calibration recommendation:", error);
+    }
+  }, [
+    data.material,
+    data.partType,
+    data.partThickness,
+    data.diameter,
+    data.innerDiameter,
+    acceptanceClass,
+    standardType,
+    onCalibrationRecommendation,
+    scanDetails // 🔗 Re-run when scan details change!
+  ]);
 
   const handleCustomShapeImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

@@ -2,11 +2,12 @@ import { useState, useEffect, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { CalibrationData, InspectionSetupData, AcceptanceClass, CalibrationBlockType, StandardType } from "@/types/techniqueSheet";
-import { Target, Info } from "lucide-react";
+import { Target, Info, Sparkles } from "lucide-react";
 import { CalibrationCatalog } from "../CalibrationCatalog";
 import { toast } from "sonner";
 import { FieldWithHelp } from "@/components/FieldWithHelp";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 // New components for FBH table with dropdowns
 import { FBHHoleTable } from "../FBHHoleTable";
@@ -198,6 +199,29 @@ export const CalibrationTab = ({
             <Badge variant="secondary" className="ml-2">
               Requires Both Beam Types
             </Badge>
+          )}
+          {data.autoRecommendedReason && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge variant="outline" className="ml-2 bg-green-50 text-green-700 border-green-300 cursor-help">
+                    <Sparkles className="h-3 w-3 mr-1" />
+                    Auto-Selected (Scan-Aware)
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-md">
+                  <div className="space-y-2">
+                    <p className="text-sm font-semibold">🎯 Auto-Selected Based On:</p>
+                    <ul className="text-xs space-y-1 list-disc list-inside">
+                      <li>Part Geometry & Dimensions</li>
+                      <li>Critical Scan Types (Circumferential/Angle Beam)</li>
+                      <li>Standard Requirements</li>
+                    </ul>
+                    <p className="text-sm border-t pt-2">{data.autoRecommendedReason}</p>
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           )}
         </h3>
 

@@ -44,6 +44,14 @@ import {
   IIWBlockGeometry
 } from "@/types/calibrationBlocks";
 
+// Import shear wave calibration blocks database
+import {
+  selectShearWaveBlock,
+  ShearWaveBlockSelectionCriteria,
+  SHEAR_WAVE_MASTERS,
+  ShearWaveCalibrationBlock,
+} from '@/data/shearWaveCalibrationBlocks';
+
 // Import the new angle beam calculator
 import {
   selectAngleBeamCalibrationBlock,
@@ -86,6 +94,12 @@ export interface CalibrationRecommendationInput {
   
   // Equipment
   frequency?: number;     // Transducer frequency (MHz)
+  
+  // NEW: Scan directions from Scan Details Tab (only critical ones that affect block choice)
+  scanDirections?: {
+    hasCircumferentialScan?: boolean; // D, E - REQUIRES notched blocks
+    hasAngleBeam?: boolean;           // F, G, H... - REQUIRES angle beam blocks (IIW/DSC)
+  };
 }
 
 export interface CalibrationRecommendationOutput {
@@ -265,7 +279,19 @@ function selectStraightBeamBlock(
       ? isThinWall(outerDiameter, innerDiameter) 
       : thickness < 25;
     
+    // CRITICAL: Circumferential shear wave REQUIRES notched block
+    const hasCircumferentialScan = input.scanDirections?.hasCircumferentialScan;
+    
     if (isThisWallPart) {
+      // Notched block is standard for thin wall, but MANDATORY if circumferential scan
+      if (hasCircumferentialScan) {
+        return {
+          category: 'cylinder_notched',
+          reasoning: `Notched cylinder block (Figure 5) REQUIRED. ` +
+                     `Circumferential shear wave scan (directions D/E) requires notch reflectors to simulate circumferential defects. ` +
+                     `Wall thickness < 25mm.`,
+        };
+      }
       return {
         category: 'cylinder_notched',
         reasoning: `Notched cylinder block (Figure 5) for thin-wall ${partType}. ` +
@@ -273,6 +299,18 @@ function selectStraightBeamBlock(
         alternatives: ['cylinder_fbh']
       };
     }
+    
+    // Thick wall - BUT if circumferential scan is used, notched block is still better
+    if (hasCircumferentialScan) {
+      return {
+        category: 'cylinder_notched',
+        reasoning: `Notched cylinder block (Figure 5) REQUIRED. ` +
+                   `Circumferential shear wave scan (directions D/E) requires notch reflectors, ` +
+                   `even for thick wall (${thickness}mm).`,
+        alternatives: ['cylinder_fbh']
+      };
+    }
+    
     return {
       category: 'cylinder_fbh',
       reasoning: `Cylinder FBH block (Figure 6) for thick-wall ${partType}. ` +
@@ -332,8 +370,69 @@ function selectStraightBeamBlock(
 /**
  * Select calibration block for angle beam inspection
  * Uses the comprehensive angleBeamCalculator for physics-based selection
+ * 
+ * NEW: Integrates ASME shear wave block selection for curved surfaces
  */
 function selectAngleBeamBlock(input: CalibrationRecommendationInput): {
+  category: CalibrationBlockCategory;
+  reasoning: string;
+  alternatives?: CalibrationBlockCategory[];
+  angleBeamData?: AngleBeamCalibrationResult;
+  shearWaveBlock?: ShearWaveCalibrationBlock;
+} {
+  const { partType, thickness, outerDiameter, innerDiameter, angleBeamAngle, material, standard } = input;
+  const geometryGroup = getGeometryGroup(partType);
+  const angle = angleBeamAngle || 45;
+  
+  // ============================================================================
+  // NEW: ASME SHEAR WAVE BLOCK SELECTION FOR ROUND PARTS
+  // ============================================================================
+  
+  // Check if part is round (tube, solid_round, hollow_round) with circumferential scan
+  const isRoundPart = ['tube', 'pipe', 'hollow_cylinder', 'solid_round', 'hollow_round'].includes(partType);
+  const hasCircumferentialScan = input.scanDirections?.hasCircumferentialScan;
+  
+  if (isRoundPart && outerDiameter && thickness) {
+    // Use ASME selection logic for shear wave blocks
+    const shearWaveCriteria: ShearWaveBlockSelectionCriteria = {
+      part_od_mm: outerDiameter,
+      part_thickness_mm: thickness,
+      part_geometry: partType as PartGeometry,
+      angle_deg: angle,
+    };
+    
+    const shearWaveResult = selectShearWaveBlock(shearWaveCriteria);
+    
+    if (shearWaveResult.block) {
+      // ASME block found - use it
+      return {
+        category: shearWaveResult.block.category,
+        reasoning: `ASME Shear Wave Block Selection: ${shearWaveResult.reasoning}`,
+        alternatives: shearWaveResult.matchQuality === 'marginal' ? ['custom'] : undefined,
+        shearWaveBlock: shearWaveResult.block,
+      };
+    } else {
+      // No ASME block found - fall back to traditional logic but warn
+      const fallbackResult = selectAngleBeamBlockTraditional(input);
+      return {
+        ...fallbackResult,
+        reasoning: `⚠️ ${shearWaveResult.reasoning}. Falling back to: ${fallbackResult.reasoning}`,
+      };
+    }
+  }
+  
+  // ============================================================================
+  // TRADITIONAL ANGLE BEAM SELECTION (for non-round parts)
+  // ============================================================================
+  
+  return selectAngleBeamBlockTraditional(input);
+}
+
+/**
+ * Traditional angle beam block selection (pre-ASME integration)
+ * Used for flat parts, complex geometries, or when ASME blocks don't apply
+ */
+function selectAngleBeamBlockTraditional(input: CalibrationRecommendationInput): {
   category: CalibrationBlockCategory;
   reasoning: string;
   alternatives?: CalibrationBlockCategory[];

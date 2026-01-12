@@ -1621,6 +1621,26 @@ const Index = () => {
                           data={currentData.inspectionSetup} 
                           onChange={currentData.setInspectionSetup}
                           acceptanceClass={currentData.acceptanceCriteria.acceptanceClass}
+                          standardType={standard}
+                          scanDetails={currentData.scanDetails}
+                          onCalibrationRecommendation={(blockType, reasoning) => {
+                            // Auto-update calibration block type based on part geometry AND scan directions
+                            const currentCalibration = currentData.calibration;
+                            if (currentCalibration.standardType !== blockType) {
+                              currentData.setCalibration({
+                                ...currentCalibration,
+                                standardType: blockType as any,
+                                autoRecommendedReason: reasoning
+                              });
+                              logInfo(`✨ Auto-selected calibration block: ${blockType}`, { 
+                                reasoning,
+                                criticalScans: {
+                                  hasCircumferential: currentData.scanDetails.scanDetails.some(s => s.enabled && ['D', 'E'].includes(s.scanningDirection)),
+                                  hasAngleBeam: currentData.scanDetails.scanDetails.some(s => s.enabled && ['F', 'G', 'H'].includes(s.scanningDirection)),
+                                }
+                              });
+                            }
+                          }}
                         />
                       </TabsContent>
 

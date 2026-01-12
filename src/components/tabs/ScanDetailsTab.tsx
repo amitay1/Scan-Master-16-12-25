@@ -256,7 +256,22 @@ export const ScanDetailsTab = ({ data, onChange, partType, standard = "AMS-STD-2
   };
 
   return (
-    <div className="space-y-2 p-2">
+    <div className="space-y-2 p-2">      {/* CRITICAL: Info banner about calibration block linkage */}
+      <div className="bg-amber-50 border border-amber-300 rounded-lg p-4">
+        <div className="flex items-start gap-3">
+          <Info className="h-5 w-5 text-amber-700 mt-0.5 flex-shrink-0" />
+          <div className="flex-1">
+            <h4 className="font-semibold text-amber-900 text-sm mb-1">
+              ⚠️ Critical: Scan Type Affects Calibration Block
+            </h4>
+            <p className="text-xs text-amber-800">
+              <strong>Circumferential shear wave (D/E)</strong> → REQUIRES <strong>notched cylinder block</strong><br/>
+              <strong>Angle beam scans (F/G/H)</strong> → REQUIRES <strong>angle beam calibration blocks</strong><br/>
+              <span className="text-amber-700">Other scan directions (A/B/C) don't affect block selection.</span>
+            </p>
+          </div>
+        </div>
+      </div>
       {/* E2375 Standard Diagram - Interactive SVG visualization */}
       {!partType ? (
         <Card className="p-8 flex flex-col items-center justify-center min-h-[400px] bg-muted/30">

@@ -137,6 +137,16 @@ export function EnhancedCylinderNotchedDrawing({
   // Use provided notches or defaults
   const notches = notchData.length > 0 ? notchData : DEFAULT_NOTCHES;
 
+  // Helper function to calculate visual notch depth proportional to wall thickness
+  // Ensures notches are visible while maintaining accurate proportions
+  const getVisualNotchDepth = (notchDepth: number): number => {
+    // Calculate actual proportion of wall thickness
+    const depthRatio = notchDepth / wallThickness;
+    // Ensure minimum visibility (at least 10% of wall) but cap at 90% to prevent overflow
+    const clampedRatio = Math.min(Math.max(depthRatio, 0.10), 0.90);
+    return clampedRatio * scaledWall;
+  };
+
   return (
     <g>
       {/* ==================== VIEW A - END VIEW (Notch Positions) ==================== */}
@@ -153,49 +163,49 @@ export function EnhancedCylinderNotchedDrawing({
         </defs>
 
         {/* Outer circle */}
-        <circle 
-          cx={centerX} 
-          cy={centerY} 
-          r={outerRadius} 
+        <circle
+          cx={centerX}
+          cy={centerY}
+          r={outerRadius}
           fill={`url(#hatch-notch-${uniqueId})`}
-          stroke="#1e293b" 
+          stroke="#1e293b"
           strokeWidth="2"
         />
 
         {/* Inner circle (hollow) */}
-        <circle 
-          cx={centerX} 
-          cy={centerY} 
-          r={innerRadius} 
-          fill="#f8fafc" 
-          stroke="#1e293b" 
+        <circle
+          cx={centerX}
+          cy={centerY}
+          r={innerRadius}
+          fill="#f8fafc"
+          stroke="#1e293b"
           strokeWidth="2"
         />
 
         {/* Center lines */}
-        <line 
-          x1={centerX} 
-          y1={centerY - outerRadius - 20} 
-          x2={centerX} 
-          y2={centerY + outerRadius + 20} 
-          stroke="#dc2626" 
-          strokeWidth="0.5" 
+        <line
+          x1={centerX}
+          y1={centerY - outerRadius - 20}
+          x2={centerX}
+          y2={centerY + outerRadius + 20}
+          stroke="#dc2626"
+          strokeWidth="0.5"
           strokeDasharray="15,3,3,3"
         />
-        <line 
-          x1={centerX - outerRadius - 20} 
-          y1={centerY} 
-          x2={centerX + outerRadius + 20} 
-          y2={centerY} 
-          stroke="#dc2626" 
-          strokeWidth="0.5" 
+        <line
+          x1={centerX - outerRadius - 20}
+          y1={centerY}
+          x2={centerX + outerRadius + 20}
+          y2={centerY}
+          stroke="#dc2626"
+          strokeWidth="0.5"
           strokeDasharray="15,3,3,3"
         />
 
         {/* Notches */}
         {notches.map((notch, i) => {
           const angleRad = (notch.angle - 90) * Math.PI / 180; // -90 to start at top
-          const notchDepthScaled = notch.depth * scale * 3; // Visual scaling
+          const notchDepthScaled = getVisualNotchDepth(notch.depth); // Proportional to wall thickness
           
           let notchPath = '';
           let labelX = 0, labelY = 0;
@@ -376,7 +386,7 @@ export function EnhancedCylinderNotchedDrawing({
         {/* Notches in longitudinal view */}
         {notches.filter(n => n.type !== 'axial').map((notch, i) => {
           const notchW = (notch.width || 0.5) * scale * 5;
-          const notchD = notch.depth * scale * 3;
+          const notchD = getVisualNotchDepth(notch.depth); // Proportional to wall thickness
           const xPos = scaledLength * (0.2 + i * 0.2);
 
           if (notch.type === 'OD') {

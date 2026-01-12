@@ -160,6 +160,7 @@ export interface CalibrationData {
   blockDimensions: string;
   blockSerialNumber: string;
   lastCalibrationDate: string;
+  autoRecommendedReason?: string; // NEW: Reason why this block was auto-selected (for tooltip)
 }
 
 // Technique type for scan parameters

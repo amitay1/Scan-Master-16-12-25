@@ -429,8 +429,8 @@ export class ProfessionalRingSegmentDrawing {
   }
 
   private calculateSectionScale(width: number, height: number): number {
-    const sectionWidth = this.wallThickness * 2;
-    const sectionHeight = this.geometry.axialWidthMm * 1.5;
+    const sectionWidth = this.geometry.axialWidthMm * 1.25;
+    const sectionHeight = this.wallThickness * 1.8;
     const baseScale = Math.min(width / sectionWidth, height / sectionHeight);
     return baseScale * (this.geometry.outerDiameterMm >= 600 ? 0.85 : 0.7);
   }
@@ -1329,54 +1329,56 @@ export class ProfessionalRingSegmentDrawing {
 
   private drawSectionAA(vp: ViewPort): void {
     // Section A-A shows the first hole position
-    const holesInSection = this.holes.filter((h) => {
-      const holeAngle = -this.geometry.segmentAngleDeg / 2 + h.angleOnArcDeg;
-      return Math.abs(holeAngle - this.sectionAngles.A) < 10;
-    });
-
-    if (holesInSection.length === 0 && this.holes.length > 0) {
-      holesInSection.push(this.holes[0]);
-    }
+    const holesInSection = this.getSectionHoles(this.sectionAngles.A, 0);
 
     this.drawDetailedSectionView(vp, holesInSection, 'A - A');
   }
 
   private drawSectionBB(vp: ViewPort): void {
     // Section B-B shows the second hole position
-    const holesInSection = this.holes.filter((h) => {
-      const holeAngle = -this.geometry.segmentAngleDeg / 2 + h.angleOnArcDeg;
-      return Math.abs(holeAngle - this.sectionAngles.B) < 10;
-    });
-
-    if (holesInSection.length === 0 && this.holes.length > 1) {
-      holesInSection.push(this.holes[1]);
-    }
+    const holesInSection = this.getSectionHoles(this.sectionAngles.B, 1);
 
     this.drawDetailedSectionView(vp, holesInSection, 'B - B');
   }
 
   private drawSectionCE(vp: ViewPort): void {
     // Section C-E - align with the right-side cut
-    const holesInSection = this.holes.filter((h) => {
-      const holeAngle = -this.geometry.segmentAngleDeg / 2 + h.angleOnArcDeg;
-      return Math.abs(holeAngle - this.sectionAngles.CE) < 10;
-    });
-
-    if (holesInSection.length === 0 && this.holes.length > 0) {
-      holesInSection.push(this.holes[this.holes.length - 1]);
-    }
+    const holesInSection = this.getSectionHoles(this.sectionAngles.CE, this.holes.length - 1);
 
     this.drawDetailedSectionView(vp, holesInSection, 'C - C');
   }
 
+  private getSectionHoles(targetAngle: number, fallbackIndex: number): HoleData[] {
+    const useAllHoles = this.geometry.outerDiameterMm >= 600;
+
+    if (useAllHoles) {
+      return [...this.holes].sort((a, b) => a.axialPositionMm - b.axialPositionMm);
+    }
+
+    const holesInSection = this.holes.filter((h) => {
+      const holeAngle = -this.geometry.segmentAngleDeg / 2 + h.angleOnArcDeg;
+      return Math.abs(holeAngle - targetAngle) < 10;
+    });
+
+    if (holesInSection.length === 0 && this.holes.length > 0) {
+      const safeIndex = Math.min(Math.max(fallbackIndex, 0), this.holes.length - 1);
+      holesInSection.push(this.holes[safeIndex]);
+    }
+
+    return holesInSection;
+  }
+
   private drawDetailedSectionView(vp: ViewPort, holes: HoleData[], label: string): void {
     const scale = vp.scale;
-    const sectionWidth = this.wallThickness * scale;
-    const sectionHeight = this.geometry.axialWidthMm * scale;
+    const sectionWidth = this.geometry.axialWidthMm * scale;
+    const sectionHeight = this.wallThickness * scale;
 
     // Center the section in viewport
+    const topMargin = 40;
+    const bottomMargin = this.config.showDimensions ? 45 : 25;
+    const availableHeight = Math.max(1, vp.height - topMargin - bottomMargin);
     const rectX = vp.x + (vp.width - sectionWidth) / 2;
-    const rectY = vp.y + 40 + (vp.height - 40 - sectionHeight) / 2;
+    const rectY = vp.y + topMargin + (availableHeight - sectionHeight) / 2;
 
     // Draw section label with professional styling (ISO standard: "SECTION A-A")
     const sectionLabelText = label.includes('-') ? `SECTION ${label}` : `SECTION ${label.charAt(0)}-${label.charAt(label.length - 1)}`;
@@ -1418,97 +1420,84 @@ export class ProfessionalRingSegmentDrawing {
       );
     }
 
-    // Draw holes in section (as circles punched through hatching)
-    for (const hole of holes) {
-      // Hole Y position (axial)
-      const holeY = rectY + hole.axialPositionMm * scale;
+    // Draw holes in section (slots with depth from outer surface)
+    const sortedHoles = [...holes].sort((a, b) => a.axialPositionMm - b.axialPositionMm);
+    for (const hole of sortedHoles) {
+      const holeCenterX = rectX + hole.axialPositionMm * scale;
+      const slotWidth = Math.max(hole.diameterMm * scale, 2);
+      const slotHeight = Math.min(hole.depthMm * scale, sectionHeight);
+      const slotX = holeCenterX - slotWidth / 2;
+      const slotY = rectY;
 
-      // Hole X position (depth from outer surface - outer is on the RIGHT in section view)
-      const holeX = rectX + sectionWidth - hole.depthMm * scale;
-
-      // Hole radius
-      const holeRadius = (hole.diameterMm / 2) * scale;
-
-      // White circle to clear hatching
-      const holeBg = new this.scope.Path.Circle(
-        new this.scope.Point(holeX, holeY),
-        Math.max(holeRadius + 1, 3)
+      // Clear hatching behind the slot
+      const slotClear = new this.scope.Path.Rectangle(
+        new this.scope.Rectangle(slotX - 1, slotY - 1, slotWidth + 2, slotHeight + 2)
       );
-      holeBg.fillColor = new this.scope.Color('#FFFFFF');
+      slotClear.fillColor = new this.scope.Color('#FFFFFF');
+      slotClear.strokeColor = null;
 
-      // Hole outline (red like TUV-17)
-      const holeCircle = new this.scope.Path.Circle(
-        new this.scope.Point(holeX, holeY),
-        Math.max(holeRadius, 2)
+      // Slot outline (red like TUV-17)
+      const slot = new this.scope.Path.Rectangle(
+        new this.scope.Rectangle(slotX, slotY, slotWidth, slotHeight)
       );
-      holeCircle.strokeColor = new this.scope.Color('#CC0000');
-      holeCircle.strokeWidth = LINE_STYLES.visible.strokeWidth;
-      holeCircle.fillColor = new this.scope.Color('#FFEEEE');
+      slot.strokeColor = new this.scope.Color('#CC0000');
+      slot.strokeWidth = LINE_STYLES.visible.strokeWidth;
+      slot.fillColor = new this.scope.Color('#FFEEEE');
 
-      // Hole label
-      const holeLabel = new this.scope.PointText(
-        new this.scope.Point(holeX, holeY - holeRadius - 8)
+      // Slot centerline (red dashed)
+      const slotCenter = new this.scope.Path.Line(
+        new this.scope.Point(holeCenterX, slotY),
+        new this.scope.Point(holeCenterX, slotY + slotHeight)
       );
-      holeLabel.content = hole.label;
-      holeLabel.fontSize = FONT_SETTINGS.holeLabel.size - 1;
-      holeLabel.fontWeight = FONT_SETTINGS.holeLabel.weight;
-      holeLabel.fillColor = new this.scope.Color('#CC0000');
-      holeLabel.justification = 'center';
+      slotCenter.strokeColor = new this.scope.Color('#CC0000');
+      slotCenter.strokeWidth = 0.5;
+      slotCenter.dashArray = [6, 4];
 
-      const diaLabel = new this.scope.PointText(
-        new this.scope.Point(holeX + holeRadius + 10, holeY + 4)
-      );
-      diaLabel.content = `D${hole.diameterMm.toFixed(2)}`;
-      diaLabel.fontSize = FONT_SETTINGS.dimension.size - 1;
-      diaLabel.fillColor = new this.scope.Color('#000000');
-      diaLabel.justification = 'left';
-
-      // Draw hole depth dimension
       if (this.config.showDimensions) {
-        this.drawHoleDepthDimension(
-          rectX + sectionWidth,
-          holeY,
-          holeX,
-          holeY,
-          hole.depthMm
+        this.drawLabelWithBackground(
+          holeCenterX,
+          rectY + Math.min(14, sectionHeight * 0.35),
+          `D${hole.diameterMm.toFixed(2)}`,
+          Math.max(FONT_SETTINGS.dimension.size - 1, 8),
+          'center'
         );
       }
     }
 
     // Draw dimensions
     if (this.config.showDimensions) {
-      // Wall thickness (horizontal, bottom)
+      // Axial width (horizontal, above)
       this.drawLinearDimensionWithArrows(
         rectX,
-        rectY + sectionHeight + 25,
-        rectX + sectionWidth,
-        rectY + sectionHeight + 25,
-        `${this.wallThickness.toFixed(1)}`,
-        0,
-        'horizontal'
-      );
-
-      // Axial width (vertical, left side)
-      this.drawLinearDimensionWithArrows(
-        rectX - 25,
         rectY,
-        rectX - 25,
-        rectY + sectionHeight,
+        rectX + sectionWidth,
+        rectY,
         `${this.geometry.axialWidthMm}`,
-        0,
-        'vertical'
+        -18,
+        'perpendicular'
       );
 
-      // Ordinate dimensions for hole axial positions
-      this.drawOrdinateAxialDimensions(rectX, rectY, sectionHeight, scale, holes);
+      // Wall thickness (vertical, left)
+      this.drawLinearDimensionWithArrows(
+        rectX,
+        rectY,
+        rectX,
+        rectY + sectionHeight,
+        `${this.wallThickness.toFixed(1)}`,
+        22,
+        'perpendicular'
+      );
+
+      // Ordinate dimensions for hole axial positions (bottom chain)
+      this.drawOrdinateAxialDimensions(rectX, rectY, sectionWidth, sectionHeight, scale, holes);
     }
 
     // Draw centerline
-    if (this.config.showCenterlines) {
+    if (this.config.showCenterlines && this.geometry.outerDiameterMm < 600) {
       const centerY = rectY + sectionHeight / 2;
       const centerLine = new this.scope.Path.Line(
-        new this.scope.Point(rectX - 15, centerY),
-        new this.scope.Point(rectX + sectionWidth + 15, centerY)
+        new this.scope.Point(rectX - 10, centerY),
+        new this.scope.Point(rectX + sectionWidth + 10, centerY)
       );
       this.applyStyle(centerLine, LINE_STYLES.center);
     }
@@ -1563,55 +1552,46 @@ export class ProfessionalRingSegmentDrawing {
   private drawOrdinateAxialDimensions(
     rectX: number,
     rectY: number,
+    sectionWidth: number,
     sectionHeight: number,
     scale: number,
     holes: HoleData[]
   ): void {
-    // Draw ordinate dimension chain for axial positions
-    const dimX = rectX - 45;
-
-    // Baseline at bottom
+    const dimY = rectY + sectionHeight + 20;
     const baseLine = new this.scope.Path.Line(
-      new this.scope.Point(dimX - 5, rectY + sectionHeight),
-      new this.scope.Point(dimX + 5, rectY + sectionHeight)
+      new this.scope.Point(rectX, dimY),
+      new this.scope.Point(rectX + sectionWidth, dimY)
     );
     this.applyStyle(baseLine, LINE_STYLES.dimension);
 
-    // Zero label
-    const zeroLabel = new this.scope.PointText(
-      new this.scope.Point(dimX, rectY + sectionHeight + 10)
-    );
-    zeroLabel.content = '0';
-    zeroLabel.fontSize = FONT_SETTINGS.dimension.size;
-    zeroLabel.fillColor = new this.scope.Color('#000000');
-    zeroLabel.justification = 'center';
-
-    // Dimension for each hole
+    const positions = new Set<number>([0]);
     for (const hole of holes) {
-      const holeY = rectY + hole.axialPositionMm * scale;
+      positions.add(Math.round(hole.axialPositionMm * 100) / 100);
+    }
 
-      // Extension line
+    const sortedPositions = Array.from(positions).sort((a, b) => a - b);
+    for (const pos of sortedPositions) {
+      const x = rectX + pos * scale;
+
       const extLine = new this.scope.Path.Line(
-        new this.scope.Point(rectX - 5, holeY),
-        new this.scope.Point(dimX + 5, holeY)
+        new this.scope.Point(x, rectY + sectionHeight),
+        new this.scope.Point(x, dimY - 3)
       );
       this.applyStyle(extLine, LINE_STYLES.dimension);
 
-      // Tick mark
       const tick = new this.scope.Path.Line(
-        new this.scope.Point(dimX - 3, holeY),
-        new this.scope.Point(dimX + 3, holeY)
+        new this.scope.Point(x, dimY - 3),
+        new this.scope.Point(x, dimY + 3)
       );
       this.applyStyle(tick, LINE_STYLES.dimension);
 
-      // Dimension value
-      const dimLabel = new this.scope.PointText(
-        new this.scope.Point(dimX - 12, holeY + 3)
+      this.drawLabelWithBackground(
+        x,
+        dimY + 12,
+        pos.toFixed(0),
+        Math.max(FONT_SETTINGS.dimension.size - 1, 8),
+        'center'
       );
-      dimLabel.content = hole.axialPositionMm.toFixed(0);
-      dimLabel.fontSize = FONT_SETTINGS.dimension.size;
-      dimLabel.fillColor = new this.scope.Color('#000000');
-      dimLabel.justification = 'right';
     }
   }
 
@@ -1620,37 +1600,36 @@ export class ProfessionalRingSegmentDrawing {
   // ============================================================================
 
   private drawIsometricView(vp: ViewPort): void {
-    const scale = vp.scale * 0.8; // Scale down a bit for better fit
-    const cx = vp.x + vp.width / 2;
-    const cy = vp.y + vp.height / 2 + 20; // Move down slightly
+    // Use larger scale to fill the viewport
+    const scale = vp.scale * 1.8;
 
-    // Isometric projection angles (30° from horizontal)
+    // Center in viewport
+    const cx = vp.x + vp.width / 2;
+    const cy = vp.y + vp.height / 2;
+
+    // Isometric projection angles (30° from horizontal) - standard isometric
     const isoAngleX = 30 * Math.PI / 180;
     const isoAngleY = 150 * Math.PI / 180;
+
+    // Calculate Z scale factor to ensure visible height
+    // If axialWidth is too small relative to OD, scale it up for visibility
+    const minHeightRatio = 0.15; // Minimum visual height ratio
+    const actualRatio = this.geometry.axialWidthMm / this.geometry.outerDiameterMm;
+    const zScaleFactor = actualRatio < minHeightRatio ? (minHeightRatio / actualRatio) : 1;
 
     // Transform function for isometric projection
     const toIso = (x: number, y: number, z: number): { x: number; y: number } => {
       return {
-        x: cx + (x * Math.cos(isoAngleX) + y * Math.cos(isoAngleY)) * scale * 0.85,
-        y: cy - (x * Math.sin(isoAngleX) + y * Math.sin(isoAngleY)) * scale * 0.85 - z * scale * 0.85,
+        x: cx + (x * Math.cos(isoAngleX) + y * Math.cos(isoAngleY)) * scale,
+        y: cy - (x * Math.sin(isoAngleX) + y * Math.sin(isoAngleY)) * scale - z * scale * zScaleFactor,
       };
     };
 
-    // Draw simple isometric arc segment (clean lines, no hatching)
-    this.drawSimpleIsometricBlock(toIso, scale);
+    // Draw isometric arc segment
+    this.drawCompactIsometricBlock(toIso, scale);
 
-    // Draw holes as simple circles
-    this.drawSimpleIsometricHoles(toIso, scale);
-
-    // Label with professional styling
-    const label = new this.scope.PointText(
-      new this.scope.Point(vp.x + vp.width / 2, vp.y + vp.height - 10)
-    );
-    label.content = 'ISOMETRIC VIEW';
-    label.fontSize = FONT_SETTINGS.label.size;
-    label.fontWeight = FONT_SETTINGS.label.weight;
-    label.fillColor = new this.scope.Color('#000000');
-    label.justification = 'center';
+    // Draw holes
+    this.drawCompactIsometricHoles(toIso, scale);
   }
 
   private drawSimpleIsometricBlock(
@@ -1777,6 +1756,282 @@ export class ProfessionalRingSegmentDrawing {
       holeCircle.strokeColor = new this.scope.Color('#000000');
       holeCircle.strokeWidth = LINE_STYLES.visible.strokeWidth;
       holeCircle.fillColor = new this.scope.Color('#FFFFFF');
+    }
+  }
+
+  /**
+   * Draw isometric calibration block matching OpenSCAD model
+   * Features: ring segment + inner lug + all holes
+   */
+  private drawCompactIsometricBlock(
+    toIso: (x: number, y: number, z: number) => { x: number; y: number },
+    scale: number
+  ): void {
+    const startAngle = -this.geometry.segmentAngleDeg / 2;
+    const endAngle = this.geometry.segmentAngleDeg / 2;
+    const numPoints = 30;
+    const axialWidth = this.geometry.axialWidthMm;
+    const lineStyle = LINE_STYLES.visible;
+
+    // ==================== MAIN RING SEGMENT ====================
+
+    // Top face (z = 0) - outer arc
+    const topOuterPath = new this.scope.Path();
+    for (let i = 0; i <= numPoints; i++) {
+      const angle = startAngle + (endAngle - startAngle) * (i / numPoints);
+      const rad = angle * Math.PI / 180;
+      const x = this.outerRadius * Math.cos(rad);
+      const y = this.outerRadius * Math.sin(rad);
+      const pt = toIso(x, y, 0);
+      topOuterPath.add(new this.scope.Point(pt.x, pt.y));
+    }
+    this.applyStyle(topOuterPath, lineStyle);
+
+    // Top face (z = 0) - inner arc
+    const topInnerPath = new this.scope.Path();
+    for (let i = 0; i <= numPoints; i++) {
+      const angle = startAngle + (endAngle - startAngle) * (i / numPoints);
+      const rad = angle * Math.PI / 180;
+      const x = this.innerRadius * Math.cos(rad);
+      const y = this.innerRadius * Math.sin(rad);
+      const pt = toIso(x, y, 0);
+      topInnerPath.add(new this.scope.Point(pt.x, pt.y));
+    }
+    this.applyStyle(topInnerPath, lineStyle);
+
+    // Bottom face (z = axialWidth) - outer arc
+    const bottomOuterPath = new this.scope.Path();
+    for (let i = 0; i <= numPoints; i++) {
+      const angle = startAngle + (endAngle - startAngle) * (i / numPoints);
+      const rad = angle * Math.PI / 180;
+      const x = this.outerRadius * Math.cos(rad);
+      const y = this.outerRadius * Math.sin(rad);
+      const pt = toIso(x, y, axialWidth);
+      bottomOuterPath.add(new this.scope.Point(pt.x, pt.y));
+    }
+    this.applyStyle(bottomOuterPath, lineStyle);
+
+    // Bottom face (z = axialWidth) - inner arc (hidden line)
+    const bottomInnerPath = new this.scope.Path();
+    for (let i = 0; i <= numPoints; i++) {
+      const angle = startAngle + (endAngle - startAngle) * (i / numPoints);
+      const rad = angle * Math.PI / 180;
+      const x = this.innerRadius * Math.cos(rad);
+      const y = this.innerRadius * Math.sin(rad);
+      const pt = toIso(x, y, axialWidth);
+      bottomInnerPath.add(new this.scope.Point(pt.x, pt.y));
+    }
+    this.applyStyle(bottomInnerPath, LINE_STYLES.hidden);
+
+    // Vertical edges at both end faces
+    for (const angle of [startAngle, endAngle]) {
+      const rad = angle * Math.PI / 180;
+
+      // Outer vertical edge
+      const outerX = this.outerRadius * Math.cos(rad);
+      const outerY = this.outerRadius * Math.sin(rad);
+      const outer0 = toIso(outerX, outerY, 0);
+      const outer1 = toIso(outerX, outerY, axialWidth);
+      const outerEdge = new this.scope.Path.Line(
+        new this.scope.Point(outer0.x, outer0.y),
+        new this.scope.Point(outer1.x, outer1.y)
+      );
+      this.applyStyle(outerEdge, lineStyle);
+
+      // Inner vertical edge
+      const innerX = this.innerRadius * Math.cos(rad);
+      const innerY = this.innerRadius * Math.sin(rad);
+      const inner0 = toIso(innerX, innerY, 0);
+      const inner1 = toIso(innerX, innerY, axialWidth);
+      const innerEdge = new this.scope.Path.Line(
+        new this.scope.Point(inner0.x, inner0.y),
+        new this.scope.Point(inner1.x, inner1.y)
+      );
+      this.applyStyle(innerEdge, lineStyle);
+
+      // Radial edge on top face (connecting OD to ID)
+      const topRadial = new this.scope.Path.Line(
+        new this.scope.Point(outer0.x, outer0.y),
+        new this.scope.Point(inner0.x, inner0.y)
+      );
+      this.applyStyle(topRadial, lineStyle);
+
+      // Radial edge on bottom face
+      const bottomRadial = new this.scope.Path.Line(
+        new this.scope.Point(outer1.x, outer1.y),
+        new this.scope.Point(inner1.x, inner1.y)
+      );
+      this.applyStyle(bottomRadial, lineStyle);
+    }
+
+    // ==================== INNER LUG (BLOCK) AT LEFT END ====================
+    // Lug dimensions relative to block
+    const lugDepthInward = this.wallThickness * 0.6;  // How far it protrudes inward
+    const lugLengthTangential = this.wallThickness * 0.8;  // Length into the part
+    const lugHeight = axialWidth * 0.5;  // Height along Z
+    const lugStartZ = 0;  // Start at bottom
+
+    // Lug position at left end face (startAngle)
+    const lugAngle = startAngle;
+    const lugAngleRad = lugAngle * Math.PI / 180;
+
+    // Lug corner positions
+    // The lug is attached at the inner radius of the left end face
+    // It extends inward (toward center) and tangentially into the part
+    const lugInnerRadius = this.innerRadius - lugDepthInward;
+
+    // Calculate lug vertices in 3D
+    // Front face of lug (at end face)
+    const lugFrontOuterX = this.innerRadius * Math.cos(lugAngleRad);
+    const lugFrontOuterY = this.innerRadius * Math.sin(lugAngleRad);
+    const lugFrontInnerX = lugInnerRadius * Math.cos(lugAngleRad);
+    const lugFrontInnerY = lugInnerRadius * Math.sin(lugAngleRad);
+
+    // Back face of lug (tangential offset into the part)
+    const lugBackAngle = startAngle + (lugLengthTangential / this.innerRadius) * (180 / Math.PI);
+    const lugBackAngleRad = lugBackAngle * Math.PI / 180;
+    const lugBackOuterX = this.innerRadius * Math.cos(lugBackAngleRad);
+    const lugBackOuterY = this.innerRadius * Math.sin(lugBackAngleRad);
+    const lugBackInnerX = lugInnerRadius * Math.cos(lugBackAngleRad);
+    const lugBackInnerY = lugInnerRadius * Math.sin(lugBackAngleRad);
+
+    // Draw lug - top edges (z = lugStartZ)
+    const lugTopFrontOuter = toIso(lugFrontOuterX, lugFrontOuterY, lugStartZ);
+    const lugTopFrontInner = toIso(lugFrontInnerX, lugFrontInnerY, lugStartZ);
+    const lugTopBackOuter = toIso(lugBackOuterX, lugBackOuterY, lugStartZ);
+    const lugTopBackInner = toIso(lugBackInnerX, lugBackInnerY, lugStartZ);
+
+    // Draw lug - bottom edges (z = lugStartZ + lugHeight)
+    const lugBottomFrontOuter = toIso(lugFrontOuterX, lugFrontOuterY, lugStartZ + lugHeight);
+    const lugBottomFrontInner = toIso(lugFrontInnerX, lugFrontInnerY, lugStartZ + lugHeight);
+    const lugBottomBackOuter = toIso(lugBackOuterX, lugBackOuterY, lugStartZ + lugHeight);
+    const lugBottomBackInner = toIso(lugBackInnerX, lugBackInnerY, lugStartZ + lugHeight);
+
+    // Lug top face
+    this.drawIsoLine(lugTopFrontOuter, lugTopFrontInner, lineStyle);
+    this.drawIsoLine(lugTopFrontInner, lugTopBackInner, lineStyle);
+    this.drawIsoLine(lugTopBackInner, lugTopBackOuter, lineStyle);
+
+    // Lug bottom face
+    this.drawIsoLine(lugBottomFrontOuter, lugBottomFrontInner, lineStyle);
+    this.drawIsoLine(lugBottomFrontInner, lugBottomBackInner, lineStyle);
+    this.drawIsoLine(lugBottomBackInner, lugBottomBackOuter, lineStyle);
+
+    // Lug vertical edges
+    this.drawIsoLine(lugTopFrontInner, lugBottomFrontInner, lineStyle);
+    this.drawIsoLine(lugTopBackInner, lugBottomBackInner, lineStyle);
+    this.drawIsoLine(lugTopBackOuter, lugBottomBackOuter, lineStyle);
+  }
+
+  /**
+   * Helper to draw a line between two isometric points
+   */
+  private drawIsoLine(
+    pt1: { x: number; y: number },
+    pt2: { x: number; y: number },
+    style: { strokeWidth: number; strokeColor: string; dashArray: number[] | null }
+  ): void {
+    const line = new this.scope.Path.Line(
+      new this.scope.Point(pt1.x, pt1.y),
+      new this.scope.Point(pt2.x, pt2.y)
+    );
+    this.applyStyle(line, style);
+  }
+
+  /**
+   * Draw isometric holes matching OpenSCAD model
+   * - 3 holes on curved outer face (radial, in vertical line)
+   * - 2 holes on right end face
+   * - 1 hole on left end face
+   * - 2 holes on lug face
+   */
+  private drawCompactIsometricHoles(
+    toIso: (x: number, y: number, z: number) => { x: number; y: number },
+    scale: number
+  ): void {
+    const startAngle = -this.geometry.segmentAngleDeg / 2;
+    const endAngle = this.geometry.segmentAngleDeg / 2;
+    const axialWidth = this.geometry.axialWidthMm;
+    const midRadius = this.meanRadius;
+    const holeRadius = Math.max(3, 5 * scale);
+
+    // ==================== HOLES ON CURVED OUTER FACE ====================
+    // 3 holes in vertical line at center (theta = 0)
+    const outerHoleTheta = 0;  // Center of segment
+    const outerHoleZPositions = [
+      axialWidth * 0.28,  // ~35/125
+      axialWidth * 0.5,   // ~62.5/125
+      axialWidth * 0.72   // ~90/125
+    ];
+
+    for (const z of outerHoleZPositions) {
+      const rad = outerHoleTheta * Math.PI / 180;
+      const holeX = this.outerRadius * Math.cos(rad);
+      const holeY = this.outerRadius * Math.sin(rad);
+      const holePt = toIso(holeX, holeY, z);
+
+      const circle = new this.scope.Path.Circle(
+        new this.scope.Point(holePt.x, holePt.y),
+        holeRadius
+      );
+      circle.strokeColor = new this.scope.Color('#000000');
+      circle.strokeWidth = LINE_STYLES.visible.strokeWidth;
+      circle.fillColor = new this.scope.Color('#FFFFFF');
+    }
+
+    // ==================== HOLES ON RIGHT END FACE ====================
+    // 2 holes on right end face (theta = +segmentAngle/2)
+    const rightEndZPositions = [axialWidth * 0.36, axialWidth * 0.64];
+    const rightEndRad = endAngle * Math.PI / 180;
+
+    for (const z of rightEndZPositions) {
+      const holeX = midRadius * Math.cos(rightEndRad);
+      const holeY = midRadius * Math.sin(rightEndRad);
+      const holePt = toIso(holeX, holeY, z);
+
+      const circle = new this.scope.Path.Circle(
+        new this.scope.Point(holePt.x, holePt.y),
+        holeRadius
+      );
+      circle.strokeColor = new this.scope.Color('#000000');
+      circle.strokeWidth = LINE_STYLES.visible.strokeWidth;
+      circle.fillColor = new this.scope.Color('#FFFFFF');
+    }
+
+    // ==================== HOLE ON LEFT END FACE ====================
+    // 1 hole on left end face (theta = -segmentAngle/2), near top
+    const leftEndZ = axialWidth * 0.88;
+    const leftEndRad = startAngle * Math.PI / 180;
+    const leftHoleX = midRadius * Math.cos(leftEndRad);
+    const leftHoleY = midRadius * Math.sin(leftEndRad);
+    const leftHolePt = toIso(leftHoleX, leftHoleY, leftEndZ);
+
+    const leftCircle = new this.scope.Path.Circle(
+      new this.scope.Point(leftHolePt.x, leftHolePt.y),
+      holeRadius * 0.7
+    );
+    leftCircle.strokeColor = new this.scope.Color('#000000');
+    leftCircle.strokeWidth = LINE_STYLES.visible.strokeWidth;
+    leftCircle.fillColor = new this.scope.Color('#FFFFFF');
+
+    // ==================== HOLES ON LUG FACE ====================
+    // 2 holes on the lug face
+    const lugDepthInward = this.wallThickness * 0.6;
+    const lugInnerRadius = this.innerRadius - lugDepthInward / 2;
+    const lugHoleZPositions = [axialWidth * 0.16, axialWidth * 0.32];
+
+    for (const z of lugHoleZPositions) {
+      const holeX = lugInnerRadius * Math.cos(leftEndRad);
+      const holeY = lugInnerRadius * Math.sin(leftEndRad);
+      const holePt = toIso(holeX, holeY, z);
+
+      const circle = new this.scope.Path.Circle(
+        new this.scope.Point(holePt.x, holePt.y),
+        holeRadius * 0.8
+      );
+      circle.strokeColor = new this.scope.Color('#000000');
+      circle.strokeWidth = LINE_STYLES.visible.strokeWidth;
+      circle.fillColor = new this.scope.Color('#FFFFFF');
     }
   }
 
@@ -2020,6 +2275,38 @@ export class ProfessionalRingSegmentDrawing {
   // ============================================================================
   // DIMENSION HELPER METHODS
   // ============================================================================
+
+  private drawLabelWithBackground(
+    x: number,
+    y: number,
+    content: string,
+    fontSize: number,
+    justification: 'left' | 'center' | 'right' = 'center'
+  ): paper.PointText {
+    const text = new this.scope.PointText(new this.scope.Point(x, y));
+    text.content = content;
+    text.fontSize = fontSize;
+    text.fontFamily = FONT_SETTINGS.dimension.family;
+    text.fillColor = new this.scope.Color('#000000');
+    text.justification = justification;
+
+    const paddingX = 3;
+    const paddingY = 2;
+    const bounds = text.bounds;
+    const labelBg = new this.scope.Path.Rectangle(
+      new this.scope.Rectangle(
+        bounds.x - paddingX,
+        bounds.y - paddingY,
+        bounds.width + paddingX * 2,
+        bounds.height + paddingY * 2
+      )
+    );
+    labelBg.fillColor = new this.scope.Color('#FFFFFF');
+    labelBg.strokeColor = null;
+    labelBg.insertBelow(text);
+
+    return text;
+  }
 
   private drawLinearDimensionWithArrows(
     x1: number,
@@ -2432,49 +2719,76 @@ export class ProfessionalRingSegmentDrawing {
   }
 
   /**
-   * Draw ISO surface finish symbol (Ra)
-   * The standard check mark symbol with roughness value
+   * Draw ISO surface finish symbol (Ra) per ISO 1302
+   * Positioned in upper-right corner with leader line to surface
    */
   private drawSurfaceFinishSymbol(vp: ViewPort): void {
-    // Position the symbol near the outer arc in the top view
-    const symbolX = vp.x + vp.width * 0.85;
-    const symbolY = vp.y + vp.height * 0.25;
+    // Position the symbol in the upper-right corner of the drawing area
+    // Similar to TUV-17 reference positioning
+    const symbolX = vp.x + vp.width - 80;
+    const symbolY = vp.y + 40;
 
-    const symbolSize = 12;
+    const symbolSize = 14;
+    const lineWidth = LINE_STYLES.visible.strokeWidth;
 
-    // Draw the surface finish symbol (checkmark shape per ISO 1302)
+    // Draw the ISO 1302 surface finish symbol (checkmark/V shape)
+    // The symbol consists of:
+    // 1. A short horizontal line at top
+    // 2. An angled line going down-left (the "check" part)
+    // 3. A horizontal extension to the right
+
+    // Main checkmark symbol
     const symbol = new this.scope.Path();
-    // Start at bottom left
+    // Start at left (short leg)
+    symbol.add(new this.scope.Point(symbolX - symbolSize * 0.3, symbolY + symbolSize * 0.3));
+    // Go to bottom of V (the point)
     symbol.add(new this.scope.Point(symbolX, symbolY + symbolSize));
-    // Go to bottom of V
-    symbol.add(new this.scope.Point(symbolX + symbolSize * 0.3, symbolY + symbolSize));
-    // Go up to top right (the check)
+    // Go up to top right corner
     symbol.add(new this.scope.Point(symbolX + symbolSize * 0.5, symbolY));
-    // Horizontal line to right
-    symbol.add(new this.scope.Point(symbolX + symbolSize * 1.2, symbolY));
+    // Horizontal extension line to the right
+    symbol.add(new this.scope.Point(symbolX + symbolSize * 1.5, symbolY));
 
     symbol.strokeColor = new this.scope.Color('#000000');
-    symbol.strokeWidth = LINE_STYLES.visible.strokeWidth;
+    symbol.strokeWidth = lineWidth;
 
-    // Ra value text
+    // Ra value text positioned above the horizontal line
     const raText = new this.scope.PointText(
-      new this.scope.Point(symbolX + symbolSize * 0.6, symbolY - 3)
+      new this.scope.Point(symbolX + symbolSize * 0.8, symbolY - 5)
     );
     raText.content = 'Ra 0.35';
-    raText.fontSize = 8;
+    raText.fontSize = 10;
+    raText.fontWeight = 'normal';
+    raText.fontFamily = 'Arial';
     raText.fillColor = new this.scope.Color('#000000');
 
-    // Leader line from symbol to surface (pointing to OD arc)
-    const leaderEndX = vp.x + vp.width * 0.65;
-    const leaderEndY = vp.y + vp.height * 0.35;
-    const leaderLine = new this.scope.Path.Line(
-      new this.scope.Point(symbolX, symbolY + symbolSize),
+    // Leader line from symbol to surface (pointing diagonally to the OD arc)
+    // Calculate target point on the outer arc
+    const leaderStartX = symbolX;
+    const leaderStartY = symbolY + symbolSize;
+    const leaderEndX = vp.x + vp.width * 0.55;
+    const leaderEndY = vp.y + vp.height * 0.30;
+
+    // Draw angled leader line with two segments (like TUV-17 style)
+    const leaderMidX = leaderStartX - 30;
+    const leaderMidY = leaderStartY + 20;
+
+    // First segment (from symbol going down-left)
+    const leaderLine1 = new this.scope.Path.Line(
+      new this.scope.Point(leaderStartX, leaderStartY),
+      new this.scope.Point(leaderMidX, leaderMidY)
+    );
+    this.applyStyle(leaderLine1, LINE_STYLES.dimension);
+
+    // Second segment (going to the surface)
+    const leaderLine2 = new this.scope.Path.Line(
+      new this.scope.Point(leaderMidX, leaderMidY),
       new this.scope.Point(leaderEndX, leaderEndY)
     );
-    this.applyStyle(leaderLine, LINE_STYLES.dimension);
+    this.applyStyle(leaderLine2, LINE_STYLES.dimension);
 
     // Arrow at the end pointing to surface
-    this.drawDimensionArrowhead(leaderEndX, leaderEndY, Math.atan2(leaderEndY - (symbolY + symbolSize), leaderEndX - symbolX));
+    const arrowAngle = Math.atan2(leaderEndY - leaderMidY, leaderEndX - leaderMidX);
+    this.drawDimensionArrowhead(leaderEndX, leaderEndY, arrowAngle);
   }
 
   private drawBorderFrame(): void {

@@ -82,22 +82,29 @@ export function resolveRingSegmentBlock(
     geometry
   );
 
-  // 5. Validate hole positions
-  const posResult = validateHolePositions(scaledPositions, template.holeFeatures, geometry);
+  // 5. Scale hole features (depths) proportionally to wall thickness change
+  const scaledFeatures = scaleHoleFeatures(
+    template.holeFeatures,
+    template.geometry,
+    geometry
+  );
 
-  // 6. Apply thin-wall policy
+  // 6. Validate hole positions
+  const posResult = validateHolePositions(scaledPositions, scaledFeatures, geometry);
+
+  // 7. Apply thin-wall policy (to catch any remaining depth issues)
   const wallThickness = calculateWallThickness(
     geometry.outerDiameterMm,
     geometry.innerDiameterMm
   );
   const thinWallResult = applyThinWallPolicy(
-    template.holeFeatures,
+    scaledFeatures,
     wallThickness,
     template.standardFamily,
     policy
   );
 
-  // 7. Collect all warnings
+  // 8. Collect all warnings
   const allWarnings: ValidationWarning[] = [
     ...posResult.errors,
     ...posResult.warnings,
@@ -110,23 +117,23 @@ export function resolveRingSegmentBlock(
       level: 'info',
       code: 'PART_DIMS_OVERRIDE',
       message: 'Block dimensions adapted to match part geometry',
-      suggestion: 'Review that hole positions are appropriate for the scaled block',
+      suggestion: 'Review that hole positions and depths are appropriate for the scaled block',
     });
   }
 
-  // 8. Merge positions and features into resolved holes
+  // 9. Merge positions and features into resolved holes
   const resolvedHoles = mergeToResolvedHoles(
     scaledPositions,
     thinWallResult.adjustedFeatures,
-    template.holeFeatures,
+    scaledFeatures, // Use scaled features as the "original" for comparison
     geometry,
     template.axialOrigin
   );
 
-  // 9. Calculate derived geometry
+  // 10. Calculate derived geometry
   const calculatedGeometry = calculateDerivedGeometry(geometry);
 
-  // 10. Build and return resolved block
+  // 11. Build and return resolved block
   return {
     templateId: template.id,
     templateName: template.name,
@@ -201,6 +208,40 @@ function scaleHolePositions(
     angleOnArcDeg: pos.angleOnArcDeg * angleScale,
     // Scale axial position
     axialPositionMm: pos.axialPositionMm * axialScale,
+  }));
+}
+
+/**
+ * Scale hole features (depths) when wall thickness differs from template
+ *
+ * Depths are scaled proportionally to maintain the same relative position
+ * within the wall thickness (e.g., hole at 30% depth stays at 30% depth)
+ */
+function scaleHoleFeatures(
+  features: HoleFeature[],
+  templateGeometry: RingSegmentGeometry,
+  targetGeometry: RingSegmentGeometry
+): HoleFeature[] {
+  const templateWall = calculateWallThickness(
+    templateGeometry.outerDiameterMm,
+    templateGeometry.innerDiameterMm
+  );
+  const targetWall = calculateWallThickness(
+    targetGeometry.outerDiameterMm,
+    targetGeometry.innerDiameterMm
+  );
+
+  // If wall thickness is the same, no scaling needed
+  if (Math.abs(templateWall - targetWall) < 0.01) {
+    return features.map((f) => ({ ...f }));
+  }
+
+  const depthScale = targetWall / templateWall;
+
+  return features.map((feature) => ({
+    ...feature,
+    // Scale depth proportionally to wall thickness
+    depthMm: feature.depthMm * depthScale,
   }));
 }
 

@@ -113,8 +113,11 @@ export function EnhancedAngleBeamDrawing({
   const scaledHeight = height * scale;
 
   // SDH positions (Side Drilled Holes)
-  const sdhDepths = fbhData.length > 0 
-    ? fbhData.map(f => f.depth)
+  // Clamp depths to valid range (5% to 95% of block height)
+  const minDepth = height * 0.05;
+  const maxDepth = height * 0.95;
+  const sdhDepths = fbhData.length > 0
+    ? fbhData.map(f => Math.min(Math.max(f.depth, minDepth), maxDepth))
     : [height * 0.25, height * 0.5, height * 0.75];
 
   return (

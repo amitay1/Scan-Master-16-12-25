@@ -5,6 +5,33 @@
 
 ---
 
+## 🆕 Latest Feature: Auto Calibration Block Recommendation (January 2026)
+
+**IMPLEMENTED:** The system now automatically selects the appropriate calibration block based on part geometry, dimensions, and material!
+
+### How it works:
+1. User fills **Inspection Setup Tab** (material, part type, dimensions)
+2. System calls `generateCalibrationRecommendationV2()` with parameters
+3. Logic in `calibrationRecommenderV2.ts` selects optimal block:
+   - Maps `partType` → geometry group (FLAT_PLATE, THIN_WALL_TUBULAR, etc.)
+   - Checks ratios (L/T, W/T) and thresholds (wall thickness, diameter)
+   - Returns block category + reasoning
+4. **Calibration Tab** shows "✨ Auto-Selected" badge with tooltip explanation
+
+### Examples:
+- **Tube (OD=50, ID=40, wall=5mm)** → `cylinder_notched` (thin wall <25mm)
+- **Cylinder (OD=100mm, solid)** → `flat_fbh` (diameter >50mm)
+- **Plate (thickness=30mm)** → `flat_fbh` (standard for flat geometry)
+
+### Files Modified:
+- ✅ `src/components/tabs/InspectionSetupTab.tsx` - useEffect hook for auto-recommendation
+- ✅ `src/pages/Index.tsx` - callback to update calibration data
+- ✅ `src/components/tabs/CalibrationTab.tsx` - visual indicator (badge + tooltip)
+- 📘 `docs/AUTO_CALIBRATION_RECOMMENDATION.md` - full technical documentation
+- 📘 `docs/QUICK_START_AUTO_CALIBRATION.md` - user guide
+
+---
+
 ## Project Overview
 
 **Scan-Master** is an NDT (Non-Destructive Testing) application for ultrasonic inspection planning and documentation.
