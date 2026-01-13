@@ -25,6 +25,10 @@ import { PartDiagramTab } from "@/components/tabs/PartDiagramTab";
 import { ProbeDetailsTab } from "@/components/tabs/ProbeDetailsTab";
 import { ScansTab } from "@/components/tabs/ScansTab";
 import { RemarksTab } from "@/components/tabs/RemarksTab";
+import { EquipmentDetailsTab } from "@/components/tabs/EquipmentDetailsTab";
+import { IndicationsTab } from "@/components/tabs/IndicationsTab";
+import { ResultsSummaryTab } from "@/components/tabs/ResultsSummaryTab";
+import { InspectorCertificationTab } from "@/components/tabs/InspectorCertificationTab";
 import { ScanDetailsTab } from "@/components/tabs/ScanDetailsTab";
 import type { ScanDetailsData } from "@/types/scanDetails";
 import { ScanPlanTab } from "@/components/tabs/ScanPlanTab";
@@ -46,7 +50,7 @@ import {
   MaterialType,
   ScanPlanData
 } from "@/types/techniqueSheet";
-import { InspectionReportData } from "@/types/inspectionReport";
+import { InspectionReportData, getDefaultInspectionReportData } from "@/types/inspectionReport";
 import { standardRules, getRecommendedFrequency, getCouplantRecommendation, calculateMetalTravel } from "@/utils/autoFillLogic";
 import { getResolutionValues } from "@/utils/frequencyUtils";
 import { useAuth } from "@/hooks/useAuth";
@@ -312,33 +316,7 @@ const Index = () => {
     ]
   });
 
-  const [inspectionReport, setInspectionReport] = useState<InspectionReportData>({
-    documentNo: "",
-    currentRevision: "0",
-    revisionDate: new Date().toISOString().split('T')[0],
-    customerName: "",
-    poNumber: "",
-    itemDescription: "",
-    materialGrade: "",
-    workOrderNumber: "",
-    poSerialNumber: "",
-    quantity: "01 no",
-    samplePoSlNo: "",
-    sampleSerialNo: "01",
-    sampleQuantity: "01 No",
-    thickness: "",
-    typeOfScan: "Ring scan",
-    testingEquipment: "",
-    tcgApplied: "Yes",
-    testStandard: "",
-    observations: "",
-    results: "Accepted",
-    approvedBy: "",
-    partDiagramImage: undefined,
-    probeDetails: [],
-    scans: [],
-    remarks: [],
-  });
+  const [inspectionReport, setInspectionReport] = useState<InspectionReportData>(getDefaultInspectionReportData());
 
   const [organizationId, setOrganizationId] = useState<string | null>(null);
   const [savedSheets, setSavedSheets] = useState<TechniqueSheetRecord[]>([]);
@@ -1613,11 +1591,15 @@ const Index = () => {
 
                     <div className="w-full overflow-x-auto scrollbar-hide md:overflow-visible sticky top-0 bg-background z-10 pb-2">
                       <TabsList className="inline-flex flex-nowrap h-10 items-center justify-start md:justify-center rounded-md bg-muted p-1 text-muted-foreground w-max md:w-full">
-                        <TabsTrigger value="cover" className="flex-shrink-0 px-4 whitespace-nowrap">Cover Page</TabsTrigger>
-                        <TabsTrigger value="diagram" className="flex-shrink-0 px-4 whitespace-nowrap">Part Diagram</TabsTrigger>
-                        <TabsTrigger value="probe" className="flex-shrink-0 px-4 whitespace-nowrap">Probe Details</TabsTrigger>
-                        <TabsTrigger value="scans" className="flex-shrink-0 px-4">Scans</TabsTrigger>
-                        <TabsTrigger value="remarks" className="flex-shrink-0 px-4">Remarks</TabsTrigger>
+                        <TabsTrigger value="cover" className="flex-shrink-0 px-3 whitespace-nowrap">Cover Page</TabsTrigger>
+                        <TabsTrigger value="equipment-report" className="flex-shrink-0 px-3 whitespace-nowrap">Equipment</TabsTrigger>
+                        <TabsTrigger value="diagram" className="flex-shrink-0 px-3 whitespace-nowrap">Part Diagram</TabsTrigger>
+                        <TabsTrigger value="indications" className="flex-shrink-0 px-3 whitespace-nowrap">Indications</TabsTrigger>
+                        <TabsTrigger value="probe" className="flex-shrink-0 px-3 whitespace-nowrap">Probes</TabsTrigger>
+                        <TabsTrigger value="scans" className="flex-shrink-0 px-3">Scans</TabsTrigger>
+                        <TabsTrigger value="results" className="flex-shrink-0 px-3 whitespace-nowrap">Results</TabsTrigger>
+                        <TabsTrigger value="certification" className="flex-shrink-0 px-3 whitespace-nowrap">Certification</TabsTrigger>
+                        <TabsTrigger value="remarks" className="flex-shrink-0 px-3">Remarks</TabsTrigger>
                       </TabsList>
                     </div>
                   </>
@@ -1748,14 +1730,21 @@ const Index = () => {
                   <>
                     <div className="app-panel rounded-md">
                       <TabsContent value="cover" className="m-0">
-                        <CoverPageTab 
-                          data={inspectionReport} 
+                        <CoverPageTab
+                          data={inspectionReport}
                           onChange={(data) => setInspectionReport({ ...inspectionReport, ...data })}
                         />
                       </TabsContent>
 
+                      <TabsContent value="equipment-report" className="m-0">
+                        <EquipmentDetailsTab
+                          data={inspectionReport.equipmentDetails}
+                          onChange={(equipmentDetails) => setInspectionReport({ ...inspectionReport, equipmentDetails })}
+                        />
+                      </TabsContent>
+
                       <TabsContent value="diagram" className="m-0">
-                        <PartDiagramTab 
+                        <PartDiagramTab
                           partDiagramImage={inspectionReport.partDiagramImage}
                           onChange={(image) => setInspectionReport({ ...inspectionReport, partDiagramImage: image })}
                           partType={inspectionSetup.partType}
@@ -1765,22 +1754,47 @@ const Index = () => {
                         />
                       </TabsContent>
 
+                      <TabsContent value="indications" className="m-0">
+                        <IndicationsTab
+                          indications={inspectionReport.indications}
+                          onChange={(indications) => setInspectionReport({ ...inspectionReport, indications })}
+                        />
+                      </TabsContent>
+
                       <TabsContent value="probe" className="m-0">
-                        <ProbeDetailsTab 
+                        <ProbeDetailsTab
                           probeDetails={inspectionReport.probeDetails}
                           onChange={(probes) => setInspectionReport({ ...inspectionReport, probeDetails: probes })}
                         />
                       </TabsContent>
 
                       <TabsContent value="scans" className="m-0">
-                        <ScansTab 
+                        <ScansTab
                           scans={inspectionReport.scans}
                           onChange={(scans) => setInspectionReport({ ...inspectionReport, scans })}
                         />
                       </TabsContent>
 
-                       <TabsContent value="remarks" className="m-0">
-                        <RemarksTab 
+                      <TabsContent value="results" className="m-0">
+                        <ResultsSummaryTab
+                          resultsSummary={inspectionReport.resultsSummary}
+                          applicableDocuments={inspectionReport.applicableDocuments}
+                          onResultsChange={(resultsSummary) => setInspectionReport({ ...inspectionReport, resultsSummary })}
+                          onDocumentsChange={(applicableDocuments) => setInspectionReport({ ...inspectionReport, applicableDocuments })}
+                        />
+                      </TabsContent>
+
+                      <TabsContent value="certification" className="m-0">
+                        <InspectorCertificationTab
+                          inspectorCertification={inspectionReport.inspectorCertification}
+                          signatures={inspectionReport.signatures}
+                          onCertificationChange={(inspectorCertification) => setInspectionReport({ ...inspectionReport, inspectorCertification })}
+                          onSignaturesChange={(signatures) => setInspectionReport({ ...inspectionReport, signatures })}
+                        />
+                      </TabsContent>
+
+                      <TabsContent value="remarks" className="m-0">
+                        <RemarksTab
                           remarks={inspectionReport.remarks}
                           onChange={(remarks) => setInspectionReport({ ...inspectionReport, remarks })}
                         />
