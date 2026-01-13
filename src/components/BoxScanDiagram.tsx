@@ -203,14 +203,42 @@ export const BoxScanDiagram: React.FC<BoxScanDiagramProps> = ({
             </text>
           </g>
 
-          {/* ========== J: SW 60° angle beam ========== */}
-          <g opacity={getDirectionOpacity("J", scanDetails, highlightedDirection)}>
+          {/* ========== C: LW 0° from right side (through length) ========== */}
+          <g opacity={getDirectionOpacity("C", scanDetails, highlightedDirection)}>
+            <line
+              x1={boxView.x + boxView.width + boxView.depth / 2 + 70}
+              y1={boxView.y + boxView.height / 2}
+              x2={boxView.x + boxView.width + boxView.depth / 2 + 10}
+              y2={boxView.y + boxView.height / 2}
+              stroke={getDirectionColor("C", scanDetails, highlightedDirection)}
+              strokeWidth="2.5"
+              strokeDasharray="8,4"
+            />
+            <polygon
+              points={`${boxView.x + boxView.width + boxView.depth / 2 + 15},${boxView.y + boxView.height / 2}
+                       ${boxView.x + boxView.width + boxView.depth / 2 + 28},${boxView.y + boxView.height / 2 - 7}
+                       ${boxView.x + boxView.width + boxView.depth / 2 + 28},${boxView.y + boxView.height / 2 + 7}`}
+              fill={getDirectionColor("C", scanDetails, highlightedDirection)}
+            />
+            <text
+              x={boxView.x + boxView.width + boxView.depth / 2 + 30}
+              y={boxView.y + boxView.height / 2 - 15}
+              fill={getDirectionColor("C", scanDetails, highlightedDirection)}
+              fontSize="12"
+              fontWeight="bold"
+            >
+              C, LW 0°
+            </text>
+          </g>
+
+          {/* ========== D: SW 45° angle beam from bottom-left ========== */}
+          <g opacity={getDirectionOpacity("D", scanDetails, highlightedDirection)}>
             <line
               x1={boxView.x - 50}
               y1={boxView.y + boxView.depth / 2 + boxView.height + 50}
               x2={boxView.x + 20}
               y2={boxView.y + boxView.depth / 2 + boxView.height - 10}
-              stroke={getDirectionColor("J", scanDetails, highlightedDirection)}
+              stroke={getDirectionColor("D", scanDetails, highlightedDirection)}
               strokeWidth="2.5"
               strokeDasharray="8,4"
             />
@@ -218,27 +246,27 @@ export const BoxScanDiagram: React.FC<BoxScanDiagramProps> = ({
               points={`${boxView.x + 15},${boxView.y + boxView.depth / 2 + boxView.height - 5}
                        ${boxView.x - 5},${boxView.y + boxView.depth / 2 + boxView.height + 10}
                        ${boxView.x + 5},${boxView.y + boxView.depth / 2 + boxView.height + 20}`}
-              fill={getDirectionColor("J", scanDetails, highlightedDirection)}
+              fill={getDirectionColor("D", scanDetails, highlightedDirection)}
             />
             <text
               x={boxView.x - 60}
               y={boxView.y + boxView.depth / 2 + boxView.height + 70}
-              fill={getDirectionColor("J", scanDetails, highlightedDirection)}
+              fill={getDirectionColor("D", scanDetails, highlightedDirection)}
               fontSize="12"
               fontWeight="bold"
             >
-              J: SW 60°
+              D: SW 45°
             </text>
           </g>
 
-          {/* ========== K: SW 45° angle beam ========== */}
-          <g opacity={getDirectionOpacity("K", scanDetails, highlightedDirection)}>
+          {/* ========== E: SW 45° angle beam from bottom-right ========== */}
+          <g opacity={getDirectionOpacity("E", scanDetails, highlightedDirection)}>
             <line
               x1={boxView.x + boxView.width + boxView.depth / 2 + 50}
               y1={boxView.y + boxView.height + 50}
               x2={boxView.x + boxView.width + boxView.depth / 2 - 10}
               y2={boxView.y + boxView.height - 20}
-              stroke={getDirectionColor("K", scanDetails, highlightedDirection)}
+              stroke={getDirectionColor("E", scanDetails, highlightedDirection)}
               strokeWidth="2.5"
               strokeDasharray="8,4"
             />
@@ -246,16 +274,16 @@ export const BoxScanDiagram: React.FC<BoxScanDiagramProps> = ({
               points={`${boxView.x + boxView.width + boxView.depth / 2 - 5},${boxView.y + boxView.height - 15}
                        ${boxView.x + boxView.width + boxView.depth / 2 + 15},${boxView.y + boxView.height}
                        ${boxView.x + boxView.width + boxView.depth / 2 + 5},${boxView.y + boxView.height + 10}`}
-              fill={getDirectionColor("K", scanDetails, highlightedDirection)}
+              fill={getDirectionColor("E", scanDetails, highlightedDirection)}
             />
             <text
               x={boxView.x + boxView.width + boxView.depth / 2 + 55}
               y={boxView.y + boxView.height + 70}
-              fill={getDirectionColor("K", scanDetails, highlightedDirection)}
+              fill={getDirectionColor("E", scanDetails, highlightedDirection)}
               fontSize="12"
               fontWeight="bold"
             >
-              K: SW 45°
+              E: SW 45°
             </text>
           </g>
 
@@ -376,14 +404,14 @@ export const BoxScanDiagram: React.FC<BoxScanDiagramProps> = ({
             </text>
           </g>
 
-          {/* ========== J: SW 60° from corner ========== */}
-          <g opacity={getDirectionOpacity("J", scanDetails, highlightedDirection)}>
+          {/* ========== D: SW 45° from corner ========== */}
+          <g opacity={getDirectionOpacity("D", scanDetails, highlightedDirection)}>
             <line
               x1={crossSection.x - 40}
               y1={crossSection.y + crossSection.height + 40}
               x2={crossSection.x + 20}
               y2={crossSection.y + crossSection.height - 15}
-              stroke={getDirectionColor("J", scanDetails, highlightedDirection)}
+              stroke={getDirectionColor("D", scanDetails, highlightedDirection)}
               strokeWidth="2"
               strokeDasharray="6,3"
             />
@@ -391,27 +419,27 @@ export const BoxScanDiagram: React.FC<BoxScanDiagramProps> = ({
               points={`${crossSection.x + 15},${crossSection.y + crossSection.height - 10}
                        ${crossSection.x - 5},${crossSection.y + crossSection.height + 5}
                        ${crossSection.x + 5},${crossSection.y + crossSection.height + 15}`}
-              fill={getDirectionColor("J", scanDetails, highlightedDirection)}
+              fill={getDirectionColor("D", scanDetails, highlightedDirection)}
             />
             <text
               x={crossSection.x - 50}
               y={crossSection.y + crossSection.height + 55}
-              fill={getDirectionColor("J", scanDetails, highlightedDirection)}
+              fill={getDirectionColor("D", scanDetails, highlightedDirection)}
               fontSize="10"
               fontWeight="bold"
             >
-              J: 60°
+              D: 45°
             </text>
           </g>
 
-          {/* ========== K: SW 45° from corner ========== */}
-          <g opacity={getDirectionOpacity("K", scanDetails, highlightedDirection)}>
+          {/* ========== E: SW 45° from corner ========== */}
+          <g opacity={getDirectionOpacity("E", scanDetails, highlightedDirection)}>
             <line
               x1={crossSection.x + crossSection.width + 40}
               y1={crossSection.y + crossSection.height + 40}
               x2={crossSection.x + crossSection.width - 20}
               y2={crossSection.y + crossSection.height - 15}
-              stroke={getDirectionColor("K", scanDetails, highlightedDirection)}
+              stroke={getDirectionColor("E", scanDetails, highlightedDirection)}
               strokeWidth="2"
               strokeDasharray="6,3"
             />
@@ -419,16 +447,16 @@ export const BoxScanDiagram: React.FC<BoxScanDiagramProps> = ({
               points={`${crossSection.x + crossSection.width - 15},${crossSection.y + crossSection.height - 10}
                        ${crossSection.x + crossSection.width + 5},${crossSection.y + crossSection.height + 5}
                        ${crossSection.x + crossSection.width - 5},${crossSection.y + crossSection.height + 15}`}
-              fill={getDirectionColor("K", scanDetails, highlightedDirection)}
+              fill={getDirectionColor("E", scanDetails, highlightedDirection)}
             />
             <text
               x={crossSection.x + crossSection.width + 30}
               y={crossSection.y + crossSection.height + 55}
-              fill={getDirectionColor("K", scanDetails, highlightedDirection)}
+              fill={getDirectionColor("E", scanDetails, highlightedDirection)}
               fontSize="10"
               fontWeight="bold"
             >
-              K: 45°
+              E: 45°
             </text>
           </g>
         </g>

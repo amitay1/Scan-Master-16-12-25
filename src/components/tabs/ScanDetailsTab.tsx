@@ -11,6 +11,11 @@ import type { PartGeometry, StandardType } from "@/types/techniqueSheet";
 import type { ScanDetail, ScanDetailsData, GateSettings } from "@/types/scanDetails";
 import { TubeScanDiagram } from "@/components/TubeScanDiagram";
 import { ConeScanDiagram } from "@/components/ConeScanDiagram";
+import { BoxScanDiagram } from "@/components/BoxScanDiagram";
+import { CylinderScanDiagram } from "@/components/CylinderScanDiagram";
+import { DiskScanDiagram } from "@/components/DiskScanDiagram";
+import { RingScanDiagram } from "@/components/RingScanDiagram";
+import { HexBarScanDiagram } from "@/components/HexBarScanDiagram";
 import { getFrequencyOptionsForStandard } from "@/utils/frequencyUtils";
 
 // Extended ScanDetail with per-row pulsar parameters
@@ -28,11 +33,38 @@ interface ExtendedScanDetail extends ScanDetail {
 const DEFAULT_GATE: GateSettings = { start: 0, length: 0, level: 0 };
 
 const isTubeType = (partType?: PartGeometry | ""): boolean => {
-  return !!partType && ["tube", "pipe", "sleeve", "bushing"].includes(partType);
+  return !!partType && ["tube", "pipe", "sleeve", "bushing", "rectangular_tube", "square_tube"].includes(partType);
 };
 
 const isConeType = (partType?: PartGeometry | ""): boolean => {
-  return !!partType && ["cone", "truncated_cone", "conical"].includes(partType);
+  return !!partType && ["cone", "truncated_cone", "conical", "pyramid"].includes(partType);
+};
+
+const isBoxType = (partType?: PartGeometry | ""): boolean => {
+  return !!partType && ["box", "plate", "sheet", "slab", "flat_bar", "rectangular_bar", "square_bar", "billet", "block", "bar"].includes(partType);
+};
+
+const isCylinderType = (partType?: PartGeometry | ""): boolean => {
+  return !!partType && ["cylinder", "round_bar", "shaft", "forging", "round_forging_stock", "rectangular_forging_stock", "near_net_forging", "machined_component"].includes(partType);
+};
+
+const isDiskType = (partType?: PartGeometry | ""): boolean => {
+  return !!partType && ["disk", "disk_forging", "hub"].includes(partType);
+};
+
+const isRingType = (partType?: PartGeometry | ""): boolean => {
+  return !!partType && ["ring", "ring_forging"].includes(partType);
+};
+
+const isHexType = (partType?: PartGeometry | ""): boolean => {
+  return !!partType && ["hexagon", "hex_bar"].includes(partType);
+};
+
+const isProfileType = (partType?: PartGeometry | ""): boolean => {
+  return !!partType && [
+    "l_profile", "t_profile", "i_profile", "u_profile", "z_profile", "z_section", "custom_profile",
+    "extrusion_l", "extrusion_t", "extrusion_i", "extrusion_u", "extrusion_channel", "extrusion_angle"
+  ].includes(partType);
 };
 
 interface ScanDetailsTabProps {
@@ -355,6 +387,18 @@ export const ScanDetailsTab = ({ data, onChange, partType, standard = "AMS-STD-2
             <TubeScanDiagram scanDetails={scanDetails} highlightedDirection={highlightedDirection} />
           ) : isConeType(partType) ? (
             <ConeScanDiagram scanDetails={scanDetails} highlightedDirection={highlightedDirection} />
+          ) : isBoxType(partType) ? (
+            <BoxScanDiagram scanDetails={scanDetails} highlightedDirection={highlightedDirection} />
+          ) : isCylinderType(partType) ? (
+            <CylinderScanDiagram scanDetails={scanDetails} highlightedDirection={highlightedDirection} />
+          ) : isDiskType(partType) ? (
+            <DiskScanDiagram scanDetails={scanDetails} highlightedDirection={highlightedDirection} />
+          ) : isRingType(partType) ? (
+            <RingScanDiagram scanDetails={scanDetails} highlightedDirection={highlightedDirection} />
+          ) : isHexType(partType) ? (
+            <HexBarScanDiagram scanDetails={scanDetails} highlightedDirection={highlightedDirection} />
+          ) : isProfileType(partType) ? (
+            <BoxScanDiagram scanDetails={scanDetails} highlightedDirection={highlightedDirection} />
           ) : (
             <Card className="h-full flex items-center justify-center bg-muted/30">
               <div className="text-center p-4">
