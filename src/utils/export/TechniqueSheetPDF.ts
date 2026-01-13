@@ -1719,50 +1719,172 @@ class TechniqueSheetPDFBuilder {
 
     const sd = this.data.scanDetails;
 
-    // Scan directions table - filter only enabled directions
-    const directionRows: string[][] = [];
+    // Get enabled scan directions
+    const enabledDetails = sd.scanDetails?.filter(d => d.enabled) || [];
 
-    sd.scanDetails?.forEach((detail) => {
-      if (detail.enabled) {
-        directionRows.push([
-          detail.scanningDirection,
-          detail.waveMode || '-',
-          detail.angle !== undefined ? `${detail.angle}°` : '-',
-          detail.frequency ? `${detail.frequency} MHz` : '-',
-          detail.technique || '-',
-          detail.activeElement || '-',
-          detail.probe || '-',
-          detail.remarkDetails || '-',
-        ]);
-      }
-    });
-
-    if (directionRows.length > 0) {
-      autoTable(this.pdf, {
-        startY: y,
-        head: [['Dir.', 'Wave Mode', 'Angle', 'Freq.', 'Technique', 'Active El.', 'Probe', 'Remarks']],
-        body: directionRows,
-        theme: 'grid',
-        styles: { fontSize: 7, cellPadding: 2 },
-        headStyles: { fillColor: COLORS.primary, textColor: [255, 255, 255], fontSize: 8 },
-        columnStyles: {
-          0: { fontStyle: 'bold', cellWidth: 12, halign: 'center' },
-          1: { cellWidth: 35 },
-          2: { cellWidth: 14, halign: 'center' },
-          3: { cellWidth: 16, halign: 'center' },
-          4: { cellWidth: 22 },
-          5: { cellWidth: 18 },
-          6: { cellWidth: 22 },
-          7: { cellWidth: 'auto' },
-        },
-        margin: { left: PAGE.marginLeft, right: PAGE.marginRight },
-      });
-    } else {
+    if (enabledDetails.length === 0) {
       this.pdf.setFontSize(10);
       this.pdf.setTextColor(...COLORS.lightText);
       this.pdf.text('No scan directions configured.', PAGE.marginLeft, y + 10);
       this.pdf.setTextColor(...COLORS.text);
+      this.addFooter();
+      return;
     }
+
+    // Table 1: Basic Direction Info
+    y = this.addSubsectionTitle('Scan Directions Overview', y);
+
+    const directionRows: string[][] = enabledDetails.map((detail) => [
+      detail.scanningDirection,
+      detail.waveMode || '-',
+      detail.angle !== undefined ? `${detail.angle}°` : '-',
+      detail.frequency ? `${detail.frequency} MHz` : '-',
+      detail.make || '-',
+      detail.probe || '-',
+      detail.remarkDetails || '-',
+    ]);
+
+    autoTable(this.pdf, {
+      startY: y,
+      head: [['Dir.', 'Wave Mode', 'Angle', 'Freq.', 'Make', 'Probe/Size', 'Remarks']],
+      body: directionRows,
+      theme: 'grid',
+      styles: { fontSize: 7, cellPadding: 2 },
+      headStyles: { fillColor: COLORS.primary, textColor: [255, 255, 255], fontSize: 8 },
+      columnStyles: {
+        0: { fontStyle: 'bold', cellWidth: 12, halign: 'center' },
+        1: { cellWidth: 35 },
+        2: { cellWidth: 14, halign: 'center' },
+        3: { cellWidth: 16, halign: 'center' },
+        4: { cellWidth: 22 },
+        5: { cellWidth: 25 },
+        6: { cellWidth: 'auto' },
+      },
+      margin: { left: PAGE.marginLeft, right: PAGE.marginRight },
+    });
+
+    y = this.getTableEndY(y);
+
+    // Table 2: Probe Details (P/N, S/N, Range, Attenuation, BWE, SSS)
+    y = this.addSubsectionTitle('Probe Details', y);
+
+    const probeRows: string[][] = enabledDetails.map((detail) => [
+      detail.scanningDirection,
+      detail.partNumber || '-',
+      detail.serialNumber || '-',
+      detail.rangeMm !== undefined ? `${detail.rangeMm} mm` : '-',
+      detail.attenuation !== undefined ? `${detail.attenuation} dB` : '-',
+      detail.backWallEcho !== undefined ? `${detail.backWallEcho}%` : '-',
+      detail.sss || '-',
+    ]);
+
+    autoTable(this.pdf, {
+      startY: y,
+      head: [['Dir.', 'Part Number', 'Serial Number', 'Range', 'Attenuation', 'BWE', 'SSS']],
+      body: probeRows,
+      theme: 'grid',
+      styles: { fontSize: 7, cellPadding: 2 },
+      headStyles: { fillColor: COLORS.secondary, textColor: [255, 255, 255], fontSize: 8 },
+      columnStyles: {
+        0: { fontStyle: 'bold', cellWidth: 12, halign: 'center' },
+        1: { cellWidth: 28 },
+        2: { cellWidth: 28 },
+        3: { cellWidth: 20, halign: 'center' },
+        4: { cellWidth: 22, halign: 'center' },
+        5: { cellWidth: 18, halign: 'center' },
+        6: { cellWidth: 'auto' },
+      },
+      margin: { left: PAGE.marginLeft, right: PAGE.marginRight },
+    });
+
+    y = this.getTableEndY(y);
+
+    // Table 3: Gate Settings
+    y = this.addSubsectionTitle('Gate Settings', y);
+
+    const formatGate = (gate?: { start: number; length: number; level: number }): string => {
+      if (!gate) return '-';
+      return `${gate.start}-${gate.length}-${gate.level}%`;
+    };
+
+    const gateRows: string[][] = enabledDetails.map((detail) => {
+      // Access extended properties (they exist on the detail object from ScanDetailsTab)
+      const extDetail = detail as typeof detail & {
+        gate1?: { start: number; length: number; level: number };
+        gate2?: { start: number; length: number; level: number };
+      };
+      return [
+        detail.scanningDirection,
+        formatGate(extDetail.gate1),
+        formatGate(extDetail.gate2),
+      ];
+    });
+
+    autoTable(this.pdf, {
+      startY: y,
+      head: [['Dir.', 'Gate 1 (Start-Length-Level)', 'Gate 2 (Start-Length-Level)']],
+      body: gateRows,
+      theme: 'grid',
+      styles: { fontSize: 8, cellPadding: 3 },
+      headStyles: { fillColor: [16, 185, 129], textColor: [255, 255, 255], fontSize: 9 }, // Green
+      columnStyles: {
+        0: { fontStyle: 'bold', cellWidth: 15, halign: 'center' },
+        1: { cellWidth: 70, halign: 'center' },
+        2: { cellWidth: 'auto', halign: 'center' },
+      },
+      margin: { left: PAGE.marginLeft, right: PAGE.marginRight },
+    });
+
+    y = this.getTableEndY(y);
+
+    // Table 4: Pulsar Parameters
+    y = this.addSubsectionTitle('Pulsar Parameters', y);
+
+    const pulsarRows: string[][] = enabledDetails.map((detail) => {
+      // Access extended properties
+      const extDetail = detail as typeof detail & {
+        scanningFile?: string;
+        pulsarParams?: string;
+        prf?: number;
+        indexMode?: string;
+        db?: number;
+        filter?: string;
+        reject?: string;
+        tcgMode?: boolean;
+      };
+      return [
+        detail.scanningDirection,
+        extDetail.scanningFile || '-',
+        extDetail.pulsarParams || '-',
+        extDetail.prf !== undefined ? `${extDetail.prf} Hz` : '-',
+        extDetail.indexMode || '-',
+        extDetail.db !== undefined ? `${extDetail.db} dB` : '-',
+        extDetail.filter || '-',
+        extDetail.reject || '-',
+        extDetail.tcgMode !== undefined ? (extDetail.tcgMode ? 'ON' : 'OFF') : '-',
+      ];
+    });
+
+    autoTable(this.pdf, {
+      startY: y,
+      head: [['Dir.', 'Scan File', 'Pulsar Params', 'PRF', 'Index', 'DB', 'Filter', 'Reject', 'TCG']],
+      body: pulsarRows,
+      theme: 'grid',
+      styles: { fontSize: 6, cellPadding: 2 },
+      headStyles: { fillColor: [139, 92, 246], textColor: [255, 255, 255], fontSize: 7 }, // Purple
+      columnStyles: {
+        0: { fontStyle: 'bold', cellWidth: 10, halign: 'center' },
+        1: { cellWidth: 22 },
+        2: { cellWidth: 30 },
+        3: { cellWidth: 16, halign: 'center' },
+        4: { cellWidth: 14, halign: 'center' },
+        5: { cellWidth: 14, halign: 'center' },
+        6: { cellWidth: 18, halign: 'center' },
+        7: { cellWidth: 14, halign: 'center' },
+        8: { cellWidth: 12, halign: 'center' },
+      },
+      margin: { left: PAGE.marginLeft, right: PAGE.marginRight },
+    });
 
     this.addFooter();
   }

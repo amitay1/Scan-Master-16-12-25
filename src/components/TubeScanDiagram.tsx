@@ -200,7 +200,7 @@ export const TubeScanDiagram: React.FC<TubeScanDiagramProps> = ({
               x1={sideView.x + sideView.width - sideView.wallThickness / 2}
               y1={sideView.y - 90}
               x2={sideView.x + sideView.width - sideView.wallThickness / 2}
-              y2={sideView.y - 40}
+              y2={sideView.y - 20}
               stroke="#0000FF"
               strokeWidth="2.5"
               strokeDasharray="8,4"
@@ -230,7 +230,7 @@ export const TubeScanDiagram: React.FC<TubeScanDiagramProps> = ({
               x1={sideView.x + sideView.width - sideView.wallThickness / 2 + 20}
               y1={sideView.y - 75}
               x2={sideView.x + sideView.width - sideView.wallThickness / 2 + 20}
-              y2={sideView.y - 40}
+              y2={sideView.y - 20}
               stroke={getDirectionColor("A₁", scanDetails, highlightedDirection)}
               strokeWidth="2"
               strokeDasharray="4,3"
@@ -238,7 +238,7 @@ export const TubeScanDiagram: React.FC<TubeScanDiagramProps> = ({
             />
             {/* Small arrow indicator */}
             <polygon
-              points={`${sideView.x + sideView.width - sideView.wallThickness / 2 + 20},${sideView.y - 45} ${sideView.x + sideView.width - sideView.wallThickness / 2 + 15},${sideView.y - 55} ${sideView.x + sideView.width - sideView.wallThickness / 2 + 25},${sideView.y - 55}`}
+              points={`${sideView.x + sideView.width - sideView.wallThickness / 2 + 20},${sideView.y - 25} ${sideView.x + sideView.width - sideView.wallThickness / 2 + 15},${sideView.y - 35} ${sideView.x + sideView.width - sideView.wallThickness / 2 + 25},${sideView.y - 35}`}
               fill={getDirectionColor("A₁", scanDetails, highlightedDirection)}
             />
             {/* Label */}
@@ -259,7 +259,7 @@ export const TubeScanDiagram: React.FC<TubeScanDiagramProps> = ({
               x1={sideView.x + sideView.width - sideView.wallThickness / 2}
               y1={sideView.y + sideView.height + 90}
               x2={sideView.x + sideView.width - sideView.wallThickness / 2}
-              y2={sideView.y + sideView.height + 40}
+              y2={sideView.y + sideView.height + 20}
               stroke="#0000FF"
               strokeWidth="2.5"
               strokeDasharray="8,4"
@@ -289,7 +289,7 @@ export const TubeScanDiagram: React.FC<TubeScanDiagramProps> = ({
               x1={sideView.x + sideView.width - sideView.wallThickness / 2 + 20}
               y1={sideView.y + sideView.height + 75}
               x2={sideView.x + sideView.width - sideView.wallThickness / 2 + 20}
-              y2={sideView.y + sideView.height + 40}
+              y2={sideView.y + sideView.height + 20}
               stroke={getDirectionColor("B₁", scanDetails, highlightedDirection)}
               strokeWidth="2"
               strokeDasharray="4,3"
@@ -297,7 +297,7 @@ export const TubeScanDiagram: React.FC<TubeScanDiagramProps> = ({
             />
             {/* Small arrow indicator */}
             <polygon
-              points={`${sideView.x + sideView.width - sideView.wallThickness / 2 + 20},${sideView.y + sideView.height + 45} ${sideView.x + sideView.width - sideView.wallThickness / 2 + 15},${sideView.y + sideView.height + 55} ${sideView.x + sideView.width - sideView.wallThickness / 2 + 25},${sideView.y + sideView.height + 55}`}
+              points={`${sideView.x + sideView.width - sideView.wallThickness / 2 + 20},${sideView.y + sideView.height + 25} ${sideView.x + sideView.width - sideView.wallThickness / 2 + 15},${sideView.y + sideView.height + 35} ${sideView.x + sideView.width - sideView.wallThickness / 2 + 25},${sideView.y + sideView.height + 35}`}
               fill={getDirectionColor("B₁", scanDetails, highlightedDirection)}
             />
             {/* Label */}
@@ -317,7 +317,7 @@ export const TubeScanDiagram: React.FC<TubeScanDiagramProps> = ({
             <line
               x1={sideView.x + sideView.width + 110}
               y1={sideView.y + sideView.height / 2 - 15}
-              x2={sideView.x + sideView.width + 40}
+              x2={sideView.x + sideView.width + 20}
               y2={sideView.y + sideView.height / 2 - 15}
               stroke={getDirectionColor("C", scanDetails, highlightedDirection)}
               strokeWidth="2.5"
@@ -347,7 +347,7 @@ export const TubeScanDiagram: React.FC<TubeScanDiagramProps> = ({
             <line
               x1={sideView.x + sideView.width + 90}
               y1={sideView.y + sideView.height / 2 + 15}
-              x2={sideView.x + sideView.width + 40}
+              x2={sideView.x + sideView.width + 20}
               y2={sideView.y + sideView.height / 2 + 15}
               stroke={getDirectionColor("C₁", scanDetails, highlightedDirection)}
               strokeWidth="2"
@@ -376,8 +376,8 @@ export const TubeScanDiagram: React.FC<TubeScanDiagramProps> = ({
             <line
               x1={sideView.x - 90}
               y1={sideView.y + 10}
-              x2={sideView.x - 40}
-              y2={sideView.y + 60}
+              x2={sideView.x - 20}
+              y2={sideView.y + 80}
               stroke="#0000FF"
               strokeWidth="2.5"
               strokeDasharray="8,4"
@@ -401,8 +401,8 @@ export const TubeScanDiagram: React.FC<TubeScanDiagramProps> = ({
             <line
               x1={sideView.x - 90}
               y1={sideView.y + sideView.height - 10}
-              x2={sideView.x - 40}
-              y2={sideView.y + sideView.height - 60}
+              x2={sideView.x - 20}
+              y2={sideView.y + sideView.height - 80}
               stroke="#0000FF"
               strokeWidth="2.5"
               strokeDasharray="8,4"
@@ -489,17 +489,17 @@ export const TubeScanDiagram: React.FC<TubeScanDiagramProps> = ({
             <line
               x1={endView.cx + endView.outerRadius + 70}
               y1={endView.cy + 15}
-              x2={endView.cx + endView.outerRadius + 40}
-              y2={endView.cy - 10}
+              x2={endView.cx + endView.outerRadius + 20}
+              y2={endView.cy - 26}
               stroke={getDirectionColor("D", scanDetails, highlightedDirection)}
               strokeWidth="3"
               strokeDasharray="8,4"
             />
             {/* Arrowhead */}
             <polygon
-              points={`${endView.cx + endView.outerRadius + 30},${endView.cy - 15}
-                       ${endView.cx + endView.outerRadius + 45},${endView.cy}
-                       ${endView.cx + endView.outerRadius + 25},${endView.cy - 25}`}
+              points={`${endView.cx + endView.outerRadius + 12},${endView.cy - 30}
+                       ${endView.cx + endView.outerRadius + 28},${endView.cy - 16}
+                       ${endView.cx + endView.outerRadius + 8},${endView.cy - 40}`}
               fill={getDirectionColor("D", scanDetails, highlightedDirection)}
             />
             <text
@@ -518,17 +518,17 @@ export const TubeScanDiagram: React.FC<TubeScanDiagramProps> = ({
             <line
               x1={endView.cx + endView.outerRadius + 70}
               y1={endView.cy - 15}
-              x2={endView.cx + endView.outerRadius + 40}
-              y2={endView.cy + 10}
+              x2={endView.cx + endView.outerRadius + 20}
+              y2={endView.cy + 26}
               stroke={getDirectionColor("E", scanDetails, highlightedDirection)}
               strokeWidth="3"
               strokeDasharray="8,4"
             />
             {/* Arrowhead */}
             <polygon
-              points={`${endView.cx + endView.outerRadius + 30},${endView.cy + 15}
-                       ${endView.cx + endView.outerRadius + 45},${endView.cy}
-                       ${endView.cx + endView.outerRadius + 25},${endView.cy + 25}`}
+              points={`${endView.cx + endView.outerRadius + 12},${endView.cy + 30}
+                       ${endView.cx + endView.outerRadius + 28},${endView.cy + 16}
+                       ${endView.cx + endView.outerRadius + 8},${endView.cy + 40}`}
               fill={getDirectionColor("E", scanDetails, highlightedDirection)}
             />
             <text

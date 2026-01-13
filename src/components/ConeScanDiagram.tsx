@@ -45,36 +45,21 @@ export const ConeScanDiagram: React.FC<ConeScanDiagramProps> = ({
   const svgWidth = 750;
   const svgHeight = 550;
 
-  // Side view dimensions - trapezoid (cone profile)
+  // Side view dimensions - positioned left side
   const sideView = {
-    x: 350,           // Center X
-    topY: 120,        // Top of cone
-    bottomY: 400,     // Bottom of cone
-    topWidth: 80,     // Width at top (smaller)
-    bottomWidth: 200, // Width at bottom (larger)
-    wallThickness: 20
+    x: 120,
+    y: 120,
+    width: 180,
+    height: 280,
+    wallThickness: 25
   };
 
-  // End view dimensions - positioned left side
+  // End view dimensions - positioned right side
   const endView = {
-    cx: 140,
-    cy: 280,
-    outerRadius: 80,
-    innerRadius: 55
-  };
-
-  // Calculate trapezoid points
-  const trapezoid = {
-    // Outer trapezoid
-    outerTopLeft: { x: sideView.x - sideView.topWidth / 2, y: sideView.topY },
-    outerTopRight: { x: sideView.x + sideView.topWidth / 2, y: sideView.topY },
-    outerBottomLeft: { x: sideView.x - sideView.bottomWidth / 2, y: sideView.bottomY },
-    outerBottomRight: { x: sideView.x + sideView.bottomWidth / 2, y: sideView.bottomY },
-    // Inner trapezoid (hollow)
-    innerTopLeft: { x: sideView.x - sideView.topWidth / 2 + sideView.wallThickness, y: sideView.topY },
-    innerTopRight: { x: sideView.x + sideView.topWidth / 2 - sideView.wallThickness, y: sideView.topY },
-    innerBottomLeft: { x: sideView.x - sideView.bottomWidth / 2 + sideView.wallThickness * 2, y: sideView.bottomY },
-    innerBottomRight: { x: sideView.x + sideView.bottomWidth / 2 - sideView.wallThickness * 2, y: sideView.bottomY },
+    cx: 580,
+    cy: 260,
+    outerRadius: 90,
+    innerRadius: 60
   };
 
   return (
@@ -101,6 +86,18 @@ export const ConeScanDiagram: React.FC<ConeScanDiagramProps> = ({
           <pattern id="cone-annular-hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
             <line x1="0" y1="0" x2="0" y2="6" stroke="#9ca3af" strokeWidth="0.8" />
           </pattern>
+
+          {/* Arrow markers */}
+          <marker
+            id="cone-arrow-red"
+            markerWidth="12"
+            markerHeight="8"
+            refX="10"
+            refY="4"
+            orient="auto"
+          >
+            <polygon points="0 0, 12 4, 0 8" fill="#b91c1c" />
+          </marker>
         </defs>
 
         <rect width={svgWidth} height={svgHeight} fill="url(#cone-grid)" />
@@ -113,12 +110,210 @@ export const ConeScanDiagram: React.FC<ConeScanDiagramProps> = ({
           ASTM E2375-16 - Conical Geometry Scan Directions
         </text>
 
+        {/* ==================== SIDE VIEW (CONE PROFILE) ==================== */}
+        <g id="side-view">
+
+          {/* Left wall - hatched (tapered) */}
+          <polygon
+            points={`${sideView.x},${sideView.y}
+                     ${sideView.x + sideView.wallThickness},${sideView.y}
+                     ${sideView.x + sideView.wallThickness + 15},${sideView.y + sideView.height}
+                     ${sideView.x - 15},${sideView.y + sideView.height}`}
+            fill="url(#cone-wall-hatch)"
+            stroke="#1f2937"
+            strokeWidth="2"
+          />
+
+          {/* Right wall - hatched (tapered) */}
+          <polygon
+            points={`${sideView.x + sideView.width - sideView.wallThickness},${sideView.y}
+                     ${sideView.x + sideView.width},${sideView.y}
+                     ${sideView.x + sideView.width + 15},${sideView.y + sideView.height}
+                     ${sideView.x + sideView.width - sideView.wallThickness - 15},${sideView.y + sideView.height}`}
+            fill="url(#cone-wall-hatch)"
+            stroke="#1f2937"
+            strokeWidth="2"
+          />
+
+          {/* Top line */}
+          <line
+            x1={sideView.x}
+            y1={sideView.y}
+            x2={sideView.x + sideView.width}
+            y2={sideView.y}
+            stroke="#1f2937"
+            strokeWidth="2"
+          />
+
+          {/* Bottom line (wider) */}
+          <line
+            x1={sideView.x - 15}
+            y1={sideView.y + sideView.height}
+            x2={sideView.x + sideView.width + 15}
+            y2={sideView.y + sideView.height}
+            stroke="#1f2937"
+            strokeWidth="2"
+          />
+
+          {/* ========== A: LW 0° AXIAL from top ========== */}
+          <g opacity={getDirectionOpacity("A", scanDetails, highlightedDirection)}>
+            <line
+              x1={sideView.x + sideView.width - sideView.wallThickness / 2}
+              y1={sideView.y - 90}
+              x2={sideView.x + sideView.width - sideView.wallThickness / 2}
+              y2={sideView.y - 20}
+              stroke={getDirectionColor("A", scanDetails, highlightedDirection)}
+              strokeWidth="2.5"
+              strokeDasharray="8,4"
+            />
+            <polygon
+              points={`${sideView.x + sideView.width - sideView.wallThickness / 2},${sideView.y - 25}
+                       ${sideView.x + sideView.width - sideView.wallThickness / 2 - 7},${sideView.y - 38}
+                       ${sideView.x + sideView.width - sideView.wallThickness / 2 + 7},${sideView.y - 38}`}
+              fill={getDirectionColor("A", scanDetails, highlightedDirection)}
+            />
+            <text
+              x={sideView.x + sideView.width + 10}
+              y={sideView.y - 50}
+              fill={getDirectionColor("A", scanDetails, highlightedDirection)}
+              fontSize="12"
+              fontWeight="bold"
+            >
+              A, LW 0°
+            </text>
+          </g>
+
+          {/* ========== B: LW 0° AXIAL from bottom ========== */}
+          <g opacity={getDirectionOpacity("B", scanDetails, highlightedDirection)}>
+            <line
+              x1={sideView.x + sideView.width - sideView.wallThickness / 2 + 10}
+              y1={sideView.y + sideView.height + 90}
+              x2={sideView.x + sideView.width - sideView.wallThickness / 2 + 10}
+              y2={sideView.y + sideView.height + 20}
+              stroke={getDirectionColor("B", scanDetails, highlightedDirection)}
+              strokeWidth="2.5"
+              strokeDasharray="8,4"
+            />
+            <polygon
+              points={`${sideView.x + sideView.width - sideView.wallThickness / 2 + 10},${sideView.y + sideView.height + 25}
+                       ${sideView.x + sideView.width - sideView.wallThickness / 2 + 3},${sideView.y + sideView.height + 38}
+                       ${sideView.x + sideView.width - sideView.wallThickness / 2 + 17},${sideView.y + sideView.height + 38}`}
+              fill={getDirectionColor("B", scanDetails, highlightedDirection)}
+            />
+            <text
+              x={sideView.x + sideView.width + 25}
+              y={sideView.y + sideView.height + 55}
+              fill={getDirectionColor("B", scanDetails, highlightedDirection)}
+              fontSize="12"
+              fontWeight="bold"
+            >
+              B, LW 0°
+            </text>
+          </g>
+
+          {/* ========== C: LW 0° RADIAL from OD ========== */}
+          <g opacity={getDirectionOpacity("C", scanDetails, highlightedDirection)}>
+            <line
+              x1={sideView.x + sideView.width + 130}
+              y1={sideView.y + sideView.height / 2 - 15}
+              x2={sideView.x + sideView.width + 35}
+              y2={sideView.y + sideView.height / 2 - 15}
+              stroke={getDirectionColor("C", scanDetails, highlightedDirection)}
+              strokeWidth="2.5"
+              strokeDasharray="8,4"
+            />
+            <polygon
+              points={`${sideView.x + sideView.width + 40},${sideView.y + sideView.height / 2 - 15}
+                       ${sideView.x + sideView.width + 55},${sideView.y + sideView.height / 2 - 22}
+                       ${sideView.x + sideView.width + 55},${sideView.y + sideView.height / 2 - 8}`}
+              fill={getDirectionColor("C", scanDetails, highlightedDirection)}
+            />
+            <text
+              x={sideView.x + sideView.width + 95}
+              y={sideView.y + sideView.height / 2 - 25}
+              fill={getDirectionColor("C", scanDetails, highlightedDirection)}
+              fontSize="12"
+              fontWeight="bold"
+            >
+              C, LW 0° (RADIAL)
+            </text>
+          </g>
+
+          {/* ========== F: SW 45° Axial Shear Dir 1 ========== */}
+          <g opacity={getDirectionOpacity("F", scanDetails, highlightedDirection)}>
+            <line
+              x1={sideView.x - 90}
+              y1={sideView.y + 10}
+              x2={sideView.x - 35}
+              y2={sideView.y + 65}
+              stroke={getDirectionColor("F", scanDetails, highlightedDirection)}
+              strokeWidth="2.5"
+              strokeDasharray="8,4"
+            />
+            <polygon
+              points={`${sideView.x - 40},${sideView.y + 60}
+                       ${sideView.x - 55},${sideView.y + 50}
+                       ${sideView.x - 45},${sideView.y + 40}`}
+              fill={getDirectionColor("F", scanDetails, highlightedDirection)}
+            />
+            <text
+              x={sideView.x - 80}
+              y={sideView.y + 35}
+              fill={getDirectionColor("F", scanDetails, highlightedDirection)}
+              fontSize="12"
+              fontWeight="bold"
+            >
+              F: SW 45°
+            </text>
+          </g>
+
+          {/* ========== G: SW 45° Axial Shear Dir 2 (opposite) ========== */}
+          <g opacity={getDirectionOpacity("G", scanDetails, highlightedDirection)}>
+            <line
+              x1={sideView.x - 90}
+              y1={sideView.y + sideView.height - 10}
+              x2={sideView.x - 35}
+              y2={sideView.y + sideView.height - 65}
+              stroke={getDirectionColor("G", scanDetails, highlightedDirection)}
+              strokeWidth="2.5"
+              strokeDasharray="8,4"
+            />
+            <polygon
+              points={`${sideView.x - 40},${sideView.y + sideView.height - 60}
+                       ${sideView.x - 55},${sideView.y + sideView.height - 50}
+                       ${sideView.x - 45},${sideView.y + sideView.height - 40}`}
+              fill={getDirectionColor("G", scanDetails, highlightedDirection)}
+            />
+            <text
+              x={sideView.x - 80}
+              y={sideView.y + sideView.height - 30}
+              fill={getDirectionColor("G", scanDetails, highlightedDirection)}
+              fontSize="12"
+              fontWeight="bold"
+            >
+              G: SW 45°
+            </text>
+          </g>
+
+          {/* Side View Label */}
+          <text
+            x={sideView.x + sideView.width / 2}
+            y={sideView.y + sideView.height + 110}
+            textAnchor="middle"
+            fill="#374151"
+            fontSize="12"
+          >
+            Side View (Cone Profile)
+          </text>
+        </g>
+
         {/* ==================== END VIEW (CROSS-SECTION) ==================== */}
         <g id="end-view">
-          {/* End View Label */}
+
+          {/* End View Label - above */}
           <text
             x={endView.cx}
-            y={endView.cy - endView.outerRadius - 25}
+            y={endView.cy - endView.outerRadius - 30}
             textAnchor="middle"
             fill="#374151"
             fontSize="12"
@@ -136,7 +331,7 @@ export const ConeScanDiagram: React.FC<ConeScanDiagramProps> = ({
             strokeWidth="2"
           />
 
-          {/* Inner circle (ID) - white fill */}
+          {/* Inner circle (ID) - white fill to mask hatching inside */}
           <circle
             cx={endView.cx}
             cy={endView.cy}
@@ -147,223 +342,107 @@ export const ConeScanDiagram: React.FC<ConeScanDiagramProps> = ({
           />
 
           {/* OD / ID labels */}
-          <text x={endView.cx + endView.innerRadius + 8} y={endView.cy + 5} fill="#6b7280" fontSize="10">ID</text>
-          <text x={endView.cx + endView.outerRadius + 5} y={endView.cy + 5} fill="#6b7280" fontSize="10">OD</text>
+          <text
+            x={endView.cx + endView.innerRadius + 10}
+            y={endView.cy + 5}
+            fill="#6b7280"
+            fontSize="10"
+          >
+            ID
+          </text>
+          <text
+            x={endView.cx + endView.outerRadius + 5}
+            y={endView.cy + 5}
+            fill="#6b7280"
+            fontSize="10"
+          >
+            OD
+          </text>
 
-          {/* 3 arrows from bottom pointing UP into the wall */}
-          {/* Left arrow */}
-          <g opacity={getDirectionOpacity("A", scanDetails, highlightedDirection)}>
-            <line
-              x1={endView.cx - 30}
-              y1={endView.cy + endView.outerRadius + 45}
-              x2={endView.cx - 30}
-              y2={endView.cy + endView.innerRadius + 10}
-              stroke={getDirectionColor("A", scanDetails, highlightedDirection)}
-              strokeWidth="3"
-            />
-            <polygon
-              points={`${endView.cx - 30},${endView.cy + endView.innerRadius + 10}
-                       ${endView.cx - 25},${endView.cy + endView.innerRadius + 22}
-                       ${endView.cx - 35},${endView.cy + endView.innerRadius + 22}`}
-              fill={getDirectionColor("A", scanDetails, highlightedDirection)}
-            />
-          </g>
-
-          {/* Center arrow */}
-          <g opacity={getDirectionOpacity("B", scanDetails, highlightedDirection)}>
-            <line
-              x1={endView.cx}
-              y1={endView.cy + endView.outerRadius + 45}
-              x2={endView.cx}
-              y2={endView.cy + endView.innerRadius + 10}
-              stroke={getDirectionColor("B", scanDetails, highlightedDirection)}
-              strokeWidth="3"
-            />
-            <polygon
-              points={`${endView.cx},${endView.cy + endView.innerRadius + 10}
-                       ${endView.cx + 5},${endView.cy + endView.innerRadius + 22}
-                       ${endView.cx - 5},${endView.cy + endView.innerRadius + 22}`}
-              fill={getDirectionColor("B", scanDetails, highlightedDirection)}
-            />
-          </g>
-
-          {/* Right arrow */}
-          <g opacity={getDirectionOpacity("C", scanDetails, highlightedDirection)}>
-            <line
-              x1={endView.cx + 30}
-              y1={endView.cy + endView.outerRadius + 45}
-              x2={endView.cx + 30}
-              y2={endView.cy + endView.innerRadius + 10}
-              stroke={getDirectionColor("C", scanDetails, highlightedDirection)}
-              strokeWidth="3"
-            />
-            <polygon
-              points={`${endView.cx + 30},${endView.cy + endView.innerRadius + 10}
-                       ${endView.cx + 35},${endView.cy + endView.innerRadius + 22}
-                       ${endView.cx + 25},${endView.cy + endView.innerRadius + 22}`}
-              fill={getDirectionColor("C", scanDetails, highlightedDirection)}
-            />
-          </g>
-        </g>
-
-        {/* ==================== SIDE VIEW (CONE/TRAPEZOID) ==================== */}
-        <g id="side-view">
-          {/* Left wall - hatched trapezoid */}
-          <polygon
-            points={`${trapezoid.outerTopLeft.x},${trapezoid.outerTopLeft.y}
-                     ${trapezoid.innerTopLeft.x},${trapezoid.innerTopLeft.y}
-                     ${trapezoid.innerBottomLeft.x},${trapezoid.innerBottomLeft.y}
-                     ${trapezoid.outerBottomLeft.x},${trapezoid.outerBottomLeft.y}`}
-            fill="url(#cone-wall-hatch)"
-            stroke="#1f2937"
-            strokeWidth="2"
-          />
-
-          {/* Right wall - hatched trapezoid */}
-          <polygon
-            points={`${trapezoid.outerTopRight.x},${trapezoid.outerTopRight.y}
-                     ${trapezoid.innerTopRight.x},${trapezoid.innerTopRight.y}
-                     ${trapezoid.innerBottomRight.x},${trapezoid.innerBottomRight.y}
-                     ${trapezoid.outerBottomRight.x},${trapezoid.outerBottomRight.y}`}
-            fill="url(#cone-wall-hatch)"
-            stroke="#1f2937"
-            strokeWidth="2"
-          />
-
-          {/* Top line */}
-          <line
-            x1={trapezoid.outerTopLeft.x}
-            y1={trapezoid.outerTopLeft.y}
-            x2={trapezoid.outerTopRight.x}
-            y2={trapezoid.outerTopRight.y}
-            stroke="#1f2937"
-            strokeWidth="2"
-          />
-
-          {/* Bottom line */}
-          <line
-            x1={trapezoid.outerBottomLeft.x}
-            y1={trapezoid.outerBottomLeft.y}
-            x2={trapezoid.outerBottomRight.x}
-            y2={trapezoid.outerBottomRight.y}
-            stroke="#1f2937"
-            strokeWidth="2"
-          />
-
-          {/* ========== A: LW 0° from right - position 1 (top area) ========== */}
-          <g opacity={getDirectionOpacity("A", scanDetails, highlightedDirection)}>
-            <line
-              x1={trapezoid.outerTopRight.x + 80}
-              y1={sideView.topY + 40}
-              x2={trapezoid.outerTopRight.x + 10}
-              y2={sideView.topY + 40}
-              stroke={getDirectionColor("A", scanDetails, highlightedDirection)}
-              strokeWidth="2.5"
-              strokeDasharray="8,4"
-            />
-            <polygon
-              points={`${trapezoid.outerTopRight.x + 80},${sideView.topY + 40} ${trapezoid.outerTopRight.x + 92},${sideView.topY + 34} ${trapezoid.outerTopRight.x + 92},${sideView.topY + 46}`}
-              fill={getDirectionColor("A", scanDetails, highlightedDirection)}
-            />
-            <text
-              x={trapezoid.outerTopRight.x + 95}
-              y={sideView.topY + 45}
-              fill={getDirectionColor("A", scanDetails, highlightedDirection)}
-              fontSize="12"
-              fontWeight="bold"
-            >
-              A
-            </text>
-          </g>
-
-          {/* ========== B: LW 0° from right - position 2 ========== */}
-          <g opacity={getDirectionOpacity("B", scanDetails, highlightedDirection)}>
-            <line
-              x1={trapezoid.outerTopRight.x + 100}
-              y1={sideView.topY + 110}
-              x2={trapezoid.outerTopRight.x + 25}
-              y2={sideView.topY + 110}
-              stroke={getDirectionColor("B", scanDetails, highlightedDirection)}
-              strokeWidth="2.5"
-              strokeDasharray="8,4"
-            />
-            <polygon
-              points={`${trapezoid.outerTopRight.x + 100},${sideView.topY + 110} ${trapezoid.outerTopRight.x + 112},${sideView.topY + 104} ${trapezoid.outerTopRight.x + 112},${sideView.topY + 116}`}
-              fill={getDirectionColor("B", scanDetails, highlightedDirection)}
-            />
-            <text
-              x={trapezoid.outerTopRight.x + 115}
-              y={sideView.topY + 115}
-              fill={getDirectionColor("B", scanDetails, highlightedDirection)}
-              fontSize="12"
-              fontWeight="bold"
-            >
-              B
-            </text>
-          </g>
-
-          {/* ========== C: LW 0° from right - position 3 ========== */}
-          <g opacity={getDirectionOpacity("C", scanDetails, highlightedDirection)}>
-            <line
-              x1={trapezoid.outerBottomRight.x + 80}
-              y1={sideView.topY + 180}
-              x2={trapezoid.outerTopRight.x + 45}
-              y2={sideView.topY + 180}
-              stroke={getDirectionColor("C", scanDetails, highlightedDirection)}
-              strokeWidth="2.5"
-              strokeDasharray="8,4"
-            />
-            <polygon
-              points={`${trapezoid.outerBottomRight.x + 80},${sideView.topY + 180} ${trapezoid.outerBottomRight.x + 92},${sideView.topY + 174} ${trapezoid.outerBottomRight.x + 92},${sideView.topY + 186}`}
-              fill={getDirectionColor("C", scanDetails, highlightedDirection)}
-            />
-            <text
-              x={trapezoid.outerBottomRight.x + 95}
-              y={sideView.topY + 185}
-              fill={getDirectionColor("C", scanDetails, highlightedDirection)}
-              fontSize="12"
-              fontWeight="bold"
-            >
-              C
-            </text>
-          </g>
-
-          {/* ========== D: LW 0° from right - position 4 (bottom area) ========== */}
+          {/* ========== D: SW 45° Circumferential CW ========== */}
           <g opacity={getDirectionOpacity("D", scanDetails, highlightedDirection)}>
             <line
-              x1={trapezoid.outerBottomRight.x + 80}
-              y1={sideView.topY + 250}
-              x2={trapezoid.outerTopRight.x + 70}
-              y2={sideView.topY + 250}
+              x1={endView.cx + endView.outerRadius + 70}
+              y1={endView.cy + 15}
+              x2={endView.cx + endView.outerRadius + 20}
+              y2={endView.cy - 26}
               stroke={getDirectionColor("D", scanDetails, highlightedDirection)}
-              strokeWidth="2.5"
+              strokeWidth="3"
               strokeDasharray="8,4"
             />
             <polygon
-              points={`${trapezoid.outerBottomRight.x + 80},${sideView.topY + 250} ${trapezoid.outerBottomRight.x + 92},${sideView.topY + 244} ${trapezoid.outerBottomRight.x + 92},${sideView.topY + 256}`}
+              points={`${endView.cx + endView.outerRadius + 12},${endView.cy - 30}
+                       ${endView.cx + endView.outerRadius + 28},${endView.cy - 16}
+                       ${endView.cx + endView.outerRadius + 8},${endView.cy - 40}`}
               fill={getDirectionColor("D", scanDetails, highlightedDirection)}
             />
             <text
-              x={trapezoid.outerBottomRight.x + 95}
-              y={sideView.topY + 255}
+              x={endView.cx + endView.outerRadius + 50}
+              y={endView.cy - 15}
               fill={getDirectionColor("D", scanDetails, highlightedDirection)}
-              fontSize="12"
+              fontSize="11"
               fontWeight="bold"
             >
-              D
+              D: SW 45°
             </text>
           </g>
 
-          {/* Side View Label */}
-          <text
-            x={sideView.x}
-            y={sideView.bottomY + 100}
-            textAnchor="middle"
-            fill="#374151"
-            fontSize="12"
-          >
-            Side View (Cone Profile)
-          </text>
+          {/* ========== E: SW 45° Circumferential CCW ========== */}
+          <g opacity={getDirectionOpacity("E", scanDetails, highlightedDirection)}>
+            <line
+              x1={endView.cx + endView.outerRadius + 70}
+              y1={endView.cy - 15}
+              x2={endView.cx + endView.outerRadius + 20}
+              y2={endView.cy + 26}
+              stroke={getDirectionColor("E", scanDetails, highlightedDirection)}
+              strokeWidth="3"
+              strokeDasharray="8,4"
+            />
+            <polygon
+              points={`${endView.cx + endView.outerRadius + 12},${endView.cy + 30}
+                       ${endView.cx + endView.outerRadius + 28},${endView.cy + 16}
+                       ${endView.cx + endView.outerRadius + 8},${endView.cy + 40}`}
+              fill={getDirectionColor("E", scanDetails, highlightedDirection)}
+            />
+            <text
+              x={endView.cx + endView.outerRadius + 50}
+              y={endView.cy + 25}
+              fill={getDirectionColor("E", scanDetails, highlightedDirection)}
+              fontSize="11"
+              fontWeight="bold"
+            >
+              E: SW 45°
+            </text>
+          </g>
+
+          {/* ========== H: LW 0° from ID ========== */}
+          <g opacity={getDirectionOpacity("H", scanDetails, highlightedDirection)}>
+            <line
+              x1={endView.cx}
+              y1={endView.cy}
+              x2={endView.cx - 35}
+              y2={endView.cy}
+              stroke={getDirectionColor("H", scanDetails, highlightedDirection)}
+              strokeWidth="2"
+              strokeDasharray="5,3"
+            />
+            <polygon
+              points={`${endView.cx - 35},${endView.cy}
+                       ${endView.cx - 25},${endView.cy - 5}
+                       ${endView.cx - 25},${endView.cy + 5}`}
+              fill={getDirectionColor("H", scanDetails, highlightedDirection)}
+            />
+            <text
+              x={endView.cx - 20}
+              y={endView.cy - 12}
+              fill={getDirectionColor("H", scanDetails, highlightedDirection)}
+              fontSize="10"
+              fontWeight="bold"
+              textAnchor="middle"
+            >
+              H
+            </text>
+          </g>
         </g>
 
         {/* Legend */}
