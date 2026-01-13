@@ -29,6 +29,7 @@ import { EquipmentDetailsTab } from "@/components/tabs/EquipmentDetailsTab";
 import { IndicationsTab } from "@/components/tabs/IndicationsTab";
 import { ResultsSummaryTab } from "@/components/tabs/ResultsSummaryTab";
 import { InspectorCertificationTab } from "@/components/tabs/InspectorCertificationTab";
+import { AerospaceForgingTab } from "@/components/tabs/AerospaceForgingTab";
 import { ScanDetailsTab } from "@/components/tabs/ScanDetailsTab";
 import type { ScanDetailsData } from "@/types/scanDetails";
 import { ScanPlanTab } from "@/components/tabs/ScanPlanTab";
@@ -56,7 +57,7 @@ import { getResolutionValues } from "@/utils/frequencyUtils";
 import { useAuth } from "@/hooks/useAuth";
 import { logError, logInfo } from "@/lib/logger";
 import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
+import { Loader2, FileText } from "lucide-react";
 import { fieldDependencyEngine } from "@/utils/standards/fieldDependencyEngine";
 import { validationEngine } from "@/utils/standards/validationEngine";
 import { techniqueSheetService } from "@/services/techniqueSheetService";
@@ -74,6 +75,7 @@ import { SelfDiagnosticPanel } from "@/components/diagnostics/SelfDiagnosticPane
 import { OfflineUpdateDialog } from "@/components/updates/OfflineUpdateDialog";
 import { LicenseWarningBanner } from "@/components/LicenseWarningBanner";
 import { requiresAngleBeam } from "@/utils/beamTypeClassification";
+import { exportInspectionReportPDF } from "@/utils/export/InspectionReportPDF";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -1578,7 +1580,7 @@ const Index = () => {
                   </>
                 ) : (
                   <>
-                    {/* Compact header row with Progress for Report mode */}
+                    {/* Compact header row with Progress and Export button for Report mode */}
                     <div className="flex items-center gap-2 mb-2">
                       <div className="flex-1 min-w-0">
                         <WebGLLiquidProgress
@@ -1587,6 +1589,25 @@ const Index = () => {
                           totalFields={40}
                         />
                       </div>
+                      {/* Dedicated Export Report PDF button */}
+                      <Button
+                        onClick={() => {
+                          toast.loading('Generating Inspection Report PDF...', { id: 'report-export' });
+                          setTimeout(() => {
+                            exportInspectionReportPDF(inspectionReport, {
+                              companyName: 'SCAN-MASTER',
+                              includeAerospaceSection: true,
+                            });
+                            toast.dismiss('report-export');
+                            toast.success('Inspection Report PDF exported successfully!');
+                          }, 500);
+                        }}
+                        size="sm"
+                        className="bg-blue-600 hover:bg-blue-700 text-white flex-shrink-0"
+                      >
+                        <FileText className="h-4 w-4 mr-1" />
+                        Export Report PDF
+                      </Button>
                     </div>
 
                     <div className="w-full overflow-x-auto scrollbar-hide md:overflow-visible sticky top-0 bg-background z-10 pb-2">
@@ -1599,6 +1620,7 @@ const Index = () => {
                         <TabsTrigger value="scans" className="flex-shrink-0 px-3">Scans</TabsTrigger>
                         <TabsTrigger value="results" className="flex-shrink-0 px-3 whitespace-nowrap">Results</TabsTrigger>
                         <TabsTrigger value="certification" className="flex-shrink-0 px-3 whitespace-nowrap">Certification</TabsTrigger>
+                        <TabsTrigger value="aerospace" className="flex-shrink-0 px-3 whitespace-nowrap">Aerospace</TabsTrigger>
                         <TabsTrigger value="remarks" className="flex-shrink-0 px-3">Remarks</TabsTrigger>
                       </TabsList>
                     </div>
@@ -1793,6 +1815,29 @@ const Index = () => {
                         />
                       </TabsContent>
 
+                      <TabsContent value="aerospace" className="m-0">
+                        <AerospaceForgingTab
+                          testLocationTiming={inspectionReport.testLocationTiming}
+                          environmentalConditions={inspectionReport.environmentalConditions}
+                          couplantDetails={inspectionReport.couplantDetails}
+                          forgingDetails={inspectionReport.forgingDetails}
+                          sensitivitySettings={inspectionReport.sensitivitySettings}
+                          transferCorrection={inspectionReport.transferCorrection}
+                          bweMonitoring={inspectionReport.bweMonitoring}
+                          scanCoverage={inspectionReport.scanCoverage}
+                          zoningRequirements={inspectionReport.zoningRequirements}
+                          onTestLocationChange={(testLocationTiming) => setInspectionReport({ ...inspectionReport, testLocationTiming })}
+                          onEnvironmentalChange={(environmentalConditions) => setInspectionReport({ ...inspectionReport, environmentalConditions })}
+                          onCouplantChange={(couplantDetails) => setInspectionReport({ ...inspectionReport, couplantDetails })}
+                          onForgingChange={(forgingDetails) => setInspectionReport({ ...inspectionReport, forgingDetails })}
+                          onSensitivityChange={(sensitivitySettings) => setInspectionReport({ ...inspectionReport, sensitivitySettings })}
+                          onTransferChange={(transferCorrection) => setInspectionReport({ ...inspectionReport, transferCorrection })}
+                          onBweChange={(bweMonitoring) => setInspectionReport({ ...inspectionReport, bweMonitoring })}
+                          onScanCoverageChange={(scanCoverage) => setInspectionReport({ ...inspectionReport, scanCoverage })}
+                          onZoningChange={(zoningRequirements) => setInspectionReport({ ...inspectionReport, zoningRequirements })}
+                        />
+                      </TabsContent>
+
                       <TabsContent value="remarks" className="m-0">
                         <RemarksTab
                           remarks={inspectionReport.remarks}
@@ -1872,6 +1917,7 @@ const Index = () => {
         }
         e2375Diagram={e2375Diagram}
         scanDirectionsDrawing={capturedScanDirections}
+        reportMode={reportMode}
         onExport={(format, template) => {
           toast.success(`Exported ${template.toUpperCase()} as ${format.toUpperCase()} successfully!`);
         }}

@@ -104,7 +104,7 @@ const FIXED_SCAN_DETAILS: ExtendedScanDetail[] = [
   { scanningDirection: "L", waveMode: "Shear wave 45 CCW", frequency: "", make: "", probe: "", remarkDetails: "", enabled: false, entrySurface: "radial", angle: 0, color: "#a855f7" },
 ];
 
-export const ScanDetailsTab = ({ data, onChange, partType, standard = "AMS-STD-2154E" }: ScanDetailsTabProps) => {
+export const ScanDetailsTab = ({ data, onChange, partType, standard = "AMS-STD-2154E", dimensions }: ScanDetailsTabProps) => {
   const frequencyOptions = getFrequencyOptionsForStandard(standard);
   const [highlightedDirection, setHighlightedDirection] = useState<string | null>(null);
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
@@ -388,7 +388,12 @@ export const ScanDetailsTab = ({ data, onChange, partType, standard = "AMS-STD-2
           ) : isConeType(partType) ? (
             <ConeScanDiagram scanDetails={scanDetails} highlightedDirection={highlightedDirection} />
           ) : isBoxType(partType) ? (
-            <BoxScanDiagram scanDetails={scanDetails} highlightedDirection={highlightedDirection} />
+            <BoxScanDiagram 
+              scanDetails={scanDetails} 
+              highlightedDirection={highlightedDirection}
+              partType={partType}
+              dimensions={dimensions}
+            />
           ) : isCylinderType(partType) ? (
             <CylinderScanDiagram scanDetails={scanDetails} highlightedDirection={highlightedDirection} />
           ) : isDiskType(partType) ? (
@@ -398,7 +403,12 @@ export const ScanDetailsTab = ({ data, onChange, partType, standard = "AMS-STD-2
           ) : isHexType(partType) ? (
             <HexBarScanDiagram scanDetails={scanDetails} highlightedDirection={highlightedDirection} />
           ) : isProfileType(partType) ? (
-            <BoxScanDiagram scanDetails={scanDetails} highlightedDirection={highlightedDirection} />
+            <BoxScanDiagram 
+              scanDetails={scanDetails} 
+              highlightedDirection={highlightedDirection}
+              partType={partType}
+              dimensions={dimensions}
+            />
           ) : (
             <Card className="h-full flex items-center justify-center bg-muted/30">
               <div className="text-center p-4">

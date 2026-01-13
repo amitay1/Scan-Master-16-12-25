@@ -1,15 +1,23 @@
 import React from "react";
 import type { ScanDetail } from "@/types/scanDetails";
+import type { PartGeometry } from "@/types/techniqueSheet";
 
 interface BoxScanDiagramProps {
   scanDetails?: ScanDetail[];
   highlightedDirection?: string | null;
+  partType?: PartGeometry | "";
   dimensions?: {
     width?: number;
     thickness?: number;
+    height?: number;
     length?: number;
   };
 }
+
+// Check if this is a plate type (thin, flat geometry)
+const isPlateType = (partType?: PartGeometry | ""): boolean => {
+  return !!partType && ["plate", "sheet", "slab", "flat_bar"].includes(partType);
+};
 
 // Get color for direction (enabled vs disabled)
 const getDirectionColor = (direction: string, scanDetails?: ScanDetail[], highlighted?: string | null) => {
@@ -35,30 +43,74 @@ const getDirectionOpacity = (direction: string, scanDetails?: ScanDetail[], high
 /**
  * BoxScanDiagram - Interactive SVG diagram showing scan directions for box/plate/rectangular bar geometry
  * Based on ASTM E2375-16 Figure 6 - Plate, Flat Bar, Rectangular Bar, Bloom, and Billets
+ * 
+ * For PLATE: Renders a flat, thin shape with actual proportions from dimensions
+ * For BOX/BAR: Renders a more cubic shape
  */
 export const BoxScanDiagram: React.FC<BoxScanDiagramProps> = ({
   scanDetails,
   highlightedDirection,
+  partType,
+  dimensions,
 }) => {
   // SVG dimensions
   const svgWidth = 750;
   const svgHeight = 550;
 
+  // Get actual dimensions or use defaults
+  const actualWidth = dimensions?.width || dimensions?.length || 300;
+  const actualLength = dimensions?.length || dimensions?.width || 200;
+  const actualThickness = dimensions?.thickness || dimensions?.height || 30;
+  
+  // Determine if this is a plate (W/T > 5 per ASTM E2375-16)
+  const isPlate = isPlateType(partType) || (actualWidth / actualThickness > 5);
+  
+  // Calculate proportional dimensions for display
+  // Max dimension in SVG space
+  const maxBoxWidth = 220;
+  const maxBoxHeight = 180;
+  const maxBoxDepth = 120;
+  
+  // Scale factor based on largest dimension
+  const maxDim = Math.max(actualWidth, actualLength, actualThickness);
+  const scaleFactor = maxBoxWidth / maxDim;
+  
+  // Apply scale to get proportional dimensions
+  let boxWidth: number, boxHeight: number, boxDepth: number;
+  
+  if (isPlate) {
+    // For plates: emphasize flat, thin appearance
+    // Width and Length should be large, thickness should be visually thin
+    boxWidth = Math.max(160, Math.min(maxBoxWidth, actualWidth * scaleFactor));
+    boxDepth = Math.max(80, Math.min(maxBoxDepth, actualLength * scaleFactor));
+    // Thickness is proportionally thin - enforce minimum for visibility but show thinness
+    boxHeight = Math.max(15, Math.min(50, actualThickness * scaleFactor));
+  } else {
+    // For boxes/bars: more cubic proportions
+    boxWidth = Math.max(100, Math.min(maxBoxWidth, actualWidth * scaleFactor));
+    boxDepth = Math.max(60, Math.min(maxBoxDepth, actualLength * scaleFactor));
+    boxHeight = Math.max(80, Math.min(maxBoxHeight, actualThickness * scaleFactor));
+  }
+
   // Main view - Isometric box positioned left
   const boxView = {
     x: 100,
-    y: 140,
-    width: 200,
-    height: 180,
-    depth: 100  // for 3D effect
+    y: isPlate ? 180 : 140,  // Adjust Y for plates to center better
+    width: boxWidth,
+    height: boxHeight,
+    depth: boxDepth
   };
 
   // Cross-section view - positioned right
+  // For plate: width should be much larger than height (thin profile)
+  const crossWidth = isPlate ? 180 : 180;
+  const crossHeight = isPlate ? Math.max(20, Math.min(60, boxHeight * 1.5)) : 200;
+  
   const crossSection = {
     x: 480,
-    y: 160,
-    width: 180,
-    height: 200
+    y: isPlate ? 200 : 160,
+    width: crossWidth,
+    height: crossHeight
   };
 
   return (
@@ -100,10 +152,14 @@ export const BoxScanDiagram: React.FC<BoxScanDiagramProps> = ({
 
         {/* Main Title */}
         <text x="30" y="35" fill="#1f2937" fontSize="20" fontWeight="bold">
-          Scan Directions - Plate / Rectangular Bar
+          {isPlate ? "Scan Directions - Plate / Flat Bar" : "Scan Directions - Rectangular Bar / Box"}
         </text>
         <text x="30" y="55" fill="#6b7280" fontSize="11">
-          ASTM E2375-16 Figure 6 - Plate, Flat Bar, Rectangular Bar, Bloom, Billets
+          ASTM E2375-16 Figure 6 - {isPlate ? "Plate, Flat Bar (W/T > 5)" : "Rectangular Bar, Bloom, Billets"}
+        </text>
+        {/* Actual Dimensions Display */}
+        <text x="30" y="75" fill="#3b82f6" fontSize="10">
+          Dimensions: W={actualWidth}mm × L={actualLength}mm × T={actualThickness}mm {isPlate ? "(Plate: W/T > 5)" : ""}
         </text>
 
         {/* ==================== ISOMETRIC VIEW ==================== */}
@@ -142,10 +198,10 @@ export const BoxScanDiagram: React.FC<BoxScanDiagramProps> = ({
             strokeWidth="2"
           />
 
-          {/* Dimension labels */}
-          <text x={boxView.x + boxView.width / 2} y={boxView.y - 10} textAnchor="middle" fill="#6b7280" fontSize="11">W (Width)</text>
-          <text x={boxView.x + boxView.width + boxView.depth / 2 + 20} y={boxView.y + boxView.height / 2} fill="#6b7280" fontSize="11">L</text>
-          <text x={boxView.x - 20} y={boxView.y + boxView.depth / 2 + boxView.height / 2} textAnchor="end" fill="#6b7280" fontSize="11">T</text>
+          {/* Dimension labels with actual values */}
+          <text x={boxView.x + boxView.width / 2} y={boxView.y - 10} textAnchor="middle" fill="#6b7280" fontSize="11">W = {actualWidth}mm</text>
+          <text x={boxView.x + boxView.width + boxView.depth / 2 + 20} y={boxView.y + boxView.height / 2} fill="#6b7280" fontSize="11">L = {actualLength}mm</text>
+          <text x={boxView.x - 20} y={boxView.y + boxView.depth / 2 + boxView.height / 2} textAnchor="end" fill="#6b7280" fontSize="11">T = {actualThickness}mm</text>
 
           {/* ========== A: LW 0° from top (through thickness) ========== */}
           <g opacity={getDirectionOpacity("A", scanDetails, highlightedDirection)}>
@@ -344,9 +400,9 @@ export const BoxScanDiagram: React.FC<BoxScanDiagramProps> = ({
             strokeDasharray="10,5"
           />
 
-          {/* Dimension labels */}
-          <text x={crossSection.x + crossSection.width / 2} y={crossSection.y + crossSection.height + 30} textAnchor="middle" fill="#6b7280" fontSize="10">W</text>
-          <text x={crossSection.x - 15} y={crossSection.y + crossSection.height / 2} textAnchor="end" fill="#6b7280" fontSize="10">T</text>
+          {/* Dimension labels with actual values */}
+          <text x={crossSection.x + crossSection.width / 2} y={crossSection.y + crossSection.height + 30} textAnchor="middle" fill="#6b7280" fontSize="10">W = {actualWidth}mm</text>
+          <text x={crossSection.x - 15} y={crossSection.y + crossSection.height / 2} textAnchor="end" fill="#6b7280" fontSize="10">T = {actualThickness}mm</text>
 
           {/* ========== A: Arrow from top ========== */}
           <g opacity={getDirectionOpacity("A", scanDetails, highlightedDirection)}>

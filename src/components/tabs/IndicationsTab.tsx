@@ -73,30 +73,33 @@ export const IndicationsTab = ({ indications, onChange }: IndicationsTabProps) =
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[60px]">#</TableHead>
-                  <TableHead className="w-[100px]">S/N, Scan ID</TableHead>
-                  <TableHead className="w-[90px]">X Distance</TableHead>
-                  <TableHead className="w-[90px]">Y Distance</TableHead>
-                  <TableHead className="w-[90px]">X Extension</TableHead>
-                  <TableHead className="w-[90px]">Y Extension</TableHead>
-                  <TableHead className="w-[90px]">Amplitude</TableHead>
-                  <TableHead className="w-[90px]">Sound Path</TableHead>
-                  <TableHead className="w-[100px]">Assessment</TableHead>
-                  <TableHead className="w-[50px]"></TableHead>
+                  <TableHead className="w-[50px]">#</TableHead>
+                  <TableHead className="w-[80px]">Scan ID</TableHead>
+                  <TableHead className="w-[70px]">X Dist</TableHead>
+                  <TableHead className="w-[70px]">Y Dist</TableHead>
+                  <TableHead className="w-[70px]">X Ext</TableHead>
+                  <TableHead className="w-[70px]">Y Ext</TableHead>
+                  <TableHead className="w-[70px]">Amp.</TableHead>
+                  <TableHead className="w-[70px]">Depth</TableHead>
+                  <TableHead className="w-[80px]">FBH Equiv</TableHead>
+                  <TableHead className="w-[70px]">vs Ref</TableHead>
+                  <TableHead className="w-[80px]">Zone</TableHead>
+                  <TableHead className="w-[80px]">Result</TableHead>
+                  <TableHead className="w-[40px]"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {indications.map((indication) => (
                   <TableRow key={indication.id}>
-                    <TableCell className="font-medium">
+                    <TableCell className="font-medium text-xs">
                       {indication.indicationNumber}
                     </TableCell>
                     <TableCell>
                       <Input
                         value={indication.scanId}
                         onChange={(e) => updateIndication(indication.id, 'scanId', e.target.value)}
-                        placeholder="Scan 1"
-                        className="h-7 text-xs w-20"
+                        placeholder="ID"
+                        className="h-6 text-xs w-16"
                       />
                     </TableCell>
                     <TableCell>
@@ -104,7 +107,7 @@ export const IndicationsTab = ({ indications, onChange }: IndicationsTabProps) =
                         value={indication.xDistance}
                         onChange={(e) => updateIndication(indication.id, 'xDistance', e.target.value)}
                         placeholder="mm"
-                        className="h-7 text-xs w-16"
+                        className="h-6 text-xs w-14"
                       />
                     </TableCell>
                     <TableCell>
@@ -112,7 +115,7 @@ export const IndicationsTab = ({ indications, onChange }: IndicationsTabProps) =
                         value={indication.yDistance}
                         onChange={(e) => updateIndication(indication.id, 'yDistance', e.target.value)}
                         placeholder="mm"
-                        className="h-7 text-xs w-16"
+                        className="h-6 text-xs w-14"
                       />
                     </TableCell>
                     <TableCell>
@@ -120,7 +123,7 @@ export const IndicationsTab = ({ indications, onChange }: IndicationsTabProps) =
                         value={indication.xExtension}
                         onChange={(e) => updateIndication(indication.id, 'xExtension', e.target.value)}
                         placeholder="mm"
-                        className="h-7 text-xs w-16"
+                        className="h-6 text-xs w-14"
                       />
                     </TableCell>
                     <TableCell>
@@ -128,15 +131,15 @@ export const IndicationsTab = ({ indications, onChange }: IndicationsTabProps) =
                         value={indication.yExtension}
                         onChange={(e) => updateIndication(indication.id, 'yExtension', e.target.value)}
                         placeholder="mm"
-                        className="h-7 text-xs w-16"
+                        className="h-6 text-xs w-14"
                       />
                     </TableCell>
                     <TableCell>
                       <Input
                         value={indication.amplitude}
                         onChange={(e) => updateIndication(indication.id, 'amplitude', e.target.value)}
-                        placeholder="dB/%"
-                        className="h-7 text-xs w-16"
+                        placeholder="%"
+                        className="h-6 text-xs w-14"
                       />
                     </TableCell>
                     <TableCell>
@@ -144,7 +147,42 @@ export const IndicationsTab = ({ indications, onChange }: IndicationsTabProps) =
                         value={indication.soundPath}
                         onChange={(e) => updateIndication(indication.id, 'soundPath', e.target.value)}
                         placeholder="mm"
-                        className="h-7 text-xs w-16"
+                        className="h-6 text-xs w-14"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Select
+                        value={indication.fbhEquivalentSize || ''}
+                        onValueChange={(v) => updateIndication(indication.id, 'fbhEquivalentSize', v)}
+                      >
+                        <SelectTrigger className="h-6 text-xs w-16">
+                          <SelectValue placeholder="FBH" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="< 1/64">{'<'} 1/64"</SelectItem>
+                          <SelectItem value="1/64">1/64"</SelectItem>
+                          <SelectItem value="2/64">2/64"</SelectItem>
+                          <SelectItem value="3/64">3/64"</SelectItem>
+                          <SelectItem value="4/64">4/64"</SelectItem>
+                          <SelectItem value="5/64">5/64"</SelectItem>
+                          <SelectItem value="> 5/64">{'>'} 5/64"</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        value={indication.amplitudeVsReference || ''}
+                        onChange={(e) => updateIndication(indication.id, 'amplitudeVsReference', e.target.value)}
+                        placeholder="dB"
+                        className="h-6 text-xs w-14"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        value={indication.depthZone || ''}
+                        onChange={(e) => updateIndication(indication.id, 'depthZone', e.target.value)}
+                        placeholder="Zone"
+                        className="h-6 text-xs w-16"
                       />
                     </TableCell>
                     <TableCell>
@@ -152,7 +190,7 @@ export const IndicationsTab = ({ indications, onChange }: IndicationsTabProps) =
                         value={indication.assessment}
                         onValueChange={(v) => updateIndication(indication.id, 'assessment', v)}
                       >
-                        <SelectTrigger className="h-7 text-xs w-20">
+                        <SelectTrigger className="h-6 text-xs w-16">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -167,8 +205,9 @@ export const IndicationsTab = ({ indications, onChange }: IndicationsTabProps) =
                         variant="ghost"
                         size="sm"
                         onClick={() => removeIndication(indication.id)}
+                        className="h-6 w-6 p-0"
                       >
-                        <Trash2 className="h-4 w-4 text-destructive" />
+                        <Trash2 className="h-3 w-3 text-destructive" />
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -181,13 +220,16 @@ export const IndicationsTab = ({ indications, onChange }: IndicationsTabProps) =
 
       {/* Column legend */}
       <Card className="p-3 bg-muted/50">
-        <h4 className="text-xs font-semibold mb-2">Column Descriptions:</h4>
+        <h4 className="text-xs font-semibold mb-2">Column Descriptions (AMS-STD-2154):</h4>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-xs text-muted-foreground">
-          <div><strong>X/Y Distance:</strong> Distance from reference point (0,0)</div>
-          <div><strong>X/Y Extension:</strong> Size of the indication</div>
-          <div><strong>Amplitude:</strong> Maximum signal strength (dB or %)</div>
-          <div><strong>Sound Path:</strong> Depth from surface</div>
-          <div><strong>Assessment:</strong> Accept/Reject/Record only</div>
+          <div><strong>X/Y Dist:</strong> Distance from reference (0,0)</div>
+          <div><strong>X/Y Ext:</strong> Size of the indication</div>
+          <div><strong>Amp:</strong> Signal strength (% FSH)</div>
+          <div><strong>Depth:</strong> Sound path from surface</div>
+          <div><strong>FBH Equiv:</strong> Equivalent FBH size (1/64" - 8/64")</div>
+          <div><strong>vs Ref:</strong> dB relative to reference FBH</div>
+          <div><strong>Zone:</strong> Depth zone (Near/Mid/Far)</div>
+          <div><strong>Result:</strong> Accept/Reject/Record</div>
         </div>
       </Card>
     </div>

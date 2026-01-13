@@ -38,6 +38,7 @@ import type { ExportTemplate } from "@/types/unifiedInspection";
 
 import { exportTechniqueSheetPDF } from "@/utils/export/TechniqueSheetPDF";
 import { exportTechniqueSheetWord } from "@/utils/export/TechniqueSheetWord";
+import { exportInspectionReportPDF } from "@/utils/export/InspectionReportPDF";
 
 interface UnifiedExportDialogProps {
   open: boolean;
@@ -57,6 +58,7 @@ interface UnifiedExportDialogProps {
   angleBeamDiagram?: string;           // Angle beam calibration block diagram
   e2375Diagram?: string;               // ASTM E2375 scan directions diagram
   scanDirectionsDrawing?: string;
+  reportMode?: "Technique" | "Report"; // Which mode we're exporting from
   onExport?: (format: "pdf" | "word", template: ExportTemplate) => void;
 }
 
@@ -70,6 +72,7 @@ export const UnifiedExportDialog: React.FC<UnifiedExportDialogProps> = ({
   scanParameters,
   acceptanceCriteria,
   documentation,
+  inspectionReport,
   scanDetails,
   scanPlan,
   capturedDrawing,
@@ -77,8 +80,11 @@ export const UnifiedExportDialog: React.FC<UnifiedExportDialogProps> = ({
   angleBeamDiagram,
   e2375Diagram,
   scanDirectionsDrawing,
+  reportMode = "Technique",
   onExport,
 }) => {
+  // Determine if we're exporting an inspection report
+  const isReportMode = reportMode === "Report" && inspectionReport;
   const [isExporting, setIsExporting] = useState(false);
   const [exportFormat, setExportFormat] = useState<"pdf" | "word">("pdf");
   const [companyName, setCompanyName] = useState("");
@@ -206,27 +212,38 @@ export const UnifiedExportDialog: React.FC<UnifiedExportDialogProps> = ({
       await new Promise(r => setTimeout(r, 400));
 
       if (format === "pdf") {
-        exportTechniqueSheetPDF({
-          standard,
-          inspectionSetup,
-          equipment,
-          calibration,
-          scanParameters,
-          acceptanceCriteria,
-          documentation,
-          scanDetails,
-          scanPlan,
-          capturedDrawing,
-          calibrationBlockDiagram,
-          angleBeamDiagram,
-          e2375Diagram,
-          scanDirectionsDrawing,
-        }, {
-          companyName: companyName || undefined,
-          companyLogo: companyLogo || undefined,
-        });
+        // Use appropriate exporter based on mode
+        if (isReportMode && inspectionReport) {
+          // Export Inspection Report (TÜV/Metalscan style)
+          exportInspectionReportPDF(inspectionReport, {
+            companyName: companyName || undefined,
+            companyLogo: companyLogo || undefined,
+            includeAerospaceSection: true,
+          });
+        } else {
+          // Export Technique Sheet
+          exportTechniqueSheetPDF({
+            standard,
+            inspectionSetup,
+            equipment,
+            calibration,
+            scanParameters,
+            acceptanceCriteria,
+            documentation,
+            scanDetails,
+            scanPlan,
+            capturedDrawing,
+            calibrationBlockDiagram,
+            angleBeamDiagram,
+            e2375Diagram,
+            scanDirectionsDrawing,
+          }, {
+            companyName: companyName || undefined,
+            companyLogo: companyLogo || undefined,
+          });
+        }
       } else {
-        // Word export
+        // Word export (technique sheet only for now)
         await exportTechniqueSheetWord({
           standard,
           inspectionSetup,

@@ -1,4 +1,4 @@
-// Types for full UT Inspection Report (TÜV/Metalscan format)
+// Types for full UT Inspection Report (TÜV/Metalscan format + AMS-STD-2154 Aerospace Forging)
 
 export interface ScanData {
   id: string;
@@ -34,7 +34,121 @@ export interface ProbeDetails {
   calibrationDate?: string; // Last calibration date
 }
 
-// Equipment/Generator details (TÜV format)
+// ============================================
+// AEROSPACE FORGING UT SPECIFIC TYPES
+// ============================================
+
+// Environmental Conditions (ASTM/NASA requirements)
+export interface EnvironmentalConditions {
+  ambientTemperature: string; // e.g., "22°C"
+  partTemperature: string; // e.g., "20°C"
+  humidity: string; // e.g., "45%"
+  lightingConditions: string; // e.g., "500 lux"
+}
+
+// Couplant Details (AMS-STD-2154 requirement)
+export interface CouplantDetails {
+  couplantType: string; // e.g., "Glycerin", "Water", "Gel", "Oil"
+  couplantManufacturer: string;
+  couplantBatchNumber?: string;
+  sulfurContent: string; // e.g., "< 250 ppm" (for nickel alloys)
+  halideContent: string; // e.g., "< 250 ppm" (for stainless steel)
+}
+
+// Sensitivity & Calibration Settings (AMS-STD-2154)
+export interface SensitivitySettings {
+  // Reference Level
+  referenceFbhSize: string; // e.g., "3/64\"", "1/64\"", "5/64\""
+  referenceFbhDepth: string; // e.g., "25 mm"
+  referenceLevel: string; // dB at which FBH = 80% FSH
+
+  // Scanning Sensitivity
+  scanningSensitivity: string; // Additional dB for scanning (e.g., "+6 dB")
+  recordingLevel: string; // % FSH for recording (e.g., "20%", "50%")
+  rejectionLevel: string; // % FSH for rejection (e.g., "100%")
+
+  // DAC/TCG
+  dacApplied: boolean;
+  tcgApplied: boolean;
+  dacCurveImage?: string; // Base64 image of DAC curve
+}
+
+// Transfer Correction (Critical for forgings)
+export interface TransferCorrection {
+  calibrationBlockBwe: string; // Back Wall Echo on cal block (% FSH)
+  partBweAtSameThickness: string; // BWE on part at same thickness
+  transferCorrectionValue: string; // dB difference
+  correctionApplied: boolean;
+}
+
+// Back Wall Echo Monitoring (ASTM A388)
+export interface BweMonitoring {
+  bweMonitoringActive: boolean;
+  bweAttenuationThreshold: string; // e.g., "50%" - max allowed drop
+  bweLossRecorded: string; // Actual BWE loss during scan
+  bweGateStart: string; // Gate start position
+  bweGateEnd: string; // Gate end position
+}
+
+// Forging-specific information
+export type ForgingType = 'ring' | 'disc' | 'bar' | 'billet' | 'shaft' | 'block' | 'custom';
+
+export interface ForgingDetails {
+  forgingType: ForgingType;
+  grainFlowDirection: string; // e.g., "Axial", "Radial", "Circumferential"
+  forgingRatio: string; // e.g., "4:1"
+  minimumThicknessAfterMachining: string;
+
+  // Multi-direction inspection (required for forgings)
+  axialInspection: boolean;
+  radialInspection: boolean;
+  circumferentialInspection: boolean;
+  angleBeamApplied: boolean;
+  angleBeamAngle?: string; // e.g., "45°", "60°"
+}
+
+// Zoning Requirements (for thick parts > 18")
+export interface InspectionZone {
+  zoneNumber: number;
+  zoneName: string; // e.g., "Near Surface", "Mid-wall", "Far Surface"
+  startDepth: string; // mm
+  endDepth: string; // mm
+  fbhSizeForZone: string; // FBH size for this zone
+  sensitivityForZone: string; // dB
+}
+
+export interface ZoningRequirements {
+  zoningRequired: boolean;
+  numberOfZones: number;
+  deadZone: string; // Near surface dead zone (mm)
+  zones: InspectionZone[];
+}
+
+// Scan Index & Coverage (ASME V / ASTM E2375)
+export interface ScanCoverage {
+  scanIndex: string; // mm between passes
+  overlapPercentage: string; // e.g., "10%", "15%"
+  beamSpotSize: string; // mm
+  consecutivePassDetection: boolean; // Detection on 3 consecutive passes
+  coveragePercentage: string; // e.g., "100%"
+  excludedZones?: string; // Areas not scanned with reason
+}
+
+// Test Location & Timing
+export interface TestLocationTiming {
+  inspectionLocation: string; // e.g., "Plant", "Field", "Customer site"
+  facilityName: string;
+  testDate: string;
+  testStartTime: string;
+  testEndTime: string;
+  inspectionDuration: string; // Calculated or entered
+}
+
+// ============================================
+// EXISTING TYPES (Updated)
+// ============================================
+
+// Equipment/Generator details (TÜV format + Aerospace additions)
 export interface EquipmentDetails {
   // Ultrasonic Generator
   generatorMake: string; // e.g., "METALSCAN"
@@ -61,15 +175,22 @@ export interface EquipmentDetails {
   softwareName: string; // e.g., "Winscan"
   softwareVersion: string; // e.g., "v4.1.3"
   utConfigName: string; // e.g., "Forgital_FMDL"
+
+  // Calibration Block Info (ASTM E127)
+  calibrationBlockSerial: string;
+  calibrationBlockMaterial: string;
+  calibrationBlockThickness: string;
+  nistTraceability: boolean;
+  calibrationValidUntil: string;
 }
 
 // Surface condition options (TÜV format)
-export type SurfaceCondition = 'worked' | 'raw' | 'finished' | 'welded' | 'other';
+export type SurfaceCondition = 'worked' | 'raw' | 'finished' | 'welded' | 'machined' | 'as-forged' | 'other';
 
 // Test type options
 export type TestType = 'RT' | 'MT' | 'UT' | 'PT' | 'OT';
 
-// Indication record for the indications table (TÜV Page 2)
+// Indication record for the indications table (TÜV Page 2 + FBH equivalent)
 export interface IndicationRecord {
   id: string;
   scanId: string; // Reference to scan S/N
@@ -82,6 +203,11 @@ export interface IndicationRecord {
   soundPath: string; // Distance from surface (depth)
   assessment: 'accept' | 'reject' | 'record'; // Judgment
   notes?: string;
+
+  // FBH Equivalent (AMS-STD-2154)
+  fbhEquivalentSize?: string; // e.g., "< 1/64\"", "2/64\" equiv"
+  depthZone?: string; // Which zone the indication is in
+  amplitudeVsReference?: string; // dB relative to reference FBH
 }
 
 // Inspector certification details (EN 4179, NAS 410, SNT-TC-1A)
@@ -134,7 +260,7 @@ export interface InspectionReportData {
 
   // Customer Information
   customerName: string;
-  customerAddress: string; // NEW: Customer address
+  customerAddress: string;
   poNumber: string; // Customer order
   metalscanOrderNumber?: string; // Internal order number (if different)
 
@@ -142,15 +268,15 @@ export interface InspectionReportData {
   itemDescription: string;
   partNumber: string; // P/N
   lotNumber: string; // LOTTO
-  drawingNumber: string; // NEW: N° de plan / Drawing number
-  technicalSheetRef: string; // NEW: Fiche Technique reference
+  drawingNumber: string; // N° de plan / Drawing number
+  technicalSheetRef: string; // Fiche Technique reference
 
   // Material Information
   materialGrade: string;
-  castNumber: string; // NEW: Numéro de coulée / Cast/Melt number
-  heatTreatmentCondition: string; // NEW: Heat treatment condition
-  surfaceRoughness: string; // NEW: Rugosité (Ra) e.g., "< 3.2µm"
-  surfaceConditions: SurfaceCondition[]; // NEW: Checkboxes for surface state
+  castNumber: string; // Numéro de coulée / Cast/Melt number (Heat Number)
+  heatTreatmentCondition: string; // Heat treatment condition
+  surfaceRoughness: string; // Rugosité (Ra) e.g., "< 3.2µm"
+  surfaceConditions: SurfaceCondition[]; // Checkboxes for surface state
 
   // Quantity Information
   workOrderNumber: string;
@@ -161,10 +287,10 @@ export interface InspectionReportData {
   samplePoSlNo: string;
   sampleSerialNo: string;
   sampleQuantity: string;
-  individualNumbers: string; // NEW: Numéros individuels e.g., "N°2 à 16"
+  individualNumbers: string; // Numéros individuels e.g., "N°2 à 16"
   thickness: string;
 
-  // Test Type Selection (NEW)
+  // Test Type Selection
   testTypes: TestType[]; // Checkboxes: RT, MT, UT, PT, OT
 
   // Testing Details
@@ -172,25 +298,56 @@ export interface InspectionReportData {
   testingEquipment: string;
   tcgApplied: string; // "Yes" or "No"
   testStandard: string;
-  testExtension?: string; // NEW: Test scope/extension (e.g., "100%", "Sample basis")
+  testExtension?: string; // Test scope/extension (e.g., "100%", "Sample basis")
 
-  // Equipment Details (NEW - full section)
+  // === AEROSPACE FORGING UT ADDITIONS ===
+
+  // Test Location & Timing
+  testLocationTiming: TestLocationTiming;
+
+  // Environmental Conditions
+  environmentalConditions: EnvironmentalConditions;
+
+  // Couplant Details
+  couplantDetails: CouplantDetails;
+
+  // Forging-Specific Information
+  forgingDetails: ForgingDetails;
+
+  // Sensitivity & Calibration
+  sensitivitySettings: SensitivitySettings;
+
+  // Transfer Correction
+  transferCorrection: TransferCorrection;
+
+  // BWE Monitoring
+  bweMonitoring: BweMonitoring;
+
+  // Zoning Requirements
+  zoningRequirements: ZoningRequirements;
+
+  // Scan Coverage
+  scanCoverage: ScanCoverage;
+
+  // === EXISTING SECTIONS ===
+
+  // Equipment Details
   equipmentDetails: EquipmentDetails;
 
-  // Applicable Documents (NEW)
+  // Applicable Documents
   applicableDocuments: ApplicableDocument[];
 
-  // Results Summary (NEW)
+  // Results Summary
   resultsSummary: ResultsSummary;
 
   // Observations
   observations: string;
   results: string; // "Accepted" or "Rejected"
 
-  // Inspector Certification (NEW)
+  // Inspector Certification
   inspectorCertification: InspectorCertification;
 
-  // Signatures (NEW - structured)
+  // Signatures
   signatures: SignatureRecord[];
 
   // Legacy field for backward compatibility
@@ -199,7 +356,7 @@ export interface InspectionReportData {
   // === Part Diagram (Page 2) ===
   partDiagramImage?: string; // Base64 or URL
 
-  // === Indications Table (NEW - Page 2/3) ===
+  // === Indications Table (Page 2/3) ===
   indications: IndicationRecord[];
 
   // === Probe Details (Page 3) ===
@@ -212,7 +369,87 @@ export interface InspectionReportData {
   remarks: string[];
 }
 
-// Default values for new report
+// ============================================
+// DEFAULT VALUES
+// ============================================
+
+export const getDefaultEnvironmentalConditions = (): EnvironmentalConditions => ({
+  ambientTemperature: '',
+  partTemperature: '',
+  humidity: '',
+  lightingConditions: '',
+});
+
+export const getDefaultCouplantDetails = (): CouplantDetails => ({
+  couplantType: '',
+  couplantManufacturer: '',
+  couplantBatchNumber: '',
+  sulfurContent: '< 250 ppm',
+  halideContent: '< 250 ppm',
+});
+
+export const getDefaultSensitivitySettings = (): SensitivitySettings => ({
+  referenceFbhSize: '3/64"',
+  referenceFbhDepth: '',
+  referenceLevel: '',
+  scanningSensitivity: '+6 dB',
+  recordingLevel: '20%',
+  rejectionLevel: '100%',
+  dacApplied: false,
+  tcgApplied: false,
+});
+
+export const getDefaultTransferCorrection = (): TransferCorrection => ({
+  calibrationBlockBwe: '80%',
+  partBweAtSameThickness: '',
+  transferCorrectionValue: '',
+  correctionApplied: false,
+});
+
+export const getDefaultBweMonitoring = (): BweMonitoring => ({
+  bweMonitoringActive: true,
+  bweAttenuationThreshold: '50%',
+  bweLossRecorded: '',
+  bweGateStart: '',
+  bweGateEnd: '',
+});
+
+export const getDefaultForgingDetails = (): ForgingDetails => ({
+  forgingType: 'ring',
+  grainFlowDirection: '',
+  forgingRatio: '',
+  minimumThicknessAfterMachining: '',
+  axialInspection: true,
+  radialInspection: true,
+  circumferentialInspection: false,
+  angleBeamApplied: false,
+});
+
+export const getDefaultZoningRequirements = (): ZoningRequirements => ({
+  zoningRequired: false,
+  numberOfZones: 1,
+  deadZone: '',
+  zones: [],
+});
+
+export const getDefaultScanCoverage = (): ScanCoverage => ({
+  scanIndex: '',
+  overlapPercentage: '10%',
+  beamSpotSize: '',
+  consecutivePassDetection: false,
+  coveragePercentage: '100%',
+  excludedZones: '',
+});
+
+export const getDefaultTestLocationTiming = (): TestLocationTiming => ({
+  inspectionLocation: '',
+  facilityName: '',
+  testDate: new Date().toISOString().split('T')[0],
+  testStartTime: '',
+  testEndTime: '',
+  inspectionDuration: '',
+});
+
 export const getDefaultEquipmentDetails = (): EquipmentDetails => ({
   generatorMake: '',
   generatorModel: '',
@@ -230,6 +467,11 @@ export const getDefaultEquipmentDetails = (): EquipmentDetails => ({
   softwareName: '',
   softwareVersion: '',
   utConfigName: '',
+  calibrationBlockSerial: '',
+  calibrationBlockMaterial: '',
+  calibrationBlockThickness: '',
+  nistTraceability: false,
+  calibrationValidUntil: '',
 });
 
 export const getDefaultInspectorCertification = (): InspectorCertification => ({
@@ -283,6 +525,19 @@ export const getDefaultInspectionReportData = (): InspectionReportData => ({
   tcgApplied: 'No',
   testStandard: '',
   testExtension: '100%',
+
+  // Aerospace Forging UT defaults
+  testLocationTiming: getDefaultTestLocationTiming(),
+  environmentalConditions: getDefaultEnvironmentalConditions(),
+  couplantDetails: getDefaultCouplantDetails(),
+  forgingDetails: getDefaultForgingDetails(),
+  sensitivitySettings: getDefaultSensitivitySettings(),
+  transferCorrection: getDefaultTransferCorrection(),
+  bweMonitoring: getDefaultBweMonitoring(),
+  zoningRequirements: getDefaultZoningRequirements(),
+  scanCoverage: getDefaultScanCoverage(),
+
+  // Existing defaults
   equipmentDetails: getDefaultEquipmentDetails(),
   applicableDocuments: [],
   resultsSummary: getDefaultResultsSummary(),

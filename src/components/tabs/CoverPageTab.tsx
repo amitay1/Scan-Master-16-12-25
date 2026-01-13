@@ -43,6 +43,8 @@ export const CoverPageTab = ({ data, onChange }: CoverPageTabProps) => {
     raw: 'Raw / Grezzo',
     finished: 'Finished / Finito',
     welded: 'Welded / Saldato',
+    machined: 'Machined',
+    'as-forged': 'As-Forged',
     other: 'Other / Altro',
   };
 

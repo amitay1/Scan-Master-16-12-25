@@ -1,6 +1,7 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { EquipmentDetails } from "@/types/inspectionReport";
 
 interface EquipmentDetailsTabProps {
@@ -200,6 +201,61 @@ export const EquipmentDetailsTab = ({ data, onChange }: EquipmentDetailsTabProps
               placeholder="Forgital_FMDL"
               className="h-8 text-sm"
             />
+          </div>
+        </div>
+      </Card>
+
+      {/* Calibration Block (ASTM E127) */}
+      <Card className="p-4">
+        <h3 className="text-sm font-semibold mb-3 border-b pb-2">
+          Calibration Block / Bloc de référence (ASTM E127)
+        </h3>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <div>
+            <Label className="text-xs">Block Serial N°</Label>
+            <Input
+              value={data.calibrationBlockSerial || ''}
+              onChange={(e) => updateField('calibrationBlockSerial', e.target.value)}
+              placeholder="CB-2024-001"
+              className="h-8 text-sm"
+            />
+          </div>
+          <div>
+            <Label className="text-xs">Block Material</Label>
+            <Input
+              value={data.calibrationBlockMaterial || ''}
+              onChange={(e) => updateField('calibrationBlockMaterial', e.target.value)}
+              placeholder="Same as test part"
+              className="h-8 text-sm"
+            />
+          </div>
+          <div>
+            <Label className="text-xs">Block Thickness</Label>
+            <Input
+              value={data.calibrationBlockThickness || ''}
+              onChange={(e) => updateField('calibrationBlockThickness', e.target.value)}
+              placeholder="mm"
+              className="h-8 text-sm"
+            />
+          </div>
+          <div>
+            <Label className="text-xs">Calibration Valid Until</Label>
+            <Input
+              type="date"
+              value={data.calibrationValidUntil || ''}
+              onChange={(e) => updateField('calibrationValidUntil', e.target.value)}
+              className="h-8 text-sm"
+            />
+          </div>
+          <div className="flex items-center pt-5">
+            <Checkbox
+              id="nistTraceability"
+              checked={data.nistTraceability || false}
+              onCheckedChange={(v) => updateField('nistTraceability', !!v)}
+            />
+            <label htmlFor="nistTraceability" className="text-xs cursor-pointer ml-2">
+              NIST Traceable
+            </label>
           </div>
         </div>
       </Card>
