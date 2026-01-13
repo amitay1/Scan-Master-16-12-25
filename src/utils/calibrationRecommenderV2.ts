@@ -50,6 +50,8 @@ import {
   ShearWaveBlockSelectionCriteria,
   SHEAR_WAVE_MASTERS,
   ShearWaveCalibrationBlock,
+  selectTubeReferenceStandard,
+  TubeReferenceStandardSelection,
 } from '@/data/shearWaveCalibrationBlocks';
 
 // Import the new angle beam calculator
@@ -379,20 +381,27 @@ function selectAngleBeamBlock(input: CalibrationRecommendationInput): {
   alternatives?: CalibrationBlockCategory[];
   angleBeamData?: AngleBeamCalibrationResult;
   shearWaveBlock?: ShearWaveCalibrationBlock;
+  tubeReferenceStandard?: TubeReferenceStandardSelection;
 } {
   const { partType, thickness, outerDiameter, innerDiameter, angleBeamAngle, material, standard } = input;
   const geometryGroup = getGeometryGroup(partType);
   const angle = angleBeamAngle || 45;
-  
+
   // ============================================================================
   // NEW: ASME SHEAR WAVE BLOCK SELECTION FOR ROUND PARTS
   // ============================================================================
-  
+
   // Check if part is round (tube, solid_round, hollow_round) with circumferential scan
   const isRoundPart = ['tube', 'pipe', 'hollow_cylinder', 'solid_round', 'hollow_round'].includes(partType);
   const hasCircumferentialScan = input.scanDirections?.hasCircumferentialScan;
-  
+
   if (isRoundPart && outerDiameter && thickness) {
+    // ========================================================================
+    // NEW: TUBE REFERENCE STANDARD SELECTION (±10% OD Tolerance)
+    // For tubes with OD 180-891mm, use the 8-model lookup table
+    // ========================================================================
+    const tubeRefStandard = selectTubeReferenceStandard(outerDiameter);
+
     // Use ASME selection logic for shear wave blocks
     const shearWaveCriteria: ShearWaveBlockSelectionCriteria = {
       part_od_mm: outerDiameter,
@@ -400,16 +409,26 @@ function selectAngleBeamBlock(input: CalibrationRecommendationInput): {
       part_geometry: partType as PartGeometry,
       angle_deg: angle,
     };
-    
+
     const shearWaveResult = selectShearWaveBlock(shearWaveCriteria);
-    
+
     if (shearWaveResult.block) {
-      // ASME block found - use it
+      // Build reasoning with tube reference standard info
+      let reasoning = `ASME Shear Wave Block Selection: ${shearWaveResult.reasoning}`;
+
+      // Add tube reference standard info if available
+      if (tubeRefStandard) {
+        reasoning += ` | Tube Reference Standard: Model ${tubeRefStandard.standard.model} (OD ${tubeRefStandard.standard.nominal_od}mm). ` +
+                     `${tubeRefStandard.curvedRecommended ? 'Curved block recommended.' : 'Flat block recommended.'} ` +
+                     `Alternative ${tubeRefStandard.curvedRecommended ? 'flat' : 'curved'} block available (requires Level III approval).`;
+      }
+
       return {
         category: shearWaveResult.block.category,
-        reasoning: `ASME Shear Wave Block Selection: ${shearWaveResult.reasoning}`,
+        reasoning,
         alternatives: shearWaveResult.matchQuality === 'marginal' ? ['custom'] : undefined,
         shearWaveBlock: shearWaveResult.block,
+        tubeReferenceStandard: tubeRefStandard || undefined,
       };
     } else {
       // No ASME block found - fall back to traditional logic but warn
@@ -417,14 +436,15 @@ function selectAngleBeamBlock(input: CalibrationRecommendationInput): {
       return {
         ...fallbackResult,
         reasoning: `⚠️ ${shearWaveResult.reasoning}. Falling back to: ${fallbackResult.reasoning}`,
+        tubeReferenceStandard: tubeRefStandard || undefined,
       };
     }
   }
-  
+
   // ============================================================================
   // TRADITIONAL ANGLE BEAM SELECTION (for non-round parts)
   // ============================================================================
-  
+
   return selectAngleBeamBlockTraditional(input);
 }
 

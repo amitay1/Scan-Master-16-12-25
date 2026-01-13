@@ -161,6 +161,7 @@ export interface CalibrationData {
   blockSerialNumber: string;
   lastCalibrationDate: string;
   autoRecommendedReason?: string; // NEW: Reason why this block was auto-selected (for tooltip)
+  selectedBlockType?: 'curved' | 'flat'; // Block surface type selection for tubes (curved vs flat)
 }
 
 // Technique type for scan parameters

@@ -23,7 +23,7 @@ export type AngleBeamAngle = 45 | 60 | 70;
 /**
  * Standard calibration block categories based on industry standards
  */
-export type CalibrationBlockCategory = 
+export type CalibrationBlockCategory =
   | 'flat_fbh'           // Flat block with FBH (Figure 4 - AMS-STD-2154)
   | 'curved_fbh'         // Curved block with FBH (for curved surfaces)
   | 'cylinder_fbh'       // Cylindrical block with FBH (Figure 6)
@@ -35,6 +35,59 @@ export type CalibrationBlockCategory =
   | 'dsc_block'          // Distance/Sensitivity Calibration block
   | 'aws_block'          // AWS reference block for welds
   | 'custom';            // Custom block configuration
+
+// ============================================================================
+// BLOCK TYPE SELECTION (Curved vs Flat)
+// ============================================================================
+
+/**
+ * Block type option for tubes - curved vs flat selection
+ * Used when user needs to choose between recommended and alternative block types
+ */
+export type BlockTypeSelection = 'curved' | 'flat';
+
+export interface BlockTypeOption {
+  /** Block surface type */
+  type: BlockTypeSelection;
+  /** Display label */
+  label: string;
+  /** Whether this is the recommended option */
+  isRecommended: boolean;
+  /** Whether Level III approval is required for this option */
+  requiresLevel3Approval: boolean;
+  /** Reasoning for the recommendation */
+  reasoning?: string;
+}
+
+/**
+ * Get block type options for a given part OD
+ * @param partOD Part outer diameter in mm
+ * @returns Array of block type options with recommendations
+ */
+export function getBlockTypeOptions(partOD: number): BlockTypeOption[] {
+  const curvedRecommended = partOD <= 500;
+
+  return [
+    {
+      type: 'curved',
+      label: 'Curved Block',
+      isRecommended: curvedRecommended,
+      requiresLevel3Approval: !curvedRecommended,
+      reasoning: curvedRecommended
+        ? `Recommended for OD ≤ 500mm to match part curvature`
+        : `Alternative option (requires Level III approval for OD > 500mm)`,
+    },
+    {
+      type: 'flat',
+      label: 'Flat Block',
+      isRecommended: !curvedRecommended,
+      requiresLevel3Approval: curvedRecommended,
+      reasoning: !curvedRecommended
+        ? `Recommended for OD > 500mm where curvature is negligible`
+        : `Alternative option (requires Level III approval for OD ≤ 500mm)`,
+    },
+  ];
+}
 
 // ============================================================================
 // FBH (FLAT BOTTOM HOLE) SPECIFICATIONS

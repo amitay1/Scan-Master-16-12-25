@@ -2,13 +2,16 @@ import { useState, useEffect, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { CalibrationData, InspectionSetupData, AcceptanceClass, CalibrationBlockType, StandardType } from "@/types/techniqueSheet";
-import { Target, Info, Sparkles } from "lucide-react";
+import { Target, Info, Sparkles, AlertTriangle } from "lucide-react";
 import { CalibrationCatalog } from "../CalibrationCatalog";
 import { toast } from "sonner";
 import { FieldWithHelp } from "@/components/FieldWithHelp";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { BlockTypeSelection, getBlockTypeOptions } from "@/types/calibrationBlocks";
 // New components for FBH table with dropdowns
 import { FBHHoleTable } from "../FBHHoleTable";
 import { FBHStraightBeamDrawing } from "../FBHStraightBeamDrawing";
@@ -54,6 +57,8 @@ export const CalibrationTab = ({
   const [fbhHoles, setFbhHoles] = useState<FBHHoleRowData[]>(DEFAULT_FBH_HOLES);
   const [selectedModelId, setSelectedModelId] = useState<CalibrationBlockType | null>(null);
   const [activeBeamTab, setActiveBeamTab] = useState<"straight" | "angle">("straight");
+  // Block type selection (curved vs flat) for tubular parts
+  const [selectedBlockType, setSelectedBlockType] = useState<BlockTypeSelection>("curved");
 
   // Determine beam requirements based on part type and hollow status
   const beamRequirement = useMemo(
@@ -173,6 +178,22 @@ export const CalibrationTab = ({
   // Render the Angle Beam content (calibration block drawing)
   // Note: partDimensions is memoized at component level to prevent infinite re-renders
   const renderAngleBeamContent = () => {
+    // Get block type options based on part OD
+    const blockTypeOptions = inspectionSetup.diameter
+      ? getBlockTypeOptions(inspectionSetup.diameter)
+      : [];
+    const showBlockTypeSelection = inspectionSetup.diameter && inspectionSetup.diameter > 0;
+
+    // Handle block type change
+    const handleBlockTypeChange = (value: string) => {
+      setSelectedBlockType(value as BlockTypeSelection);
+      // Update calibration data with block type
+      onChange({
+        ...data,
+        selectedBlockType: value as BlockTypeSelection,
+      });
+    };
+
     return (
       <div className="space-y-4">
         {/* Prominent notice for shear wave calibration */}
@@ -181,15 +202,15 @@ export const CalibrationTab = ({
             🔊 Shear Wave Calibration Required
           </h4>
           <p className="text-orange-700 text-sm">
-            This part geometry (tube, cylinder, cone, or sphere) requires shear wave inspection 
-            for circumferential coverage. The reference standard below shows the required calibration 
+            This part geometry (tube, cylinder, cone, or sphere) requires shear wave inspection
+            for circumferential coverage. The reference standard below shows the required calibration
             block design with FBH positions and step wedge profiles.
           </p>
           {/* Show part dimensions if available */}
           {(inspectionSetup.diameter || inspectionSetup.innerDiameter) && (
             <div className="mt-2 p-2 bg-white/50 rounded-lg">
               <p className="text-sm text-orange-800 font-medium">
-                📐 Part Dimensions: 
+                📐 Part Dimensions:
                 {inspectionSetup.diameter && ` OD=${inspectionSetup.diameter}mm`}
                 {inspectionSetup.innerDiameter && ` ID=${inspectionSetup.innerDiameter}mm`}
                 {inspectionSetup.wallThickness && ` Wall=${inspectionSetup.wallThickness}mm`}
@@ -197,7 +218,54 @@ export const CalibrationTab = ({
             </div>
           )}
         </div>
-        
+
+        {/* Block Type Selection (Curved vs Flat) */}
+        {showBlockTypeSelection && blockTypeOptions.length > 0 && (
+          <div className="border-2 border-blue-200 rounded-xl p-4 bg-blue-50/50">
+            <h4 className="font-bold text-blue-800 text-base mb-3 flex items-center gap-2">
+              <Target className="h-4 w-4" />
+              Reference Block Type Selection
+            </h4>
+            <RadioGroup
+              value={selectedBlockType}
+              onValueChange={handleBlockTypeChange}
+              className="space-y-3"
+            >
+              {blockTypeOptions.map((option) => (
+                <div
+                  key={option.type}
+                  className={`flex items-start space-x-3 p-3 rounded-lg border-2 transition-all ${
+                    selectedBlockType === option.type
+                      ? option.isRecommended
+                        ? "border-green-400 bg-green-50"
+                        : "border-amber-400 bg-amber-50"
+                      : "border-gray-200 bg-white hover:border-gray-300"
+                  }`}
+                >
+                  <RadioGroupItem value={option.type} id={`block-type-${option.type}`} className="mt-1" />
+                  <Label htmlFor={`block-type-${option.type}`} className="flex-1 cursor-pointer">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{option.label}</span>
+                      {option.isRecommended && (
+                        <Badge variant="default" className="bg-green-600 text-xs">
+                          Recommended
+                        </Badge>
+                      )}
+                      {option.requiresLevel3Approval && (
+                        <Badge variant="outline" className="border-amber-500 text-amber-700 text-xs flex items-center gap-1">
+                          <AlertTriangle className="h-3 w-3" />
+                          Level III Approval Required
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-1">{option.reasoning}</p>
+                  </Label>
+                </div>
+              ))}
+            </RadioGroup>
+          </div>
+        )}
+
         {/* Angle Beam Calibration Block Drawing - Now with Part Dimensions! */}
         <AngleBeamCalibrationBlockDrawing
           width={950}

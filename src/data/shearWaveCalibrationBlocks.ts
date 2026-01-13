@@ -872,10 +872,121 @@ export function getCompatibleShearWaveBlocks(
 
   return SHEAR_WAVE_MASTERS.filter(block => {
     if (block.block_type === 'FLAT') return false;
-    
+
     const inRange = part_od_mm >= block.Dpart_min_mm && part_od_mm <= block.Dpart_max_mm;
     const geometryOk = block.applicablePartTypes.includes(part_geometry);
-    
+
     return inRange && geometryOk;
   });
+}
+
+// ============================================================================
+// TUBE REFERENCE STANDARDS (±10% OD TOLERANCE)
+// ============================================================================
+
+/**
+ * 8-Model Reference Standard Lookup Table for Tubes
+ *
+ * Based on shear wave calibration requirements where:
+ * - OD tolerance: ±10% (part OD must be within ±10% of standard OD)
+ * - Thickness tolerance: ±25% (same as ASME rule)
+ *
+ * Each model covers a specific OD range with no gaps.
+ */
+export interface TubeReferenceStandard {
+  /** Model number (1-8) */
+  model: number;
+  /** Nominal reference standard OD in mm */
+  nominal_od: number;
+  /** Minimum part OD covered (nominal × 0.9) */
+  min_od: number;
+  /** Maximum part OD covered (nominal × 1.1) */
+  max_od: number;
+  /** Recommended block type */
+  recommendedBlockType: 'curved' | 'flat';
+  /** Alternative block type (requires Level III approval) */
+  alternativeBlockType: 'curved' | 'flat';
+}
+
+export const TUBE_REFERENCE_STANDARDS_10PCT: TubeReferenceStandard[] = [
+  { model: 1, nominal_od: 200, min_od: 180, max_od: 220, recommendedBlockType: 'curved', alternativeBlockType: 'flat' },
+  { model: 2, nominal_od: 250, min_od: 225, max_od: 275, recommendedBlockType: 'curved', alternativeBlockType: 'flat' },
+  { model: 3, nominal_od: 310, min_od: 279, max_od: 341, recommendedBlockType: 'curved', alternativeBlockType: 'flat' },
+  { model: 4, nominal_od: 380, min_od: 342, max_od: 418, recommendedBlockType: 'curved', alternativeBlockType: 'flat' },
+  { model: 5, nominal_od: 460, min_od: 418, max_od: 506, recommendedBlockType: 'curved', alternativeBlockType: 'flat' },
+  { model: 6, nominal_od: 556, min_od: 506, max_od: 612, recommendedBlockType: 'flat', alternativeBlockType: 'curved' },
+  { model: 7, nominal_od: 670, min_od: 603, max_od: 737, recommendedBlockType: 'flat', alternativeBlockType: 'curved' },
+  { model: 8, nominal_od: 810, min_od: 729, max_od: 891, recommendedBlockType: 'flat', alternativeBlockType: 'curved' },
+];
+
+export interface TubeReferenceStandardSelection {
+  /** Selected standard */
+  standard: TubeReferenceStandard;
+  /** Reasoning for selection */
+  reasoning: string;
+  /** Whether curved block is recommended (vs flat) */
+  curvedRecommended: boolean;
+  /** Whether flat block is available as alternative */
+  flatAvailable: boolean;
+  /** Level III approval required for alternative */
+  alternativeRequiresLevel3: boolean;
+}
+
+/**
+ * Select the appropriate tube reference standard based on part OD
+ *
+ * Algorithm:
+ * 1. Find standard where: min_od ≤ part_od ≤ max_od
+ * 2. If multiple matches, pick closest to nominal
+ * 3. Determine recommended block type based on OD (curved for ≤500mm, flat for >500mm)
+ *
+ * @param partOD Part outer diameter in mm
+ * @returns Selection result or null if no match found
+ */
+export function selectTubeReferenceStandard(partOD: number): TubeReferenceStandardSelection | null {
+  // Find all matching standards
+  const matches = TUBE_REFERENCE_STANDARDS_10PCT.filter(
+    std => partOD >= std.min_od && partOD <= std.max_od
+  );
+
+  if (matches.length === 0) {
+    return null;
+  }
+
+  // Pick the closest match to nominal
+  let bestMatch = matches[0];
+  let bestDiff = Math.abs(bestMatch.nominal_od - partOD);
+
+  for (const match of matches) {
+    const diff = Math.abs(match.nominal_od - partOD);
+    if (diff < bestDiff) {
+      bestDiff = diff;
+      bestMatch = match;
+    }
+  }
+
+  // Determine block type recommendation
+  const curvedRecommended = bestMatch.recommendedBlockType === 'curved';
+
+  const reasoning = curvedRecommended
+    ? `Part OD ${partOD}mm within ±10% of Model ${bestMatch.model} (${bestMatch.nominal_od}mm). Curved block recommended for OD ≤ 500mm.`
+    : `Part OD ${partOD}mm within ±10% of Model ${bestMatch.model} (${bestMatch.nominal_od}mm). Flat block recommended for OD > 500mm (curvature negligible).`;
+
+  return {
+    standard: bestMatch,
+    reasoning,
+    curvedRecommended,
+    flatAvailable: true,
+    alternativeRequiresLevel3: true,
+  };
+}
+
+/**
+ * Get all tube reference standards that could apply for a given OD
+ * (useful for showing options to user)
+ */
+export function getCompatibleTubeReferenceStandards(partOD: number): TubeReferenceStandard[] {
+  return TUBE_REFERENCE_STANDARDS_10PCT.filter(
+    std => partOD >= std.min_od && partOD <= std.max_od
+  );
 }

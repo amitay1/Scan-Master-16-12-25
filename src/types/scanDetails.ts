@@ -1,3 +1,43 @@
+// ============================================================================
+// GATE SETTINGS (Per-Direction)
+// ============================================================================
+
+export interface GateSettings {
+  /** Gate start position in mm */
+  start: number;
+  /** Gate length/width in mm */
+  length: number;
+  /** Gate level/threshold in % */
+  level: number;
+}
+
+// ============================================================================
+// PULSAR PARAMETERS (Global for all scans)
+// ============================================================================
+
+export interface PulsarParameters {
+  /** Scanning file name/reference */
+  scanningFile: string;
+  /** Pulsar voltage and waveform settings (e.g., "300V, SQUARE, 130NS") */
+  pulsarParams: string;
+  /** Pulse Repetition Frequency in Hz */
+  prf: number;
+  /** Index mode/step (e.g., "AUTO", "2MM") */
+  indexMode: string;
+  /** Gain in dB */
+  db: number;
+  /** Filter frequency (e.g., "5MHZ") */
+  filter: string;
+  /** Reject level (e.g., "0%") */
+  reject: string;
+  /** TCG (Time Corrected Gain) mode enabled */
+  tcgMode: boolean;
+}
+
+// ============================================================================
+// SCAN DETAIL (Per-Direction Configuration)
+// ============================================================================
+
 export interface ScanDetail {
   scanningDirection: string;
   waveMode: string;
@@ -15,10 +55,36 @@ export interface ScanDetail {
   // New fields for technique and active element
   technique?: string;      // CONVENTIONAL | PHASED ARRAY
   activeElement?: string;  // Active element size
+
+  // ========================================================================
+  // NEW: Extended probe and gate parameters (per SCAN DETAILS.docx)
+  // ========================================================================
+  /** Probe part number */
+  partNumber?: string;
+  /** Probe serial number */
+  serialNumber?: string;
+  /** Measurement range in mm */
+  rangeMm?: number;
+  /** Gate 1 settings (Start-Length-Level) */
+  gate1?: GateSettings;
+  /** Attenuation value in dB */
+  attenuation?: number;
+  /** Back Wall Echo level in % */
+  backWallEcho?: number;
+  /** Gate 2 settings (Start-Length-Level) */
+  gate2?: GateSettings;
+  /** SSS (Surface, Start, Stop) or additional gate info */
+  sss?: string;
 }
+
+// ============================================================================
+// SCAN DETAILS DATA (Complete scan configuration)
+// ============================================================================
 
 export interface ScanDetailsData {
   scanDetails: ScanDetail[];
+  /** Global pulsar/scanner parameters (applies to all directions) */
+  pulsarParameters?: PulsarParameters;
 }
 
 // Comprehensive scan directions based on ASTM E2375 (Figures 6 & 7)

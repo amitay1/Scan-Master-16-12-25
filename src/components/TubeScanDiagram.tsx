@@ -195,13 +195,13 @@ export const TubeScanDiagram: React.FC<TubeScanDiagramProps> = ({
 
           {/* ========== A: LW 0° AXIAL from top - FULL penetration ========== */}
           <g opacity={getDirectionOpacity("A", scanDetails, highlightedDirection)}>
-            {/* Full penetration arrow - goes through entire wall */}
+            {/* Full penetration arrow - points to shape but doesn't overlap */}
             <line
               x1={sideView.x + sideView.width - sideView.wallThickness / 2}
-              y1={sideView.y - 45}
+              y1={sideView.y - 90}
               x2={sideView.x + sideView.width - sideView.wallThickness / 2}
-              y2={sideView.y + 50}
-              stroke={getDirectionColor("A", scanDetails, highlightedDirection)}
+              y2={sideView.y - 40}
+              stroke="#0000FF"
               strokeWidth="2.5"
               strokeDasharray="8,4"
               markerEnd="url(#arrow-red)"
@@ -225,12 +225,12 @@ export const TubeScanDiagram: React.FC<TubeScanDiagramProps> = ({
 
           {/* ========== A₁: Dual Element - NEAR SURFACE (0-20mm) ========== */}
           <g opacity={getDirectionOpacity("A₁", scanDetails, highlightedDirection)}>
-            {/* Short arrow - only near surface penetration */}
+            {/* Short arrow - points to shape but doesn't overlap */}
             <line
               x1={sideView.x + sideView.width - sideView.wallThickness / 2 + 20}
-              y1={sideView.y - 30}
+              y1={sideView.y - 75}
               x2={sideView.x + sideView.width - sideView.wallThickness / 2 + 20}
-              y2={sideView.y + 18}
+              y2={sideView.y - 40}
               stroke={getDirectionColor("A₁", scanDetails, highlightedDirection)}
               strokeWidth="2"
               strokeDasharray="4,3"
@@ -238,7 +238,7 @@ export const TubeScanDiagram: React.FC<TubeScanDiagramProps> = ({
             />
             {/* Small arrow indicator */}
             <polygon
-              points={`${sideView.x + sideView.width - sideView.wallThickness / 2 + 20},${sideView.y - 30} ${sideView.x + sideView.width - sideView.wallThickness / 2 + 15},${sideView.y - 40} ${sideView.x + sideView.width - sideView.wallThickness / 2 + 25},${sideView.y - 40}`}
+              points={`${sideView.x + sideView.width - sideView.wallThickness / 2 + 20},${sideView.y - 45} ${sideView.x + sideView.width - sideView.wallThickness / 2 + 15},${sideView.y - 55} ${sideView.x + sideView.width - sideView.wallThickness / 2 + 25},${sideView.y - 55}`}
               fill={getDirectionColor("A₁", scanDetails, highlightedDirection)}
             />
             {/* Label */}
@@ -254,13 +254,13 @@ export const TubeScanDiagram: React.FC<TubeScanDiagramProps> = ({
 
           {/* ========== B: LW 0° AXIAL from bottom - FULL penetration ========== */}
           <g opacity={getDirectionOpacity("B", scanDetails, highlightedDirection)}>
-            {/* Full penetration arrow */}
+            {/* Full penetration arrow - points to shape but doesn't overlap */}
             <line
               x1={sideView.x + sideView.width - sideView.wallThickness / 2}
-              y1={sideView.y + sideView.height + 45}
+              y1={sideView.y + sideView.height + 90}
               x2={sideView.x + sideView.width - sideView.wallThickness / 2}
-              y2={sideView.y + sideView.height - 50}
-              stroke={getDirectionColor("B", scanDetails, highlightedDirection)}
+              y2={sideView.y + sideView.height + 40}
+              stroke="#0000FF"
               strokeWidth="2.5"
               strokeDasharray="8,4"
               markerEnd="url(#arrow-red)"
@@ -284,12 +284,12 @@ export const TubeScanDiagram: React.FC<TubeScanDiagramProps> = ({
 
           {/* ========== B₁: Dual Element - NEAR SURFACE (0-20mm) ========== */}
           <g opacity={getDirectionOpacity("B₁", scanDetails, highlightedDirection)}>
-            {/* Short arrow - only near surface */}
+            {/* Short arrow - points to shape but doesn't overlap */}
             <line
               x1={sideView.x + sideView.width - sideView.wallThickness / 2 + 20}
-              y1={sideView.y + sideView.height + 30}
+              y1={sideView.y + sideView.height + 75}
               x2={sideView.x + sideView.width - sideView.wallThickness / 2 + 20}
-              y2={sideView.y + sideView.height - 18}
+              y2={sideView.y + sideView.height + 40}
               stroke={getDirectionColor("B₁", scanDetails, highlightedDirection)}
               strokeWidth="2"
               strokeDasharray="4,3"
@@ -297,7 +297,7 @@ export const TubeScanDiagram: React.FC<TubeScanDiagramProps> = ({
             />
             {/* Small arrow indicator */}
             <polygon
-              points={`${sideView.x + sideView.width - sideView.wallThickness / 2 + 20},${sideView.y + sideView.height + 30} ${sideView.x + sideView.width - sideView.wallThickness / 2 + 15},${sideView.y + sideView.height + 40} ${sideView.x + sideView.width - sideView.wallThickness / 2 + 25},${sideView.y + sideView.height + 40}`}
+              points={`${sideView.x + sideView.width - sideView.wallThickness / 2 + 20},${sideView.y + sideView.height + 45} ${sideView.x + sideView.width - sideView.wallThickness / 2 + 15},${sideView.y + sideView.height + 55} ${sideView.x + sideView.width - sideView.wallThickness / 2 + 25},${sideView.y + sideView.height + 55}`}
               fill={getDirectionColor("B₁", scanDetails, highlightedDirection)}
             />
             {/* Label */}
@@ -313,11 +313,11 @@ export const TubeScanDiagram: React.FC<TubeScanDiagramProps> = ({
 
           {/* ========== C: LW 0° RADIAL from OD - FULL penetration ========== */}
           <g opacity={getDirectionOpacity("C", scanDetails, highlightedDirection)}>
-            {/* Full penetration - horizontal line from OD going through wall */}
+            {/* Full penetration - horizontal line pointing to shape but doesn't overlap */}
             <line
-              x1={sideView.x + sideView.width + 70}
+              x1={sideView.x + sideView.width + 110}
               y1={sideView.y + sideView.height / 2 - 15}
-              x2={sideView.x + sideView.width - sideView.wallThickness + 10}
+              x2={sideView.x + sideView.width + 40}
               y2={sideView.y + sideView.height / 2 - 15}
               stroke={getDirectionColor("C", scanDetails, highlightedDirection)}
               strokeWidth="2.5"
@@ -343,11 +343,11 @@ export const TubeScanDiagram: React.FC<TubeScanDiagramProps> = ({
 
           {/* ========== C₁: Dual Element RADIAL - NEAR SURFACE (0-20mm) ========== */}
           <g opacity={getDirectionOpacity("C₁", scanDetails, highlightedDirection)}>
-            {/* Short arrow - only near surface */}
+            {/* Short arrow - points to shape but doesn't overlap */}
             <line
-              x1={sideView.x + sideView.width + 50}
+              x1={sideView.x + sideView.width + 90}
               y1={sideView.y + sideView.height / 2 + 15}
-              x2={sideView.x + sideView.width + 5}
+              x2={sideView.x + sideView.width + 40}
               y2={sideView.y + sideView.height / 2 + 15}
               stroke={getDirectionColor("C₁", scanDetails, highlightedDirection)}
               strokeWidth="2"
@@ -372,13 +372,13 @@ export const TubeScanDiagram: React.FC<TubeScanDiagramProps> = ({
 
           {/* ========== F: SW 45° Axial Shear Dir 1 ========== */}
           <g opacity={getDirectionOpacity("F", scanDetails, highlightedDirection)}>
-            {/* Angled arrow from outside going into wall at 45° downward */}
+            {/* Angled arrow pointing to shape at 45° but doesn't overlap */}
             <line
-              x1={sideView.x - 40}
-              y1={sideView.y + 50}
-              x2={sideView.x + sideView.wallThickness + 30}
-              y2={sideView.y + 120}
-              stroke={getDirectionColor("F", scanDetails, highlightedDirection)}
+              x1={sideView.x - 90}
+              y1={sideView.y + 10}
+              x2={sideView.x - 40}
+              y2={sideView.y + 60}
+              stroke="#0000FF"
               strokeWidth="2.5"
               strokeDasharray="8,4"
               markerEnd="url(#arrow-red)"
@@ -397,13 +397,13 @@ export const TubeScanDiagram: React.FC<TubeScanDiagramProps> = ({
 
           {/* ========== G: SW 45° Axial Shear Dir 2 (opposite) ========== */}
           <g opacity={getDirectionOpacity("G", scanDetails, highlightedDirection)}>
-            {/* Angled arrow from outside going into wall at 45° upward */}
+            {/* Angled arrow pointing to shape at 45° but doesn't overlap */}
             <line
-              x1={sideView.x - 40}
-              y1={sideView.y + sideView.height - 50}
-              x2={sideView.x + sideView.wallThickness + 30}
-              y2={sideView.y + sideView.height - 120}
-              stroke={getDirectionColor("G", scanDetails, highlightedDirection)}
+              x1={sideView.x - 90}
+              y1={sideView.y + sideView.height - 10}
+              x2={sideView.x - 40}
+              y2={sideView.y + sideView.height - 60}
+              stroke="#0000FF"
               strokeWidth="2.5"
               strokeDasharray="8,4"
               markerEnd="url(#arrow-red)"
@@ -487,23 +487,23 @@ export const TubeScanDiagram: React.FC<TubeScanDiagramProps> = ({
           {/* ========== D: SW 45° Circumferential CW - right side, arrow UP ========== */}
           <g opacity={getDirectionOpacity("D", scanDetails, highlightedDirection)}>
             <line
-              x1={endView.cx + endView.outerRadius + 35}
-              y1={endView.cy - 10}
-              x2={endView.cx + endView.outerRadius - 10}
-              y2={endView.cy - 50}
+              x1={endView.cx + endView.outerRadius + 70}
+              y1={endView.cy + 15}
+              x2={endView.cx + endView.outerRadius + 40}
+              y2={endView.cy - 10}
               stroke={getDirectionColor("D", scanDetails, highlightedDirection)}
               strokeWidth="3"
               strokeDasharray="8,4"
             />
             {/* Arrowhead */}
             <polygon
-              points={`${endView.cx + endView.outerRadius - 10},${endView.cy - 50}
-                       ${endView.cx + endView.outerRadius + 5},${endView.cy - 35}
-                       ${endView.cx + endView.outerRadius - 25},${endView.cy - 55}`}
+              points={`${endView.cx + endView.outerRadius + 30},${endView.cy - 15}
+                       ${endView.cx + endView.outerRadius + 45},${endView.cy}
+                       ${endView.cx + endView.outerRadius + 25},${endView.cy - 25}`}
               fill={getDirectionColor("D", scanDetails, highlightedDirection)}
             />
             <text
-              x={endView.cx + endView.outerRadius + 40}
+              x={endView.cx + endView.outerRadius + 50}
               y={endView.cy - 15}
               fill={getDirectionColor("D", scanDetails, highlightedDirection)}
               fontSize="11"
@@ -516,19 +516,19 @@ export const TubeScanDiagram: React.FC<TubeScanDiagramProps> = ({
           {/* ========== E: SW 45° Circumferential CCW - right side, arrow DOWN ========== */}
           <g opacity={getDirectionOpacity("E", scanDetails, highlightedDirection)}>
             <line
-              x1={endView.cx + endView.outerRadius + 35}
-              y1={endView.cy + 10}
-              x2={endView.cx + endView.outerRadius - 10}
-              y2={endView.cy + 50}
+              x1={endView.cx + endView.outerRadius + 70}
+              y1={endView.cy - 15}
+              x2={endView.cx + endView.outerRadius + 40}
+              y2={endView.cy + 10}
               stroke={getDirectionColor("E", scanDetails, highlightedDirection)}
               strokeWidth="3"
               strokeDasharray="8,4"
             />
             {/* Arrowhead */}
             <polygon
-              points={`${endView.cx + endView.outerRadius - 10},${endView.cy + 50}
-                       ${endView.cx + endView.outerRadius + 5},${endView.cy + 35}
-                       ${endView.cx + endView.outerRadius - 25},${endView.cy + 55}`}
+              points={`${endView.cx + endView.outerRadius + 30},${endView.cy + 15}
+                       ${endView.cx + endView.outerRadius + 45},${endView.cy}
+                       ${endView.cx + endView.outerRadius + 25},${endView.cy + 25}`}
               fill={getDirectionColor("E", scanDetails, highlightedDirection)}
             />
             <text
