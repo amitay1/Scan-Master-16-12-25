@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ScanMaster Integration Requirements</title>
+  <style>
+    @page { margin: 20mm; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: Arial, sans-serif;
+      font-size: 11pt;
+      line-height: 1.4;
+      color: #333;
+      max-width: 210mm;
+      margin: 0 auto;
+      padding: 20mm;
+    }
+    h1 {
+      font-size: 18pt;
+      border-bottom: 2px solid #333;
+      padding-bottom: 8px;
+      margin-bottom: 20px;
+    }
+    h2 {
+      font-size: 13pt;
+      background: #f0f0f0;
+      padding: 8px 12px;
+      margin: 20px 0 10px 0;
+      border-left: 4px solid #333;
+    }
+    h3 {
+      font-size: 11pt;
+      margin: 15px 0 8px 0;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 10px 0;
+    }
+    th, td {
+      border: 1px solid #999;
+      padding: 6px 10px;
+      text-align: left;
+    }
+    th {
+      background: #e8e8e8;
+      font-weight: bold;
+    }
+    td:last-child {
+      width: 80px;
+    }
+    .checkbox {
+      display: flex;
+      align-items: center;
+      margin: 4px 0;
+    }
+    .checkbox-box {
+      width: 14px;
+      height: 14px;
+      border: 1px solid #333;
+      margin-right: 8px;
+      flex-shrink: 0;
+    }
+    .fill-line {
+      border-bottom: 1px solid #999;
+      min-width: 100px;
+      display: inline-block;
+    }
+    .section-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    .code-block {
+      background: #f5f5f5;
+      border: 1px solid #ddd;
+      padding: 10px;
+      font-family: monospace;
+      font-size: 10pt;
+      margin: 10px 0;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #ccc;
+      margin: 20px 0;
+    }
+    .footer {
+      margin-top: 30px;
+      padding-top: 15px;
+      border-top: 1px solid #ccc;
+      font-size: 10pt;
+      color: #666;
+    }
+    @media print {
+      body { padding: 0; }
+      h2 { page-break-after: avoid; }
+      table { page-break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+
+<h1>ScanMaster Integration Requirements</h1>
+
+<h2>1. CSI File Format</h2>
+
+<h3>1.1 What file format does CSI accept for setup import?</h3>
+<div class="checkbox"><div class="checkbox-box"></div> XML</div>
+<div class="checkbox"><div class="checkbox-box"></div> JSON</div>
+<div class="checkbox"><div class="checkbox-box"></div> Binary (.csi / .prg / .stp)</div>
+<div class="checkbox"><div class="checkbox-box"></div> Other: <span class="fill-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></div>
+
+<h3>1.2 Please provide:</h3>
+<div class="checkbox"><div class="checkbox-box"></div> File format specification / schema</div>
+<div class="checkbox"><div class="checkbox-box"></div> Sample setup file (any existing file)</div>
+<div class="checkbox"><div class="checkbox-box"></div> Field list with data types</div>
+
+<hr>
+
+<h2>2. Communication Protocol</h2>
+
+<h3>2.1 How does external software connect to CSI?</h3>
+<div class="checkbox"><div class="checkbox-box"></div> File import only (manual)</div>
+<div class="checkbox"><div class="checkbox-box"></div> TCP/IP &nbsp;&nbsp; IP: <span class="fill-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span> &nbsp; Port: <span class="fill-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></div>
+<div class="checkbox"><div class="checkbox-box"></div> Serial RS-232/485 &nbsp;&nbsp; Baud: <span class="fill-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></div>
+<div class="checkbox"><div class="checkbox-box"></div> OPC-UA</div>
+<div class="checkbox"><div class="checkbox-box"></div> SDK/API available</div>
+
+<h3>2.2 Is there API documentation available?</h3>
+<div class="checkbox"><div class="checkbox-box"></div> Yes (please provide)</div>
+<div class="checkbox"><div class="checkbox-box"></div> No</div>
+
+<hr>
+
+<h2>3. Scanner Machine Specifications</h2>
+
+<h3>3.1 Motion System</h3>
+<table>
+  <tr><th>Parameter</th><th>Value</th><th>Unit</th></tr>
+  <tr><td>Max Scan Speed</td><td></td><td>mm/s</td></tr>
+  <tr><td>Max Index Speed</td><td></td><td>mm/s</td></tr>
+  <tr><td>Max Rotation Speed</td><td></td><td>rpm</td></tr>
+  <tr><td>Max Acceleration</td><td></td><td>mm/s²</td></tr>
+  <tr><td>X Travel</td><td></td><td>mm</td></tr>
+  <tr><td>Y Travel</td><td></td><td>mm</td></tr>
+  <tr><td>Z Travel</td><td></td><td>mm</td></tr>
+</table>
+
+<h3>3.2 Immersion Tank</h3>
+<table>
+  <tr><th>Parameter</th><th>Value</th><th>Unit</th></tr>
+  <tr><td>Length</td><td></td><td>mm</td></tr>
+  <tr><td>Width</td><td></td><td>mm</td></tr>
+  <tr><td>Depth</td><td></td><td>mm</td></tr>
+</table>
+
+<h3>3.3 UT System</h3>
+<table>
+  <tr><th>Parameter</th><th>Value</th><th>Unit</th></tr>
+  <tr><td>Max PRF</td><td></td><td>Hz</td></tr>
+  <tr><td>Frequency Range</td><td></td><td>MHz</td></tr>
+  <tr><td>Channels</td><td></td><td></td></tr>
+</table>
+
+<hr>
+
+<h2>4. Required Setup Data</h2>
+
+<h3>4.1 Which fields are required for a valid setup?</h3>
+
+<div class="section-grid">
+<div>
+<strong>Part Definition:</strong>
+<div class="checkbox"><div class="checkbox-box"></div> Part Number</div>
+<div class="checkbox"><div class="checkbox-box"></div> Material</div>
+<div class="checkbox"><div class="checkbox-box"></div> Geometry Type</div>
+<div class="checkbox"><div class="checkbox-box"></div> Dimensions (OD/ID/Length/Width/Thickness)</div>
+<div class="checkbox"><div class="checkbox-box"></div> Acoustic Velocity</div>
+<div class="checkbox"><div class="checkbox-box"></div> Other: <span class="fill-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></div>
+</div>
+
+<div>
+<strong>Equipment:</strong>
+<div class="checkbox"><div class="checkbox-box"></div> Probe Frequency</div>
+<div class="checkbox"><div class="checkbox-box"></div> Probe Diameter</div>
+<div class="checkbox"><div class="checkbox-box"></div> Probe Type (Immersion/Contact)</div>
+<div class="checkbox"><div class="checkbox-box"></div> Wedge Angle</div>
+<div class="checkbox"><div class="checkbox-box"></div> Other: <span class="fill-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></div>
+</div>
+
+<div>
+<strong>Scan Plan:</strong>
+<div class="checkbox"><div class="checkbox-box"></div> Scan Speed</div>
+<div class="checkbox"><div class="checkbox-box"></div> Index Step</div>
+<div class="checkbox"><div class="checkbox-box"></div> Water Path</div>
+<div class="checkbox"><div class="checkbox-box"></div> PRF</div>
+<div class="checkbox"><div class="checkbox-box"></div> Gain</div>
+<div class="checkbox"><div class="checkbox-box"></div> Gates (Start/Width)</div>
+<div class="checkbox"><div class="checkbox-box"></div> Other: <span class="fill-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></div>
+</div>
+
+<div>
+<strong>Calibration:</strong>
+<div class="checkbox"><div class="checkbox-box"></div> Block Type</div>
+<div class="checkbox"><div class="checkbox-box"></div> Block Serial Number</div>
+<div class="checkbox"><div class="checkbox-box"></div> FBH Sizes</div>
+<div class="checkbox"><div class="checkbox-box"></div> DAC/TCG Curve</div>
+<div class="checkbox"><div class="checkbox-box"></div> Other: <span class="fill-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></div>
+</div>
+</div>
+
+<hr>
+
+<h2>5. Output Requirements</h2>
+
+<h3>5.1 What outputs does our software need to generate?</h3>
+<div class="checkbox"><div class="checkbox-box"></div> Setup file (.csi / .xml / other)</div>
+<div class="checkbox"><div class="checkbox-box"></div> Scan path coordinates (X,Y,Z)</div>
+<div class="checkbox"><div class="checkbox-box"></div> Motion program (G-code style)</div>
+<div class="checkbox"><div class="checkbox-box"></div> Calibration data</div>
+<div class="checkbox"><div class="checkbox-box"></div> Coverage map</div>
+<div class="checkbox"><div class="checkbox-box"></div> Other: <span class="fill-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></div>
+
+<hr>
+
+<h2>6. Integration Level</h2>
+
+<h3>6.1 Preferred integration type:</h3>
+
+<div class="checkbox"><div class="checkbox-box"></div> <strong>Option A: File Export</strong> (Simple - manual file transfer)</div>
+<div class="code-block">Our Software → Export File → CSI Import → Scanner</div>
+
+<div class="checkbox"><div class="checkbox-box"></div> <strong>Option B: Direct Integration</strong> (Automatic transfer via API)</div>
+<div class="code-block">Our Software → TCP/API → CSI → Scanner</div>
+
+<div class="checkbox"><div class="checkbox-box"></div> <strong>Option C: Direct Scanner Control</strong> (Full control)</div>
+<div class="code-block">Our Software → Protocol → Scanner Controller</div>
+
+<hr>
+
+<h2>7. Sample Files Request</h2>
+
+<p>Please provide sample files for analysis:</p>
+<div class="checkbox"><div class="checkbox-box"></div> Empty setup template</div>
+<div class="checkbox"><div class="checkbox-box"></div> Completed setup example (any part)</div>
+<div class="checkbox"><div class="checkbox-box"></div> Exported scan data example</div>
+<div class="checkbox"><div class="checkbox-box"></div> API documentation (if available)</div>
+
+<div class="footer">
+<strong>Project:</strong> Scan-Master Integration<br>
+<strong>Purpose:</strong> Automatic UT inspection setup generation<br>
+<strong>Target:</strong> Engine disc inspection (MRO/Production)<br><br>
+<strong>Date:</strong> _________________ &nbsp;&nbsp;&nbsp;&nbsp; <strong>Filled by:</strong> _________________
+</div>
+
+</body>
+</html>

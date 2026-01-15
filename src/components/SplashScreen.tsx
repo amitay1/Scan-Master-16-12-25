@@ -42,7 +42,8 @@ const splashScreens: Record<number, React.ComponentType<{ onComplete: () => void
 };
 
 const SplashScreen = ({ onComplete }: { onComplete: () => void }) => {
-  const [selectedId, setSelectedId] = useState<number>(1);
+  // Default to Quantum Field (option 10)
+  const [selectedId, setSelectedId] = useState<number>(10);
 
   useEffect(() => {
     // Load selected splash screen from localStorage
@@ -55,8 +56,8 @@ const SplashScreen = ({ onComplete }: { onComplete: () => void }) => {
     }
   }, []);
 
-  // Get the selected splash screen component
-  const SelectedSplash = splashScreens[selectedId] || SplashOption1_UltrasonicWaves;
+  // Get the selected splash screen component (default: Quantum Field)
+  const SelectedSplash = splashScreens[selectedId] || SplashOption10_QuantumField;
 
   return <SelectedSplash onComplete={onComplete} />;
 };
