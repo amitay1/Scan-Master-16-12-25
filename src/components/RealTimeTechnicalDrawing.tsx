@@ -84,9 +84,10 @@ export const RealTimeTechnicalDrawing = ({
   const debouncedDimensions = useDebounce(dimensions, 400);
 
   // Standard layout configuration - 2 views only (Front and Side)
+  // Heights reduced to 285 to leave room for title block at bottom (starts at y=350)
   const layout: LayoutConfig = useMemo(() => ({
-    frontView: { x: 30, y: 50, width: 340, height: 340 },
-    sideView: { x: 420, y: 50, width: 340, height: 340 },
+    frontView: { x: 30, y: 50, width: 340, height: 285 },
+    sideView: { x: 420, y: 50, width: 340, height: 285 },
     // Keep these for compatibility but won't be used
     topView: { x: 0, y: 0, width: 0, height: 0 },
     isometric: { x: 0, y: 0, width: 0, height: 0 }

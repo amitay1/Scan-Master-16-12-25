@@ -11,6 +11,7 @@ import { db } from "./db";
 import { eq, desc, sql, and } from "drizzle-orm";
 import crypto from "crypto";
 // import { registerOrganizationRoutes } from "./routes/organizations"; // Disabled - tables don't exist yet
+import { registerEquipmentRoutes } from "./routes/equipment";
 
 const storage = new DbStorage();
 
@@ -162,6 +163,9 @@ export function registerRoutes(app: Express) {
 
   // Register organization routes - DISABLED until migrations are run
   // registerOrganizationRoutes(app);
+
+  // Register equipment tracking routes
+  registerEquipmentRoutes(app);
 
   // Health check endpoint
   app.get("/api/health", (req, res) => {

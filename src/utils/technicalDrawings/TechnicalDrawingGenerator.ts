@@ -531,35 +531,38 @@ export class TechnicalDrawingGenerator {
   ) {
     const width = 180;
     const height = 80;
-    const x = this.canvas.width - width - 20;
-    const y = this.canvas.height - height - 20;
-    
+    // Increased right margin from 20 to 50 to prevent clipping
+    const x = this.canvas.width - width - 50;
+    const y = this.canvas.height - height - 15;
+
     // Main border
     this.drawRectangle(x, y, width, height, 'visible');
-    
+
     // Horizontal dividers
     this.drawLine(x, y + 20, x + width, y + 20, 'visible');
     this.drawLine(x, y + 40, x + width, y + 40, 'visible');
     this.drawLine(x, y + 60, x + width, y + 60, 'visible');
-    
+
     // Vertical divider
     this.drawLine(x + 120, y, x + 120, y + 60, 'visible');
-    
-    // Title - Classic style
-    this.drawText(x + 90, y + 10, title, 12, '#000000');
-    
-    // Part Number
-    this.drawText(x + 60, y + 30, `PART: ${partNumber}`, 10, '#000000');
-    this.drawText(x + 150, y + 30, `REV: ${revision}`, 10, '#000000');
-    
-    // Material
-    this.drawText(x + 60, y + 50, `MATERIAL: ${material}`, 10, '#000000');
-    this.drawText(x + 150, y + 50, `SCALE: ${scale}`, 10, '#000000');
-    
-    // Bottom row - Classic style
-    this.drawText(x + 40, y + 70, `TOL: ${tolerance}`, 9, '#000000');
-    this.drawText(x + 90, y + 70, date, 9, '#000000');
-    this.drawText(x + 140, y + 70, 'ISO 128', 9, '#000000');
+
+    // Title - centered in first row
+    this.drawText(x + width / 2, y + 14, title, 11, '#000000');
+
+    // Part Number - left side of second row
+    this.drawText(x + 55, y + 34, `PART: ${partNumber}`, 9, '#000000');
+    // Revision - right side of second row
+    this.drawText(x + 145, y + 34, `REV: ${revision}`, 9, '#000000');
+
+    // Material - left side of third row
+    this.drawText(x + 55, y + 54, `MAT: ${material}`, 9, '#000000');
+    // Scale - right side of third row
+    this.drawText(x + 145, y + 54, `${scale}`, 9, '#000000');
+
+    // Bottom row
+    this.drawText(x + 35, y + 74, `TOL: ${tolerance}`, 8, '#000000');
+    this.drawText(x + width / 2, y + 74, date, 8, '#000000');
+    this.drawText(x + 145, y + 74, 'ISO 128', 8, '#000000');
   }
 
   // Draw dimension with tolerance

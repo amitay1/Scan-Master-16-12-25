@@ -185,6 +185,33 @@ export const DiskScanDiagram: React.FC<DiskScanDiagramProps> = ({
             </text>
           </g>
 
+          {/* ========== A₁: Dual Element from top hub (near surface 0-20mm) ========== */}
+          <g opacity={getDirectionOpacity("A₁", scanDetails, highlightedDirection)}>
+            <line
+              x1={diskCenterX + 25}
+              y1={sideView.y - sideView.hubHeight - 55}
+              x2={diskCenterX + 25}
+              y2={sideView.y - sideView.hubHeight - 20}
+              stroke={getDirectionColor("A₁", scanDetails, highlightedDirection)}
+              strokeWidth="2"
+              strokeDasharray="4,3"
+            />
+            <polygon
+              points={`${diskCenterX + 25},${sideView.y - sideView.hubHeight - 25}
+                       ${diskCenterX + 20},${sideView.y - sideView.hubHeight - 35}
+                       ${diskCenterX + 30},${sideView.y - sideView.hubHeight - 35}`}
+              fill={getDirectionColor("A₁", scanDetails, highlightedDirection)}
+            />
+            <text
+              x={diskCenterX + 35}
+              y={sideView.y - sideView.hubHeight - 40}
+              fill={getDirectionColor("A₁", scanDetails, highlightedDirection)}
+              fontSize="10"
+            >
+              A₁ (0-20mm)
+            </text>
+          </g>
+
           {/* ========== B: LW 0° AXIAL from bottom hub ========== */}
           <g opacity={getDirectionOpacity("B", scanDetails, highlightedDirection)}>
             <line
@@ -210,6 +237,33 @@ export const DiskScanDiagram: React.FC<DiskScanDiagramProps> = ({
               fontWeight="bold"
             >
               B, LW 0°
+            </text>
+          </g>
+
+          {/* ========== B₁: Dual Element from bottom hub (near surface 0-20mm) ========== */}
+          <g opacity={getDirectionOpacity("B₁", scanDetails, highlightedDirection)}>
+            <line
+              x1={diskCenterX + 25}
+              y1={sideView.y + sideView.diskHeight + sideView.hubHeight + 55}
+              x2={diskCenterX + 25}
+              y2={sideView.y + sideView.diskHeight + sideView.hubHeight + 20}
+              stroke={getDirectionColor("B₁", scanDetails, highlightedDirection)}
+              strokeWidth="2"
+              strokeDasharray="4,3"
+            />
+            <polygon
+              points={`${diskCenterX + 25},${sideView.y + sideView.diskHeight + sideView.hubHeight + 25}
+                       ${diskCenterX + 20},${sideView.y + sideView.diskHeight + sideView.hubHeight + 35}
+                       ${diskCenterX + 30},${sideView.y + sideView.diskHeight + sideView.hubHeight + 35}`}
+              fill={getDirectionColor("B₁", scanDetails, highlightedDirection)}
+            />
+            <text
+              x={diskCenterX + 35}
+              y={sideView.y + sideView.diskHeight + sideView.hubHeight + 45}
+              fill={getDirectionColor("B₁", scanDetails, highlightedDirection)}
+              fontSize="10"
+            >
+              B₁ (0-20mm)
             </text>
           </g>
 
@@ -246,6 +300,33 @@ export const DiskScanDiagram: React.FC<DiskScanDiagramProps> = ({
               fontSize="9"
             >
               (RADIAL)
+            </text>
+          </g>
+
+          {/* ========== C₁: Dual Element RADIAL from OD of disk (near surface 0-20mm) ========== */}
+          <g opacity={getDirectionOpacity("C₁", scanDetails, highlightedDirection)}>
+            <line
+              x1={sideView.x + sideView.diskWidth + 55}
+              y1={diskCenterY + 20}
+              x2={sideView.x + sideView.diskWidth + 20}
+              y2={diskCenterY + 20}
+              stroke={getDirectionColor("C₁", scanDetails, highlightedDirection)}
+              strokeWidth="2"
+              strokeDasharray="4,3"
+            />
+            <polygon
+              points={`${sideView.x + sideView.diskWidth + 25},${diskCenterY + 20}
+                       ${sideView.x + sideView.diskWidth + 38},${diskCenterY + 15}
+                       ${sideView.x + sideView.diskWidth + 38},${diskCenterY + 25}`}
+              fill={getDirectionColor("C₁", scanDetails, highlightedDirection)}
+            />
+            <text
+              x={sideView.x + sideView.diskWidth + 75}
+              y={diskCenterY + 25}
+              fill={getDirectionColor("C₁", scanDetails, highlightedDirection)}
+              fontSize="10"
+            >
+              C₁ (0-20mm)
             </text>
           </g>
 

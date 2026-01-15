@@ -183,6 +183,33 @@ export const ConeScanDiagram: React.FC<ConeScanDiagramProps> = ({
             </text>
           </g>
 
+          {/* ========== A₁: Dual Element AXIAL from top (near surface 0-20mm) ========== */}
+          <g opacity={getDirectionOpacity("A₁", scanDetails, highlightedDirection)}>
+            <line
+              x1={sideView.x + sideView.width - sideView.wallThickness / 2 + 25}
+              y1={sideView.y - 80}
+              x2={sideView.x + sideView.width - sideView.wallThickness / 2 + 25}
+              y2={sideView.y - 20}
+              stroke={getDirectionColor("A₁", scanDetails, highlightedDirection)}
+              strokeWidth="2"
+              strokeDasharray="4,3"
+            />
+            <polygon
+              points={`${sideView.x + sideView.width - sideView.wallThickness / 2 + 25},${sideView.y - 25}
+                       ${sideView.x + sideView.width - sideView.wallThickness / 2 + 20},${sideView.y - 36}
+                       ${sideView.x + sideView.width - sideView.wallThickness / 2 + 30},${sideView.y - 36}`}
+              fill={getDirectionColor("A₁", scanDetails, highlightedDirection)}
+            />
+            <text
+              x={sideView.x + sideView.width + 10}
+              y={sideView.y - 70}
+              fill={getDirectionColor("A₁", scanDetails, highlightedDirection)}
+              fontSize="10"
+            >
+              A₁ (0-20mm)
+            </text>
+          </g>
+
           {/* ========== B: LW 0° AXIAL from bottom ========== */}
           <g opacity={getDirectionOpacity("B", scanDetails, highlightedDirection)}>
             <line
@@ -211,6 +238,33 @@ export const ConeScanDiagram: React.FC<ConeScanDiagramProps> = ({
             </text>
           </g>
 
+          {/* ========== B₁: Dual Element AXIAL from bottom (near surface 0-20mm) ========== */}
+          <g opacity={getDirectionOpacity("B₁", scanDetails, highlightedDirection)}>
+            <line
+              x1={sideView.x + sideView.width - sideView.wallThickness / 2 + 35}
+              y1={sideView.y + sideView.height + 80}
+              x2={sideView.x + sideView.width - sideView.wallThickness / 2 + 35}
+              y2={sideView.y + sideView.height + 20}
+              stroke={getDirectionColor("B₁", scanDetails, highlightedDirection)}
+              strokeWidth="2"
+              strokeDasharray="4,3"
+            />
+            <polygon
+              points={`${sideView.x + sideView.width - sideView.wallThickness / 2 + 35},${sideView.y + sideView.height + 25}
+                       ${sideView.x + sideView.width - sideView.wallThickness / 2 + 30},${sideView.y + sideView.height + 36}
+                       ${sideView.x + sideView.width - sideView.wallThickness / 2 + 40},${sideView.y + sideView.height + 36}`}
+              fill={getDirectionColor("B₁", scanDetails, highlightedDirection)}
+            />
+            <text
+              x={sideView.x + sideView.width + 25}
+              y={sideView.y + sideView.height + 75}
+              fill={getDirectionColor("B₁", scanDetails, highlightedDirection)}
+              fontSize="10"
+            >
+              B₁ (0-20mm)
+            </text>
+          </g>
+
           {/* ========== C: LW 0° RADIAL from OD ========== */}
           <g opacity={getDirectionOpacity("C", scanDetails, highlightedDirection)}>
             <line
@@ -236,6 +290,33 @@ export const ConeScanDiagram: React.FC<ConeScanDiagramProps> = ({
               fontWeight="bold"
             >
               C, LW 0° (RADIAL)
+            </text>
+          </g>
+
+          {/* ========== C₁: Dual Element RADIAL from OD (near surface 0-20mm) ========== */}
+          <g opacity={getDirectionOpacity("C₁", scanDetails, highlightedDirection)}>
+            <line
+              x1={sideView.x + sideView.width + 115}
+              y1={sideView.y + sideView.height / 2 + 10}
+              x2={sideView.x + sideView.width + 35}
+              y2={sideView.y + sideView.height / 2 + 10}
+              stroke={getDirectionColor("C₁", scanDetails, highlightedDirection)}
+              strokeWidth="2"
+              strokeDasharray="4,3"
+            />
+            <polygon
+              points={`${sideView.x + sideView.width + 40},${sideView.y + sideView.height / 2 + 10}
+                       ${sideView.x + sideView.width + 52},${sideView.y + sideView.height / 2 + 5}
+                       ${sideView.x + sideView.width + 52},${sideView.y + sideView.height / 2 + 15}`}
+              fill={getDirectionColor("C₁", scanDetails, highlightedDirection)}
+            />
+            <text
+              x={sideView.x + sideView.width + 95}
+              y={sideView.y + sideView.height / 2 + 5}
+              fill={getDirectionColor("C₁", scanDetails, highlightedDirection)}
+              fontSize="10"
+            >
+              C₁ (0-20mm)
             </text>
           </g>
 

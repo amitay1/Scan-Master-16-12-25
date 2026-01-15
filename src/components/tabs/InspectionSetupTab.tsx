@@ -2,8 +2,8 @@ import React, { useRef, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { InspectionSetupData, MaterialType, PartGeometry, AcceptanceClass, StandardType } from "@/types/techniqueSheet";
-import { Upload, X, Sparkles } from "lucide-react";
+import { InspectionSetupData, MaterialType, PartGeometry, AcceptanceClass, StandardType, OEMVendor } from "@/types/techniqueSheet";
+import { Upload, X, Sparkles, Building2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { materialDatabase } from "@/utils/autoFillLogic";
@@ -36,6 +36,13 @@ const materials: { value: MaterialType; label: string }[] = [
   { value: "custom", label: "Custom Material" },
 ];
 
+// OEM Vendor options for automatic setup generation
+const oemVendors: { value: OEMVendor; label: string; description: string }[] = [
+  { value: "GENERIC", label: "Generic / Standard", description: "AMS-STD-2154 defaults" },
+  { value: "GE", label: "GE Aviation", description: "GE P23TF22 requirements" },
+  { value: "RR", label: "Rolls-Royce", description: "RRP 59000 series" },
+  { value: "PW", label: "Pratt & Whitney", description: "P&W 127 spec" },
+];
 
 interface PartTypeOption {
   value: PartGeometry;
@@ -364,13 +371,15 @@ export const InspectionSetupTab = ({
         innerDiameter: data.innerDiameter,
         acceptanceClass: acceptanceClass as AcceptanceClass,
         beamType: scanDirectionInfo?.hasAngleBeam ? 'angle' : 'straight',
-        scanDirections: scanDirectionInfo, // 🔗 NEW: Pass scan directions!
+        scanDirections: scanDirectionInfo, // 🔗 Pass scan directions
+        oemVendor: data.oemVendor, // 🏭 NEW: Pass OEM vendor for vendor-specific rules!
       };
 
       const recommendation = generateCalibrationRecommendationV2(recommendationInput);
-      
-      logInfo("📋 Auto-recommendation (with scan directions):", {
+
+      logInfo("📋 Auto-recommendation (with scan directions + OEM):", {
         partType: data.partType,
+        oemVendor: data.oemVendor || "GENERIC",
         scanDirections: scanDirectionInfo,
         recommendedBlock: recommendation.primaryBlock.category,
         reasoning: recommendation.reasoning.blockSelection
@@ -391,6 +400,7 @@ export const InspectionSetupTab = ({
     data.partThickness,
     data.diameter,
     data.innerDiameter,
+    data.oemVendor, // 🏭 Re-run when OEM vendor changes!
     acceptanceClass,
     standardType,
     onCalibrationRecommendation,
@@ -602,6 +612,42 @@ export const InspectionSetupTab = ({
               ))}
             </SelectContent>
           </Select>
+        </FieldWithHelp>
+
+        {/* OEM Vendor Selector - Important for automatic setup generation */}
+        <FieldWithHelp
+          label="OEM Vendor"
+          fieldKey="partNumber"
+        >
+          <Select
+            value={data.oemVendor || "GENERIC"}
+            onValueChange={(value) => updateField("oemVendor", value as OEMVendor)}
+          >
+            <SelectTrigger className="bg-background">
+              <SelectValue placeholder="Select OEM..." />
+            </SelectTrigger>
+            <SelectContent>
+              {oemVendors.map((vendor) => (
+                <SelectItem key={vendor.value} value={vendor.value}>
+                  <div className="flex items-center gap-2">
+                    <Building2 className="h-3 w-3 text-muted-foreground" />
+                    <span>{vendor.label}</span>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {data.oemVendor && data.oemVendor !== "GENERIC" && (
+            <div className="mt-2 p-2 bg-amber-500/10 border border-amber-500/30 rounded text-xs">
+              <div className="flex items-center gap-1 text-amber-700 dark:text-amber-400">
+                <Sparkles className="h-3 w-3" />
+                <span className="font-medium">OEM-specific rules will apply</span>
+              </div>
+              <p className="text-muted-foreground mt-1">
+                {oemVendors.find(v => v.value === data.oemVendor)?.description}
+              </p>
+            </div>
+          )}
         </FieldWithHelp>
 
         <div className="col-span-2 bg-primary/10 border-2 border-primary/30 rounded-xl p-3 shadow-sm">

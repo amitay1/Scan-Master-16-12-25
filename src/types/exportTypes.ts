@@ -8,7 +8,7 @@ import type {
   DocumentationData,
 } from "@/types/techniqueSheet";
 
-export type ExportFormat = "pdf" | "word" | "html";
+export type ExportFormat = "pdf" | "word" | "html" | "csi";
 
 export type ExportTemplate = "minimal" | "standard" | "comprehensive" | "tuv";
 

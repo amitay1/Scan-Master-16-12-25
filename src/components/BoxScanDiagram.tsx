@@ -231,6 +231,33 @@ export const BoxScanDiagram: React.FC<BoxScanDiagramProps> = ({
             </text>
           </g>
 
+          {/* ========== A₁: Dual Element from top (near surface 0-20mm) ========== */}
+          <g opacity={getDirectionOpacity("A₁", scanDetails, highlightedDirection)}>
+            <line
+              x1={boxView.x + boxView.width / 2 + boxView.depth / 4 + 25}
+              y1={boxView.y - 55}
+              x2={boxView.x + boxView.width / 2 + boxView.depth / 4 + 25}
+              y2={boxView.y - 10}
+              stroke={getDirectionColor("A₁", scanDetails, highlightedDirection)}
+              strokeWidth="2"
+              strokeDasharray="4,3"
+            />
+            <polygon
+              points={`${boxView.x + boxView.width / 2 + boxView.depth / 4 + 25},${boxView.y - 15}
+                       ${boxView.x + boxView.width / 2 + boxView.depth / 4 + 20},${boxView.y - 25}
+                       ${boxView.x + boxView.width / 2 + boxView.depth / 4 + 30},${boxView.y - 25}`}
+              fill={getDirectionColor("A₁", scanDetails, highlightedDirection)}
+            />
+            <text
+              x={boxView.x + boxView.width / 2 + boxView.depth / 4 + 45}
+              y={boxView.y - 35}
+              fill={getDirectionColor("A₁", scanDetails, highlightedDirection)}
+              fontSize="10"
+            >
+              A₁ (0-20mm)
+            </text>
+          </g>
+
           {/* ========== B: LW 0° from side (through width) ========== */}
           <g opacity={getDirectionOpacity("B", scanDetails, highlightedDirection)}>
             <line
@@ -259,6 +286,33 @@ export const BoxScanDiagram: React.FC<BoxScanDiagramProps> = ({
             </text>
           </g>
 
+          {/* ========== B₁: Dual Element from side (near surface 0-20mm) ========== */}
+          <g opacity={getDirectionOpacity("B₁", scanDetails, highlightedDirection)}>
+            <line
+              x1={boxView.x - 55}
+              y1={boxView.y + boxView.depth / 2 + boxView.height / 2 + 20}
+              x2={boxView.x - 10}
+              y2={boxView.y + boxView.depth / 2 + boxView.height / 2 + 20}
+              stroke={getDirectionColor("B₁", scanDetails, highlightedDirection)}
+              strokeWidth="2"
+              strokeDasharray="4,3"
+            />
+            <polygon
+              points={`${boxView.x - 15},${boxView.y + boxView.depth / 2 + boxView.height / 2 + 20}
+                       ${boxView.x - 25},${boxView.y + boxView.depth / 2 + boxView.height / 2 + 15}
+                       ${boxView.x - 25},${boxView.y + boxView.depth / 2 + boxView.height / 2 + 25}`}
+              fill={getDirectionColor("B₁", scanDetails, highlightedDirection)}
+            />
+            <text
+              x={boxView.x - 80}
+              y={boxView.y + boxView.depth / 2 + boxView.height / 2 + 35}
+              fill={getDirectionColor("B₁", scanDetails, highlightedDirection)}
+              fontSize="10"
+            >
+              B₁ (0-20mm)
+            </text>
+          </g>
+
           {/* ========== C: LW 0° from right side (through length) ========== */}
           <g opacity={getDirectionOpacity("C", scanDetails, highlightedDirection)}>
             <line
@@ -284,6 +338,33 @@ export const BoxScanDiagram: React.FC<BoxScanDiagramProps> = ({
               fontWeight="bold"
             >
               C, LW 0°
+            </text>
+          </g>
+
+          {/* ========== C₁: Dual Element from right side (near surface 0-20mm) ========== */}
+          <g opacity={getDirectionOpacity("C₁", scanDetails, highlightedDirection)}>
+            <line
+              x1={boxView.x + boxView.width + boxView.depth / 2 + 55}
+              y1={boxView.y + boxView.height / 2 + 20}
+              x2={boxView.x + boxView.width + boxView.depth / 2 + 10}
+              y2={boxView.y + boxView.height / 2 + 20}
+              stroke={getDirectionColor("C₁", scanDetails, highlightedDirection)}
+              strokeWidth="2"
+              strokeDasharray="4,3"
+            />
+            <polygon
+              points={`${boxView.x + boxView.width + boxView.depth / 2 + 15},${boxView.y + boxView.height / 2 + 20}
+                       ${boxView.x + boxView.width + boxView.depth / 2 + 25},${boxView.y + boxView.height / 2 + 15}
+                       ${boxView.x + boxView.width + boxView.depth / 2 + 25},${boxView.y + boxView.height / 2 + 25}`}
+              fill={getDirectionColor("C₁", scanDetails, highlightedDirection)}
+            />
+            <text
+              x={boxView.x + boxView.width + boxView.depth / 2 + 30}
+              y={boxView.y + boxView.height / 2 + 35}
+              fill={getDirectionColor("C₁", scanDetails, highlightedDirection)}
+              fontSize="10"
+            >
+              C₁ (0-20mm)
             </text>
           </g>
 
@@ -432,6 +513,33 @@ export const BoxScanDiagram: React.FC<BoxScanDiagramProps> = ({
             </text>
           </g>
 
+          {/* ========== A₁: Dual Element from top ========== */}
+          <g opacity={getDirectionOpacity("A₁", scanDetails, highlightedDirection)}>
+            <line
+              x1={crossSection.x + crossSection.width / 2 + 25}
+              y1={crossSection.y - 45}
+              x2={crossSection.x + crossSection.width / 2 + 25}
+              y2={crossSection.y - 15}
+              stroke={getDirectionColor("A₁", scanDetails, highlightedDirection)}
+              strokeWidth="2"
+              strokeDasharray="4,3"
+            />
+            <polygon
+              points={`${crossSection.x + crossSection.width / 2 + 25},${crossSection.y - 20}
+                       ${crossSection.x + crossSection.width / 2 + 20},${crossSection.y - 30}
+                       ${crossSection.x + crossSection.width / 2 + 30},${crossSection.y - 30}`}
+              fill={getDirectionColor("A₁", scanDetails, highlightedDirection)}
+            />
+            <text
+              x={crossSection.x + crossSection.width / 2 + 40}
+              y={crossSection.y - 30}
+              fill={getDirectionColor("A₁", scanDetails, highlightedDirection)}
+              fontSize="9"
+            >
+              A₁
+            </text>
+          </g>
+
           {/* ========== B: Arrow from side ========== */}
           <g opacity={getDirectionOpacity("B", scanDetails, highlightedDirection)}>
             <line
@@ -457,6 +565,33 @@ export const BoxScanDiagram: React.FC<BoxScanDiagramProps> = ({
               fontWeight="bold"
             >
               B
+            </text>
+          </g>
+
+          {/* ========== B₁: Dual Element from side ========== */}
+          <g opacity={getDirectionOpacity("B₁", scanDetails, highlightedDirection)}>
+            <line
+              x1={crossSection.x - 45}
+              y1={crossSection.y + crossSection.height / 2 + 18}
+              x2={crossSection.x - 15}
+              y2={crossSection.y + crossSection.height / 2 + 18}
+              stroke={getDirectionColor("B₁", scanDetails, highlightedDirection)}
+              strokeWidth="2"
+              strokeDasharray="4,3"
+            />
+            <polygon
+              points={`${crossSection.x - 20},${crossSection.y + crossSection.height / 2 + 18}
+                       ${crossSection.x - 30},${crossSection.y + crossSection.height / 2 + 13}
+                       ${crossSection.x - 30},${crossSection.y + crossSection.height / 2 + 23}`}
+              fill={getDirectionColor("B₁", scanDetails, highlightedDirection)}
+            />
+            <text
+              x={crossSection.x - 50}
+              y={crossSection.y + crossSection.height / 2 + 35}
+              fill={getDirectionColor("B₁", scanDetails, highlightedDirection)}
+              fontSize="9"
+            >
+              B₁
             </text>
           </g>
 

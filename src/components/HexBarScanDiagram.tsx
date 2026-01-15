@@ -232,6 +232,33 @@ export const HexBarScanDiagram: React.FC<HexBarScanDiagramProps> = ({
             </text>
           </g>
 
+          {/* ========== A₁: Dual Element LW 0° from End (near surface 0-20mm) ========== */}
+          <g opacity={getDirectionOpacity("A₁", scanDetails, highlightedDirection)}>
+            <line
+              x1={sideView.x - 55}
+              y1={sideView.y + sideView.height / 2 + 22}
+              x2={sideView.x - 20}
+              y2={sideView.y + sideView.height / 2 + 22}
+              stroke={getDirectionColor("A₁", scanDetails, highlightedDirection)}
+              strokeWidth="2"
+              strokeDasharray="4,3"
+            />
+            <polygon
+              points={`${sideView.x - 25},${sideView.y + sideView.height / 2 + 22}
+                       ${sideView.x - 38},${sideView.y + sideView.height / 2 + 17}
+                       ${sideView.x - 38},${sideView.y + sideView.height / 2 + 27}`}
+              fill={getDirectionColor("A₁", scanDetails, highlightedDirection)}
+            />
+            <text
+              x={sideView.x - 85}
+              y={sideView.y + sideView.height / 2 + 25}
+              fill={getDirectionColor("A₁", scanDetails, highlightedDirection)}
+              fontSize="10"
+            >
+              A₁ (0-20mm)
+            </text>
+          </g>
+
           {/* ========== C: LW 0° from Top (radial through flat) ========== */}
           <g opacity={getDirectionOpacity("C", scanDetails, highlightedDirection)}>
             <line
@@ -257,6 +284,33 @@ export const HexBarScanDiagram: React.FC<HexBarScanDiagramProps> = ({
               fontWeight="bold"
             >
               C, LW 0° (RADIAL)
+            </text>
+          </g>
+
+          {/* ========== C₁: Dual Element LW 0° from Top (near surface 0-20mm) ========== */}
+          <g opacity={getDirectionOpacity("C₁", scanDetails, highlightedDirection)}>
+            <line
+              x1={sideView.x + sideView.width / 2 + 55}
+              y1={sideView.y - 55}
+              x2={sideView.x + sideView.width / 2 + 55}
+              y2={sideView.y - 15}
+              stroke={getDirectionColor("C₁", scanDetails, highlightedDirection)}
+              strokeWidth="2"
+              strokeDasharray="4,3"
+            />
+            <polygon
+              points={`${sideView.x + sideView.width / 2 + 55},${sideView.y - 20}
+                       ${sideView.x + sideView.width / 2 + 50},${sideView.y - 32}
+                       ${sideView.x + sideView.width / 2 + 60},${sideView.y - 32}`}
+              fill={getDirectionColor("C₁", scanDetails, highlightedDirection)}
+            />
+            <text
+              x={sideView.x + sideView.width / 2 + 65}
+              y={sideView.y - 25}
+              fill={getDirectionColor("C₁", scanDetails, highlightedDirection)}
+              fontSize="10"
+            >
+              C₁ (0-20mm)
             </text>
           </g>
 

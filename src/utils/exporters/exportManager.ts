@@ -5,6 +5,7 @@
 
 import { WordExporter } from "./wordExporter";
 import { TuvStyleExporter } from "./tuvStyleExporter";
+import { CSIExporter, type CSIExportData } from "./csiExporter";
 import { BaseExporter } from "./baseExporter";
 import {
   ExportData,
@@ -42,6 +43,23 @@ export class ExportManager {
     data: ExportData,
     options: Partial<ExportOptions> = {}
   ): Promise<ExportResult> {
+    // CSI export
+    if (format === "csi") {
+      try {
+        const csiExporter = new CSIExporter(data as CSIExportData, {
+          format: "csi",
+          template: options.template || "standard",
+          ...options,
+        });
+        return await csiExporter.export();
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : "CSI export failed",
+        };
+      }
+    }
+
     // PDF uses the new exporter
     if (format === "pdf" && options.template !== "tuv") {
       try {
@@ -144,11 +162,11 @@ export class ExportManager {
   }
 
   getSupportedFormats(): ExportFormat[] {
-    return ["pdf", "word"];
+    return ["pdf", "word", "csi"];
   }
 
   isFormatSupported(format: ExportFormat): boolean {
-    return format === "pdf" || this.exporters.has(format);
+    return format === "pdf" || format === "csi" || this.exporters.has(format);
   }
 
   getDefaultOptions(template: ExportTemplate = "standard"): ExportOptions {

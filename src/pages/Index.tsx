@@ -63,6 +63,7 @@ import { validationEngine } from "@/utils/standards/validationEngine";
 import { techniqueSheetService } from "@/services/techniqueSheetService";
 import type { TechniqueSheetRecord, TechniqueSheetCardData } from "@/services/techniqueSheetService";
 import { FloatingDesignerButton } from "@/components/ui/FloatingDesignerButton";
+import { FloatingSplashDemoButton } from "@/components/ui/FloatingSplashDemoButton";
 import { useInspectorProfile } from "@/contexts/InspectorProfileContext";
 import { ProfileSelectionDialog } from "@/components/inspector";
 import { useExportCaptures } from "@/hooks/useExportCaptures";
@@ -2031,6 +2032,9 @@ const Index = () => {
 
       {/* Floating Button for Block Designer */}
       <FloatingDesignerButton />
+
+      {/* TEMPORARY: Floating Button for Splash Demo - Remove when done */}
+      <FloatingSplashDemoButton />
     </div>
   );
 };

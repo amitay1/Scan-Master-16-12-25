@@ -183,6 +183,33 @@ export const CylinderScanDiagram: React.FC<CylinderScanDiagramProps> = ({
             </text>
           </g>
 
+          {/* ========== A₁: Dual Element from top (near surface 0-20mm) ========== */}
+          <g opacity={getDirectionOpacity("A₁", scanDetails, highlightedDirection)}>
+            <line
+              x1={sideView.x + sideView.width / 2 + 65}
+              y1={sideView.y - 70}
+              x2={sideView.x + sideView.width / 2 + 65}
+              y2={sideView.y - 20}
+              stroke={getDirectionColor("A₁", scanDetails, highlightedDirection)}
+              strokeWidth="2"
+              strokeDasharray="4,3"
+            />
+            <polygon
+              points={`${sideView.x + sideView.width / 2 + 65},${sideView.y - 25}
+                       ${sideView.x + sideView.width / 2 + 60},${sideView.y - 35}
+                       ${sideView.x + sideView.width / 2 + 70},${sideView.y - 35}`}
+              fill={getDirectionColor("A₁", scanDetails, highlightedDirection)}
+            />
+            <text
+              x={sideView.x + sideView.width / 2 + 55}
+              y={sideView.y - 30}
+              fill={getDirectionColor("A₁", scanDetails, highlightedDirection)}
+              fontSize="10"
+            >
+              A₁ (0-20mm)
+            </text>
+          </g>
+
           {/* ========== B: LW 0° AXIAL from bottom ========== */}
           <g opacity={getDirectionOpacity("B", scanDetails, highlightedDirection)}>
             <line
@@ -211,6 +238,33 @@ export const CylinderScanDiagram: React.FC<CylinderScanDiagramProps> = ({
             </text>
           </g>
 
+          {/* ========== B₁: Dual Element from bottom (near surface 0-20mm) ========== */}
+          <g opacity={getDirectionOpacity("B₁", scanDetails, highlightedDirection)}>
+            <line
+              x1={sideView.x + sideView.width / 2 + 65}
+              y1={sideView.y + sideView.height + 70}
+              x2={sideView.x + sideView.width / 2 + 65}
+              y2={sideView.y + sideView.height + 20}
+              stroke={getDirectionColor("B₁", scanDetails, highlightedDirection)}
+              strokeWidth="2"
+              strokeDasharray="4,3"
+            />
+            <polygon
+              points={`${sideView.x + sideView.width / 2 + 65},${sideView.y + sideView.height + 25}
+                       ${sideView.x + sideView.width / 2 + 60},${sideView.y + sideView.height + 35}
+                       ${sideView.x + sideView.width / 2 + 70},${sideView.y + sideView.height + 35}`}
+              fill={getDirectionColor("B₁", scanDetails, highlightedDirection)}
+            />
+            <text
+              x={sideView.x + sideView.width / 2 + 55}
+              y={sideView.y + sideView.height + 35}
+              fill={getDirectionColor("B₁", scanDetails, highlightedDirection)}
+              fontSize="10"
+            >
+              B₁ (0-20mm)
+            </text>
+          </g>
+
           {/* ========== C: LW 0° RADIAL from OD ========== */}
           <g opacity={getDirectionOpacity("C", scanDetails, highlightedDirection)}>
             <line
@@ -236,6 +290,33 @@ export const CylinderScanDiagram: React.FC<CylinderScanDiagramProps> = ({
               fontWeight="bold"
             >
               C, LW 0° (RADIAL)
+            </text>
+          </g>
+
+          {/* ========== C₁: Dual Element RADIAL from OD (near surface 0-20mm) ========== */}
+          <g opacity={getDirectionOpacity("C₁", scanDetails, highlightedDirection)}>
+            <line
+              x1={sideView.x + sideView.width + 90}
+              y1={sideView.y + sideView.height / 2 + 25}
+              x2={sideView.x + sideView.width + 20}
+              y2={sideView.y + sideView.height / 2 + 25}
+              stroke={getDirectionColor("C₁", scanDetails, highlightedDirection)}
+              strokeWidth="2"
+              strokeDasharray="4,3"
+            />
+            <polygon
+              points={`${sideView.x + sideView.width + 25},${sideView.y + sideView.height / 2 + 25}
+                       ${sideView.x + sideView.width + 38},${sideView.y + sideView.height / 2 + 20}
+                       ${sideView.x + sideView.width + 38},${sideView.y + sideView.height / 2 + 30}`}
+              fill={getDirectionColor("C₁", scanDetails, highlightedDirection)}
+            />
+            <text
+              x={sideView.x + sideView.width + 85}
+              y={sideView.y + sideView.height / 2 + 15}
+              fill={getDirectionColor("C₁", scanDetails, highlightedDirection)}
+              fontSize="10"
+            >
+              C₁ (0-20mm)
             </text>
           </g>
 

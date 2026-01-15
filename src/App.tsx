@@ -26,6 +26,7 @@ import { GaugeDemo } from "./pages/GaugeDemo";
 import TechnicalDrawingTest from "./pages/TechnicalDrawingTest";
 import BlockDesigner from "./pages/BlockDesigner";
 import LicenseDashboard from "./pages/LicenseDashboard";
+import SplashScreenDemo from "./demos/splash-screens/SplashScreenDemo";
 
 const queryClient = new QueryClient();
 
@@ -124,6 +125,7 @@ const AppContent = () => {
         <Route path="/drawing-test" element={<TechnicalDrawingTest />} />
         <Route path="/block-designer" element={<BlockDesigner />} />
         <Route path="/license-dashboard" element={<LicenseDashboard />} />
+        <Route path="/splash-demo" element={<SplashScreenDemo />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
       <UIToaster />

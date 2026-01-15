@@ -1,266 +1,64 @@
-import { useEffect, useState, useId } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import smLogo from "@/assets/sm-logo.png";
-import "./SplashScreen.css";
+/**
+ * Dynamic Splash Screen Loader
+ * Loads the user's selected splash screen from localStorage
+ */
+
+import { useState, useEffect } from "react";
+
+// Import all splash screen options
+import SplashOption1_UltrasonicWaves from "@/demos/splash-screens/SplashOption1_UltrasonicWaves";
+import SplashOption2_HolographicCube from "@/demos/splash-screens/SplashOption2_HolographicCube";
+import SplashOption3_ParticleFormation from "@/demos/splash-screens/SplashOption3_ParticleFormation";
+import SplashOption4_TechMatrix from "@/demos/splash-screens/SplashOption4_TechMatrix";
+import SplashOption5_AerospaceCommand from "@/demos/splash-screens/SplashOption5_AerospaceCommand";
+import SplashOption6_DNAHelix from "@/demos/splash-screens/SplashOption6_DNAHelix";
+import SplashOption7_PortalWormhole from "@/demos/splash-screens/SplashOption7_PortalWormhole";
+import SplashOption8_NeonElectric from "@/demos/splash-screens/SplashOption8_NeonElectric";
+import SplashOption9_HologramProjection from "@/demos/splash-screens/SplashOption9_HologramProjection";
+import SplashOption10_QuantumField from "@/demos/splash-screens/SplashOption10_QuantumField";
+import SplashOption11_ImmersionTank from "@/demos/splash-screens/SplashOption11_ImmersionTank";
+import SplashOption12_RoboticArm from "@/demos/splash-screens/SplashOption12_RoboticArm";
+import SplashOption13_CScanReveal from "@/demos/splash-screens/SplashOption13_CScanReveal";
+import SplashOption14_AScanPulse from "@/demos/splash-screens/SplashOption14_AScanPulse";
+import SplashOption15_GantrySystem from "@/demos/splash-screens/SplashOption15_GantrySystem";
+
+// Map of all splash screen components by ID
+const splashScreens: Record<number, React.ComponentType<{ onComplete: () => void }>> = {
+  1: SplashOption1_UltrasonicWaves,
+  2: SplashOption2_HolographicCube,
+  3: SplashOption3_ParticleFormation,
+  4: SplashOption4_TechMatrix,
+  5: SplashOption5_AerospaceCommand,
+  6: SplashOption6_DNAHelix,
+  7: SplashOption7_PortalWormhole,
+  8: SplashOption8_NeonElectric,
+  9: SplashOption9_HologramProjection,
+  10: SplashOption10_QuantumField,
+  11: SplashOption11_ImmersionTank,
+  12: SplashOption12_RoboticArm,
+  13: SplashOption13_CScanReveal,
+  14: SplashOption14_AScanPulse,
+  15: SplashOption15_GantrySystem,
+};
 
 const SplashScreen = ({ onComplete }: { onComplete: () => void }) => {
-  const uniqueId = useId().replace(/:/g, '-');
-  const [showLogo, setShowLogo] = useState(false);
-  const [scanProgress, setScanProgress] = useState(0);
-  const [ascanData, setAscanData] = useState<number[]>([]);
-  
-  // Generate A-scan waveform data
+  const [selectedId, setSelectedId] = useState<number>(1);
+
   useEffect(() => {
-    const generateAscan = () => {
-      const points = 100;
-      const data: number[] = [];
-      for (let i = 0; i < points; i++) {
-        const x = i / points;
-        // Simulate ultrasonic echo pattern with initial pulse and echoes
-        let amplitude = 0;
-        
-        // Initial pulse
-        if (x < 0.1) {
-          amplitude = Math.sin(x * 50) * Math.exp(-x * 20) * 80;
-        }
-        // First echo
-        else if (x > 0.3 && x < 0.35) {
-          amplitude = Math.sin((x - 0.3) * 100) * Math.exp(-(x - 0.3) * 30) * 60;
-        }
-        // Second echo
-        else if (x > 0.6 && x < 0.65) {
-          amplitude = Math.sin((x - 0.6) * 100) * Math.exp(-(x - 0.6) * 30) * 40;
-        }
-        // Noise
-        amplitude += (Math.random() - 0.5) * 5;
-        
-        data.push(amplitude);
+    // Load selected splash screen from localStorage
+    const saved = localStorage.getItem('selectedSplashScreen');
+    if (saved) {
+      const id = parseInt(saved);
+      if (id >= 1 && id <= 15) {
+        setSelectedId(id);
       }
-      setAscanData(data);
-    };
-    
-    generateAscan();
-    const interval = setInterval(generateAscan, 500);
-    
-    return () => clearInterval(interval);
+    }
   }, []);
 
-  // Trigger animations sequence
-  useEffect(() => {
-    // Start scan
-    const scanInterval = setInterval(() => {
-      setScanProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(scanInterval);
-          return 100;
-        }
-        return prev + 3;
-      });
-    }, 30);
-    
-    // Show logo after a short delay
-    setTimeout(() => setShowLogo(true), 500);
-    
-    // Complete animation after 4 seconds
-    const completeTimeout = setTimeout(() => {
-      onComplete();
-    }, 4000);
-    
-    return () => {
-      clearInterval(scanInterval);
-      clearTimeout(completeTimeout);
-    };
-  }, [onComplete]);
+  // Get the selected splash screen component
+  const SelectedSplash = splashScreens[selectedId] || SplashOption1_UltrasonicWaves;
 
-  return (
-    <AnimatePresence>
-      <motion.div
-        className="splash-screen fixed inset-0 z-50 overflow-hidden"
-        style={{ background: 'linear-gradient(135deg, #000511 0%, #001122 50%, #000000 100%)' }}
-        initial={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 1 }}
-      >
-        {/* Ultrasonic depth grid background */}
-        <svg className="absolute inset-0 w-full h-full opacity-10">
-          <defs>
-            <pattern id={`depth-grid-${uniqueId}`} width="50" height="50" patternUnits="userSpaceOnUse">
-              <rect width="50" height="1" fill="rgba(0, 255, 255, 0.3)" />
-              <rect width="1" height="50" fill="rgba(0, 255, 255, 0.3)" />
-              <text x="5" y="45" fill="rgba(0, 255, 255, 0.2)" fontSize="8" fontFamily="monospace">
-                {Math.floor(Math.random() * 100)}mm
-              </text>
-            </pattern>
-          </defs>
-          <rect width="100%" height="100%" fill={`url(#depth-grid-${uniqueId})`} />
-        </svg>
-
-        {/* Main content container */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center">
-          
-          {/* Ultrasonic pulse rings (simplified) */}
-          {[1, 2].map((ring) => (
-            <motion.div
-              key={`ring-${ring}`}
-              className="absolute rounded-full"
-              style={{
-                width: `${400 + ring * 80}px`,
-                height: `${400 + ring * 80}px`,
-                left: '50%',
-                top: '50%',
-                transform: 'translate(-50%, -50%)',
-                border: '1px solid rgba(0, 255, 255, 0.2)',
-              }}
-              animate={{
-                scale: [1, 1.1, 1],
-                opacity: [0.3, 0.1, 0.3],
-              }}
-              transition={{
-                duration: 2 + ring * 0.5,
-                repeat: Infinity,
-                ease: "easeInOut"
-              }}
-            />
-          ))}
-
-          {/* A-Scan waveform display */}
-          <div className="absolute -top-52 left-1/2 -translate-x-1/2 w-[480px] h-28 opacity-50">
-            <svg viewBox="0 0 400 100" className="w-full h-full">
-              {/* Grid lines */}
-              <line x1="0" y1="50" x2="400" y2="50" stroke="rgba(0, 255, 255, 0.2)" strokeWidth="1" />
-              <line x1="0" y1="0" x2="0" y2="100" stroke="rgba(0, 255, 255, 0.2)" strokeWidth="1" />
-              
-              {/* A-scan waveform */}
-              <motion.polyline
-                points={ascanData.map((v, i) => `${i * 4},${50 - v / 2}`).join(' ')}
-                fill="none"
-                stroke="rgba(0, 255, 255, 0.8)"
-                strokeWidth="1.5"
-                initial={{ pathLength: 0 }}
-                animate={{ pathLength: 1 }}
-                transition={{ duration: 0.5, repeat: Infinity, repeatDelay: 0.5 }}
-              />
-              
-              {/* Axis labels */}
-              <text x="5" y="95" fill="rgba(0, 255, 255, 0.5)" fontSize="10" fontFamily="monospace">
-                Time (μs)
-              </text>
-              <text x="5" y="10" fill="rgba(0, 255, 255, 0.5)" fontSize="10" fontFamily="monospace">
-                Amplitude
-              </text>
-            </svg>
-          </div>
-
-          {/* Logo with effects */}
-          <AnimatePresence>
-            {showLogo && (
-              <motion.div
-                className="logo-container relative mb-8"
-                initial={{ scale: 0, opacity: 0 }}
-                animate={{ 
-                  scale: 1,
-                  opacity: 1
-                }}
-                transition={{
-                  duration: 1,
-                  type: "spring",
-                  stiffness: 100
-                }}
-              >                
-                {/* Main logo */}
-                <motion.img
-                  src={smLogo}
-                  alt="SM Logo"
-                  className="relative z-10"
-                  style={{
-                    width: '280px',
-                    height: '280px',
-                    filter: 'drop-shadow(0 0 30px rgba(0, 150, 255, 0.7))',
-                  }}
-                />
-
-                {/* Subtle glow */}
-                <motion.div
-                  className="absolute inset-0 rounded-full"
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    background: 'radial-gradient(circle, rgba(0, 150, 255, 0.1) 0%, transparent 70%)',
-                    filter: 'blur(20px)'
-                  }}
-                  animate={{
-                    opacity: [0.5, 0.7, 0.5]
-                  }}
-                  transition={{
-                    duration: 2,
-                    repeat: Infinity
-                  }}
-                />
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Text under logo */}
-          {showLogo && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5, duration: 0.8 }}
-              className="text-center"
-            >
-              <motion.h1
-                className="text-4xl font-bold text-cyan-400 tracking-wider mb-4"
-                style={{
-                  textShadow: '0 0 15px rgba(0, 255, 255, 0.6)'
-                }}
-              >
-                ULTRASONIC INSPECTION SYSTEM
-              </motion.h1>
-
-              {/* Loading progress bar */}
-              <div className="w-80 h-1.5 bg-gray-800 rounded-full overflow-hidden mx-auto mb-4">
-                <motion.div
-                  className="h-full bg-gradient-to-r from-cyan-500 to-cyan-300"
-                  initial={{ width: "0%" }}
-                  animate={{ width: `${scanProgress}%` }}
-                  transition={{ duration: 0.1 }}
-                />
-              </div>
-              
-              <motion.div className="flex items-center justify-center gap-2">
-                <span className="text-base text-cyan-300/70 tracking-widest font-mono">
-                  CALIBRATING TRANSDUCER
-                </span>
-              </motion.div>
-            </motion.div>
-          )}
-        </div>
-
-        {/* Ultrasonic measurement overlay - bottom corners */}
-        <div className="absolute bottom-6 left-6 text-cyan-400/60 font-mono text-sm">
-          <div>FREQ: 5.0 MHz</div>
-          <div>GAIN: 42 dB</div>
-          <div>RANGE: 250mm</div>
-        </div>
-
-        <div className="absolute bottom-6 right-6 text-cyan-400/60 font-mono text-sm text-right">
-          <div>VELOCITY: 5920 m/s</div>
-          <div>PROBE: 70° L-Wave</div>
-          <div>MODE: PULSE-ECHO</div>
-        </div>
-
-        {/* Scanning progress indicator */}
-        <div className="absolute top-6 right-6 text-cyan-400/60 font-mono text-sm">
-          <motion.div
-            animate={{ opacity: [0.5, 1, 0.5] }}
-            transition={{ duration: 1, repeat: Infinity }}
-          >
-            SCAN: {Math.round(scanProgress)}%
-          </motion.div>
-        </div>
-      </motion.div>
-    </AnimatePresence>
-  );
+  return <SelectedSplash onComplete={onComplete} />;
 };
 
 export default SplashScreen;

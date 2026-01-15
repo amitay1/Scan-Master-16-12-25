@@ -102,14 +102,29 @@ export interface CalibrationRecommendationInput {
     hasCircumferentialScan?: boolean; // D, E - REQUIRES notched blocks
     hasAngleBeam?: boolean;           // F, G, H... - REQUIRES angle beam blocks (IIW/DSC)
   };
+
+  // OEM Vendor - affects calibration requirements and coverage rules
+  oemVendor?: "GENERIC" | "GE" | "RR" | "PW";
 }
 
 export interface CalibrationRecommendationOutput {
   // Primary recommendation
   primaryBlock: CalibrationBlockSpec;
-  
+
   // Alternative options (if applicable)
   alternativeBlocks?: CalibrationBlockSpec[];
+
+  // Fallback rules (NEW: for when primary block unavailable)
+  fallbackRules?: {
+    alternatives: Array<{
+      blockType: string;
+      priority: number;           // 1 = first choice, 2 = second, etc.
+      requiresApproval: boolean;  // Needs Level III approval?
+      reason: string;             // Why this is acceptable
+      limitations?: string[];     // Any limitations vs primary
+    }>;
+    fallbackChain: string;        // Human-readable: "curved_fbh → flat_fbh → custom"
+  };
   
   // Standard compliance info
   standardCompliance: {
@@ -194,6 +209,178 @@ const REFERENCE_MATERIALS: Record<MaterialType, ReferenceMaterial> = {
     alternates: []
   }
 };
+
+// ============================================================================
+// FALLBACK RULES DATABASE
+// Defines what blocks can substitute for others when unavailable
+// ============================================================================
+
+interface FallbackRule {
+  primary: CalibrationBlockCategory;
+  alternatives: Array<{
+    blockType: CalibrationBlockCategory;
+    priority: number;
+    requiresApproval: boolean;
+    reason: string;
+    limitations?: string[];
+  }>;
+}
+
+const FALLBACK_RULES: FallbackRule[] = [
+  {
+    primary: 'curved_fbh',
+    alternatives: [
+      {
+        blockType: 'flat_fbh',
+        priority: 1,
+        requiresApproval: true,
+        reason: 'Flat block acceptable with curvature correction factor applied',
+        limitations: ['Requires Level III approval', 'Must apply curvature correction per ASTM']
+      },
+      {
+        blockType: 'custom',
+        priority: 2,
+        requiresApproval: true,
+        reason: 'Custom block when standard not available',
+        limitations: ['Custom calibration procedure required']
+      }
+    ]
+  },
+  {
+    primary: 'cylinder_notched',
+    alternatives: [
+      {
+        blockType: 'cylinder_fbh',
+        priority: 1,
+        requiresApproval: true,
+        reason: 'FBH cylinder acceptable for thick wall (>25mm) radial inspection',
+        limitations: ['Not for circumferential shear wave', 'Wall >25mm only']
+      },
+      {
+        blockType: 'flat_fbh',
+        priority: 2,
+        requiresApproval: true,
+        reason: 'Flat block for large diameter tubes (>100mm OD)',
+        limitations: ['OD must be >100mm', 'Level III approval required']
+      }
+    ]
+  },
+  {
+    primary: 'cylinder_fbh',
+    alternatives: [
+      {
+        blockType: 'flat_fbh',
+        priority: 1,
+        requiresApproval: true,
+        reason: 'Flat block acceptable for large diameter (>50mm) solid rounds',
+        limitations: ['Diameter >50mm required', 'Curvature correction may be needed']
+      },
+      {
+        blockType: 'cylinder_notched',
+        priority: 2,
+        requiresApproval: false,
+        reason: 'Notched cylinder provides additional reference points',
+        limitations: ['More sensitive than FBH - may flag more indications']
+      }
+    ]
+  },
+  {
+    primary: 'flat_fbh',
+    alternatives: [
+      {
+        blockType: 'step_wedge',
+        priority: 1,
+        requiresApproval: false,
+        reason: 'Step wedge provides multiple thickness references',
+        limitations: ['Different calibration procedure']
+      },
+      {
+        blockType: 'custom',
+        priority: 2,
+        requiresApproval: true,
+        reason: 'Custom block when standard not available'
+      }
+    ]
+  },
+  {
+    primary: 'iiw_v1',
+    alternatives: [
+      {
+        blockType: 'iiw_v2',
+        priority: 1,
+        requiresApproval: false,
+        reason: 'IIW V2 (Miniature) acceptable for most applications',
+        limitations: ['Limited depth range', 'Smaller radius']
+      },
+      {
+        blockType: 'dsc_block',
+        priority: 2,
+        requiresApproval: false,
+        reason: 'DSC block provides similar calibration capability'
+      },
+      {
+        blockType: 'aws_block',
+        priority: 3,
+        requiresApproval: true,
+        reason: 'AWS block acceptable per AWS D1.1',
+        limitations: ['Primarily for weld inspection']
+      }
+    ]
+  },
+  {
+    primary: 'iiw_v2',
+    alternatives: [
+      {
+        blockType: 'iiw_v1',
+        priority: 1,
+        requiresApproval: false,
+        reason: 'IIW V1 provides extended capability',
+        limitations: ['Larger block size']
+      },
+      {
+        blockType: 'dsc_block',
+        priority: 2,
+        requiresApproval: false,
+        reason: 'DSC block acceptable alternative'
+      }
+    ]
+  }
+];
+
+/**
+ * Get fallback rules for a given block type
+ */
+function getFallbackRules(primaryType: CalibrationBlockCategory): FallbackRule['alternatives'] | undefined {
+  const rule = FALLBACK_RULES.find(r => r.primary === primaryType);
+  return rule?.alternatives;
+}
+
+/**
+ * Generate fallback chain string for documentation
+ */
+function generateFallbackChain(
+  primary: CalibrationBlockCategory,
+  alternatives?: CalibrationBlockCategory[]
+): string {
+  const chain = [primary];
+
+  // Add alternatives from FALLBACK_RULES
+  const rules = getFallbackRules(primary);
+  if (rules) {
+    chain.push(...rules.map(r => r.blockType));
+  }
+
+  // Add explicit alternatives if provided
+  if (alternatives) {
+    for (const alt of alternatives) {
+      if (!chain.includes(alt)) {
+        chain.push(alt);
+      }
+    }
+  }
+
+  return chain.join(' → ');
+}
 
 // ============================================================================
 // BLOCK SELECTION LOGIC
@@ -927,9 +1114,25 @@ export function generateCalibrationRecommendationV2(
     notes.push(...abData.calibrationNotes);
   }
   
+  // Step 12: Generate fallback rules
+  const fallbackAlternatives = getFallbackRules(blockSelection.category);
+  const fallbackRules = fallbackAlternatives && fallbackAlternatives.length > 0
+    ? {
+        alternatives: fallbackAlternatives.map(alt => ({
+          blockType: alt.blockType,
+          priority: alt.priority,
+          requiresApproval: alt.requiresApproval,
+          reason: alt.reason,
+          limitations: alt.limitations
+        })),
+        fallbackChain: generateFallbackChain(blockSelection.category, blockSelection.alternatives)
+      }
+    : undefined;
+
   return {
     primaryBlock,
     alternativeBlocks,
+    fallbackRules,
     standardCompliance: {
       standard: input.standard,
       reference: primaryBlock.standardReference,

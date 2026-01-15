@@ -101,6 +101,7 @@ function drawFrontView(
   );
 
   // DIMENSIONS
+  // Length dimension at bottom
   generator.drawDimension(
     outerX,
     outerY + scaledOD + 40,
@@ -110,19 +111,21 @@ function drawFrontView(
     5
   );
 
+  // OD dimension on right side (moved from left to avoid overlap with ID)
   generator.drawDimension(
-    outerX - 40,
+    outerX + scaledLength + 35,
     outerY,
-    outerX - 40,
+    outerX + scaledLength + 35,
     outerY + scaledOD,
     `OD=${outerDiameter}mm`,
     5
   );
 
+  // ID dimension on left side
   generator.drawDimension(
-    outerX - 70,
+    outerX - 40,
     innerY,
-    outerX - 70,
+    outerX - 40,
     innerY + scaledID,
     `ID=${innerDiameter.toFixed(1)}mm`,
     5

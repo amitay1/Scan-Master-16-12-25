@@ -107,6 +107,10 @@ export interface InspectionSetupData {
   heatTreatment?: string;        // Heat treatment condition
   acousticVelocity?: number;     // Material acoustic velocity (m/s)
   materialDensity?: number;      // Material density (kg/m³)
+
+  // OEM Vendor Selection (for automatic setup generation)
+  // Affects calibration requirements, coverage rules, and documentation
+  oemVendor?: "GENERIC" | "GE" | "RR" | "PW";
 }
 
 export interface EquipmentData {
@@ -279,4 +283,391 @@ export interface ScanPlanDocument {
 
 export interface ScanPlanData {
   documents: ScanPlanDocument[];
+}
+
+// ============================================================================
+// OEM (Original Equipment Manufacturer) Types
+// For automatic setup generation per vendor requirements (GE/RR/PW)
+// ============================================================================
+
+export type OEMVendor = "GENERIC" | "GE" | "RR" | "PW";
+
+export interface OEMCoverageRequirements {
+  minCoverage: number;              // Minimum coverage % (e.g., 95 for GE, 90 standard)
+  overlapRequirement: number;       // Required overlap between passes (%)
+  criticalZoneMultiplier: number;   // Multiplier for critical zone coverage (e.g., 1.5x)
+  edgeExclusion: number;            // Edge exclusion zone in mm
+}
+
+export interface OEMFrequencyConstraints {
+  min: number;                      // Minimum frequency (MHz)
+  max: number;                      // Maximum frequency (MHz)
+  preferred: number[];              // Preferred frequency values
+}
+
+export interface OEMTransducerSpec {
+  id: string;
+  manufacturer: string;
+  model: string;
+  frequency: number;
+  diameter: number;
+  type: "immersion" | "contact" | "phased_array";
+  approved: boolean;
+}
+
+export interface OEMCalibrationBlockSpec {
+  id: string;
+  type: CalibrationBlockType;
+  material: string;
+  fbhSizes: string[];
+  geometry: "flat" | "curved" | "cylindrical";
+  approved: boolean;
+}
+
+export interface OEMCalibrationRules {
+  interval: number;                 // Calibration interval in hours
+  temperatureCheckRequired: boolean;
+  dacCurveRequired: boolean;
+  tcgRequired: boolean;
+  transferCorrectionMax: number;    // Max transfer correction in dB
+  periodicVerificationHours: number; // Hours between periodic checks
+}
+
+export interface OEMDocumentationRules {
+  templateId: string;
+  requiredSections: string[];
+  approvalLevels: number;           // Number of approval signatures required
+  language: "english" | "bilingual";
+  revisionTracking: boolean;
+}
+
+export interface OEMRuleSet {
+  vendorId: OEMVendor;
+  vendorName: string;
+  version: string;
+  effectiveDate: string;
+  specReference: string;            // e.g., "P&W 127", "GE P23TF22"
+
+  // Coverage requirements
+  coverageRequirements: OEMCoverageRequirements;
+
+  // Equipment constraints
+  frequencyConstraints: OEMFrequencyConstraints;
+  approvedTransducers: OEMTransducerSpec[];
+  approvedBlocks: OEMCalibrationBlockSpec[];
+
+  // Calibration rules
+  calibrationRules: OEMCalibrationRules;
+
+  // Documentation rules
+  documentationRules: OEMDocumentationRules;
+
+  // Part-specific rules (keyed by part category)
+  partSpecificRules?: Record<string, Partial<OEMRuleSet>>;
+
+  // Warnings and notes
+  warnings: string[];
+  notes: string[];
+}
+
+// ============================================================================
+// Patch Planning Types
+// For automatic scan patch generation
+// ============================================================================
+
+export type ScanStrategy = "raster" | "spiral" | "circumferential" | "bidirectional" | "unidirectional";
+export type EdgeHandling = "extend" | "stop" | "reduced_speed" | "overlap";
+export type PatchShape = "rectangle" | "arc" | "annular" | "custom";
+
+export interface PatchGeometry {
+  shape: PatchShape;
+  // For rectangular patches
+  x?: number;                       // Start X position (mm)
+  y?: number;                       // Start Y position (mm)
+  width?: number;                   // Width in mm
+  height?: number;                  // Height in mm
+  // For arc/annular patches (circular parts)
+  startAngle?: number;              // Start angle in degrees
+  endAngle?: number;                // End angle in degrees
+  innerRadius?: number;             // Inner radius (mm)
+  outerRadius?: number;             // Outer radius (mm)
+  // For custom patches
+  vertices?: Array<{ x: number; y: number }>;
+}
+
+export interface ExcludedZone {
+  id: string;
+  reason: string;                   // e.g., "hole", "feature", "edge", "inaccessible"
+  geometry: PatchGeometry;
+}
+
+export interface Patch {
+  id: string;
+  name: string;                     // e.g., "P1", "Bore-Zone-1"
+  geometry: PatchGeometry;
+  scanStrategy: ScanStrategy;
+  direction: string;                // Scan direction reference (A-L)
+  waveMode: "longitudinal" | "shear" | "surface";
+
+  // Scan parameters for this patch
+  scanSpeed: number;                // mm/s
+  scanIndex: number;                // mm (step between passes)
+  overlap: {
+    previous: number;               // Overlap with previous patch (%)
+    next: number;                   // Overlap with next patch (%)
+  };
+  edgeHandling: EdgeHandling;
+
+  // Coverage metrics
+  coverage: number;                 // Achieved coverage (%)
+  passes: number;                   // Number of scan passes
+  estimatedTime: number;            // Estimated scan time (seconds)
+
+  // Sequence
+  sequence: number;                 // Order in scan sequence
+
+  // Status
+  status: "planned" | "validated" | "warning" | "error";
+  warnings?: string[];
+}
+
+export interface PatchPlan {
+  id: string;
+  version: string;
+  createdDate: string;
+
+  // Input parameters used
+  partGeometry: PartGeometry;
+  coverageTarget: number;           // Target coverage (%)
+  overlapRequired: number;          // Required overlap (%)
+  oemVendor?: OEMVendor;            // OEM rules applied
+
+  // Generated patches
+  patches: Patch[];
+  excludedZones: ExcludedZone[];
+
+  // Summary metrics
+  totalCoverage: number;            // Total achieved coverage (%)
+  totalPatches: number;
+  totalPasses: number;
+  estimatedTotalTime: number;       // Total scan time (seconds)
+
+  // Validation
+  meetsRequirements: boolean;
+  validationErrors: string[];
+  validationWarnings: string[];
+
+  // Optimization info
+  optimizationStrategy: "coverage_first" | "time_first" | "balanced";
+  optimizationScore: number;        // 0-100
+}
+
+export interface PatchGeneratorInput {
+  // Part info
+  partGeometry: PartGeometry;
+  dimensions: {
+    length: number;
+    width: number;
+    thickness: number;
+    outerDiameter?: number;
+    innerDiameter?: number;
+  };
+  material: MaterialType;
+
+  // Coverage requirements
+  coverageTarget: number;           // % (default 100)
+  overlapRequired: number;          // % (from OEM rules or default 15)
+
+  // Probe info
+  probeFootprint: {
+    width: number;                  // Effective beam width (mm)
+    length: number;                 // Effective beam length (mm)
+  };
+  frequency: number;                // MHz
+
+  // Constraints
+  maxPatchSize?: number;            // Maximum patch dimension (mm)
+  maxScanSpeed?: number;            // Maximum scan speed (mm/s)
+  excludedZones?: ExcludedZone[];
+
+  // OEM rules (optional)
+  oemRules?: OEMRuleSet;
+}
+
+// ============================================================================
+// DAC/TCG Types
+// For Distance-Amplitude Correction and Time-Corrected Gain
+// ============================================================================
+
+export interface DACPoint {
+  depth: number;                    // Metal travel distance (mm)
+  amplitude: number;                // Amplitude (% FSH)
+  gain: number;                     // Gain setting (dB)
+  fbhSize?: string;                 // FBH size at this point
+}
+
+export interface DACCurve {
+  id: string;
+  name: string;
+  material: MaterialType;
+  frequency: number;                // MHz
+  velocity: number;                 // m/s
+
+  // Reference points
+  points: DACPoint[];
+
+  // Calculated values
+  attenuation: number;              // Material attenuation (dB/mm)
+  transferCorrection: number;       // Block-to-part correction (dB)
+
+  // Curve equation (for documentation)
+  equation: string;
+
+  // Thresholds
+  recordingLevel: number;           // % of DAC
+  rejectionLevel: number;           // % of DAC
+}
+
+export interface TCGPoint {
+  time: number;                     // Time (μs)
+  gain: number;                     // Gain correction (dB)
+}
+
+export interface TCGCurve {
+  id: string;
+  basedOnDAC: string;               // DAC curve ID
+  targetAmplitude: number;          // Target amplitude (% FSH, usually 80)
+
+  // TCG points for equipment programming
+  points: TCGPoint[];
+
+  // Gate range where TCG applies
+  gateStart: number;                // μs
+  gateEnd: number;                  // μs
+
+  // Total correction applied
+  totalCorrection: number;          // dB
+}
+
+// ============================================================================
+// Scanner Kinematics & Machine Constraints
+// For automatic setup generation - machine capability limits
+// ============================================================================
+
+export interface ScannerKinematics {
+  // Speed limits
+  maxScanSpeed: number;             // Maximum scan speed (mm/s)
+  maxIndexSpeed: number;            // Maximum index speed (mm/s)
+  maxRotationSpeed?: number;        // For rotary scanners (rpm)
+
+  // Acceleration limits
+  maxAcceleration: number;          // Maximum acceleration (mm/s²)
+  maxDeceleration: number;          // Maximum deceleration (mm/s²)
+
+  // Position limits
+  maxTravel: {
+    x: number;                      // X-axis travel (mm)
+    y: number;                      // Y-axis travel (mm)
+    z: number;                      // Z-axis travel (mm)
+  };
+
+  // Geometric limits
+  minRadius?: number;               // Minimum curve radius (mm) - for curved surfaces
+  maxIncidenceAngle?: number;       // Maximum beam incidence angle (degrees)
+
+  // Tank/fixture limits (for immersion)
+  tankDimensions?: {
+    length: number;                 // mm
+    width: number;                  // mm
+    depth: number;                  // mm
+  };
+}
+
+export interface DwellTimeConstraints {
+  minDwellTime: number;             // Minimum time probe must stay at each point (μs)
+  maxDwellTime: number;             // Maximum dwell time (μs)
+  prfLimit: number;                 // Pulse Repetition Frequency limit (Hz)
+}
+
+export interface IncidenceAngleConstraints {
+  maxIncidenceAngle: number;        // Maximum beam incidence angle (degrees)
+  criticalAngleWarning: number;     // Angle at which to warn (degrees)
+  mode: "longitudinal" | "shear";   // Wave mode affects critical angle
+}
+
+// ============================================================================
+// Block Fallback Rules
+// For automatic block selection with alternatives
+// ============================================================================
+
+export interface BlockFallbackRule {
+  primaryBlockType: CalibrationBlockType;
+  fallbackBlockTypes: CalibrationBlockType[];
+  conditions: {
+    geometry?: PartGeometry[];
+    thicknessRange?: { min: number; max: number };
+    materialTypes?: MaterialType[];
+    requiresApproval?: boolean;     // Level III approval needed for fallback
+  };
+  reason: string;
+}
+
+export interface BlockAvailability {
+  blockType: CalibrationBlockType;
+  serialNumber: string;
+  isAvailable: boolean;
+  calibrationStatus: "valid" | "expired" | "due_soon";
+  calibrationDueDate?: string;
+  location?: string;
+}
+
+// ============================================================================
+// Techsheet Template Types
+// For OEM-specific and site-specific templates
+// ============================================================================
+
+export interface TechsheetTemplate {
+  id: string;
+  name: string;
+  oemVendor: OEMVendor;
+  siteId?: string;                  // Site-specific template
+  machineId?: string;               // Machine-specific template
+  templatePath: string;
+  language: "english" | "hebrew" | "bilingual";
+  sections: string[];               // Required sections
+  logoPath?: string;
+  headerText?: string;
+  footerText?: string;
+}
+
+// ============================================================================
+// Validation & Coverage Types
+// For patch plan and coverage verification
+// ============================================================================
+
+export interface CoverageGap {
+  id: string;
+  location: PatchGeometry;
+  area: number;                     // mm²
+  reason: string;                   // e.g., "edge exclusion", "geometry constraint"
+  severity: "warning" | "error";
+}
+
+export interface CoverageMap {
+  resolution: number;               // Grid resolution (mm)
+  data: number[][];                 // 2D array of coverage % at each point
+  gaps: CoverageGap[];
+  totalCoverage: number;            // Overall coverage %
+  minCoverage: number;              // Minimum local coverage %
+}
+
+export interface PatchValidationResult {
+  patchId: string;
+  isValid: boolean;
+  errors: string[];
+  warnings: string[];
+  dwellTimeOk: boolean;
+  incidenceAngleOk: boolean;
+  coverageOk: boolean;
+  speedOk: boolean;
 }

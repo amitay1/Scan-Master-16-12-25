@@ -204,6 +204,33 @@ export const RingScanDiagram: React.FC<RingScanDiagramProps> = ({
             </text>
           </g>
 
+          {/* ========== A₁: Dual Element from top (near surface 0-20mm) ========== */}
+          <g opacity={getDirectionOpacity("A₁", scanDetails, highlightedDirection)}>
+            <line
+              x1={sideView.x + (sideView.outerWidth - sideView.innerWidth) / 4 + 25}
+              y1={sideView.y - 55}
+              x2={sideView.x + (sideView.outerWidth - sideView.innerWidth) / 4 + 25}
+              y2={sideView.y - 20}
+              stroke={getDirectionColor("A₁", scanDetails, highlightedDirection)}
+              strokeWidth="2"
+              strokeDasharray="4,3"
+            />
+            <polygon
+              points={`${sideView.x + (sideView.outerWidth - sideView.innerWidth) / 4 + 25},${sideView.y - 25}
+                       ${sideView.x + (sideView.outerWidth - sideView.innerWidth) / 4 + 20},${sideView.y - 35}
+                       ${sideView.x + (sideView.outerWidth - sideView.innerWidth) / 4 + 30},${sideView.y - 35}`}
+              fill={getDirectionColor("A₁", scanDetails, highlightedDirection)}
+            />
+            <text
+              x={sideView.x + (sideView.outerWidth - sideView.innerWidth) / 4 + 35}
+              y={sideView.y - 40}
+              fill={getDirectionColor("A₁", scanDetails, highlightedDirection)}
+              fontSize="10"
+            >
+              A₁ (0-20mm)
+            </text>
+          </g>
+
           {/* ========== B: LW 0° AXIAL from bottom (right wall) ========== */}
           <g opacity={getDirectionOpacity("B", scanDetails, highlightedDirection)}>
             <line
@@ -229,6 +256,33 @@ export const RingScanDiagram: React.FC<RingScanDiagramProps> = ({
               fontWeight="bold"
             >
               B, LW 0°
+            </text>
+          </g>
+
+          {/* ========== B₁: Dual Element from bottom (near surface 0-20mm) ========== */}
+          <g opacity={getDirectionOpacity("B₁", scanDetails, highlightedDirection)}>
+            <line
+              x1={sideView.x + sideView.outerWidth - (sideView.outerWidth - sideView.innerWidth) / 4 - 25}
+              y1={sideView.y + sideView.height + 55}
+              x2={sideView.x + sideView.outerWidth - (sideView.outerWidth - sideView.innerWidth) / 4 - 25}
+              y2={sideView.y + sideView.height + 20}
+              stroke={getDirectionColor("B₁", scanDetails, highlightedDirection)}
+              strokeWidth="2"
+              strokeDasharray="4,3"
+            />
+            <polygon
+              points={`${sideView.x + sideView.outerWidth - (sideView.outerWidth - sideView.innerWidth) / 4 - 25},${sideView.y + sideView.height + 25}
+                       ${sideView.x + sideView.outerWidth - (sideView.outerWidth - sideView.innerWidth) / 4 - 30},${sideView.y + sideView.height + 35}
+                       ${sideView.x + sideView.outerWidth - (sideView.outerWidth - sideView.innerWidth) / 4 - 20},${sideView.y + sideView.height + 35}`}
+              fill={getDirectionColor("B₁", scanDetails, highlightedDirection)}
+            />
+            <text
+              x={sideView.x + sideView.outerWidth - (sideView.outerWidth - sideView.innerWidth) / 4 - 60}
+              y={sideView.y + sideView.height + 45}
+              fill={getDirectionColor("B₁", scanDetails, highlightedDirection)}
+              fontSize="10"
+            >
+              B₁ (0-20mm)
             </text>
           </g>
 
@@ -265,6 +319,33 @@ export const RingScanDiagram: React.FC<RingScanDiagramProps> = ({
               fontSize="9"
             >
               (RADIAL)
+            </text>
+          </g>
+
+          {/* ========== C₁: Dual Element RADIAL from OD (near surface 0-20mm) ========== */}
+          <g opacity={getDirectionOpacity("C₁", scanDetails, highlightedDirection)}>
+            <line
+              x1={sideView.x + sideView.outerWidth + 55}
+              y1={sideView.y + sideView.height / 2 + 22}
+              x2={sideView.x + sideView.outerWidth + 20}
+              y2={sideView.y + sideView.height / 2 + 22}
+              stroke={getDirectionColor("C₁", scanDetails, highlightedDirection)}
+              strokeWidth="2"
+              strokeDasharray="4,3"
+            />
+            <polygon
+              points={`${sideView.x + sideView.outerWidth + 25},${sideView.y + sideView.height / 2 + 22}
+                       ${sideView.x + sideView.outerWidth + 38},${sideView.y + sideView.height / 2 + 17}
+                       ${sideView.x + sideView.outerWidth + 38},${sideView.y + sideView.height / 2 + 27}`}
+              fill={getDirectionColor("C₁", scanDetails, highlightedDirection)}
+            />
+            <text
+              x={sideView.x + sideView.outerWidth + 75}
+              y={sideView.y + sideView.height / 2 + 25}
+              fill={getDirectionColor("C₁", scanDetails, highlightedDirection)}
+              fontSize="10"
+            >
+              C₁ (0-20mm)
             </text>
           </g>
 

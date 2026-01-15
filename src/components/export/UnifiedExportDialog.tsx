@@ -19,8 +19,14 @@ import {
   Building2,
   Trash2,
   Eye,
+  Shield,
+  AlertTriangle,
+  Cpu,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { ComplianceCheckerDialog, ComplianceBadge } from "@/components/ComplianceCheckerDialog";
+import { runComplianceCheck } from "@/utils/complianceChecker";
+import type { ComplianceCheckData } from "@/types/compliance";
 
 import type {
   StandardType,
@@ -39,6 +45,7 @@ import type { ExportTemplate } from "@/types/unifiedInspection";
 import { exportTechniqueSheetPDF } from "@/utils/export/TechniqueSheetPDF";
 import { exportTechniqueSheetWord } from "@/utils/export/TechniqueSheetWord";
 import { exportInspectionReportPDF } from "@/utils/export/InspectionReportPDF";
+import { exportToCSI, type CSIExportData } from "@/utils/exporters/csiExporter";
 
 interface UnifiedExportDialogProps {
   open: boolean;
@@ -86,10 +93,82 @@ export const UnifiedExportDialog: React.FC<UnifiedExportDialogProps> = ({
   // Determine if we're exporting an inspection report
   const isReportMode = reportMode === "Report" && inspectionReport;
   const [isExporting, setIsExporting] = useState(false);
-  const [exportFormat, setExportFormat] = useState<"pdf" | "word">("pdf");
+  const [exportFormat, setExportFormat] = useState<"pdf" | "word" | "csi">("pdf");
   const [companyName, setCompanyName] = useState("");
   const [companyLogo, setCompanyLogo] = useState<string | null>(null);
   const [logoFileName, setLogoFileName] = useState<string | null>(null);
+  const [showComplianceDialog, setShowComplianceDialog] = useState(false);
+
+  // Build compliance check data from props
+  const complianceData: ComplianceCheckData = useMemo(() => ({
+    standard,
+    inspectionSetup: {
+      partNumber: inspectionSetup.partNumber || "",
+      partName: inspectionSetup.partName || "",
+      material: inspectionSetup.material || "",
+      materialSpec: inspectionSetup.materialSpec || "",
+      partType: inspectionSetup.partType || "",
+      partThickness: inspectionSetup.partThickness || 0,
+      partLength: inspectionSetup.partLength || 0,
+      partWidth: inspectionSetup.partWidth || 0,
+      diameter: inspectionSetup.diameter,
+      isHollow: inspectionSetup.isHollow,
+      innerDiameter: inspectionSetup.innerDiameter,
+      wallThickness: inspectionSetup.wallThickness,
+      acousticVelocity: inspectionSetup.acousticVelocity,
+    },
+    equipment: {
+      manufacturer: equipment.manufacturer || "",
+      model: equipment.model || "",
+      serialNumber: equipment.serialNumber || "",
+      frequency: equipment.frequency || "",
+      transducerType: equipment.transducerType || "",
+      transducerDiameter: equipment.transducerDiameter || 0,
+      couplant: equipment.couplant || "",
+      verticalLinearity: equipment.verticalLinearity || 0,
+      horizontalLinearity: equipment.horizontalLinearity || 0,
+    },
+    calibration: {
+      standardType: calibration.standardType || "",
+      referenceMaterial: calibration.referenceMaterial || "",
+      fbhSizes: calibration.fbhSizes || "",
+      metalTravelDistance: calibration.metalTravelDistance || 0,
+      blockSerialNumber: calibration.blockSerialNumber || "",
+      lastCalibrationDate: calibration.lastCalibrationDate || "",
+    },
+    scanParameters: {
+      scanMethod: scanParameters.scanMethod || "",
+      scanType: scanParameters.scanType || "",
+      scanSpeed: scanParameters.scanSpeed || 0,
+      scanIndex: scanParameters.scanIndex || 0,
+      coverage: scanParameters.coverage || 0,
+      waterPath: scanParameters.waterPath,
+      pulseRepetitionRate: scanParameters.pulseRepetitionRate || 0,
+      gainSettings: scanParameters.gainSettings || "",
+      alarmGateSettings: scanParameters.alarmGateSettings || "",
+      technique: scanParameters.technique,
+    },
+    acceptanceCriteria: {
+      acceptanceClass: acceptanceCriteria.acceptanceClass || "",
+      singleDiscontinuity: acceptanceCriteria.singleDiscontinuity || "",
+      multipleDiscontinuities: acceptanceCriteria.multipleDiscontinuities || "",
+      linearDiscontinuity: acceptanceCriteria.linearDiscontinuity || "",
+      backReflectionLoss: acceptanceCriteria.backReflectionLoss || 0,
+      noiseLevel: acceptanceCriteria.noiseLevel || "",
+    },
+    documentation: {
+      inspectorName: documentation.inspectorName || "",
+      inspectorCertification: documentation.inspectorCertification || "",
+      inspectorLevel: documentation.inspectorLevel || "",
+      certifyingOrganization: documentation.certifyingOrganization || "",
+      inspectionDate: documentation.inspectionDate || "",
+      procedureNumber: documentation.procedureNumber || "",
+      drawingReference: documentation.drawingReference || "",
+    },
+  }), [standard, inspectionSetup, equipment, calibration, scanParameters, acceptanceCriteria, documentation]);
+
+  // Run compliance check
+  const complianceReport = useMemo(() => runComplianceCheck(complianceData), [complianceData]);
 
   // Handle logo file upload
   const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -204,14 +283,32 @@ export const UnifiedExportDialog: React.FC<UnifiedExportDialogProps> = ({
     });
   };
 
-  const handleExport = async (format: "pdf" | "word") => {
+  const handleExport = async (format: "pdf" | "word" | "csi") => {
     setIsExporting(true);
     setExportFormat(format);
 
     try {
       await new Promise(r => setTimeout(r, 400));
 
-      if (format === "pdf") {
+      // CSI Export for ScanMaster integration
+      if (format === "csi") {
+        const csiData: CSIExportData = {
+          standard,
+          inspectionSetup,
+          equipment,
+          calibration,
+          scanParameters,
+          acceptanceCriteria,
+          documentation,
+          oemVendor: inspectionSetup.oemVendor,
+        };
+        await exportToCSI(csiData, {
+          format: 'csi',
+          template: 'standard',
+          csiVersion: '1.0',
+          includeComments: true,
+        });
+      } else if (format === "pdf") {
         // Use appropriate exporter based on mode
         if (isReportMode && inspectionReport) {
           // Export Inspection Report (TÜV/Metalscan style)
@@ -318,6 +415,48 @@ export const UnifiedExportDialog: React.FC<UnifiedExportDialogProps> = ({
         {/* Content */}
         <div className="p-6 space-y-5">
 
+          {/* Compliance Status */}
+          <button
+            onClick={() => setShowComplianceDialog(true)}
+            className={cn(
+              "w-full flex items-center justify-between p-4 rounded-xl border-2 transition-all",
+              complianceReport.status === "pass"
+                ? "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800 hover:border-emerald-400"
+                : complianceReport.status === "warning"
+                ? "bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 hover:border-amber-400"
+                : "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 hover:border-red-400"
+            )}
+          >
+            <div className="flex items-center gap-3">
+              {complianceReport.status === "pass" ? (
+                <Shield className="w-5 h-5 text-emerald-500" />
+              ) : complianceReport.status === "warning" ? (
+                <AlertTriangle className="w-5 h-5 text-amber-500" />
+              ) : (
+                <Shield className="w-5 h-5 text-red-500" />
+              )}
+              <div className="text-left">
+                <div className="font-medium text-sm">
+                  {complianceReport.status === "pass"
+                    ? "Compliance Check Passed"
+                    : complianceReport.status === "warning"
+                    ? `${complianceReport.warnings.length} Warning(s)`
+                    : `${complianceReport.criticalIssues.length} Critical Issue(s)`}
+                </div>
+                <div className="text-xs text-slate-500">
+                  Click to view detailed compliance report
+                </div>
+              </div>
+            </div>
+            <div className={cn(
+              "text-2xl font-bold",
+              complianceReport.status === "pass" ? "text-emerald-600" :
+              complianceReport.status === "warning" ? "text-amber-500" : "text-red-500"
+            )}>
+              {complianceReport.overallScore}%
+            </div>
+          </button>
+
           {/* Document Info */}
           <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-900 rounded-xl">
             <div className="flex items-center gap-3">
@@ -382,7 +521,7 @@ export const UnifiedExportDialog: React.FC<UnifiedExportDialogProps> = ({
           {/* Export Format Selection */}
           <div className="space-y-3">
             <div className="text-sm font-medium text-slate-700 dark:text-slate-300">Export Format</div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-3">
               {/* PDF Option */}
               <button
                 onClick={() => !isExporting && handleExport("pdf")}
@@ -432,6 +571,31 @@ export const UnifiedExportDialog: React.FC<UnifiedExportDialogProps> = ({
                   <div className="text-[10px] text-slate-500">Ready to export</div>
                 </div>
               </button>
+
+              {/* CSI Option - ScanMaster Integration */}
+              <button
+                onClick={() => !isExporting && handleExport("csi")}
+                disabled={isExporting}
+                className={cn(
+                  "relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all",
+                  "hover:border-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20",
+                  isExporting && exportFormat === "csi"
+                    ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20"
+                    : "border-slate-200 dark:border-slate-700"
+                )}
+              >
+                {isExporting && exportFormat === "csi" ? (
+                  <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
+                ) : (
+                  <div className="w-10 h-10 rounded-lg bg-emerald-600 flex items-center justify-center">
+                    <Cpu className="w-5 h-5 text-white" />
+                  </div>
+                )}
+                <div>
+                  <div className="font-semibold text-sm">CSI</div>
+                  <div className="text-[10px] text-slate-500">ScanMaster</div>
+                </div>
+              </button>
             </div>
 
             {/* Preview Button */}
@@ -474,14 +638,14 @@ export const UnifiedExportDialog: React.FC<UnifiedExportDialogProps> = ({
             </div>
           </div>
 
-          {/* Warning for low completion */}
+          {/* Info for low completion - but export still works */}
           {readinessData.percentage < 50 && (
-            <div className="flex items-start gap-3 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
-              <FileWarning className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+            <div className="flex items-start gap-3 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+              <FileText className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
               <div className="text-sm">
-                <div className="font-medium text-amber-700 dark:text-amber-300">Low completeness</div>
-                <div className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">
-                  Fill in more fields for a complete professional document
+                <div className="font-medium text-blue-700 dark:text-blue-300">Partial data - Export available</div>
+                <div className="text-xs text-blue-600 dark:text-blue-400 mt-0.5">
+                  Empty fields will show "-" in the exported document. You can fill in more details later.
                 </div>
               </div>
             </div>
@@ -524,6 +688,17 @@ export const UnifiedExportDialog: React.FC<UnifiedExportDialogProps> = ({
           </div>
         </div>
       </DialogContent>
+
+      {/* Compliance Checker Dialog */}
+      <ComplianceCheckerDialog
+        open={showComplianceDialog}
+        onOpenChange={setShowComplianceDialog}
+        data={complianceData}
+        onExport={() => {
+          setShowComplianceDialog(false);
+          handleExport("pdf");
+        }}
+      />
     </Dialog>
   );
 };
