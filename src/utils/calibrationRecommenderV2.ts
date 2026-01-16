@@ -71,6 +71,9 @@ import {
   NotchRecommendation
 } from "./angleBeamCalculator";
 
+// Import OEM Rule Engine for vendor-specific requirements
+import { getOEMRules, getCalibrationRules, getRecommendedSettings, getVendorFromStandard, getOEMRulesFromStandard, isOEMStandard, getNDIPPartData } from "./oemRuleEngine";
+
 // ============================================================================
 // INPUT/OUTPUT INTERFACES
 // ============================================================================
@@ -104,7 +107,12 @@ export interface CalibrationRecommendationInput {
   };
 
   // OEM Vendor - affects calibration requirements and coverage rules
+  // (deprecated: prefer using 'standard' field which auto-derives vendor)
   oemVendor?: "GENERIC" | "GE" | "RR" | "PW";
+
+  // Standard selection - auto-derives OEM vendor from NDIP/OEM standards
+  // When set, this takes precedence for OEM rule selection
+  standard?: string;
 }
 
 export interface CalibrationRecommendationOutput {
@@ -996,7 +1004,52 @@ export function generateCalibrationRecommendationV2(
 ): CalibrationRecommendationOutput {
   const warnings: string[] = [];
   const notes: string[] = [];
-  
+
+  // OEM-Specific Rule Application (runs BEFORE standard logic)
+  // When an OEM vendor is specified, apply their specific requirements
+  // NEW: Auto-derive OEM vendor from standard if standard is set
+  let oemVendor = input.oemVendor || 'GENERIC';
+
+  // If a standard is specified, auto-derive the OEM vendor from it
+  // This allows NDIP-1226/NDIP-1227 selection to automatically apply PW rules
+  if (input.standard && isOEMStandard(input.standard)) {
+    const derivedVendor = getVendorFromStandard(input.standard);
+    oemVendor = derivedVendor;
+
+    // Add NDIP-specific part data for PW standards
+    const ndipData = getNDIPPartData(input.standard);
+    if (ndipData) {
+      notes.push(`NDIP Document: ${ndipData.ndipDocument} Rev ${ndipData.revision}`);
+      notes.push(`Part Number: ${ndipData.partNumber}, Bore Radius: ${ndipData.boreRadius}" (Offset: ${ndipData.boreOffset}")`);
+    }
+  }
+  if (oemVendor !== 'GENERIC') {
+    const oemRules = getOEMRules(oemVendor);
+    const oemCalibration = getCalibrationRules(oemVendor);
+
+    // Add OEM-specific notes
+    notes.push(`Using ${oemRules.vendorName} calibration requirements (${oemRules.specReference})`);
+
+    // Add vendor-specific warnings
+    if (oemRules.warnings && oemRules.warnings.length > 0) {
+      warnings.push(...oemRules.warnings);
+    }
+
+    // PW-specific requirements (NDIP-1226/1227)
+    if (oemVendor === 'PW') {
+      // PW requires DAC curve
+      if (oemCalibration.dacCurveRequired) {
+        notes.push('PW requires DAC curve calibration (80% FSH target)');
+      }
+      // PW post-calibration tolerance
+      notes.push(`Post-calibration tolerance: ±${oemCalibration.transferCorrectionMax} dB per NDIP Section 5.1.5`);
+      // PW calibration block recertification
+      notes.push('Calibration blocks require yearly recertification at PW NDE');
+      // PW approved equipment
+      notes.push('Use only PW-approved transducers and calibration blocks');
+    }
+  }
+
   // Step 1: Select calibration block type
   const blockSelection = selectCalibrationBlock(input);
   
@@ -1009,10 +1062,22 @@ export function generateCalibrationRecommendationV2(
   // Step 4: Get reference material
   const refMaterial = REFERENCE_MATERIALS[input.material];
   
-  // Step 5: Recommend frequency
-  const freqRec = input.frequency 
-    ? { frequency: input.frequency, reasoning: "User specified" }
-    : recommendFrequency(input.thickness, input.material);
+  // Step 5: Recommend frequency (OEM rules take precedence)
+  let freqRec: { frequency: number; reasoning: string };
+  if (input.frequency) {
+    freqRec = { frequency: input.frequency, reasoning: "User specified" };
+  } else if (oemVendor !== 'GENERIC') {
+    // Use OEM-specific frequency requirements
+    const oemRules = getOEMRules(oemVendor);
+    const preferredFreq = oemRules.frequencyConstraints.preferred[0] || 5;
+    freqRec = {
+      frequency: preferredFreq,
+      reasoning: `${oemRules.vendorName} specification (${oemRules.specReference})`
+    };
+    notes.push(`Using ${preferredFreq} MHz per ${oemRules.vendorName} approved transducer requirements`);
+  } else {
+    freqRec = recommendFrequency(input.thickness, input.material);
+  }
   
   // Step 6: Generate block geometry
   const blockGeometry = generateBlockGeometry(

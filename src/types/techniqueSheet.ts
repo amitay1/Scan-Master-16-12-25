@@ -1,9 +1,27 @@
-export type StandardType = 
-  | "AMS-STD-2154E"
-  | "MIL-STD-2154"
-  | "ASTM-A388"
-  | "BS-EN-10228-3"
-  | "BS-EN-10228-4";
+export type StandardType =
+  // Primary Aerospace Standards
+  | "AMS-STD-2154E"  // Ultrasonic Inspection of Wrought Metals - Aerospace
+  | "MIL-STD-2154"   // Legacy military standard (alias to AMS-STD-2154E)
+
+  // ASTM Standards
+  | "ASTM-A388"      // Heavy Steel Forgings
+  | "ASTM-E2375"     // UT of Wrought Products (general)
+  | "ASTM-E127"      // FBH Reference Blocks (calibration)
+  | "ASTM-E164"      // UT of Weldments
+
+  // European Standards (BS EN)
+  | "BS-EN-10228-3"  // Ferritic/Martensitic Steel Forgings
+  | "BS-EN-10228-4"  // Austenitic Stainless Steel Forgings
+  | "EN-ISO-16810"   // General UT Principles
+
+  // AMS Material-Specific Standards
+  | "AMS-2630"       // Products >0.5" thick (general)
+  | "AMS-2631"       // Titanium Bar, Billet, Plate
+  | "AMS-2632"       // Thin Materials ≤0.5"
+
+  // OEM-Specific Standards (Pratt & Whitney)
+  | "NDIP-1226"      // PW V2500 1st Stage HPT Disk
+  | "NDIP-1227";     // PW V2500 2nd Stage HPT Disk
 
 export type MaterialType = "aluminum" | "steel" | "stainless_steel" | "titanium" | "magnesium" | "custom";
 

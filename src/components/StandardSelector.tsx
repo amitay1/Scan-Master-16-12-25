@@ -1,6 +1,6 @@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { StandardType } from "@/types/techniqueSheet";
-import { Lock, Check, AlertCircle, Info, ShieldCheck, Factory, Globe, FlaskConical, DollarSign, Wrench, Beaker } from "lucide-react";
+import { Lock, Check, AlertCircle, Info, ShieldCheck, Factory, Globe, FlaskConical, DollarSign, Wrench, Beaker, FileText, Zap, Layers, BookOpen, CircleDot } from "lucide-react";
 import { useStandardAccess } from "@/hooks/useStandardAccess";
 import { useLicense } from "@/contexts/LicenseContext";
 import { Button } from "@/components/ui/button";
@@ -79,6 +79,155 @@ const standards = [
     badgeText: "#9333ea",
     badgeBorder: "#d8b4fe",
     features: ["Coarse grain", "0.5-2 MHz", "20% overlap", "Austenitic steel"]
+  },
+  {
+    value: "NDIP-1226" as StandardType,
+    label: "NDIP-1226 Rev F",
+    description: "V2500 1st Stage HPT Disk - Immersion UT Inspection",
+    stringency: "OEM Specific",
+    badge: "PW Aerospace",
+    icon: Wrench,
+    color: "text-orange-600",
+    iconBg: "bg-orange-600",
+    bgColor: "bg-orange-50",
+    borderColor: "border-orange-300",
+    badgeBg: "#fff7ed",
+    badgeText: "#ea580c",
+    badgeBorder: "#fdba74",
+    features: ["5 MHz immersion", "#1 FBH (1/64\")", "±45° shear wave", "100% coverage"]
+  },
+  {
+    value: "NDIP-1227" as StandardType,
+    label: "NDIP-1227 Rev D",
+    description: "V2500 2nd Stage HPT Disk - Immersion UT Inspection",
+    stringency: "OEM Specific",
+    badge: "PW Aerospace",
+    icon: Wrench,
+    color: "text-orange-600",
+    iconBg: "bg-orange-600",
+    bgColor: "bg-orange-50",
+    borderColor: "border-orange-300",
+    badgeBg: "#fff7ed",
+    badgeText: "#ea580c",
+    badgeBorder: "#fdba74",
+    features: ["5 MHz immersion", "#1 FBH (1/64\")", "±45° shear wave", "100% coverage"]
+  },
+
+  // ============================================================================
+  // NEW STANDARDS
+  // ============================================================================
+
+  {
+    value: "ASTM-E2375" as StandardType,
+    label: "ASTM E2375-22",
+    description: "Ultrasonic Testing of Wrought Products (Adopted from MIL-STD-2154)",
+    stringency: "Most Stringent",
+    badge: "General UT",
+    icon: FileText,
+    color: "text-indigo-600",
+    iconBg: "bg-indigo-600",
+    bgColor: "bg-indigo-50",
+    borderColor: "border-indigo-300",
+    badgeBg: "#eef2ff",
+    badgeText: "#4f46e5",
+    badgeBorder: "#a5b4fc",
+    features: ["5 classes (AAA-C)", "MIL-STD-2154 based", "30% overlap", "All wrought metals"]
+  },
+  {
+    value: "ASTM-E127" as StandardType,
+    label: "ASTM E127-20",
+    description: "Fabrication of FBH Ultrasonic Reference Blocks",
+    stringency: "Calibration",
+    badge: "Calibration",
+    icon: CircleDot,
+    color: "text-cyan-600",
+    iconBg: "bg-cyan-600",
+    bgColor: "bg-cyan-50",
+    borderColor: "border-cyan-300",
+    badgeBg: "#ecfeff",
+    badgeText: "#0891b2",
+    badgeBorder: "#67e8f9",
+    features: ["FBH 1/64\"-8/64\"", "5 MHz immersion", "Block fabrication", "Reference std"]
+  },
+  {
+    value: "ASTM-E164" as StandardType,
+    label: "ASTM E164-19",
+    description: "Contact Ultrasonic Testing of Weldments",
+    stringency: "Standard",
+    badge: "Welding",
+    icon: Zap,
+    color: "text-amber-600",
+    iconBg: "bg-amber-600",
+    bgColor: "bg-amber-50",
+    borderColor: "border-amber-300",
+    badgeBg: "#fffbeb",
+    badgeText: "#d97706",
+    badgeBorder: "#fcd34d",
+    features: ["Weld inspection", "45°/60°/70° angles", "0.25\"-8\" thick", "Ferrous/Aluminum"]
+  },
+  {
+    value: "AMS-2630" as StandardType,
+    label: "AMS 2630E",
+    description: "Ultrasonic Inspection of Products Over 0.5\" Thick",
+    stringency: "Aerospace",
+    badge: "Thick Parts",
+    icon: Layers,
+    color: "text-rose-600",
+    iconBg: "bg-rose-600",
+    bgColor: "bg-rose-50",
+    borderColor: "border-rose-300",
+    badgeBg: "#fff1f2",
+    badgeText: "#e11d48",
+    badgeBorder: "#fda4af",
+    features: ["5 classes (AAA-C)", ">0.5\" thickness", "30% overlap", "All wrought metals"]
+  },
+  {
+    value: "AMS-2631" as StandardType,
+    label: "AMS 2631G",
+    description: "Ultrasonic Inspection of Titanium Bar, Billet and Plate",
+    stringency: "Aerospace Ti",
+    badge: "Titanium",
+    icon: ShieldCheck,
+    color: "text-teal-600",
+    iconBg: "bg-teal-600",
+    bgColor: "bg-teal-50",
+    borderColor: "border-teal-300",
+    badgeBg: "#f0fdfa",
+    badgeText: "#0d9488",
+    badgeBorder: "#5eead4",
+    features: ["Classes AA/A/A1/B", "Ti-6Al-4V blocks", "≤250 μin surface", "Grain flow aware"]
+  },
+  {
+    value: "AMS-2632" as StandardType,
+    label: "AMS 2632C",
+    description: "Ultrasonic Inspection of Thin Materials (≤0.5\" / 12.7mm)",
+    stringency: "Aerospace Thin",
+    badge: "Thin Parts",
+    icon: Layers,
+    color: "text-pink-600",
+    iconBg: "bg-pink-600",
+    bgColor: "bg-pink-50",
+    borderColor: "border-pink-300",
+    badgeBg: "#fdf2f8",
+    badgeText: "#db2777",
+    badgeBorder: "#f9a8d4",
+    features: ["Classes AA/A/B/C", "≤0.5\" thickness", "High frequency", "Near-surface critical"]
+  },
+  {
+    value: "EN-ISO-16810" as StandardType,
+    label: "EN ISO 16810:2024",
+    description: "Non-destructive Testing - Ultrasonic Testing - General Principles",
+    stringency: "Framework",
+    badge: "EU/ISO",
+    icon: BookOpen,
+    color: "text-slate-600",
+    iconBg: "bg-slate-600",
+    bgColor: "bg-slate-50",
+    borderColor: "border-slate-300",
+    badgeBg: "#f8fafc",
+    badgeText: "#475569",
+    badgeBorder: "#cbd5e1",
+    features: ["General principles", "EN 12668 equipment", "Framework std", "Ref. other stds"]
   }
 ] as const;
 

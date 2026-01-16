@@ -53,6 +53,72 @@ const acceptanceClassesByStandardBase = {
     { id: "2", label: "Quality Class 2", description: "Standard quality - Intermediate stringency", stringency: "medium" },
     { id: "3", label: "Quality Class 3", description: "Highest quality - Most stringent for austenitic", stringency: "highest" },
   ],
+  // PW NDIP Standards - OEM-specific with single acceptance level
+  "NDIP-1226": [
+    { id: "PW-V2500-1", label: "PW Standard", description: "V2500 1st Stage HPT Disk - Immersion UT per NDIP-1226 Rev F", stringency: "highest" },
+  ],
+  "NDIP-1227": [
+    { id: "PW-V2500-2", label: "PW Standard", description: "V2500 2nd Stage HPT Disk - Immersion UT per NDIP-1227 Rev D", stringency: "highest" },
+  ],
+
+  // ============================================================================
+  // NEW STANDARDS ADDED
+  // ============================================================================
+
+  // ASTM E2375 - UT of Wrought Products (adopted from MIL-STD-2154)
+  // Uses same 5 classes as AMS-STD-2154E
+  "ASTM-E2375": [
+    { id: "AAA", label: "Class AAA", description: "Ultra-Critical - Same as AMS-STD-2154E AAA", stringency: "highest" },
+    { id: "AA", label: "Class AA", description: "Super-Critical - Same as AMS-STD-2154E AA", stringency: "high" },
+    { id: "A", label: "Class A", description: "Critical - Same as AMS-STD-2154E A", stringency: "medium" },
+    { id: "B", label: "Class B", description: "Semi-Critical - Same as AMS-STD-2154E B", stringency: "low" },
+    { id: "C", label: "Class C", description: "Non-Critical - Same as AMS-STD-2154E C", stringency: "basic" },
+  ],
+
+  // ASTM E127 - FBH Reference Blocks (Calibration Standard)
+  // No acceptance classes - calibration block specification only
+  "ASTM-E127": [
+    { id: "CALIBRATION", label: "Calibration Standard", description: "FBH reference block fabrication - No rejection criteria defined", stringency: "medium" },
+  ],
+
+  // ASTM E164 - UT of Weldments
+  // Acceptance per purchaser/manufacturer agreement
+  "ASTM-E164": [
+    { id: "LEVEL-1", label: "Level 1", description: "Most stringent - Critical welds per agreement", stringency: "highest" },
+    { id: "LEVEL-2", label: "Level 2", description: "Standard - General structural welds", stringency: "high" },
+    { id: "LEVEL-3", label: "Level 3", description: "Commercial - Non-critical welds", stringency: "medium" },
+  ],
+
+  // AMS-2630 - Products >0.5" thick (similar to AMS-STD-2154E)
+  "AMS-2630": [
+    { id: "AAA", label: "Class AAA", description: "Ultra-Critical - Products >0.5\" thick", stringency: "highest" },
+    { id: "AA", label: "Class AA", description: "Super-Critical - Products >0.5\" thick", stringency: "high" },
+    { id: "A", label: "Class A", description: "Critical - Products >0.5\" thick", stringency: "medium" },
+    { id: "B", label: "Class B", description: "Semi-Critical - Products >0.5\" thick", stringency: "low" },
+    { id: "C", label: "Class C", description: "Non-Critical - Products >0.5\" thick", stringency: "basic" },
+  ],
+
+  // AMS-2631 - Titanium Bar, Billet, Plate
+  "AMS-2631": [
+    { id: "AA", label: "Class AA", description: "Most stringent titanium - Premium rotating parts", stringency: "highest" },
+    { id: "A", label: "Class A", description: "High quality titanium - Primary structural", stringency: "high" },
+    { id: "A1", label: "Class A1", description: "Standard titanium - General aerospace", stringency: "medium" },
+    { id: "B", label: "Class B", description: "Commercial titanium - Non-critical", stringency: "low" },
+  ],
+
+  // AMS-2632 - Thin Materials ≤0.5" (12.7mm)
+  "AMS-2632": [
+    { id: "AA", label: "Class AA", description: "Most stringent - Thin critical materials", stringency: "highest" },
+    { id: "A", label: "Class A", description: "High quality - Thin structural materials", stringency: "high" },
+    { id: "B", label: "Class B", description: "Standard - Thin general materials", stringency: "medium" },
+    { id: "C", label: "Class C", description: "Commercial - Thin non-critical", stringency: "low" },
+  ],
+
+  // EN-ISO-16810 - General UT Principles (Reference Standard)
+  // No specific acceptance classes - framework standard only
+  "EN-ISO-16810": [
+    { id: "REFERENCE", label: "Reference Standard", description: "General UT principles - Acceptance per referencing document", stringency: "medium" },
+  ],
 } satisfies Record<Exclude<StandardType, "MIL-STD-2154">, AcceptanceClassOption[]>;
 
 export const acceptanceClassesByStandard: Record<StandardType, AcceptanceClassOption[]> = {
@@ -215,6 +281,243 @@ const acceptanceCriteriaByStandardBase = {
       specialNotes: "MOST STRINGENT - Class 3. Highest quality for austenitic/duplex steels. Most restrictive limits."
     },
   },
+  // PW NDIP Standards - OEM-specific acceptance criteria
+  "NDIP-1226": {
+    "PW-V2500-1": {
+      singleDiscontinuity: "≥20% FSH (with DAC applied) - Amplitude rejection",
+      multipleDiscontinuities: "≥15% FSH evaluation level for adjacent indications",
+      linearDiscontinuity: ">2x1 or 1x2 amplitude pixels at rejection threshold",
+      backReflectionLoss: "Per calibration verification (±2 dB tolerance)",
+      noiseLevel: "Max 10% FSH average, 15% FSH band noise",
+      specialNotes: "PW V2500 1st Stage HPT Disk. TOF criteria: ≥15 pixels over 3+ scan lines with SNR ≥1.5:1. Circumferential shear wave ±45°. #1 FBH (1/64\") at 80% FSH. Per NDIP-1226 Rev F."
+    },
+  },
+  "NDIP-1227": {
+    "PW-V2500-2": {
+      singleDiscontinuity: "≥20% FSH (with DAC applied) - Amplitude rejection",
+      multipleDiscontinuities: "≥15% FSH evaluation level for adjacent indications",
+      linearDiscontinuity: ">2x1 or 1x2 amplitude pixels at rejection threshold",
+      backReflectionLoss: "Per calibration verification (±2 dB tolerance)",
+      noiseLevel: "Max 10% FSH average, 15% FSH band noise",
+      specialNotes: "PW V2500 2nd Stage HPT Disk. TOF criteria: ≥15 pixels over 3+ scan lines with SNR ≥1.5:1. Circumferential shear wave ±45°. #1 FBH (1/64\") at 80% FSH. Per NDIP-1227 Rev D."
+    },
+  },
+
+  // ============================================================================
+  // NEW STANDARDS - ACCEPTANCE CRITERIA
+  // ============================================================================
+
+  // ASTM E2375 - Adopted from MIL-STD-2154 (same criteria as AMS-STD-2154E)
+  "ASTM-E2375": {
+    "AAA": {
+      singleDiscontinuity: "1/64\" (0.4mm) - 25% of 3/64\" FBH response",
+      multipleDiscontinuities: "10% of 3/64\" FBH (centers <1\" apart)",
+      linearDiscontinuity: "1/8\" max length - 10% of 3/64\" response",
+      backReflectionLoss: "Per Note 4 - with noise change indication",
+      noiseLevel: "Alarm level",
+      specialNotes: "ASTM E2375 adopted MIL-STD-2154 criteria. Most stringent class for rotating parts."
+    },
+    "AA": {
+      singleDiscontinuity: "3/64\" (1.2mm) FBH response",
+      multipleDiscontinuities: "3/64\" FBH (centers <1\" apart)",
+      linearDiscontinuity: "1/2\" max length - 2/64\" response",
+      backReflectionLoss: "50% maximum",
+      noiseLevel: "Alarm level",
+      specialNotes: "Super-critical applications per ASTM E2375"
+    },
+    "A": {
+      singleDiscontinuity: "5/64\" (2.0mm) FBH response",
+      multipleDiscontinuities: "2/64\" FBH (centers <1\" apart)",
+      linearDiscontinuity: "1\" max length - 3/64\" response",
+      backReflectionLoss: "50% maximum",
+      noiseLevel: "Alarm level",
+      specialNotes: "Critical applications per ASTM E2375"
+    },
+    "B": {
+      singleDiscontinuity: "8/64\" (3.2mm) FBH response",
+      multipleDiscontinuities: "3/64\" FBH (centers <1\" apart)",
+      linearDiscontinuity: "1\" max length - 5/64\" response",
+      backReflectionLoss: "50% maximum",
+      noiseLevel: "Alarm level",
+      specialNotes: "Semi-critical applications per ASTM E2375"
+    },
+    "C": {
+      singleDiscontinuity: "8/64\" (3.2mm) FBH response",
+      multipleDiscontinuities: "5/64\" FBH",
+      linearDiscontinuity: "Not applicable",
+      backReflectionLoss: "50% maximum",
+      noiseLevel: "Alarm level",
+      specialNotes: "Non-critical applications per ASTM E2375. No linear discontinuity limits."
+    },
+  },
+
+  // ASTM E127 - Calibration Block Standard (no rejection criteria)
+  "ASTM-E127": {
+    "CALIBRATION": {
+      singleDiscontinuity: "N/A - Calibration block fabrication standard",
+      multipleDiscontinuities: "N/A - Calibration block fabrication standard",
+      linearDiscontinuity: "N/A - Calibration block fabrication standard",
+      backReflectionLoss: "N/A - Calibration block fabrication standard",
+      noiseLevel: "N/A - Calibration block fabrication standard",
+      specialNotes: "ASTM E127 defines FBH reference block fabrication only. FBH sizes: 1/64\" to 8/64\". Metal travel: 0.0625\" to 6.000\". Use referencing standard for acceptance criteria."
+    },
+  },
+
+  // ASTM E164 - Weldments
+  "ASTM-E164": {
+    "LEVEL-1": {
+      singleDiscontinuity: "Reference standard level - Most stringent",
+      multipleDiscontinuities: "50% of reference - No clustering allowed",
+      linearDiscontinuity: "Not acceptable - Zero tolerance",
+      backReflectionLoss: "50% maximum",
+      noiseLevel: "Per agreement - Critical welds",
+      specialNotes: "Most stringent weld inspection. Criteria per purchaser agreement. Zero tolerance for linear indications."
+    },
+    "LEVEL-2": {
+      singleDiscontinuity: "Reference standard level",
+      multipleDiscontinuities: "Reference level - Limited clustering",
+      linearDiscontinuity: "≤1\" length at reference level",
+      backReflectionLoss: "75% maximum",
+      noiseLevel: "Per agreement",
+      specialNotes: "Standard structural weld quality. Linear indications limited to 1\" max."
+    },
+    "LEVEL-3": {
+      singleDiscontinuity: "2× reference standard level",
+      multipleDiscontinuities: "Reference level",
+      linearDiscontinuity: "≤2\" length at reference level",
+      backReflectionLoss: "Complete loss may be acceptable",
+      noiseLevel: "Per agreement",
+      specialNotes: "Commercial weld quality. All criteria per purchaser/manufacturer agreement."
+    },
+  },
+
+  // AMS-2630 - Products >0.5" thick
+  "AMS-2630": {
+    "AAA": {
+      singleDiscontinuity: "1/64\" (0.4mm) - 25% of 3/64\" FBH response",
+      multipleDiscontinuities: "10% of 3/64\" FBH (centers <1\" apart)",
+      linearDiscontinuity: "1/8\" max length - 10% of 3/64\" response",
+      backReflectionLoss: "Per specification",
+      noiseLevel: "Alarm level",
+      specialNotes: "Products over 0.5\" thick. Ultra-critical class. Consistent with AMS-STD-2154E methodology."
+    },
+    "AA": {
+      singleDiscontinuity: "3/64\" (1.2mm) FBH response",
+      multipleDiscontinuities: "3/64\" FBH (centers <1\" apart)",
+      linearDiscontinuity: "1/2\" max length - 2/64\" response",
+      backReflectionLoss: "50% maximum",
+      noiseLevel: "Alarm level",
+      specialNotes: "Products over 0.5\" thick. Super-critical class."
+    },
+    "A": {
+      singleDiscontinuity: "5/64\" (2.0mm) FBH response",
+      multipleDiscontinuities: "2/64\" FBH (centers <1\" apart)",
+      linearDiscontinuity: "1\" max length - 3/64\" response",
+      backReflectionLoss: "50% maximum",
+      noiseLevel: "Alarm level",
+      specialNotes: "Products over 0.5\" thick. Critical class."
+    },
+    "B": {
+      singleDiscontinuity: "8/64\" (3.2mm) FBH response",
+      multipleDiscontinuities: "3/64\" FBH (centers <1\" apart)",
+      linearDiscontinuity: "1\" max length - 5/64\" response",
+      backReflectionLoss: "50% maximum",
+      noiseLevel: "Alarm level",
+      specialNotes: "Products over 0.5\" thick. Semi-critical class."
+    },
+    "C": {
+      singleDiscontinuity: "8/64\" (3.2mm) FBH response",
+      multipleDiscontinuities: "5/64\" FBH",
+      linearDiscontinuity: "Not applicable",
+      backReflectionLoss: "50% maximum",
+      noiseLevel: "Alarm level",
+      specialNotes: "Products over 0.5\" thick. Non-critical class."
+    },
+  },
+
+  // AMS-2631 - Titanium Bar, Billet, Plate
+  "AMS-2631": {
+    "AA": {
+      singleDiscontinuity: "2/64\" (0.8mm) FBH response",
+      multipleDiscontinuities: "1/64\" FBH - Multiple with 1/4\" minimum separation",
+      linearDiscontinuity: "1/4\" max length - 2/64\" response",
+      backReflectionLoss: "Per specification",
+      noiseLevel: "Alarm level - Critical for titanium grain scatter",
+      specialNotes: "Premium titanium. Class AA for rotating engine parts. Surface texture ≤125 μin. Ti-6Al-4V or equivalent reference blocks."
+    },
+    "A": {
+      singleDiscontinuity: "3/64\" (1.2mm) FBH response",
+      multipleDiscontinuities: "2/64\" FBH (centers <1\" apart)",
+      linearDiscontinuity: "1/2\" max length - 2/64\" response",
+      backReflectionLoss: "50% maximum",
+      noiseLevel: "Alarm level",
+      specialNotes: "High quality titanium. Class A for primary structural components."
+    },
+    "A1": {
+      singleDiscontinuity: "5/64\" (2.0mm) FBH response",
+      multipleDiscontinuities: "3/64\" FBH (centers <1\" apart)",
+      linearDiscontinuity: "1\" max length - 3/64\" response",
+      backReflectionLoss: "50% maximum",
+      noiseLevel: "Alarm level",
+      specialNotes: "Standard titanium. Class A1 for general aerospace applications."
+    },
+    "B": {
+      singleDiscontinuity: "8/64\" (3.2mm) FBH response",
+      multipleDiscontinuities: "5/64\" FBH",
+      linearDiscontinuity: "Per agreement",
+      backReflectionLoss: "75% maximum",
+      noiseLevel: "Per agreement",
+      specialNotes: "Commercial titanium quality. Class B for non-critical applications."
+    },
+  },
+
+  // AMS-2632 - Thin Materials ≤0.5" (12.7mm)
+  "AMS-2632": {
+    "AA": {
+      singleDiscontinuity: "1/64\" (0.4mm) FBH response - Most stringent for thin materials",
+      multipleDiscontinuities: "1/64\" FBH - No clustering",
+      linearDiscontinuity: "Not acceptable",
+      backReflectionLoss: "Per specification",
+      noiseLevel: "Alarm level - Surface proximity critical",
+      specialNotes: "Thin materials ≤0.5\" (12.7mm). Class AA ultra-critical. Near-surface detection critical."
+    },
+    "A": {
+      singleDiscontinuity: "2/64\" (0.8mm) FBH response",
+      multipleDiscontinuities: "1/64\" FBH (limited clustering)",
+      linearDiscontinuity: "1/4\" max length",
+      backReflectionLoss: "50% maximum",
+      noiseLevel: "Alarm level",
+      specialNotes: "Thin materials ≤0.5\". Class A for critical applications."
+    },
+    "B": {
+      singleDiscontinuity: "3/64\" (1.2mm) FBH response",
+      multipleDiscontinuities: "2/64\" FBH",
+      linearDiscontinuity: "1/2\" max length",
+      backReflectionLoss: "50% maximum",
+      noiseLevel: "Alarm level",
+      specialNotes: "Thin materials ≤0.5\". Class B for standard applications."
+    },
+    "C": {
+      singleDiscontinuity: "5/64\" (2.0mm) FBH response",
+      multipleDiscontinuities: "3/64\" FBH",
+      linearDiscontinuity: "Per agreement",
+      backReflectionLoss: "75% maximum",
+      noiseLevel: "Per agreement",
+      specialNotes: "Thin materials ≤0.5\". Class C commercial quality."
+    },
+  },
+
+  // EN-ISO-16810 - General UT Principles (Framework Standard)
+  "EN-ISO-16810": {
+    "REFERENCE": {
+      singleDiscontinuity: "Per referencing document/code",
+      multipleDiscontinuities: "Per referencing document/code",
+      linearDiscontinuity: "Per referencing document/code",
+      backReflectionLoss: "Per referencing document/code",
+      noiseLevel: "Per referencing document/code",
+      specialNotes: "EN ISO 16810 defines general UT principles only. It does NOT specify acceptance criteria or scan plans. Use product-specific standards (EN 10228, etc.) for acceptance criteria. Equipment per EN 12668."
+    },
+  },
 } satisfies Record<Exclude<StandardType, "MIL-STD-2154">, Record<string, AcceptanceCriteriaValues>>;
 
 export const acceptanceCriteriaByStandard: Record<StandardType, Record<string, AcceptanceCriteriaValues>> = {
@@ -335,6 +638,99 @@ const equipmentParametersByStandardBase = {
     transducerDiameter: { min: 20, max: 30, unit: "mm" },
     notes: "Low frequency required for austenitic materials due to coarse grain and high attenuation. Consider 0.5-1 MHz for very coarse grain."
   },
+  // PW NDIP Standards - OEM-specific equipment
+  "NDIP-1226": {
+    frequencyRange: { min: 5, max: 5, typical: 5, unit: "MHz" },
+    verticalLinearity: { min: 5, max: 98 },
+    horizontalLinearity: { min: 90 },
+    frequencyTolerance: "±10%",
+    prfRange: "1000-5000 Hz",
+    transducerDiameter: { min: 19.05, max: 19.05, unit: "mm" }, // 0.75" per IAE2P16679
+    notes: "PW V2500 1st Stage HPT Disk. Transducer: IAE2P16679 (5 MHz, 0.75\" element, 8\" focal). Mirror: IAE2P16678 (45°). Immersion inspection at 8\" water path."
+  },
+  "NDIP-1227": {
+    frequencyRange: { min: 5, max: 5, typical: 5, unit: "MHz" },
+    verticalLinearity: { min: 5, max: 98 },
+    horizontalLinearity: { min: 90 },
+    frequencyTolerance: "±10%",
+    prfRange: "1000-5000 Hz",
+    transducerDiameter: { min: 19.05, max: 19.05, unit: "mm" }, // 0.75" per IAE2P16679
+    notes: "PW V2500 2nd Stage HPT Disk. Transducer: IAE2P16679 (5 MHz, 0.75\" element, 8\" focal). Mirror: IAE2P16678 (45°). Immersion inspection at 8\" water path."
+  },
+
+  // ============================================================================
+  // NEW STANDARDS - EQUIPMENT PARAMETERS
+  // ============================================================================
+
+  "ASTM-E2375": {
+    frequencyRange: { min: 2.25, max: 15, typical: 5, unit: "MHz" },
+    verticalLinearity: { min: 5, max: 98 },
+    horizontalLinearity: { min: 90 },
+    frequencyTolerance: "±10%",
+    prfRange: "100-10000 Hz",
+    transducerDiameter: { min: 6.35, max: 25.4, unit: "mm" },
+    notes: "Adopted from MIL-STD-2154. Same equipment requirements as AMS-STD-2154E."
+  },
+
+  "ASTM-E127": {
+    frequencyRange: { min: 5, max: 5, typical: 5, unit: "MHz" },
+    verticalLinearity: { min: 5, max: 98 },
+    horizontalLinearity: { min: 90 },
+    frequencyTolerance: null,
+    prfRange: null,
+    transducerDiameter: { min: 12.7, max: 19.05, unit: "mm" },
+    notes: "Calibration block standard. Standard tests at 5 MHz immersion. Block diameter 2.0\" for MTD ≤6\", 2.5\" for MTD >6\"."
+  },
+
+  "ASTM-E164": {
+    frequencyRange: { min: 1, max: 5, typical: 2.25, unit: "MHz" },
+    verticalLinearity: { min: 10, max: 95 },
+    horizontalLinearity: { min: 85 },
+    frequencyTolerance: null,
+    prfRange: null,
+    transducerDiameter: { min: 12.7, max: 25.4, unit: "mm" },
+    notes: "Weldment inspection. Straight beam and angle beam (45°, 60°, 70°). Thickness range 0.25\" to 8\" (6.4-203mm)."
+  },
+
+  "AMS-2630": {
+    frequencyRange: { min: 2.25, max: 15, typical: 5, unit: "MHz" },
+    verticalLinearity: { min: 5, max: 98 },
+    horizontalLinearity: { min: 90 },
+    frequencyTolerance: "±10%",
+    prfRange: "100-10000 Hz",
+    transducerDiameter: { min: 6.35, max: 25.4, unit: "mm" },
+    notes: "Products >0.5\" thick. Contact or immersion methods. Longitudinal or shear wave modes. Consistent with AMS-2631 methodology."
+  },
+
+  "AMS-2631": {
+    frequencyRange: { min: 2.25, max: 10, typical: 5, unit: "MHz" },
+    verticalLinearity: { min: 5, max: 95 },
+    horizontalLinearity: { min: 90 },
+    frequencyTolerance: "±10%",
+    prfRange: "100-10000 Hz",
+    transducerDiameter: { min: 9.5, max: 25.4, unit: "mm" },
+    notes: "Titanium bar/billet/plate. Surface texture ≤250 μin (6 μm). Use Ti-6Al-4V or acoustically similar reference blocks."
+  },
+
+  "AMS-2632": {
+    frequencyRange: { min: 5, max: 15, typical: 10, unit: "MHz" },
+    verticalLinearity: { min: 5, max: 98 },
+    horizontalLinearity: { min: 90 },
+    frequencyTolerance: "±10%",
+    prfRange: "100-10000 Hz",
+    transducerDiameter: { min: 6.35, max: 12.7, unit: "mm" },
+    notes: "Thin materials ≤0.5\" (12.7mm). Higher frequencies for near-surface resolution. Smaller transducers for thin sections."
+  },
+
+  "EN-ISO-16810": {
+    frequencyRange: { min: 0.5, max: 15, typical: 2, unit: "MHz" },
+    verticalLinearity: { min: 80, max: 100 },
+    horizontalLinearity: null,
+    frequencyTolerance: null,
+    prfRange: null,
+    transducerDiameter: { min: 6, max: 30, unit: "mm" },
+    notes: "General UT principles. Equipment per EN 12668-1/2/3. Specific requirements per referencing product standard."
+  },
 } satisfies Record<Exclude<StandardType, "MIL-STD-2154">, EquipmentParameters>;
 
 export const equipmentParametersByStandard: Record<StandardType, EquipmentParameters> = {
@@ -392,6 +788,99 @@ const scanParametersByStandardBase = {
     calibrationFrequency: "Before inspection, every 2 hours, and at completion",
     sensitivityGain: "Adjusted for grain noise level",
     notes: "Lower speeds and higher overlap due to austenitic material characteristics. More frequent calibration required."
+  },
+  // PW NDIP Standards - OEM-specific scan parameters
+  "NDIP-1226": {
+    maxSpeedManual: { value: 0, unit: "mm/s" }, // Not applicable - automated only
+    maxSpeedAutomated: { value: 127, unit: "mm/s" }, // 5 in/s max
+    minOverlap: 25, // Per PW coverage requirements
+    coverageRequired: 100,
+    calibrationFrequency: "Before each disk, after setup changes, every 8 hours",
+    sensitivityGain: "80% FSH on #1 FBH reference, DAC curve required",
+    notes: "PW V2500 1st Stage HPT. Max scan increment: 0.020\". Max index: 0.020\"/rev. Circumferential shear wave ±45°. 8\" water path immersion."
+  },
+  "NDIP-1227": {
+    maxSpeedManual: { value: 0, unit: "mm/s" }, // Not applicable - automated only
+    maxSpeedAutomated: { value: 127, unit: "mm/s" }, // 5 in/s max
+    minOverlap: 25, // Per PW coverage requirements
+    coverageRequired: 100,
+    calibrationFrequency: "Before each disk, after setup changes, every 8 hours",
+    sensitivityGain: "80% FSH on #1 FBH reference, DAC curve required",
+    notes: "PW V2500 2nd Stage HPT. Max scan increment: 0.020\". Max index: 0.020\"/rev. Circumferential shear wave ±45°. 8\" water path immersion."
+  },
+
+  // ============================================================================
+  // NEW STANDARDS - SCAN PARAMETERS
+  // ============================================================================
+
+  "ASTM-E2375": {
+    maxSpeedManual: { value: 150, unit: "mm/s" },
+    maxSpeedAutomated: { value: 150, unit: "mm/s" },
+    minOverlap: 30,
+    coverageRequired: 100,
+    calibrationFrequency: "Before inspection, every 4 hours, and at completion",
+    sensitivityGain: "80% FSH on reference, +6 to +12 dB for scanning",
+    notes: "Adopted from MIL-STD-2154. Same scan parameters as AMS-STD-2154E. 30% overlap required."
+  },
+
+  "ASTM-E127": {
+    maxSpeedManual: { value: 0, unit: "mm/s" }, // N/A - calibration block standard
+    maxSpeedAutomated: { value: 0, unit: "mm/s" },
+    minOverlap: 0,
+    coverageRequired: 0,
+    calibrationFrequency: "Per referencing standard",
+    sensitivityGain: "80% FSH on reference reflector",
+    notes: "Calibration block fabrication standard only. No scanning parameters defined. Use referencing standard for scan requirements."
+  },
+
+  "ASTM-E164": {
+    maxSpeedManual: { value: 152, unit: "mm/s" }, // 6 in/s
+    maxSpeedAutomated: { value: 254, unit: "mm/s" }, // 10 in/s
+    minOverlap: 15,
+    coverageRequired: 100,
+    calibrationFrequency: "Before and after inspection, and after any parameter change",
+    sensitivityGain: "Reference level as agreed, +6 dB minimum for scanning",
+    notes: "Weldment inspection. Full weld volume plus HAZ. Angle beam scans from both sides of weld when accessible."
+  },
+
+  "AMS-2630": {
+    maxSpeedManual: { value: 150, unit: "mm/s" },
+    maxSpeedAutomated: { value: 150, unit: "mm/s" },
+    minOverlap: 30,
+    coverageRequired: 100,
+    calibrationFrequency: "Before inspection, every 4 hours, and at completion",
+    sensitivityGain: "80% FSH on reference, scanning gain per class requirements",
+    notes: "Products >0.5\" thick. Consistent with AMS-STD-2154E. 30% minimum overlap. Coverage map for complex geometries."
+  },
+
+  "AMS-2631": {
+    maxSpeedManual: { value: 150, unit: "mm/s" },
+    maxSpeedAutomated: { value: 150, unit: "mm/s" },
+    minOverlap: 30,
+    coverageRequired: 100,
+    calibrationFrequency: "Before inspection, every 4 hours, and at completion",
+    sensitivityGain: "80% FSH on reference, scanning gain per Table requirements",
+    notes: "Titanium inspection. Longitudinal mode primary, shear mode when agreed. Surface texture ≤250 μin. Grain flow direction consideration."
+  },
+
+  "AMS-2632": {
+    maxSpeedManual: { value: 100, unit: "mm/s" },
+    maxSpeedAutomated: { value: 150, unit: "mm/s" },
+    minOverlap: 30,
+    coverageRequired: 100,
+    calibrationFrequency: "Before inspection, every 2 hours (thin material sensitivity)",
+    sensitivityGain: "80% FSH on reference, near-surface sensitivity critical",
+    notes: "Thin materials ≤0.5\". Slower speeds for thin section sensitivity. More frequent calibration checks. Near-surface zone critical."
+  },
+
+  "EN-ISO-16810": {
+    maxSpeedManual: { value: 150, unit: "mm/s" },
+    maxSpeedAutomated: { value: 500, unit: "mm/s" },
+    minOverlap: 15,
+    coverageRequired: 100,
+    calibrationFrequency: "Per referencing document requirements",
+    sensitivityGain: "Per referencing document requirements",
+    notes: "General UT principles only. Specific scan parameters per product standard (EN 10228-3/4, etc.). Framework reference only."
   },
 } satisfies Record<Exclude<StandardType, "MIL-STD-2154">, ScanParameters>;
 
@@ -459,6 +948,139 @@ const documentationByStandardBase = {
       "Special techniques noted"
     ]
   },
+  // PW NDIP Standards - OEM-specific documentation
+  "NDIP-1226": {
+    recordRetentionYears: "Life of component",
+    personnelCertification: "Level II UT (certified by approved training provider) + PW Probability of Detection qualification",
+    techniqueSheetRequired: true,
+    coverageMapRequired: "Required - per inspection zone",
+    additionalRequirements: [
+      "Disk part number and serial number",
+      "Disk heat code",
+      "Engine serial number",
+      "Time Since New (TSN) and Cycles Since New (CSN)",
+      "Amplitude and TOF C-Scan data (electronic transfer to PW MPE-NDE via MFT)",
+      "All rejectable indication details per Section 9.1.7",
+      "Calibration block serial number (IAE2P16675)",
+      "Transducer serial number (IAE2P16679)"
+    ]
+  },
+  "NDIP-1227": {
+    recordRetentionYears: "Life of component",
+    personnelCertification: "Level II UT (certified by approved training provider) + PW Probability of Detection qualification",
+    techniqueSheetRequired: true,
+    coverageMapRequired: "Required - per inspection zone",
+    additionalRequirements: [
+      "Disk part number and serial number",
+      "Disk heat code",
+      "Engine serial number",
+      "Time Since New (TSN) and Cycles Since New (CSN)",
+      "Amplitude and TOF C-Scan data (electronic transfer to PW MPE-NDE via MFT)",
+      "All rejectable indication details per Section 9.1.7",
+      "Calibration block serial number (IAE2P16675)",
+      "Transducer serial number (IAE2P16679)"
+    ]
+  },
+
+  // ============================================================================
+  // NEW STANDARDS - DOCUMENTATION REQUIREMENTS
+  // ============================================================================
+
+  "ASTM-E2375": {
+    recordRetentionYears: 7,
+    personnelCertification: "Per company specification (typically NAS 410 or SNT-TC-1A)",
+    techniqueSheetRequired: true,
+    coverageMapRequired: "Required for complex geometries",
+    additionalRequirements: [
+      "Full material and equipment traceability",
+      "All indications above 50% reference must be reported",
+      "Calibration records maintained",
+      "Adopted from MIL-STD-2154 requirements"
+    ]
+  },
+
+  "ASTM-E127": {
+    recordRetentionYears: "Life of reference block",
+    personnelCertification: "Level II UT minimum for block verification",
+    techniqueSheetRequired: false,
+    coverageMapRequired: "Not applicable - calibration block standard",
+    additionalRequirements: [
+      "Block material certification",
+      "FBH depth and diameter measurements",
+      "Block serial number and identification",
+      "Annual verification records",
+      "Acoustic property measurements"
+    ]
+  },
+
+  "ASTM-E164": {
+    recordRetentionYears: 5,
+    personnelCertification: "ASNT SNT-TC-1A Level II minimum",
+    techniqueSheetRequired: true,
+    coverageMapRequired: "Required - weld coverage documentation",
+    additionalRequirements: [
+      "Weld identification and location",
+      "Base metal and filler metal specification",
+      "Welding procedure specification (WPS) reference",
+      "Indication location, size, and characterization",
+      "Acceptance/rejection status per agreed criteria"
+    ]
+  },
+
+  "AMS-2630": {
+    recordRetentionYears: 7,
+    personnelCertification: "NAS 410 or company equivalent",
+    techniqueSheetRequired: true,
+    coverageMapRequired: "Required for complex geometries",
+    additionalRequirements: [
+      "Material specification and heat lot",
+      "Equipment settings and calibration records",
+      "All indications above recording level",
+      "Traceability to reference standards"
+    ]
+  },
+
+  "AMS-2631": {
+    recordRetentionYears: 7,
+    personnelCertification: "NAS 410 Level II minimum for titanium",
+    techniqueSheetRequired: true,
+    coverageMapRequired: "Required for all titanium inspections",
+    additionalRequirements: [
+      "Titanium material specification and heat lot",
+      "Heat treatment condition",
+      "Grain flow direction documentation",
+      "Surface preparation records",
+      "All indications above recording level per class",
+      "Reference block serial number and material"
+    ]
+  },
+
+  "AMS-2632": {
+    recordRetentionYears: 7,
+    personnelCertification: "NAS 410 Level II minimum",
+    techniqueSheetRequired: true,
+    coverageMapRequired: "Required - critical for thin materials",
+    additionalRequirements: [
+      "Material specification and thickness measurement",
+      "Near-surface zone inspection documentation",
+      "All indications above recording level",
+      "Surface condition documentation"
+    ]
+  },
+
+  "EN-ISO-16810": {
+    recordRetentionYears: "Per referencing document",
+    personnelCertification: "EN ISO 9712 Level 2 minimum",
+    techniqueSheetRequired: true,
+    coverageMapRequired: "Per referencing product standard",
+    additionalRequirements: [
+      "Written procedure reference",
+      "Equipment identification and calibration status",
+      "Personnel qualification records",
+      "Test conditions documentation",
+      "Specific requirements per referencing standard"
+    ]
+  },
 } satisfies Record<Exclude<StandardType, "MIL-STD-2154">, DocumentationRequirements>;
 
 export const documentationByStandard: Record<StandardType, DocumentationRequirements> = {
@@ -511,6 +1133,90 @@ const calibrationByStandardBase = {
     primarySensitivity: "Adjusted for grain noise level",
     transferCorrection: "Measure on actual component due to attenuation variation",
     verificationRequirements: "Verify every 2 hours, acceptance within ±2 dB of initial"
+  },
+  // PW NDIP Standards - OEM-specific calibration
+  "NDIP-1226": {
+    referenceBlockMaterial: "Titanium (Ti-6-4 or equivalent) - IAE2P16675 block",
+    calibrationInterval: "Before each disk, after setup changes, every 8 hours during continuous operation",
+    dacCurvePoints: 8, // Holes L through S per NDIP
+    primarySensitivity: "80% FSH on #1 FBH (1/64\") reference",
+    transferCorrection: "Curvature correction required per bore radius",
+    verificationRequirements: "Post-calibration within ±2 dB of initial. Re-inspect if drift detected."
+  },
+  "NDIP-1227": {
+    referenceBlockMaterial: "Titanium (Ti-6-4 or equivalent) - IAE2P16675 block",
+    calibrationInterval: "Before each disk, after setup changes, every 8 hours during continuous operation",
+    dacCurvePoints: 8, // Holes L through S per NDIP
+    primarySensitivity: "80% FSH on #1 FBH (1/64\") reference",
+    transferCorrection: "Curvature correction required per bore radius",
+    verificationRequirements: "Post-calibration within ±2 dB of initial. Re-inspect if drift detected."
+  },
+
+  // ============================================================================
+  // NEW STANDARDS - CALIBRATION REQUIREMENTS
+  // ============================================================================
+
+  "ASTM-E2375": {
+    referenceBlockMaterial: "Same material specification and heat treatment as part",
+    calibrationInterval: "Before each inspection, every 4 hours, and at completion",
+    dacCurvePoints: 3,
+    primarySensitivity: "80% FSH on reference reflector",
+    transferCorrection: "Required when surface finish differs",
+    verificationRequirements: "Verify at beginning, during (every 4 hrs), and end of inspection"
+  },
+
+  "ASTM-E127": {
+    referenceBlockMaterial: "7075-T6 aluminum (Area-Amplitude set) or as specified",
+    calibrationInterval: "Annual verification recommended",
+    dacCurvePoints: 0, // N/A - this is the calibration block standard itself
+    primarySensitivity: "80% FSH at standard immersion test parameters",
+    transferCorrection: "N/A - defines calibration block fabrication",
+    verificationRequirements: "Per section 9 - Verification tests including area-amplitude and distance-amplitude"
+  },
+
+  "ASTM-E164": {
+    referenceBlockMaterial: "Same or acoustically similar material to base metal",
+    calibrationInterval: "Before and after inspection",
+    dacCurvePoints: 3,
+    primarySensitivity: "Reference level as agreed between parties",
+    transferCorrection: "Required for surface condition differences",
+    verificationRequirements: "Verify before and after inspection, recalibrate if >2 dB change"
+  },
+
+  "AMS-2630": {
+    referenceBlockMaterial: "Same material specification and heat treatment as part",
+    calibrationInterval: "Before each inspection, every 4 hours, and at completion",
+    dacCurvePoints: 3,
+    primarySensitivity: "80% FSH on reference reflector",
+    transferCorrection: "Required when surface finish or curvature differs",
+    verificationRequirements: "Consistent with AMS-2631 methodology"
+  },
+
+  "AMS-2631": {
+    referenceBlockMaterial: "Ti-6Al-4V (AMS4928) or acoustically similar titanium alloy",
+    calibrationInterval: "Before inspection, every 4 hours, and at completion",
+    dacCurvePoints: 3,
+    primarySensitivity: "80% FSH on reference FBH per applicable table",
+    transferCorrection: "Required - titanium exhibits variable attenuation",
+    verificationRequirements: "Verify at class-appropriate intervals. Block per ASTM E428/E1158 procedures."
+  },
+
+  "AMS-2632": {
+    referenceBlockMaterial: "Same material specification as test part",
+    calibrationInterval: "Before inspection, every 2 hours, and at completion",
+    dacCurvePoints: 3,
+    primarySensitivity: "80% FSH on near-surface reference reflector",
+    transferCorrection: "Critical for thin section - measure on each part thickness",
+    verificationRequirements: "More frequent verification due to thin material sensitivity"
+  },
+
+  "EN-ISO-16810": {
+    referenceBlockMaterial: "Per referencing product standard (EN 10228 series, etc.)",
+    calibrationInterval: "Per referencing document",
+    dacCurvePoints: 3,
+    primarySensitivity: "Per referencing document",
+    transferCorrection: "Per referencing document",
+    verificationRequirements: "Equipment per EN 12668. Calibration per referencing product standard."
   },
 } satisfies Record<Exclude<StandardType, "MIL-STD-2154">, CalibrationRequirements>;
 
@@ -580,6 +1286,16 @@ export function getDefaultAcceptanceClass(standard: StandardType): string {
     "ASTM-A388": "QL2",
     "BS-EN-10228-3": "2", // Class 2 = Standard quality (not too stringent, not too lax)
     "BS-EN-10228-4": "2", // Class 2 = Standard quality (intermediate stringency)
+    "NDIP-1226": "PW-V2500-1", // PW standard - single acceptance level
+    "NDIP-1227": "PW-V2500-2", // PW standard - single acceptance level
+    // New standards
+    "ASTM-E2375": "A", // Same as AMS-STD-2154E
+    "ASTM-E127": "CALIBRATION", // Calibration block standard
+    "ASTM-E164": "LEVEL-2", // Standard weld quality
+    "AMS-2630": "A", // Same as AMS-STD-2154E
+    "AMS-2631": "A", // Standard titanium class
+    "AMS-2632": "A", // Standard thin materials class
+    "EN-ISO-16810": "REFERENCE", // Framework standard
   } satisfies Record<Exclude<StandardType, "MIL-STD-2154">, string>;
 
   const defaults: Record<StandardType, string> = {
@@ -598,7 +1314,9 @@ export function getFBHSizeForStandard(
   thicknessMm: number,
   acceptanceClass: string
 ): string {
-  if (standard === "AMS-STD-2154E") {
+  // AMS-STD-2154E, MIL-STD-2154, ASTM-E2375, AMS-2630 use the same FBH table
+  if (standard === "AMS-STD-2154E" || standard === "MIL-STD-2154" ||
+      standard === "ASTM-E2375" || standard === "AMS-2630") {
     // Find the appropriate row in AMS table
     let row = amsFBHTable[0];
     if (thicknessMm > 101.6) row = amsFBHTable[4];
@@ -616,6 +1334,50 @@ export function getFBHSizeForStandard(
     return "1/4\" (6.4mm) - #3";
   }
 
+  // PW NDIP standards - fixed #1 FBH per spec
+  if (standard === "NDIP-1226" || standard === "NDIP-1227") {
+    return "#1 FBH (1/64\" / 0.4mm) - Per PW NDIP specification";
+  }
+
+  // ASTM E127 - calibration block standard
+  if (standard === "ASTM-E127") {
+    return "1/64\" to 8/64\" - Per ASTM E127 reference block specification";
+  }
+
+  // ASTM E164 - weldments (reference per agreement)
+  if (standard === "ASTM-E164") {
+    return "Per purchaser/manufacturer agreement - Typically SDH or FBH reference";
+  }
+
+  // AMS-2631 - Titanium (uses similar FBH sizes but specific to titanium)
+  if (standard === "AMS-2631") {
+    if (acceptanceClass === "AA") {
+      if (thicknessMm <= 25.4) return "2/64\" (0.8mm)";
+      return "3/64\" (1.2mm)";
+    }
+    if (acceptanceClass === "A") {
+      if (thicknessMm <= 25.4) return "3/64\" (1.2mm)";
+      return "5/64\" (2.0mm)";
+    }
+    if (acceptanceClass === "A1") {
+      return "5/64\" (2.0mm)";
+    }
+    return "8/64\" (3.2mm)"; // Class B
+  }
+
+  // AMS-2632 - Thin materials (smaller FBH for thin sections)
+  if (standard === "AMS-2632") {
+    if (acceptanceClass === "AA") return "1/64\" (0.4mm)";
+    if (acceptanceClass === "A") return "2/64\" (0.8mm)";
+    if (acceptanceClass === "B") return "3/64\" (1.2mm)";
+    return "5/64\" (2.0mm)"; // Class C
+  }
+
+  // EN-ISO-16810 - Framework standard (refer to product standard)
+  if (standard === "EN-ISO-16810") {
+    return "Per referencing product standard (EN 10228 series, etc.)";
+  }
+
   // BS EN standards use metric
   if (thicknessMm < 50) return "3mm (0.118\")";
   if (thicknessMm < 150) return "5mm (0.197\")";
@@ -629,8 +1391,6 @@ export function getRecommendedFrequencyForStandard(
   standard: StandardType,
   thicknessMm: number
 ): string {
-  const params = equipmentParametersByStandard[standard];
-
   if (standard === "BS-EN-10228-4") {
     // Austenitic - always use lower frequencies
     if (thicknessMm > 200) return "0.5 MHz";
@@ -645,7 +1405,43 @@ export function getRecommendedFrequencyForStandard(
     return "2.25-5 MHz";
   }
 
-  // AMS and BS EN 10228-3
+  // PW NDIP standards - fixed 5 MHz per spec
+  if (standard === "NDIP-1226" || standard === "NDIP-1227") {
+    return "5 MHz (per PW NDIP specification)";
+  }
+
+  // ASTM E127 - calibration standard at 5 MHz
+  if (standard === "ASTM-E127") {
+    return "5 MHz (standard immersion test)";
+  }
+
+  // ASTM E164 - weldments
+  if (standard === "ASTM-E164") {
+    if (thicknessMm > 100) return "1-2.25 MHz";
+    if (thicknessMm > 50) return "2.25 MHz";
+    return "2.25-5 MHz";
+  }
+
+  // AMS-2631 - Titanium (lower frequencies for grain scatter)
+  if (standard === "AMS-2631") {
+    if (thicknessMm > 100) return "2.25 MHz";
+    if (thicknessMm > 50) return "2.25-5 MHz";
+    return "5 MHz";
+  }
+
+  // AMS-2632 - Thin materials (higher frequencies for resolution)
+  if (standard === "AMS-2632") {
+    if (thicknessMm < 6) return "10-15 MHz";
+    if (thicknessMm < 10) return "10 MHz";
+    return "5-10 MHz";
+  }
+
+  // EN-ISO-16810 - Framework standard
+  if (standard === "EN-ISO-16810") {
+    return "Per referencing product standard";
+  }
+
+  // AMS-STD-2154E, MIL-STD-2154, ASTM-E2375, AMS-2630, BS EN 10228-3
   if (thicknessMm < 12.7) return "10 MHz";
   if (thicknessMm < 25.4) return "5 MHz";
   if (thicknessMm < 50.8) return "2.25 MHz";
@@ -672,6 +1468,45 @@ export function isAppropriateMaterialForStandard(
     return {
       appropriate: false,
       warning: "Non-ferrous materials should use AMS-STD-2154E",
+      recommendedStandard: "AMS-STD-2154E"
+    };
+  }
+
+  // AMS-2631 is specifically for titanium
+  if (standard === "AMS-2631" && material !== "titanium") {
+    return {
+      appropriate: false,
+      warning: "AMS-2631 is specifically for titanium materials",
+      recommendedStandard: material === "aluminum" ? "AMS-STD-2154E" : "AMS-2630"
+    };
+  }
+
+  // Recommend AMS-2631 for titanium bar/billet/plate
+  if (material === "titanium" &&
+      (standard === "AMS-STD-2154E" || standard === "AMS-2630" || standard === "ASTM-E2375")) {
+    return {
+      appropriate: true,
+      warning: "Consider using AMS-2631 for titanium-specific requirements",
+      recommendedStandard: "AMS-2631"
+    };
+  }
+
+  // ASTM A388 is for steel forgings
+  if (standard === "ASTM-A388" &&
+      (material === "aluminum" || material === "titanium" || material === "magnesium")) {
+    return {
+      appropriate: false,
+      warning: "ASTM A388 is for steel forgings only",
+      recommendedStandard: "AMS-STD-2154E"
+    };
+  }
+
+  // ASTM E164 is for ferrous and aluminum weldments
+  if (standard === "ASTM-E164" &&
+      (material === "titanium" || material === "magnesium")) {
+    return {
+      appropriate: false,
+      warning: "ASTM E164 is designed for ferrous and aluminum alloys",
       recommendedStandard: "AMS-STD-2154E"
     };
   }
