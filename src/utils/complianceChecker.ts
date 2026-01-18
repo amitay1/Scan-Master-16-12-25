@@ -204,6 +204,14 @@ const complianceRules: ComplianceRule[] = [
         });
       }
 
+      // Handle missing standard in lookup table
+      if (!range) {
+        return createResult(rule, true, `Frequency ${freq} MHz specified (no range defined for ${data.standard})`, {
+          field: "equipment.frequency",
+          currentValue: `${freq} MHz`,
+        });
+      }
+
       const passed = freq >= range.min && freq <= range.max;
       return createResult(rule, passed, passed
         ? `Frequency ${freq} MHz is within ${data.standard} range (${range.min}-${range.max} MHz)`
@@ -226,6 +234,15 @@ const complianceRules: ComplianceRule[] = [
       const rule = complianceRules.find((r) => r.id === "equipment-vertical-linearity")!;
       const req = LINEARITY_REQUIREMENTS[data.standard];
       const value = data.equipment.verticalLinearity;
+
+      // Handle missing standard in lookup table
+      if (!req) {
+        return createResult(rule, true, `Vertical linearity ${value}% (no requirement defined for ${data.standard})`, {
+          field: "equipment.verticalLinearity",
+          currentValue: `${value}%`,
+        });
+      }
+
       const passed = value <= req.vertical;
       return createResult(rule, passed, passed
         ? `Vertical linearity ${value}% is within spec (≤${req.vertical}%)`
@@ -247,6 +264,15 @@ const complianceRules: ComplianceRule[] = [
       const rule = complianceRules.find((r) => r.id === "equipment-horizontal-linearity")!;
       const req = LINEARITY_REQUIREMENTS[data.standard];
       const value = data.equipment.horizontalLinearity;
+
+      // Handle missing standard in lookup table
+      if (!req) {
+        return createResult(rule, true, `Horizontal linearity ${value}% (no requirement defined for ${data.standard})`, {
+          field: "equipment.horizontalLinearity",
+          currentValue: `${value}%`,
+        });
+      }
+
       const passed = value <= req.horizontal;
       return createResult(rule, passed, passed
         ? `Horizontal linearity ${value}% is within spec (≤${req.horizontal}%)`

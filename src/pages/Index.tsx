@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StandardSelector } from "@/components/StandardSelector";
+import { AcceptanceClassSelector } from "@/components/AcceptanceClassSelector";
 import { ThreeDViewer } from "@/components/ThreeDViewer";
 import { MenuBar } from "@/components/MenuBar";
 import { Toolbar } from "@/components/Toolbar";
@@ -882,7 +883,9 @@ const Index = () => {
           setOrganizationId(organizations[0].id);
         } else {
           setOrganizationId(null);
-          toast.error('No organizations available. Saving is disabled.');
+          // Don't show error toast - this is expected in dev mode without database
+          // Auto-save will be disabled, but the app will still work with local storage
+          console.log('ℹ️ No organizations available - auto-save to database is disabled. This is normal in dev mode without DB setup.');
         }
       } catch (error) {
         if (!cancelled) {
@@ -936,7 +939,7 @@ const Index = () => {
       }
     },
     delay: 3000, // 3 seconds debounce
-    enabled: Boolean(user && organizationId), // Auto-save whenever signed in and has organization
+    enabled: false, // Disabled for offline/air-gapped factory deployments - no database required
   });
 
   useEffect(() => {
@@ -1520,9 +1523,9 @@ const Index = () => {
 
       {/* Main Content Area - Responsive Layout with proper overflow handling */}
       <div className="flex-1 flex flex-col md:flex-row overflow-hidden min-h-0">
-        {/* Mobile: Compact Header with Standard */}
+        {/* Mobile: Compact Header with Standard & Class */}
         <div className="md:hidden border-b border-border bg-card p-3">
-          <div className="flex items-center gap-3">
+          <div className="flex flex-col gap-4">
             <div className="flex-1">
               <h3 className="font-semibold text-xs mb-2">Standard</h3>
               <StandardSelector
@@ -1530,6 +1533,22 @@ const Index = () => {
                 onChange={setStandard}
               />
             </div>
+            {/* Mobile Acceptance Class Selector */}
+            {reportMode === "Technique" && (
+              <div className="border-t border-border pt-3">
+                <AcceptanceClassSelector
+                  value={(!isSplitMode || activePart === "A") ? acceptanceCriteria.acceptanceClass : acceptanceCriteriaB.acceptanceClass}
+                  onChange={(newClass) => {
+                    if (!isSplitMode || activePart === "A") {
+                      setAcceptanceCriteria(prev => ({ ...prev, acceptanceClass: newClass }));
+                    } else {
+                      setAcceptanceCriteriaB(prev => ({ ...prev, acceptanceClass: newClass }));
+                    }
+                  }}
+                  standard={standard}
+                />
+              </div>
+            )}
           </div>
         </div>
 
@@ -1537,12 +1556,29 @@ const Index = () => {
         <CollapsibleSidebar
           isOpen={sidebarOpen}
           onToggle={() => setSidebarOpen(!sidebarOpen)}
-          title="Standard"
+          title="Standard & Class"
         >
           <StandardSelector
             value={standard}
             onChange={setStandard}
           />
+
+          {/* Acceptance Class Selector - Prominent sidebar selector */}
+          {reportMode === "Technique" && (
+            <div className="mt-6 pt-4 border-t border-border">
+              <AcceptanceClassSelector
+                value={(!isSplitMode || activePart === "A") ? acceptanceCriteria.acceptanceClass : acceptanceCriteriaB.acceptanceClass}
+                onChange={(newClass) => {
+                  if (!isSplitMode || activePart === "A") {
+                    setAcceptanceCriteria(prev => ({ ...prev, acceptanceClass: newClass }));
+                  } else {
+                    setAcceptanceCriteriaB(prev => ({ ...prev, acceptanceClass: newClass }));
+                  }
+                }}
+                standard={standard}
+              />
+            </div>
+          )}
         </CollapsibleSidebar>
 
         {/* Center Panel: Main Form - Full width on mobile, flex to fill available space */}

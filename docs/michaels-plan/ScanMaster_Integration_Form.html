@@ -548,13 +548,22 @@
       animation: fadeIn 0.5s ease forwards;
     }
 
-    .section:nth-child(1) { animation-delay: 0.1s; }
-    .section:nth-child(2) { animation-delay: 0.2s; }
-    .section:nth-child(3) { animation-delay: 0.3s; }
-    .section:nth-child(4) { animation-delay: 0.4s; }
-    .section:nth-child(5) { animation-delay: 0.5s; }
-    .section:nth-child(6) { animation-delay: 0.6s; }
-    .section:nth-child(7) { animation-delay: 0.7s; }
+    .section:nth-child(1) { animation-delay: 0.05s; }
+    .section:nth-child(2) { animation-delay: 0.1s; }
+    .section:nth-child(3) { animation-delay: 0.15s; }
+    .section:nth-child(4) { animation-delay: 0.2s; }
+    .section:nth-child(5) { animation-delay: 0.25s; }
+    .section:nth-child(6) { animation-delay: 0.3s; }
+    .section:nth-child(7) { animation-delay: 0.35s; }
+    .section:nth-child(8) { animation-delay: 0.4s; }
+    .section:nth-child(9) { animation-delay: 0.45s; }
+    .section:nth-child(10) { animation-delay: 0.5s; }
+    .section:nth-child(11) { animation-delay: 0.55s; }
+    .section:nth-child(12) { animation-delay: 0.6s; }
+    .section:nth-child(13) { animation-delay: 0.65s; }
+    .section:nth-child(14) { animation-delay: 0.7s; }
+    .section:nth-child(15) { animation-delay: 0.75s; }
+    .section:nth-child(16) { animation-delay: 0.8s; }
   </style>
 </head>
 <body>
@@ -566,7 +575,7 @@
       </div>
       <h1>ScanMaster Integration</h1>
       <p>Help us build the perfect integration between Scan-Master and your CSI software. Please fill out this questionnaire with your system specifications.</p>
-      <span class="badge">⏱ Estimated time: 10-15 minutes</span>
+      <span class="badge">⏱ Estimated time: 20-30 minutes</span>
     </header>
 
     <!-- Progress Bar -->
@@ -1247,6 +1256,955 @@
         </div>
       </div>
 
+      <!-- Section 8: Software Environment -->
+      <div class="section">
+        <div class="section-header">
+          <div class="section-number">8</div>
+          <div>
+            <div class="section-title">Software Environment</div>
+            <div class="section-desc">Technical details about your CSI software installation</div>
+          </div>
+        </div>
+
+        <div class="contact-row">
+          <div class="form-group">
+            <label class="form-label">CSI Software Version <span class="required">*</span></label>
+            <input type="text" name="csi_version" placeholder="e.g. CSI Pro 4.2.1">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Software Build/Release Date</label>
+            <input type="text" name="csi_build_date" placeholder="e.g. 2024-06">
+          </div>
+        </div>
+
+        <div class="contact-row">
+          <div class="form-group">
+            <label class="form-label">Operating System <span class="required">*</span></label>
+            <input type="text" name="operating_system" placeholder="e.g. Windows 10 Pro 64-bit">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Character Encoding</label>
+            <input type="text" name="char_encoding" placeholder="e.g. UTF-8, ASCII, Windows-1252">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">CSI Installation Path</label>
+          <input type="text" name="csi_install_path" placeholder="e.g. C:\Program Files\CSI\">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Setup Files Default Location</label>
+          <input type="text" name="setup_files_path" placeholder="e.g. C:\CSI\Setups\">
+        </div>
+      </div>
+
+      <!-- Section 9: Coordinate System -->
+      <div class="section">
+        <div class="section-header">
+          <div class="section-number">9</div>
+          <div>
+            <div class="section-title">Coordinate System</div>
+            <div class="section-desc">Machine coordinate system and axis configuration</div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Origin Point (0,0,0) Location <span class="required">*</span></label>
+          <div class="checkbox-group">
+            <label class="checkbox-item">
+              <input type="checkbox" name="origin_tank_corner" value="tank_corner">
+              <div class="checkbox-custom">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+              <div class="checkbox-text">
+                <div class="main">Tank Corner</div>
+                <div class="sub">Origin at corner of immersion tank</div>
+              </div>
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" name="origin_tank_center" value="tank_center">
+              <div class="checkbox-custom">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+              <div class="checkbox-text">
+                <div class="main">Tank Center</div>
+                <div class="sub">Origin at center of immersion tank</div>
+              </div>
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" name="origin_fixture" value="fixture">
+              <div class="checkbox-custom">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+              <div class="checkbox-text">
+                <div class="main">Fixture Reference</div>
+                <div class="sub">Origin at fixture mounting point</div>
+              </div>
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" name="origin_part" value="part">
+              <div class="checkbox-custom">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+              <div class="checkbox-text">
+                <div class="main">Part Center</div>
+                <div class="sub">Origin defined relative to part geometry</div>
+              </div>
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" name="origin_other" value="other">
+              <div class="checkbox-custom">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+              <div class="checkbox-text">
+                <div class="main">Other</div>
+                <div class="sub">Please describe below</div>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Origin Description (if Other)</label>
+          <input type="text" name="origin_description" placeholder="Describe origin point location...">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Axis Orientation <span class="required">*</span></label>
+          <table class="spec-table">
+            <thead>
+              <tr>
+                <th>Axis</th>
+                <th>Positive Direction</th>
+                <th>Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>X</strong></td>
+                <td><input type="text" name="x_positive" placeholder="e.g. Right, Towards operator"></td>
+                <td><input type="text" name="x_description" placeholder="e.g. Scan axis, along tank length"></td>
+              </tr>
+              <tr>
+                <td><strong>Y</strong></td>
+                <td><input type="text" name="y_positive" placeholder="e.g. Away from operator"></td>
+                <td><input type="text" name="y_description" placeholder="e.g. Index axis, along tank width"></td>
+              </tr>
+              <tr>
+                <td><strong>Z</strong></td>
+                <td><input type="text" name="z_positive" placeholder="e.g. Down, Into water"></td>
+                <td><input type="text" name="z_description" placeholder="e.g. Vertical, probe height"></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Measurement Units <span class="required">*</span></label>
+          <div class="checkbox-group">
+            <label class="checkbox-item">
+              <input type="checkbox" name="units_mm" value="mm">
+              <div class="checkbox-custom">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+              <div class="checkbox-text"><div class="main">Millimeters (mm)</div></div>
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" name="units_inch" value="inch">
+              <div class="checkbox-custom">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+              <div class="checkbox-text"><div class="main">Inches</div></div>
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" name="units_both" value="both">
+              <div class="checkbox-custom">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+              <div class="checkbox-text"><div class="main">Both (configurable)</div></div>
+            </label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Coordinate System Convention</label>
+          <div class="checkbox-group">
+            <label class="checkbox-item">
+              <input type="checkbox" name="coord_right_hand" value="right_hand">
+              <div class="checkbox-custom">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+              <div class="checkbox-text"><div class="main">Right-Hand Rule</div></div>
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" name="coord_left_hand" value="left_hand">
+              <div class="checkbox-custom">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+              <div class="checkbox-text"><div class="main">Left-Hand Rule</div></div>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 10: Part Mounting & Fixtures -->
+      <div class="section">
+        <div class="section-header">
+          <div class="section-number">10</div>
+          <div>
+            <div class="section-title">Part Mounting & Fixtures</div>
+            <div class="section-desc">How parts are held and positioned during inspection</div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Available Fixture Types</label>
+          <div class="checkbox-group">
+            <label class="checkbox-item">
+              <input type="checkbox" name="fix_rotary" value="rotary">
+              <div class="checkbox-custom">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+              <div class="checkbox-text">
+                <div class="main">Rotary Table / C-Axis</div>
+                <div class="sub">Part rotation for cylindrical scanning</div>
+              </div>
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" name="fix_flat_table" value="flat_table">
+              <div class="checkbox-custom">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+              <div class="checkbox-text">
+                <div class="main">Flat Table</div>
+                <div class="sub">For plate/block inspection</div>
+              </div>
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" name="fix_v_block" value="v_block">
+              <div class="checkbox-custom">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+              <div class="checkbox-text">
+                <div class="main">V-Block / Rollers</div>
+                <div class="sub">For cylindrical parts</div>
+              </div>
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" name="fix_chuck" value="chuck">
+              <div class="checkbox-custom">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+              <div class="checkbox-text">
+                <div class="main">Chuck / Mandrel</div>
+                <div class="sub">ID gripping for tubes/rings</div>
+              </div>
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" name="fix_custom" value="custom">
+              <div class="checkbox-custom">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+              <div class="checkbox-text">
+                <div class="main">Custom Fixtures</div>
+                <div class="sub">Part-specific fixtures</div>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Rotary Axis Details (if applicable)</label>
+          <table class="spec-table">
+            <thead>
+              <tr>
+                <th>Parameter</th>
+                <th>Value</th>
+                <th>Unit</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Max Rotation Speed</td>
+                <td><input type="number" name="rotary_max_speed" placeholder="Enter value"></td>
+                <td class="unit">rpm</td>
+              </tr>
+              <tr>
+                <td>Position Resolution</td>
+                <td><input type="number" name="rotary_resolution" placeholder="Enter value"></td>
+                <td class="unit">degrees</td>
+              </tr>
+              <tr>
+                <td>Max Part Weight</td>
+                <td><input type="number" name="rotary_max_weight" placeholder="Enter value"></td>
+                <td class="unit">kg</td>
+              </tr>
+              <tr>
+                <td>Max Part Diameter</td>
+                <td><input type="number" name="rotary_max_diameter" placeholder="Enter value"></td>
+                <td class="unit">mm</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Fixture Offset Handling</label>
+          <div class="checkbox-group">
+            <label class="checkbox-item">
+              <input type="checkbox" name="offset_manual" value="manual">
+              <div class="checkbox-custom">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+              <div class="checkbox-text">
+                <div class="main">Manual Entry</div>
+                <div class="sub">Operator enters fixture offset manually</div>
+              </div>
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" name="offset_stored" value="stored">
+              <div class="checkbox-custom">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+              <div class="checkbox-text">
+                <div class="main">Stored in Setup File</div>
+                <div class="sub">Offset saved per fixture/part</div>
+              </div>
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" name="offset_auto" value="auto">
+              <div class="checkbox-custom">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+              <div class="checkbox-text">
+                <div class="main">Auto Touch-Off</div>
+                <div class="sub">System auto-detects part position</div>
+              </div>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 11: Real-Time Communication -->
+      <div class="section">
+        <div class="section-header">
+          <div class="section-number">11</div>
+          <div>
+            <div class="section-title">Real-Time Communication</div>
+            <div class="section-desc">How external software communicates with CSI during operation</div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Command Handshake Protocol</label>
+          <div class="checkbox-group">
+            <label class="checkbox-item">
+              <input type="checkbox" name="handshake_ack" value="ack">
+              <div class="checkbox-custom">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+              <div class="checkbox-text">
+                <div class="main">ACK/NAK Response</div>
+                <div class="sub">Acknowledgment after each command</div>
+              </div>
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" name="handshake_status" value="status">
+              <div class="checkbox-custom">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+              <div class="checkbox-text">
+                <div class="main">Status Polling</div>
+                <div class="sub">Client polls for command completion</div>
+              </div>
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" name="handshake_callback" value="callback">
+              <div class="checkbox-custom">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+              <div class="checkbox-text">
+                <div class="main">Callback/Event</div>
+                <div class="sub">CSI sends notification on completion</div>
+              </div>
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" name="handshake_none" value="none">
+              <div class="checkbox-custom">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+              <div class="checkbox-text">
+                <div class="main">Fire and Forget</div>
+                <div class="sub">No confirmation, file import only</div>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Available Status Information</label>
+          <div class="checkbox-group">
+            <label class="checkbox-item">
+              <input type="checkbox" name="status_position" value="position">
+              <div class="checkbox-custom">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+              <div class="checkbox-text"><div class="main">Current Position (X, Y, Z)</div></div>
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" name="status_scan_progress" value="scan_progress">
+              <div class="checkbox-custom">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+              <div class="checkbox-text"><div class="main">Scan Progress (%)</div></div>
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" name="status_ut_signal" value="ut_signal">
+              <div class="checkbox-custom">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+              <div class="checkbox-text"><div class="main">Live UT Signal (A-Scan)</div></div>
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" name="status_gate_data" value="gate_data">
+              <div class="checkbox-custom">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+              <div class="checkbox-text"><div class="main">Gate Data (amplitude, TOF)</div></div>
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" name="status_alarms" value="alarms">
+              <div class="checkbox-custom">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+              <div class="checkbox-text"><div class="main">Alarm/Indication Alerts</div></div>
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" name="status_machine" value="machine">
+              <div class="checkbox-custom">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+              <div class="checkbox-text"><div class="main">Machine State (idle, running, error)</div></div>
+            </label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Error Code Documentation Available?</label>
+          <div class="checkbox-group">
+            <label class="checkbox-item">
+              <input type="checkbox" name="error_codes_available" value="yes">
+              <div class="checkbox-custom">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+              <div class="checkbox-text">
+                <div class="main">Yes, error code list is available</div>
+                <div class="sub">Please attach or provide with this form</div>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Common Error Codes (if known)</label>
+          <textarea name="error_codes_list" placeholder="List any known error codes and their meanings..."></textarea>
+        </div>
+      </div>
+
+      <!-- Section 12: Phased Array & Advanced UT -->
+      <div class="section">
+        <div class="section-header">
+          <div class="section-number">12</div>
+          <div>
+            <div class="section-title">Phased Array & Advanced UT</div>
+            <div class="section-desc">Advanced ultrasonic inspection capabilities</div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Supported UT Techniques</label>
+          <div class="checkbox-group">
+            <label class="checkbox-item">
+              <input type="checkbox" name="ut_conventional" value="conventional">
+              <div class="checkbox-custom">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+              <div class="checkbox-text">
+                <div class="main">Conventional UT (Single Element)</div>
+              </div>
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" name="ut_pa" value="phased_array">
+              <div class="checkbox-custom">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+              <div class="checkbox-text">
+                <div class="main">Phased Array (PA)</div>
+              </div>
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" name="ut_tofd" value="tofd">
+              <div class="checkbox-custom">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+              <div class="checkbox-text">
+                <div class="main">TOFD (Time of Flight Diffraction)</div>
+              </div>
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" name="ut_fmc_tfm" value="fmc_tfm">
+              <div class="checkbox-custom">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+              <div class="checkbox-text">
+                <div class="main">FMC/TFM (Full Matrix Capture)</div>
+              </div>
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" name="ut_dual" value="dual">
+              <div class="checkbox-custom">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+              <div class="checkbox-text">
+                <div class="main">Dual Element / Pitch-Catch</div>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Phased Array Specifications (if applicable)</label>
+          <table class="spec-table">
+            <thead>
+              <tr>
+                <th>Parameter</th>
+                <th>Value</th>
+                <th>Unit</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Max Elements per Probe</td>
+                <td><input type="number" name="pa_max_elements" placeholder="e.g. 64, 128"></td>
+                <td class="unit">elements</td>
+              </tr>
+              <tr>
+                <td>Max Active Aperture</td>
+                <td><input type="number" name="pa_max_aperture" placeholder="e.g. 32"></td>
+                <td class="unit">elements</td>
+              </tr>
+              <tr>
+                <td>Max Focal Laws</td>
+                <td><input type="number" name="pa_max_focal_laws" placeholder="e.g. 256"></td>
+                <td class="unit">—</td>
+              </tr>
+              <tr>
+                <td>Steering Angle Range</td>
+                <td><input type="text" name="pa_angle_range" placeholder="e.g. -60 to +60"></td>
+                <td class="unit">degrees</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">TOFD Specifications (if applicable)</label>
+          <table class="spec-table">
+            <thead>
+              <tr>
+                <th>Parameter</th>
+                <th>Value</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Supported Probe Separations</td>
+                <td><input type="text" name="tofd_separations" placeholder="e.g. 30-150mm"></td>
+              </tr>
+              <tr>
+                <td>Typical Frequency Range</td>
+                <td><input type="text" name="tofd_freq_range" placeholder="e.g. 5-15 MHz"></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Section 13: File Management -->
+      <div class="section">
+        <div class="section-header">
+          <div class="section-number">13</div>
+          <div>
+            <div class="section-title">File Management</div>
+            <div class="section-desc">File naming, storage, and versioning requirements</div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">File Naming Requirements</label>
+          <div class="checkbox-group">
+            <label class="checkbox-item">
+              <input type="checkbox" name="fname_no_spaces" value="no_spaces">
+              <div class="checkbox-custom">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+              <div class="checkbox-text"><div class="main">No Spaces Allowed</div></div>
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" name="fname_no_special" value="no_special">
+              <div class="checkbox-custom">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+              <div class="checkbox-text"><div class="main">No Special Characters</div></div>
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" name="fname_max_length" value="max_length">
+              <div class="checkbox-custom">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+              <div class="checkbox-text"><div class="main">Max Length Restriction</div></div>
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" name="fname_pattern" value="pattern">
+              <div class="checkbox-custom">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+              <div class="checkbox-text"><div class="main">Specific Naming Pattern Required</div></div>
+            </label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">If naming pattern required, describe it:</label>
+          <input type="text" name="fname_pattern_desc" placeholder="e.g. PartNumber_Rev_Date.csi">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Max Filename Length (if applicable)</label>
+          <input type="number" name="fname_max_chars" placeholder="e.g. 64">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Setup Versioning</label>
+          <div class="checkbox-group">
+            <label class="checkbox-item">
+              <input type="checkbox" name="version_in_filename" value="in_filename">
+              <div class="checkbox-custom">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+              <div class="checkbox-text"><div class="main">Version in Filename</div></div>
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" name="version_in_file" value="in_file">
+              <div class="checkbox-custom">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+              <div class="checkbox-text"><div class="main">Version Field Inside File</div></div>
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" name="version_database" value="database">
+              <div class="checkbox-custom">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+              <div class="checkbox-text"><div class="main">CSI Database Tracks Versions</div></div>
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" name="version_none" value="none">
+              <div class="checkbox-custom">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+              <div class="checkbox-text"><div class="main">No Versioning</div></div>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 14: Security & Network -->
+      <div class="section">
+        <div class="section-header">
+          <div class="section-number">14</div>
+          <div>
+            <div class="section-title">Security & Network</div>
+            <div class="section-desc">Authentication and network configuration</div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">API/Connection Authentication</label>
+          <div class="checkbox-group">
+            <label class="checkbox-item">
+              <input type="checkbox" name="auth_none" value="none">
+              <div class="checkbox-custom">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+              <div class="checkbox-text">
+                <div class="main">No Authentication Required</div>
+              </div>
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" name="auth_user_pass" value="user_pass">
+              <div class="checkbox-custom">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+              <div class="checkbox-text">
+                <div class="main">Username / Password</div>
+              </div>
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" name="auth_api_key" value="api_key">
+              <div class="checkbox-custom">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+              <div class="checkbox-text">
+                <div class="main">API Key / Token</div>
+              </div>
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" name="auth_certificate" value="certificate">
+              <div class="checkbox-custom">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+              <div class="checkbox-text">
+                <div class="main">Certificate-Based</div>
+              </div>
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" name="auth_windows" value="windows">
+              <div class="checkbox-custom">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+              <div class="checkbox-text">
+                <div class="main">Windows Domain Authentication</div>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Network Configuration</label>
+          <div class="checkbox-group">
+            <label class="checkbox-item">
+              <input type="checkbox" name="net_same_machine" value="same_machine">
+              <div class="checkbox-custom">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+              <div class="checkbox-text">
+                <div class="main">Same Machine (localhost)</div>
+                <div class="sub">Scan-Master will run on CSI computer</div>
+              </div>
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" name="net_local_network" value="local_network">
+              <div class="checkbox-custom">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+              <div class="checkbox-text">
+                <div class="main">Local Network (LAN)</div>
+                <div class="sub">Different computers, same network</div>
+              </div>
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" name="net_internet" value="internet">
+              <div class="checkbox-custom">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+              <div class="checkbox-text">
+                <div class="main">Over Internet</div>
+                <div class="sub">Remote access required</div>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Firewall / Network Restrictions</label>
+          <textarea name="firewall_notes" placeholder="Describe any firewall rules, port restrictions, or network security requirements..."></textarea>
+        </div>
+      </div>
+
+      <!-- Section 15: Results Import & Data Exchange -->
+      <div class="section">
+        <div class="section-header">
+          <div class="section-number">15</div>
+          <div>
+            <div class="section-title">Results Import & Data Exchange</div>
+            <div class="section-desc">Importing scan results back into Scan-Master for reporting</div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Scan Data Export Formats (from CSI)</label>
+          <div class="checkbox-group">
+            <label class="checkbox-item">
+              <input type="checkbox" name="export_cscan_image" value="cscan_image">
+              <div class="checkbox-custom">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+              <div class="checkbox-text">
+                <div class="main">C-Scan as Image (PNG/BMP/TIFF)</div>
+              </div>
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" name="export_cscan_data" value="cscan_data">
+              <div class="checkbox-custom">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+              <div class="checkbox-text">
+                <div class="main">C-Scan Raw Data (CSV/Binary)</div>
+              </div>
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" name="export_ascan" value="ascan">
+              <div class="checkbox-custom">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+              <div class="checkbox-text">
+                <div class="main">A-Scan Waveforms</div>
+              </div>
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" name="export_indication_list" value="indication_list">
+              <div class="checkbox-custom">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+              <div class="checkbox-text">
+                <div class="main">Indication List (CSV/XML)</div>
+                <div class="sub">Position, amplitude, size of each indication</div>
+              </div>
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" name="export_report" value="report">
+              <div class="checkbox-custom">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+              <div class="checkbox-text">
+                <div class="main">CSI Report (PDF/HTML)</div>
+              </div>
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" name="export_proprietary" value="proprietary">
+              <div class="checkbox-custom">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+              <div class="checkbox-text">
+                <div class="main">Proprietary Format</div>
+                <div class="sub">Please describe below</div>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">If proprietary format, describe it:</label>
+          <textarea name="export_proprietary_desc" placeholder="Describe the proprietary data format..."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Can results be auto-exported after scan completion?</label>
+          <div class="checkbox-group">
+            <label class="checkbox-item">
+              <input type="checkbox" name="auto_export_yes" value="yes">
+              <div class="checkbox-custom">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+              <div class="checkbox-text">
+                <div class="main">Yes, auto-export supported</div>
+              </div>
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" name="auto_export_no" value="no">
+              <div class="checkbox-custom">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+              <div class="checkbox-text">
+                <div class="main">No, manual export only</div>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Default Results Export Location</label>
+          <input type="text" name="results_export_path" placeholder="e.g. C:\CSI\Results\">
+        </div>
+      </div>
+
+      <!-- Section 16: Contact Information -->
+      <div class="section">
+        <div class="section-header">
+          <div class="section-number">16</div>
+          <div>
+            <div class="section-title">Contact Information</div>
+            <div class="section-desc">Who should we contact for technical questions?</div>
+          </div>
+        </div>
+
+        <div class="contact-row">
+          <div class="form-group">
+            <label class="form-label">Primary Contact Name <span class="required">*</span></label>
+            <input type="text" name="contact_name" placeholder="Full name">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Job Title / Role</label>
+            <input type="text" name="contact_title" placeholder="e.g. NDT Engineer, Software Lead">
+          </div>
+        </div>
+
+        <div class="contact-row">
+          <div class="form-group">
+            <label class="form-label">Email <span class="required">*</span></label>
+            <input type="email" name="contact_email" placeholder="email@company.com">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Phone</label>
+            <input type="text" name="contact_phone" placeholder="+1 555-1234">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Company / Organization</label>
+          <input type="text" name="contact_company" placeholder="Company name">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Preferred Contact Method</label>
+          <div class="checkbox-group">
+            <label class="checkbox-item">
+              <input type="checkbox" name="prefer_email" value="email">
+              <div class="checkbox-custom">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+              <div class="checkbox-text"><div class="main">Email</div></div>
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" name="prefer_phone" value="phone">
+              <div class="checkbox-custom">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+              <div class="checkbox-text"><div class="main">Phone</div></div>
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" name="prefer_video" value="video">
+              <div class="checkbox-custom">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+              <div class="checkbox-text"><div class="main">Video Call (Teams/Zoom)</div></div>
+            </label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Best Times to Reach You</label>
+          <input type="text" name="contact_availability" placeholder="e.g. Weekdays 9am-5pm EST">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Secondary Contact (if available)</label>
+          <input type="text" name="contact_secondary" placeholder="Name and email of backup contact">
+        </div>
+      </div>
+
       <!-- Submit Section -->
       <div class="submit-section">
         <button type="button" class="submit-btn" onclick="generateSummary()">
@@ -1461,6 +2419,164 @@
       if (formData.get('additional_notes')) {
         summary += `\nAdditional Notes:\n${formData.get('additional_notes')}\n`;
       }
+
+      // Section 8: Software Environment
+      summary += `8. SOFTWARE ENVIRONMENT\n${'-'.repeat(30)}\n`;
+      summary += `CSI Version: ${formData.get('csi_version') || 'Not specified'}\n`;
+      summary += `Build Date: ${formData.get('csi_build_date') || 'Not specified'}\n`;
+      summary += `Operating System: ${formData.get('operating_system') || 'Not specified'}\n`;
+      summary += `Character Encoding: ${formData.get('char_encoding') || 'Not specified'}\n`;
+      summary += `CSI Install Path: ${formData.get('csi_install_path') || 'Not specified'}\n`;
+      summary += `Setup Files Path: ${formData.get('setup_files_path') || 'Not specified'}\n\n`;
+
+      // Section 9: Coordinate System
+      summary += `9. COORDINATE SYSTEM\n${'-'.repeat(30)}\n`;
+      const origins = [];
+      if (formData.get('origin_tank_corner')) origins.push('Tank Corner');
+      if (formData.get('origin_tank_center')) origins.push('Tank Center');
+      if (formData.get('origin_fixture')) origins.push('Fixture Reference');
+      if (formData.get('origin_part')) origins.push('Part Center');
+      if (formData.get('origin_other')) origins.push(`Other: ${formData.get('origin_description') || '?'}`);
+      summary += `Origin Location: ${origins.join(', ') || 'Not specified'}\n`;
+      summary += `Axis Orientation:\n`;
+      summary += `  X: ${formData.get('x_positive') || '?'} - ${formData.get('x_description') || '?'}\n`;
+      summary += `  Y: ${formData.get('y_positive') || '?'} - ${formData.get('y_description') || '?'}\n`;
+      summary += `  Z: ${formData.get('z_positive') || '?'} - ${formData.get('z_description') || '?'}\n`;
+      const units = [];
+      if (formData.get('units_mm')) units.push('mm');
+      if (formData.get('units_inch')) units.push('inches');
+      if (formData.get('units_both')) units.push('Both');
+      summary += `Units: ${units.join(', ') || 'Not specified'}\n`;
+      summary += `Convention: ${formData.get('coord_right_hand') ? 'Right-Hand' : formData.get('coord_left_hand') ? 'Left-Hand' : 'Not specified'}\n\n`;
+
+      // Section 10: Part Mounting
+      summary += `10. PART MOUNTING & FIXTURES\n${'-'.repeat(30)}\n`;
+      const fixtures = [];
+      if (formData.get('fix_rotary')) fixtures.push('Rotary Table/C-Axis');
+      if (formData.get('fix_flat_table')) fixtures.push('Flat Table');
+      if (formData.get('fix_v_block')) fixtures.push('V-Block/Rollers');
+      if (formData.get('fix_chuck')) fixtures.push('Chuck/Mandrel');
+      if (formData.get('fix_custom')) fixtures.push('Custom Fixtures');
+      summary += `Fixture Types: ${fixtures.join(', ') || 'Not specified'}\n`;
+      if (formData.get('fix_rotary')) {
+        summary += `Rotary Details:\n`;
+        summary += `  - Max Speed: ${formData.get('rotary_max_speed') || '?'} rpm\n`;
+        summary += `  - Resolution: ${formData.get('rotary_resolution') || '?'} degrees\n`;
+        summary += `  - Max Weight: ${formData.get('rotary_max_weight') || '?'} kg\n`;
+        summary += `  - Max Diameter: ${formData.get('rotary_max_diameter') || '?'} mm\n`;
+      }
+      const offsets = [];
+      if (formData.get('offset_manual')) offsets.push('Manual Entry');
+      if (formData.get('offset_stored')) offsets.push('Stored in Setup');
+      if (formData.get('offset_auto')) offsets.push('Auto Touch-Off');
+      summary += `Offset Handling: ${offsets.join(', ') || 'Not specified'}\n\n`;
+
+      // Section 11: Real-Time Communication
+      summary += `11. REAL-TIME COMMUNICATION\n${'-'.repeat(30)}\n`;
+      const handshakes = [];
+      if (formData.get('handshake_ack')) handshakes.push('ACK/NAK');
+      if (formData.get('handshake_status')) handshakes.push('Status Polling');
+      if (formData.get('handshake_callback')) handshakes.push('Callback/Event');
+      if (formData.get('handshake_none')) handshakes.push('Fire and Forget');
+      summary += `Handshake Protocol: ${handshakes.join(', ') || 'Not specified'}\n`;
+      const statuses = [];
+      if (formData.get('status_position')) statuses.push('Position');
+      if (formData.get('status_scan_progress')) statuses.push('Scan Progress');
+      if (formData.get('status_ut_signal')) statuses.push('Live UT Signal');
+      if (formData.get('status_gate_data')) statuses.push('Gate Data');
+      if (formData.get('status_alarms')) statuses.push('Alarms');
+      if (formData.get('status_machine')) statuses.push('Machine State');
+      summary += `Available Status: ${statuses.join(', ') || 'None'}\n`;
+      summary += `Error Codes Available: ${formData.get('error_codes_available') ? 'Yes' : 'No'}\n`;
+      if (formData.get('error_codes_list')) {
+        summary += `Error Codes:\n${formData.get('error_codes_list')}\n`;
+      }
+      summary += '\n';
+
+      // Section 12: Phased Array
+      summary += `12. PHASED ARRAY & ADVANCED UT\n${'-'.repeat(30)}\n`;
+      const utTech = [];
+      if (formData.get('ut_conventional')) utTech.push('Conventional');
+      if (formData.get('ut_pa')) utTech.push('Phased Array');
+      if (formData.get('ut_tofd')) utTech.push('TOFD');
+      if (formData.get('ut_fmc_tfm')) utTech.push('FMC/TFM');
+      if (formData.get('ut_dual')) utTech.push('Dual Element');
+      summary += `UT Techniques: ${utTech.join(', ') || 'Not specified'}\n`;
+      if (formData.get('ut_pa')) {
+        summary += `PA Specs:\n`;
+        summary += `  - Max Elements: ${formData.get('pa_max_elements') || '?'}\n`;
+        summary += `  - Max Aperture: ${formData.get('pa_max_aperture') || '?'}\n`;
+        summary += `  - Max Focal Laws: ${formData.get('pa_max_focal_laws') || '?'}\n`;
+        summary += `  - Angle Range: ${formData.get('pa_angle_range') || '?'} degrees\n`;
+      }
+      if (formData.get('ut_tofd')) {
+        summary += `TOFD Specs:\n`;
+        summary += `  - Probe Separations: ${formData.get('tofd_separations') || '?'}\n`;
+        summary += `  - Frequency Range: ${formData.get('tofd_freq_range') || '?'}\n`;
+      }
+      summary += '\n';
+
+      // Section 13: File Management
+      summary += `13. FILE MANAGEMENT\n${'-'.repeat(30)}\n`;
+      const fnameReqs = [];
+      if (formData.get('fname_no_spaces')) fnameReqs.push('No Spaces');
+      if (formData.get('fname_no_special')) fnameReqs.push('No Special Chars');
+      if (formData.get('fname_max_length')) fnameReqs.push(`Max ${formData.get('fname_max_chars') || '?'} chars`);
+      if (formData.get('fname_pattern')) fnameReqs.push(`Pattern: ${formData.get('fname_pattern_desc') || '?'}`);
+      summary += `Naming Requirements: ${fnameReqs.join(', ') || 'None specified'}\n`;
+      const versioning = [];
+      if (formData.get('version_in_filename')) versioning.push('In Filename');
+      if (formData.get('version_in_file')) versioning.push('In File');
+      if (formData.get('version_database')) versioning.push('Database');
+      if (formData.get('version_none')) versioning.push('None');
+      summary += `Versioning: ${versioning.join(', ') || 'Not specified'}\n\n`;
+
+      // Section 14: Security & Network
+      summary += `14. SECURITY & NETWORK\n${'-'.repeat(30)}\n`;
+      const auth = [];
+      if (formData.get('auth_none')) auth.push('None Required');
+      if (formData.get('auth_user_pass')) auth.push('Username/Password');
+      if (formData.get('auth_api_key')) auth.push('API Key');
+      if (formData.get('auth_certificate')) auth.push('Certificate');
+      if (formData.get('auth_windows')) auth.push('Windows Domain');
+      summary += `Authentication: ${auth.join(', ') || 'Not specified'}\n`;
+      const network = [];
+      if (formData.get('net_same_machine')) network.push('Same Machine');
+      if (formData.get('net_local_network')) network.push('Local Network');
+      if (formData.get('net_internet')) network.push('Internet');
+      summary += `Network: ${network.join(', ') || 'Not specified'}\n`;
+      if (formData.get('firewall_notes')) {
+        summary += `Firewall Notes: ${formData.get('firewall_notes')}\n`;
+      }
+      summary += '\n';
+
+      // Section 15: Results Import
+      summary += `15. RESULTS IMPORT & DATA EXCHANGE\n${'-'.repeat(30)}\n`;
+      const exports = [];
+      if (formData.get('export_cscan_image')) exports.push('C-Scan Image');
+      if (formData.get('export_cscan_data')) exports.push('C-Scan Raw Data');
+      if (formData.get('export_ascan')) exports.push('A-Scan Waveforms');
+      if (formData.get('export_indication_list')) exports.push('Indication List');
+      if (formData.get('export_report')) exports.push('CSI Report');
+      if (formData.get('export_proprietary')) exports.push(`Proprietary: ${formData.get('export_proprietary_desc') || '?'}`);
+      summary += `Export Formats: ${exports.join(', ') || 'Not specified'}\n`;
+      summary += `Auto-Export: ${formData.get('auto_export_yes') ? 'Yes' : formData.get('auto_export_no') ? 'No' : 'Not specified'}\n`;
+      summary += `Results Path: ${formData.get('results_export_path') || 'Not specified'}\n\n`;
+
+      // Section 16: Contact
+      summary += `16. CONTACT INFORMATION\n${'-'.repeat(30)}\n`;
+      summary += `Name: ${formData.get('contact_name') || 'Not provided'}\n`;
+      summary += `Title: ${formData.get('contact_title') || 'Not provided'}\n`;
+      summary += `Email: ${formData.get('contact_email') || 'Not provided'}\n`;
+      summary += `Phone: ${formData.get('contact_phone') || 'Not provided'}\n`;
+      summary += `Company: ${formData.get('contact_company') || 'Not provided'}\n`;
+      const contactPrefs = [];
+      if (formData.get('prefer_email')) contactPrefs.push('Email');
+      if (formData.get('prefer_phone')) contactPrefs.push('Phone');
+      if (formData.get('prefer_video')) contactPrefs.push('Video Call');
+      summary += `Preferred Contact: ${contactPrefs.join(', ') || 'Not specified'}\n`;
+      summary += `Availability: ${formData.get('contact_availability') || 'Not specified'}\n`;
+      summary += `Secondary Contact: ${formData.get('contact_secondary') || 'None'}\n`;
 
       summary += `\n${'='.repeat(50)}\n`;
       summary += `End of Questionnaire Response\n`;

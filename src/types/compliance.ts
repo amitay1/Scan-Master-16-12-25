@@ -139,11 +139,29 @@ export interface FrequencyRange {
 }
 
 export const FREQUENCY_RANGES: Record<StandardType, FrequencyRange> = {
+  // Primary Aerospace Standards
   "AMS-STD-2154E": { min: 1, max: 15, recommended: [2.25, 5, 10] },
   "MIL-STD-2154": { min: 1, max: 15, recommended: [2.25, 5, 10] },
+
+  // ASTM Standards
   "ASTM-A388": { min: 1, max: 5, recommended: [1, 2.25, 5] },
+  "ASTM-E2375": { min: 1, max: 15, recommended: [2.25, 5, 10] },
+  "ASTM-E127": { min: 1, max: 15, recommended: [5, 10, 15] },
+  "ASTM-E164": { min: 1, max: 10, recommended: [2.25, 5] },
+
+  // European Standards (BS EN)
   "BS-EN-10228-3": { min: 1, max: 5, recommended: [2, 4, 5] },
   "BS-EN-10228-4": { min: 1, max: 4, recommended: [1, 2, 4] },
+  "EN-ISO-16810": { min: 0.5, max: 15, recommended: [2, 4, 5] },
+
+  // AMS Material-Specific Standards
+  "AMS-2630": { min: 1, max: 15, recommended: [2.25, 5, 10] },
+  "AMS-2631": { min: 2, max: 10, recommended: [2.25, 5] },  // Titanium specific
+  "AMS-2632": { min: 5, max: 25, recommended: [10, 15, 20] },  // Thin materials, higher freq
+
+  // OEM-Specific Standards (Pratt & Whitney)
+  "NDIP-1226": { min: 5, max: 15, recommended: [10] },
+  "NDIP-1227": { min: 5, max: 15, recommended: [10] },
 };
 
 // Linearity requirements per standard
@@ -153,11 +171,29 @@ export interface LinearityRequirement {
 }
 
 export const LINEARITY_REQUIREMENTS: Record<StandardType, LinearityRequirement> = {
+  // Primary Aerospace Standards
   "AMS-STD-2154E": { vertical: 5, horizontal: 2 },
   "MIL-STD-2154": { vertical: 5, horizontal: 2 },
+
+  // ASTM Standards
   "ASTM-A388": { vertical: 5, horizontal: 2 },
+  "ASTM-E2375": { vertical: 5, horizontal: 2 },
+  "ASTM-E127": { vertical: 5, horizontal: 2 },
+  "ASTM-E164": { vertical: 5, horizontal: 2 },
+
+  // European Standards (BS EN)
   "BS-EN-10228-3": { vertical: 5, horizontal: 2 },
   "BS-EN-10228-4": { vertical: 5, horizontal: 2 },
+  "EN-ISO-16810": { vertical: 5, horizontal: 2 },
+
+  // AMS Material-Specific Standards
+  "AMS-2630": { vertical: 5, horizontal: 2 },
+  "AMS-2631": { vertical: 5, horizontal: 2 },
+  "AMS-2632": { vertical: 5, horizontal: 2 },
+
+  // OEM-Specific Standards (Pratt & Whitney)
+  "NDIP-1226": { vertical: 2, horizontal: 1 },  // Stricter for critical engine components
+  "NDIP-1227": { vertical: 2, horizontal: 1 },  // Stricter for critical engine components
 };
 
 // Calibration date requirements (days)

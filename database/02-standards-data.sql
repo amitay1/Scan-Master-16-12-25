@@ -4,11 +4,11 @@
 
 -- AMS Standards (Aerospace Material Specifications)
 INSERT INTO standards (code, name, description, version, category, is_free, is_active, metadata) VALUES
-('AMS-STD-2154', 'Inspection, Ultrasonic, Wrought Metals', 'Aerospace standard for ultrasonic inspection of wrought metal products including acceptance criteria classes AAA, AA, A, B, C', '2021E', 'Aerospace', true, true, '{"classes": ["AAA", "AA", "A", "B", "C"], "materials": ["aluminum", "titanium", "steel", "nickel"], "thicknessMin": 6.35, "thicknessUnit": "mm"}'),
+('AMS-STD-2154', 'Inspection, Ultrasonic, Wrought Metals', 'Aerospace standard for ultrasonic inspection of wrought metal products including acceptance criteria classes AAA, AA, A, B, C', 'E', 'Aerospace', true, true, '{"classes": ["AAA", "AA", "A", "B", "C"], "materials": ["aluminum", "titanium", "steel", "nickel"], "thicknessMin": 6.35, "thicknessUnit": "mm", "releaseYear": 2019}'),
 ('AMS-2630', 'Inspection, Ultrasonic Product Over 0.5 Inch Thick', 'Standard for ultrasonic inspection of products over 0.5 inch (12.7 mm) thick using contact or immersion methods', '2022E', 'Aerospace', true, true, '{"classes": ["AAA", "AA", "A", "B", "C"], "thicknessMin": 12.7, "thicknessUnit": "mm", "methods": ["contact", "immersion"]}'),
-('AMS-2631', 'Ultrasonic Inspection, Titanium and Titanium Alloy Bar, Billet and Plate', 'Standard for ultrasonic inspection of titanium bars, billets and plate products ≥0.25 inch thick', '2022G', 'Aerospace', true, true, '{"classes": ["AA", "A", "A1", "B"], "material": "titanium", "forms": ["bar", "billet", "plate"], "thicknessMin": 6.4, "surfaceFinish": 250}'),
-('AMS-2632', 'Ultrasonic Inspection of Thin Materials', 'Standard for ultrasonic inspection of thin materials ≤0.5 inch (12.7mm) thick', '2022C', 'Aerospace', true, true, '{"classes": ["AA", "A", "B", "C"], "thicknessMax": 12.7, "thicknessUnit": "mm", "frequencyRange": "5-15 MHz"}'),
-('AMS-2628', 'Ultrasonic Immersion Inspection, Titanium Billet Premium Grade', 'Standard for immersion ultrasonic inspection of premium grade titanium billet ≥5 inches diameter', '2021A', 'Aerospace', true, true, '{"material": "titanium", "forms": ["billet"], "minDiameter": 127, "method": "immersion"}}')
+('AMS-2631', 'Ultrasonic Inspection, Titanium and Titanium Alloy Bar, Billet and Plate', 'Standard for ultrasonic inspection of titanium bars, billets and plate products ≥0.25 inch thick', 'G', 'Aerospace', true, true, '{"classes": ["AA", "A", "A1", "B"], "material": "titanium", "forms": ["bar", "billet", "plate"], "thicknessMin": 6.4, "surfaceFinish": 250, "releaseYear": 2022}'),
+('AMS-2632', 'Ultrasonic Inspection of Thin Materials', 'Standard for ultrasonic inspection of thin materials ≤0.5 inch (12.7mm) thick', 'C', 'Aerospace', true, true, '{"classes": ["AA", "A", "B", "C"], "thicknessMax": 12.7, "thicknessUnit": "mm", "frequencyRange": "5-15 MHz", "releaseYear": 2022}'),
+('AMS-2628', 'Ultrasonic Immersion Inspection, Titanium Billet Premium Grade', 'Standard for immersion ultrasonic inspection of premium grade titanium billet ≥5 inches diameter', '2021A', 'Aerospace', true, true, '{"material": "titanium", "forms": ["billet"], "minDiameter": 127, "method": "immersion"}')
 ON CONFLICT (code) DO UPDATE SET
     name = EXCLUDED.name,
     description = EXCLUDED.description,
@@ -22,7 +22,7 @@ INSERT INTO standards (code, name, description, version, category, is_free, is_a
 ('ASTM-E127', 'Practice for Fabrication and Control of FBH Ultrasonic Standard Reference Blocks', 'Standard for fabrication of flat-bottom hole (FBH) reference blocks - FBH sizes 1/64 to 8/64 inch', '2020', 'Calibration', true, true, '{"blockType": "FBH", "fbhSizes": ["1/64", "2/64", "3/64", "4/64", "5/64", "6/64", "7/64", "8/64"], "testFrequency": 5, "testMethod": "immersion"}'),
 ('ASTM-E428', 'Practice for Fabrication and Control of Metal Reference Blocks (Withdrawn 2019)', 'Standard for steel and other metal reference blocks - merged into E127-19', '2019', 'Calibration', true, true, '{"blockType": "FBH", "materials": ["steel", "titanium", "nickel"], "status": "merged into E127-19"}'),
 ('ASTM-E317', 'Practice for Evaluating Performance Characteristics of Ultrasonic Pulse-Echo Testing Instruments', 'Standard for evaluating UT instrument performance', '2020', 'Equipment', true, true, '{"testTypes": ["linearity", "resolution", "sensitivity"]}'),
-('ASTM-A388', 'Practice for Ultrasonic Examination of Steel Forgings', 'Standard for UT of heavy steel forgings with quality levels QL1-QL4', '2019', 'Industrial', true, true, '{"classes": ["QL1", "QL2", "QL3", "QL4"], "material": "steel", "form": "forging", "thicknessRange": "all"}'),
+('ASTM-A388', 'Practice for Ultrasonic Examination of Steel Forgings', 'Standard for UT of heavy steel forgings with quality levels QL1-QL4', '23', 'Industrial', true, true, '{"classes": ["QL1", "QL2", "QL3", "QL4"], "material": "steel", "form": "forging", "thicknessRange": "all", "releaseYear": 2023}'),
 ('ASTM-E164', 'Practice for Contact Ultrasonic Testing of Weldments', 'Standard for UT of welds using contact method - thickness 0.25 to 8 inches', '2019', 'Welding', true, true, '{"classes": ["LEVEL-1", "LEVEL-2", "LEVEL-3"], "method": "contact", "application": "weldments", "thicknessRange": "6.4-203mm", "angles": [45, 60, 70]}')
 ON CONFLICT (code) DO UPDATE SET
     name = EXCLUDED.name,
@@ -52,6 +52,17 @@ INSERT INTO standards (code, name, description, version, category, is_free, is_a
 ('ISO-5577', 'NDT - Ultrasonic testing - Vocabulary', 'International vocabulary for ultrasonic testing', '2017', 'International', true, true, '{"type": "vocabulary"}'),
 ('ISO-16823', 'NDT - Ultrasonic testing - Transmission technique', 'Standard for through-transmission UT', '2012', 'International', true, true, '{"technique": "transmission"}'),
 ('ISO-16826', 'NDT - Ultrasonic testing - Examination for discontinuities perpendicular to the surface', 'Standard for detecting surface-perpendicular flaws', '2012', 'International', true, true, '{"focus": "perpendicular discontinuities"}')
+ON CONFLICT (code) DO UPDATE SET
+    name = EXCLUDED.name,
+    description = EXCLUDED.description,
+    version = EXCLUDED.version,
+    is_free = true,
+    is_active = true;
+
+-- OEM Standards (Pratt & Whitney)
+INSERT INTO standards (code, name, description, version, category, is_free, is_active, metadata) VALUES
+('NDIP-1226', 'V2500 1st Stage HPT Disk - Immersion UT Inspection', 'Pratt & Whitney OEM-specific NDIP for V2500 engine 1st stage high pressure turbine disk (PN 2A5001). Circumferential shear wave ±45°, immersion inspection.', 'F', 'OEM', true, true, '{"oem": "Pratt & Whitney", "engine": "V2500", "component": "1st Stage HPT Disk", "partNumber": "2A5001", "method": "immersion", "technique": "circumferential shear wave"}'),
+('NDIP-1227', 'V2500 2nd Stage HPT Disk - Immersion UT Inspection', 'Pratt & Whitney OEM-specific NDIP for V2500 engine 2nd stage high pressure turbine disk (PN 2A4802). Circumferential shear wave ±45°, immersion inspection.', 'D', 'OEM', true, true, '{"oem": "Pratt & Whitney", "engine": "V2500", "component": "2nd Stage HPT Disk", "partNumber": "2A4802", "method": "immersion", "technique": "circumferential shear wave"}')
 ON CONFLICT (code) DO UPDATE SET
     name = EXCLUDED.name,
     description = EXCLUDED.description,

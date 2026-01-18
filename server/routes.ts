@@ -18,12 +18,16 @@ const storage = new DbStorage();
 // Mock organization ID for development mode
 const MOCK_ORG_ID = "11111111-1111-1111-1111-111111111111";
 
+// Track whether the database is properly initialized
+let isDatabaseReady = false;
+let mockOrgExists = false;
+
 // Ensure the mock organization exists in the database for development
 async function ensureMockOrganization() {
   try {
     // Check if mock org already exists
     const existing = await db.select().from(organizations).where(eq(organizations.id, MOCK_ORG_ID));
-    
+
     if (existing.length === 0) {
       // Create the mock organization with a specific ID
       // Use ON CONFLICT on both id and slug to handle any constraint violations
@@ -36,6 +40,8 @@ async function ensureMockOrganization() {
     } else {
       logger.info('✅ Mock organization already exists');
     }
+    isDatabaseReady = true;
+    mockOrgExists = true;
   } catch (error: any) {
     // If it's a unique constraint on slug, try to update instead
     if (error.code === '23505') {
@@ -44,11 +50,17 @@ async function ensureMockOrganization() {
           UPDATE organizations SET id = '${MOCK_ORG_ID}' WHERE slug = 'default'
         `);
         logger.info('✅ Updated existing default organization');
+        isDatabaseReady = true;
+        mockOrgExists = true;
       } catch (updateError) {
         logger.warn('⚠️ Could not update default organization:', updateError);
+        isDatabaseReady = false;
+        mockOrgExists = false;
       }
     } else {
       logger.warn('⚠️ Could not ensure mock organization (this is OK if migrations have not been run):', error.message || error);
+      isDatabaseReady = false;
+      mockOrgExists = false;
     }
   }
 }
@@ -56,6 +68,8 @@ async function ensureMockOrganization() {
 // Initialize mock organization on module load
 ensureMockOrganization().catch(err => {
   logger.warn('Mock organization setup deferred:', err.message);
+  isDatabaseReady = false;
+  mockOrgExists = false;
 });
 
 // Minimal validation for CAD jobs coming from the client. We deliberately
@@ -297,7 +311,28 @@ export function registerRoutes(app: Express) {
   // Temporary mock organizations endpoint (until database migrations are run)
   // Use the module-level MOCK_ORG_ID constant (ensured to exist in DB)
   
-  app.get("/api/organizations", mockAuth, (req, res) => {
+  app.get("/api/organizations", mockAuth, async (req, res) => {
+    // Only return mock organization if database is ready and org exists
+    // This prevents auto-save from trying to save when DB isn't set up
+    if (!isDatabaseReady || !mockOrgExists) {
+      logger.warn('⚠️ /api/organizations: Database not ready or mock org not created. Returning empty list to disable auto-save.');
+      return res.json([]);
+    }
+
+    // Double-check that the org actually exists in DB (in case of race conditions)
+    try {
+      const existing = await db.select().from(organizations).where(eq(organizations.id, MOCK_ORG_ID));
+      if (existing.length === 0) {
+        logger.warn('⚠️ /api/organizations: Mock org not found in DB. Returning empty list.');
+        mockOrgExists = false;
+        return res.json([]);
+      }
+    } catch (error: any) {
+      logger.warn('⚠️ /api/organizations: DB check failed:', error.message);
+      isDatabaseReady = false;
+      return res.json([]);
+    }
+
     res.json([
       {
         id: MOCK_ORG_ID,
