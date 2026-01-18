@@ -1,6 +1,6 @@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { StandardType } from "@/types/techniqueSheet";
-import { Lock, Check, AlertCircle, Info, ShieldCheck, Factory, Globe, FlaskConical, DollarSign, Wrench, Beaker, FileText, Zap, Layers, BookOpen, CircleDot } from "lucide-react";
+import { Lock, Check, AlertCircle, Info, ShieldCheck, Factory, Globe, FlaskConical, DollarSign, Wrench, Beaker, FileText, Zap, Layers, BookOpen, CircleDot, AlertTriangle, Clock, Gauge, Target } from "lucide-react";
 import { useStandardAccess } from "@/hooks/useStandardAccess";
 import { useLicense } from "@/contexts/LicenseContext";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { useMemo } from "react";
+import { isOEMStandard, getOEMRulesFromStandard } from "@/utils/oemRuleEngine";
 
 interface StandardSelectorProps {
   value: StandardType;
@@ -236,6 +238,12 @@ export const StandardSelector = ({ value, onChange, showComparisonIndicator = fa
   const { hasAccess, isLoading } = useStandardAccess(value);
   const { canUseStandard, getStandards, license, isElectron } = useLicense();
   const currentStandard = standards.find(s => s.value === value);
+
+  // Get OEM rules if this is an OEM-specific standard (NDIP, etc.)
+  const oemRules = useMemo(() => {
+    if (!value || !isOEMStandard(value)) return null;
+    return getOEMRulesFromStandard(value);
+  }, [value]);
 
   // Get standards catalog with license info
   const standardsCatalog = getStandards();
@@ -478,6 +486,145 @@ export const StandardSelector = ({ value, onChange, showComparisonIndicator = fa
                 </Tooltip>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* OEM-Specific Rules Display - Shows when OEM standard is selected */}
+        {oemRules && (
+          <div className="mt-4 space-y-3">
+            {/* OEM Header */}
+            <div className="flex items-center gap-2 px-1">
+              <Factory className="h-4 w-4 text-orange-500" />
+              <span className="text-sm font-semibold text-foreground">
+                {oemRules.vendorName} Requirements
+              </span>
+              <Badge variant="outline" className="text-[10px] bg-orange-500/10 text-orange-600 border-orange-500/30">
+                {oemRules.specReference}
+              </Badge>
+            </div>
+
+            {/* Requirements Grid */}
+            <div className="grid grid-cols-2 gap-2">
+              {/* Coverage */}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="p-2 rounded-lg bg-blue-500/10 border border-blue-500/30 cursor-help">
+                    <div className="flex items-center gap-1 mb-1">
+                      <Target className="h-3 w-3 text-blue-500" />
+                      <span className="text-[10px] text-blue-600 font-medium">Coverage</span>
+                    </div>
+                    <div className="text-sm font-bold text-foreground">
+                      {oemRules.coverageRequirements.minCoverage}%
+                    </div>
+                    <div className="text-[9px] text-muted-foreground">
+                      Overlap: {oemRules.coverageRequirements.overlapRequirement}%
+                    </div>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="text-xs">Minimum coverage and overlap per {oemRules.vendorName}</p>
+                </TooltipContent>
+              </Tooltip>
+
+              {/* Calibration Interval */}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="p-2 rounded-lg bg-green-500/10 border border-green-500/30 cursor-help">
+                    <div className="flex items-center gap-1 mb-1">
+                      <Clock className="h-3 w-3 text-green-500" />
+                      <span className="text-[10px] text-green-600 font-medium">Calibration</span>
+                    </div>
+                    <div className="text-sm font-bold text-foreground">
+                      Every {oemRules.calibrationRules.interval}h
+                    </div>
+                    <div className="text-[9px] text-muted-foreground">
+                      {oemRules.calibrationRules.dacCurveRequired ? 'DAC Required' : 'DAC Optional'}
+                    </div>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="text-xs">Calibration interval and DAC requirements</p>
+                </TooltipContent>
+              </Tooltip>
+
+              {/* Frequency */}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="p-2 rounded-lg bg-purple-500/10 border border-purple-500/30 cursor-help">
+                    <div className="flex items-center gap-1 mb-1">
+                      <Gauge className="h-3 w-3 text-purple-500" />
+                      <span className="text-[10px] text-purple-600 font-medium">Frequency</span>
+                    </div>
+                    <div className="text-sm font-bold text-foreground">
+                      {oemRules.frequencyConstraints.min}-{oemRules.frequencyConstraints.max} MHz
+                    </div>
+                    <div className="text-[9px] text-muted-foreground">
+                      Preferred: {oemRules.frequencyConstraints.preferred.join(', ')} MHz
+                    </div>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="text-xs">Allowed frequency range per {oemRules.vendorName}</p>
+                </TooltipContent>
+              </Tooltip>
+
+              {/* Transfer Correction */}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/30 cursor-help">
+                    <div className="flex items-center gap-1 mb-1">
+                      <Zap className="h-3 w-3 text-amber-500" />
+                      <span className="text-[10px] text-amber-600 font-medium">Transfer</span>
+                    </div>
+                    <div className="text-sm font-bold text-foreground">
+                      Max {oemRules.calibrationRules.transferCorrectionMax} dB
+                    </div>
+                    <div className="text-[9px] text-muted-foreground">
+                      {oemRules.calibrationRules.tcgRequired ? 'TCG Required' : 'TCG Optional'}
+                    </div>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="text-xs">Maximum transfer correction allowed</p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
+
+            {/* Warnings */}
+            {oemRules.warnings && oemRules.warnings.length > 0 && (
+              <div className="p-2 rounded-lg bg-red-500/10 border border-red-500/30">
+                <div className="flex items-center gap-1 mb-1">
+                  <AlertTriangle className="h-3 w-3 text-red-500" />
+                  <span className="text-[10px] text-red-600 font-medium">Warnings</span>
+                </div>
+                <ul className="text-[10px] text-muted-foreground space-y-0.5">
+                  {oemRules.warnings.slice(0, 3).map((warning, idx) => (
+                    <li key={idx} className="flex items-start gap-1">
+                      <span className="text-red-500">•</span>
+                      <span>{warning}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Notes */}
+            {oemRules.notes && oemRules.notes.length > 0 && (
+              <div className="p-2 rounded-lg bg-slate-500/10 border border-slate-500/30">
+                <div className="flex items-center gap-1 mb-1">
+                  <Info className="h-3 w-3 text-slate-500" />
+                  <span className="text-[10px] text-slate-600 font-medium">Notes</span>
+                </div>
+                <ul className="text-[10px] text-muted-foreground space-y-0.5">
+                  {oemRules.notes.slice(0, 3).map((note, idx) => (
+                    <li key={idx} className="flex items-start gap-1">
+                      <span className="text-slate-500">•</span>
+                      <span>{note}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         )}
       </div>
