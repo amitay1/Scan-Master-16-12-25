@@ -7,19 +7,54 @@ import { Button } from "@/components/ui/button";
 import { DocumentationData } from "@/types/techniqueSheet";
 import { FieldWithHelp } from "@/components/FieldWithHelp";
 import { useInspectorProfile } from "@/contexts/InspectorProfileContext";
-import { UserCheck } from "lucide-react";
+import { UserCheck, Plus, X } from "lucide-react";
+import { useState, useEffect } from "react";
 
 interface DocumentationTabProps {
   data: DocumentationData;
   onChange: (data: DocumentationData) => void;
 }
 
+// LocalStorage key for custom inspector levels
+const STORAGE_KEY_INSPECTOR_LEVELS = 'scanmaster_custom_inspector_levels';
+
 // Using imported FieldWithHelp component
 
-const inspectorLevels = ["Level I", "Level II", "Level III"];
+const defaultInspectorLevels = ["Level I", "Level II", "Level III"];
 
 export const DocumentationTab = ({ data, onChange }: DocumentationTabProps) => {
   const { currentProfile } = useInspectorProfile();
+
+  // State for custom items (persisted in localStorage)
+  const [customInspectorLevels, setCustomInspectorLevels] = useState<string[]>([]);
+  const [addingLevel, setAddingLevel] = useState(false);
+  const [newItemValue, setNewItemValue] = useState("");
+
+  // Load custom items from localStorage on mount
+  useEffect(() => {
+    try {
+      const storedLevels = localStorage.getItem(STORAGE_KEY_INSPECTOR_LEVELS);
+      if (storedLevels) setCustomInspectorLevels(JSON.parse(storedLevels));
+    } catch (error) {
+      console.warn("Failed to load custom inspector levels from localStorage:", error);
+    }
+  }, []);
+
+  // Helper to add custom inspector level
+  const addCustomInspectorLevel = (name: string) => {
+    if (!name.trim()) return;
+    const value = name.trim();
+    if (defaultInspectorLevels.includes(value) || customInspectorLevels.includes(value)) return;
+    const updated = [...customInspectorLevels, value];
+    setCustomInspectorLevels(updated);
+    localStorage.setItem(STORAGE_KEY_INSPECTOR_LEVELS, JSON.stringify(updated));
+    updateField("inspectorLevel", value);
+    setAddingLevel(false);
+    setNewItemValue("");
+  };
+
+  // Get all inspector levels (default + custom)
+  const allInspectorLevels = [...defaultInspectorLevels, ...customInspectorLevels];
 
   const updateField = (field: keyof DocumentationData, value: any) => {
     onChange({ ...data, [field]: value });
@@ -99,21 +134,55 @@ export const DocumentationTab = ({ data, onChange }: DocumentationTabProps) => {
           fieldKey="inspectorName"
           required
         >
-          <Select
-            value={data.inspectorLevel}
-            onValueChange={(value) => updateField("inspectorLevel", value)}
-          >
-            <SelectTrigger className="bg-background">
-              <SelectValue placeholder="Select level..." />
-            </SelectTrigger>
-            <SelectContent className="bg-popover z-50">
-              {inspectorLevels.map((level) => (
-                <SelectItem key={level} value={level}>
-                  {level}
+          {addingLevel ? (
+            <div className="flex gap-1">
+              <Input
+                value={newItemValue}
+                onChange={(e) => setNewItemValue(e.target.value)}
+                placeholder="Enter inspector level..."
+                className="bg-background flex-1"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') addCustomInspectorLevel(newItemValue);
+                  if (e.key === 'Escape') { setAddingLevel(false); setNewItemValue(""); }
+                }}
+              />
+              <Button size="sm" onClick={() => addCustomInspectorLevel(newItemValue)} className="h-9">
+                <Plus className="h-3 w-3" />
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => { setAddingLevel(false); setNewItemValue(""); }} className="h-9">
+                <X className="h-3 w-3" />
+              </Button>
+            </div>
+          ) : (
+            <Select
+              value={data.inspectorLevel}
+              onValueChange={(value) => {
+                if (value === "__add_new__") {
+                  setAddingLevel(true);
+                  setNewItemValue("");
+                } else {
+                  updateField("inspectorLevel", value);
+                }
+              }}
+            >
+              <SelectTrigger className="bg-background">
+                <SelectValue placeholder="Select level..." />
+              </SelectTrigger>
+              <SelectContent className="bg-popover z-50 max-h-[300px]">
+                {allInspectorLevels.map((level) => (
+                  <SelectItem key={level} value={level}>
+                    {level}
+                  </SelectItem>
+                ))}
+                <SelectItem value="__add_new__" className="text-primary font-medium border-t mt-1 pt-1">
+                  <span className="flex items-center gap-1">
+                    <Plus className="h-3 w-3" /> Add to the list
+                  </span>
                 </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+              </SelectContent>
+            </Select>
+          )}
         </FieldWithHelp>
 
         <FieldWithHelp

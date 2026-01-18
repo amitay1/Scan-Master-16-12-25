@@ -3,12 +3,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { EquipmentData, StandardType } from "@/types/techniqueSheet";
 import { FieldWithHelp } from "@/components/FieldWithHelp";
 import { Badge } from "@/components/ui/badge";
-import { Info, AlertTriangle, ChevronDown, ChevronRight } from "lucide-react";
-import { useMemo, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Info, AlertTriangle, ChevronDown, ChevronRight, Plus, X } from "lucide-react";
+import { useMemo, useState, useEffect } from "react";
 import {
   equipmentParametersByStandard,
   getRecommendedFrequencyForStandard,
 } from "@/data/standardsDifferences";
+
+// LocalStorage keys for custom items
+const STORAGE_KEYS = {
+  customTransducerTypes: 'scanmaster_custom_transducer_types',
+  customWedgeTypes: 'scanmaster_custom_wedge_types',
+};
 
 interface EquipmentTabProps {
   data: EquipmentData;
@@ -55,9 +62,72 @@ const getStandardLabel = (standard: StandardType): string => {
   return labels[standard] || standard;
 };
 
+// Default wedge types
+const defaultWedgeTypes = [
+  { value: "Normal", label: "Normal (0°)" },
+  { value: "Angled", label: "Angled (Shear Wave)" },
+  { value: "Immersion", label: "Immersion" },
+  { value: "Custom", label: "Custom" },
+];
+
 export const EquipmentTab = ({ data, onChange, partThickness, standard = "AMS-STD-2154E" }: EquipmentTabProps) => {
   // State to control Phased Array section visibility
   const [showPASection, setShowPASection] = useState(false);
+
+  // State for custom items (persisted in localStorage)
+  const [customTransducerTypes, setCustomTransducerTypes] = useState<string[]>([]);
+  const [customWedgeTypes, setCustomWedgeTypes] = useState<{ value: string; label: string }[]>([]);
+
+  // State for "Add to list" input mode
+  const [addingTransducer, setAddingTransducer] = useState(false);
+  const [addingWedge, setAddingWedge] = useState(false);
+  const [newItemValue, setNewItemValue] = useState("");
+
+  // Load custom items from localStorage on mount
+  useEffect(() => {
+    try {
+      const storedTransducers = localStorage.getItem(STORAGE_KEYS.customTransducerTypes);
+      const storedWedges = localStorage.getItem(STORAGE_KEYS.customWedgeTypes);
+
+      if (storedTransducers) setCustomTransducerTypes(JSON.parse(storedTransducers));
+      if (storedWedges) setCustomWedgeTypes(JSON.parse(storedWedges));
+    } catch (error) {
+      console.warn("Failed to load custom equipment items from localStorage:", error);
+    }
+  }, []);
+
+  // Helper to add custom transducer type
+  const addCustomTransducerType = (name: string) => {
+    if (!name.trim()) return;
+    const value = name.trim().toLowerCase().replace(/\s+/g, '_');
+    if (transducerTypes.includes(value) || customTransducerTypes.includes(value)) return;
+    const updated = [...customTransducerTypes, value];
+    setCustomTransducerTypes(updated);
+    localStorage.setItem(STORAGE_KEYS.customTransducerTypes, JSON.stringify(updated));
+    updateField("transducerType", value);
+    setAddingTransducer(false);
+    setNewItemValue("");
+  };
+
+  // Helper to add custom wedge type
+  const addCustomWedgeType = (name: string) => {
+    if (!name.trim()) return;
+    const value = name.trim();
+    if (defaultWedgeTypes.some(w => w.value === value) || customWedgeTypes.some(w => w.value === value)) return;
+    const newWedge = { value, label: value };
+    const updated = [...customWedgeTypes, newWedge];
+    setCustomWedgeTypes(updated);
+    localStorage.setItem(STORAGE_KEYS.customWedgeTypes, JSON.stringify(updated));
+    updateField("wedgeType", value);
+    setAddingWedge(false);
+    setNewItemValue("");
+  };
+
+  // Get all transducer types (default + custom)
+  const allTransducerTypes = [...transducerTypes, ...customTransducerTypes];
+
+  // Get all wedge types (default + custom)
+  const allWedgeTypes = [...defaultWedgeTypes, ...customWedgeTypes];
 
   // Get equipment parameters for current standard
   const equipmentParams = useMemo(() => {
@@ -191,22 +261,56 @@ export const EquipmentTab = ({ data, onChange, partThickness, standard = "AMS-ST
           fieldKey="transducerType"
           required
         >
-          <Select
-            value={data.transducerType}
-            onValueChange={(value) => updateField("transducerType", value)}
-          >
-            <SelectTrigger className="bg-background">
-              <SelectValue placeholder="Select type..." />
-            </SelectTrigger>
-            <SelectContent>
-              {transducerTypes.map((type) => (
-                <SelectItem key={type} value={type}>
-                  {type.split("_").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")}
-                  {type === "dual_element" && standard === "BS-EN-10228-4" && " ⭐"}
+          {addingTransducer ? (
+            <div className="flex gap-1">
+              <Input
+                value={newItemValue}
+                onChange={(e) => setNewItemValue(e.target.value)}
+                placeholder="Enter transducer type..."
+                className="bg-background flex-1"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') addCustomTransducerType(newItemValue);
+                  if (e.key === 'Escape') { setAddingTransducer(false); setNewItemValue(""); }
+                }}
+              />
+              <Button size="sm" onClick={() => addCustomTransducerType(newItemValue)} className="h-9">
+                <Plus className="h-3 w-3" />
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => { setAddingTransducer(false); setNewItemValue(""); }} className="h-9">
+                <X className="h-3 w-3" />
+              </Button>
+            </div>
+          ) : (
+            <Select
+              value={data.transducerType}
+              onValueChange={(value) => {
+                if (value === "__add_new__") {
+                  setAddingTransducer(true);
+                  setNewItemValue("");
+                } else {
+                  updateField("transducerType", value);
+                }
+              }}
+            >
+              <SelectTrigger className="bg-background">
+                <SelectValue placeholder="Select type..." />
+              </SelectTrigger>
+              <SelectContent className="max-h-[300px]">
+                {allTransducerTypes.map((type) => (
+                  <SelectItem key={type} value={type}>
+                    {type.split("_").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")}
+                    {type === "dual_element" && standard === "BS-EN-10228-4" && " ⭐"}
+                  </SelectItem>
+                ))}
+                <SelectItem value="__add_new__" className="text-primary font-medium border-t mt-1 pt-1">
+                  <span className="flex items-center gap-1">
+                    <Plus className="h-3 w-3" /> Add to the list
+                  </span>
                 </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+              </SelectContent>
+            </Select>
+          )}
         </FieldWithHelp>
 
         <FieldWithHelp
@@ -431,21 +535,56 @@ export const EquipmentTab = ({ data, onChange, partThickness, standard = "AMS-ST
                       N
                     </label>
                   </div>
-                  <Select
-                    value={data.wedgeType || ""}
-                    onValueChange={(value) => updateField("wedgeType", value)}
-                    disabled={data.wedgeTypeApplicable === false}
-                  >
-                    <SelectTrigger className="bg-background flex-1">
-                      <SelectValue placeholder="Select wedge type..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Normal">Normal (0°)</SelectItem>
-                      <SelectItem value="Angled">Angled (Shear Wave)</SelectItem>
-                      <SelectItem value="Immersion">Immersion</SelectItem>
-                      <SelectItem value="Custom">Custom</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  {addingWedge ? (
+                    <div className="flex gap-1 flex-1">
+                      <Input
+                        value={newItemValue}
+                        onChange={(e) => setNewItemValue(e.target.value)}
+                        placeholder="Enter wedge type..."
+                        className="bg-background flex-1"
+                        autoFocus
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') addCustomWedgeType(newItemValue);
+                          if (e.key === 'Escape') { setAddingWedge(false); setNewItemValue(""); }
+                        }}
+                      />
+                      <Button size="sm" onClick={() => addCustomWedgeType(newItemValue)} className="h-9">
+                        <Plus className="h-3 w-3" />
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => { setAddingWedge(false); setNewItemValue(""); }} className="h-9">
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <Select
+                      value={data.wedgeType || ""}
+                      onValueChange={(value) => {
+                        if (value === "__add_new__") {
+                          setAddingWedge(true);
+                          setNewItemValue("");
+                        } else {
+                          updateField("wedgeType", value);
+                        }
+                      }}
+                      disabled={data.wedgeTypeApplicable === false}
+                    >
+                      <SelectTrigger className="bg-background flex-1">
+                        <SelectValue placeholder="Select wedge type..." />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-[300px]">
+                        {allWedgeTypes.map((wedge) => (
+                          <SelectItem key={wedge.value} value={wedge.value}>
+                            {wedge.label}
+                          </SelectItem>
+                        ))}
+                        <SelectItem value="__add_new__" className="text-primary font-medium border-t mt-1 pt-1">
+                          <span className="flex items-center gap-1">
+                            <Plus className="h-3 w-3" /> Add to the list
+                          </span>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
               </FieldWithHelp>
 

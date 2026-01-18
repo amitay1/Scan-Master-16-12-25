@@ -237,7 +237,7 @@ export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E", 
                 : 'bg-muted hover:bg-muted/80 text-foreground'
             }`}
           >
-            CONVENTIONAL
+            Conventional
           </button>
           <button
             type="button"
@@ -248,18 +248,18 @@ export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E", 
                 : 'bg-muted hover:bg-muted/80 text-foreground'
             }`}
           >
-            BUBBLER
+            Bubbler
           </button>
           <button
             type="button"
-            onClick={() => updateField("technique", "squirt")}
+            onClick={() => updateField("technique", "squirter")}
             className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
-              data.technique === 'squirt'
+              data.technique === 'squirter'
                 ? 'bg-purple-600 text-white'
                 : 'bg-muted hover:bg-muted/80 text-foreground'
             }`}
           >
-            SQUIRT
+            Squirter
           </button>
           <button
             type="button"
@@ -270,7 +270,7 @@ export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E", 
                 : 'bg-muted hover:bg-muted/80 text-foreground'
             }`}
           >
-            PHASED ARRAY
+            Phased array
           </button>
         </div>
       </div>

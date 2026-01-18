@@ -1,9 +1,9 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { InspectionSetupData, MaterialType, PartGeometry, AcceptanceClass, StandardType } from "@/types/techniqueSheet";
-import { Upload, X } from "lucide-react";
+import { Upload, X, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { materialDatabase } from "@/utils/autoFillLogic";
@@ -11,12 +11,19 @@ import { PartTypeVisualSelector } from "@/components/PartTypeVisualSelector";
 import { Card } from "@/components/ui/card";
 import { FieldWithHelp } from "@/components/FieldWithHelp";
 import { RealTimeTechnicalDrawing } from "@/components/RealTimeTechnicalDrawing";
-import { 
-  generateCalibrationRecommendationV2, 
-  CalibrationRecommendationInput 
+import {
+  generateCalibrationRecommendationV2,
+  CalibrationRecommendationInput
 } from "@/utils/calibrationRecommenderV2";
 import { logInfo, logWarn } from "@/lib/logger";
 import type { ScanDetailsData } from "@/types/scanDetails";
+
+// LocalStorage keys for custom items persistence
+const STORAGE_KEYS = {
+  customMaterials: 'scanmaster_custom_materials',
+  customMaterialSpecs: 'scanmaster_custom_material_specs',
+  customHeatTreatments: 'scanmaster_custom_heat_treatments',
+};
 
 interface InspectionSetupTabProps {
   data: InspectionSetupData;
@@ -71,6 +78,21 @@ const materialSpecs: Record<MaterialType, string[]> = {
   magnesium: ["ZK60A (QQ-M-31)", "AZ31B", "AZ80A", "ZE41A"],
   custom: ["Custom Specification"],
 };
+
+// Default heat treatment options
+const defaultHeatTreatments = [
+  "Annealed",
+  "Solution Treated",
+  "Age Hardened",
+  "T6",
+  "T651",
+  "T7",
+  "T73",
+  "T76",
+  "Normalized",
+  "Quenched & Tempered",
+  "Stress Relieved",
+];
 
 /**
  * AUTOMATIC SHAPE CLASSIFICATION - ASTM E2375-16 Standard
@@ -302,9 +324,9 @@ function classifyShape(
 
 // Using imported FieldWithHelp component
 
-export const InspectionSetupTab = ({ 
-  data, 
-  onChange, 
+export const InspectionSetupTab = ({
+  data,
+  onChange,
   acceptanceClass,
   standardType,
   onCalibrationRecommendation,
@@ -315,6 +337,82 @@ export const InspectionSetupTab = ({
   const onChangeRef = useRef(onChange);
   dataRef.current = data;
   onChangeRef.current = onChange;
+
+  // State for custom items (persisted in localStorage)
+  const [customMaterials, setCustomMaterials] = useState<{ value: string; label: string }[]>([]);
+  const [customMaterialSpecs, setCustomMaterialSpecs] = useState<Record<string, string[]>>({});
+  const [customHeatTreatments, setCustomHeatTreatments] = useState<string[]>([]);
+
+  // State for "Add to list" input mode
+  const [addingMaterial, setAddingMaterial] = useState(false);
+  const [addingSpec, setAddingSpec] = useState(false);
+  const [addingHeatTreat, setAddingHeatTreat] = useState(false);
+  const [newItemValue, setNewItemValue] = useState("");
+
+  // Load custom items from localStorage on mount
+  useEffect(() => {
+    try {
+      const storedMaterials = localStorage.getItem(STORAGE_KEYS.customMaterials);
+      const storedSpecs = localStorage.getItem(STORAGE_KEYS.customMaterialSpecs);
+      const storedHeatTreatments = localStorage.getItem(STORAGE_KEYS.customHeatTreatments);
+
+      if (storedMaterials) setCustomMaterials(JSON.parse(storedMaterials));
+      if (storedSpecs) setCustomMaterialSpecs(JSON.parse(storedSpecs));
+      if (storedHeatTreatments) setCustomHeatTreatments(JSON.parse(storedHeatTreatments));
+    } catch (error) {
+      logWarn("Failed to load custom items from localStorage:", error);
+    }
+  }, []);
+
+  // Helper to add custom material
+  const addCustomMaterial = (name: string) => {
+    if (!name.trim()) return;
+    const value = `custom_${name.toLowerCase().replace(/\s+/g, '_')}`;
+    const newMaterial = { value, label: name.trim() };
+    const updated = [...customMaterials, newMaterial];
+    setCustomMaterials(updated);
+    localStorage.setItem(STORAGE_KEYS.customMaterials, JSON.stringify(updated));
+    onChange({ ...data, material: value as MaterialType, materialSpec: "", customMaterialName: "" });
+    setAddingMaterial(false);
+    setNewItemValue("");
+  };
+
+  // Helper to add custom material spec
+  const addCustomMaterialSpec = (spec: string, material: string) => {
+    if (!spec.trim() || !material) return;
+    const updated = { ...customMaterialSpecs };
+    if (!updated[material]) updated[material] = [];
+    updated[material] = [...updated[material], spec.trim()];
+    setCustomMaterialSpecs(updated);
+    localStorage.setItem(STORAGE_KEYS.customMaterialSpecs, JSON.stringify(updated));
+    onChange({ ...data, materialSpec: spec.trim() });
+    setAddingSpec(false);
+    setNewItemValue("");
+  };
+
+  // Helper to add custom heat treatment
+  const addCustomHeatTreatment = (treatment: string) => {
+    if (!treatment.trim()) return;
+    const updated = [...customHeatTreatments, treatment.trim()];
+    setCustomHeatTreatments(updated);
+    localStorage.setItem(STORAGE_KEYS.customHeatTreatments, JSON.stringify(updated));
+    onChange({ ...data, heatTreatment: treatment.trim() });
+    setAddingHeatTreat(false);
+    setNewItemValue("");
+  };
+
+  // Get all materials (default + custom)
+  const allMaterials = [...materials, ...customMaterials];
+
+  // Get all specs for current material (default + custom)
+  const getAllSpecsForMaterial = (material: string): string[] => {
+    const defaultSpecs = materialSpecs[material as MaterialType] || [];
+    const customSpecs = customMaterialSpecs[material] || [];
+    return [...defaultSpecs, ...customSpecs];
+  };
+
+  // Get all heat treatments (default + custom)
+  const allHeatTreatments = [...defaultHeatTreatments, ...customHeatTreatments];
 
   const updateField = (field: keyof InspectionSetupData, value: any) => {
     onChange({ ...data, [field]: value });
@@ -550,23 +648,55 @@ export const InspectionSetupTab = ({
           required
           materialInfo={materialInfo}
         >
-          <Select 
-            value={data.material} 
-            onValueChange={(value: string) => {
-              onChange({ ...data, material: value as MaterialType, materialSpec: "", customMaterialName: "" });
-            }}
-          >
-            <SelectTrigger className="bg-background">
-              <SelectValue placeholder="Select material..." />
-            </SelectTrigger>
-            <SelectContent>
-              {materials.map((mat) => (
-                <SelectItem key={mat.value} value={mat.value}>
-                  {mat.label}
+          {addingMaterial ? (
+            <div className="flex gap-1">
+              <Input
+                value={newItemValue}
+                onChange={(e) => setNewItemValue(e.target.value)}
+                placeholder="Enter material name..."
+                className="bg-background flex-1"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') addCustomMaterial(newItemValue);
+                  if (e.key === 'Escape') { setAddingMaterial(false); setNewItemValue(""); }
+                }}
+              />
+              <Button size="sm" onClick={() => addCustomMaterial(newItemValue)} className="h-9">
+                <Plus className="h-3 w-3" />
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => { setAddingMaterial(false); setNewItemValue(""); }} className="h-9">
+                <X className="h-3 w-3" />
+              </Button>
+            </div>
+          ) : (
+            <Select
+              value={data.material}
+              onValueChange={(value: string) => {
+                if (value === "__add_new__") {
+                  setAddingMaterial(true);
+                  setNewItemValue("");
+                } else {
+                  onChange({ ...data, material: value as MaterialType, materialSpec: "", customMaterialName: "" });
+                }
+              }}
+            >
+              <SelectTrigger className="bg-background">
+                <SelectValue placeholder="Select material..." />
+              </SelectTrigger>
+              <SelectContent className="max-h-[300px]">
+                {allMaterials.map((mat) => (
+                  <SelectItem key={mat.value} value={mat.value}>
+                    {mat.label}
+                  </SelectItem>
+                ))}
+                <SelectItem value="__add_new__" className="text-primary font-medium border-t mt-1 pt-1">
+                  <span className="flex items-center gap-1">
+                    <Plus className="h-3 w-3" /> Add to the list
+                  </span>
                 </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+              </SelectContent>
+            </Select>
+          )}
           {data.material === "custom" && (
             <Input
               value={data.customMaterialName || ""}
@@ -588,22 +718,114 @@ export const InspectionSetupTab = ({
           fieldKey="material"
           required
         >
-          <Select
-            value={data.materialSpec}
-            onValueChange={(value) => updateField("materialSpec", value)}
-            disabled={!data.material}
-          >
-            <SelectTrigger className="bg-background">
-              <SelectValue placeholder={data.material ? "Select specification..." : "Select material first"} />
-            </SelectTrigger>
-            <SelectContent>
-              {data.material && materialSpecs[data.material as MaterialType]?.map((spec) => (
-                <SelectItem key={spec} value={spec}>
-                  {spec}
+          {addingSpec ? (
+            <div className="flex gap-1">
+              <Input
+                value={newItemValue}
+                onChange={(e) => setNewItemValue(e.target.value)}
+                placeholder="Enter specification..."
+                className="bg-background flex-1"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') addCustomMaterialSpec(newItemValue, data.material);
+                  if (e.key === 'Escape') { setAddingSpec(false); setNewItemValue(""); }
+                }}
+              />
+              <Button size="sm" onClick={() => addCustomMaterialSpec(newItemValue, data.material)} className="h-9">
+                <Plus className="h-3 w-3" />
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => { setAddingSpec(false); setNewItemValue(""); }} className="h-9">
+                <X className="h-3 w-3" />
+              </Button>
+            </div>
+          ) : (
+            <Select
+              value={data.materialSpec}
+              onValueChange={(value) => {
+                if (value === "__add_new__") {
+                  setAddingSpec(true);
+                  setNewItemValue("");
+                } else {
+                  updateField("materialSpec", value);
+                }
+              }}
+              disabled={!data.material}
+            >
+              <SelectTrigger className="bg-background">
+                <SelectValue placeholder={data.material ? "Select specification..." : "Select material first"} />
+              </SelectTrigger>
+              <SelectContent className="max-h-[300px]">
+                {data.material && getAllSpecsForMaterial(data.material).map((spec) => (
+                  <SelectItem key={spec} value={spec}>
+                    {spec}
+                  </SelectItem>
+                ))}
+                {data.material && (
+                  <SelectItem value="__add_new__" className="text-primary font-medium border-t mt-1 pt-1">
+                    <span className="flex items-center gap-1">
+                      <Plus className="h-3 w-3" /> Add to the list
+                    </span>
+                  </SelectItem>
+                )}
+              </SelectContent>
+            </Select>
+          )}
+        </FieldWithHelp>
+
+        {/* Heat Treat - moved here next to Material Specification */}
+        <FieldWithHelp
+          label="Heat Treat"
+          fieldKey="material"
+        >
+          {addingHeatTreat ? (
+            <div className="flex gap-1">
+              <Input
+                value={newItemValue}
+                onChange={(e) => setNewItemValue(e.target.value)}
+                placeholder="Enter heat treatment..."
+                className="bg-background flex-1"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') addCustomHeatTreatment(newItemValue);
+                  if (e.key === 'Escape') { setAddingHeatTreat(false); setNewItemValue(""); }
+                }}
+              />
+              <Button size="sm" onClick={() => addCustomHeatTreatment(newItemValue)} className="h-9">
+                <Plus className="h-3 w-3" />
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => { setAddingHeatTreat(false); setNewItemValue(""); }} className="h-9">
+                <X className="h-3 w-3" />
+              </Button>
+            </div>
+          ) : (
+            <Select
+              value={data.heatTreatment || ""}
+              onValueChange={(value) => {
+                if (value === "__add_new__") {
+                  setAddingHeatTreat(true);
+                  setNewItemValue("");
+                } else {
+                  updateField("heatTreatment", value);
+                }
+              }}
+            >
+              <SelectTrigger className="bg-background">
+                <SelectValue placeholder="Select heat treatment..." />
+              </SelectTrigger>
+              <SelectContent className="max-h-[300px]">
+                {allHeatTreatments.map((ht) => (
+                  <SelectItem key={ht} value={ht}>
+                    {ht}
+                  </SelectItem>
+                ))}
+                <SelectItem value="__add_new__" className="text-primary font-medium border-t mt-1 pt-1">
+                  <span className="flex items-center gap-1">
+                    <Plus className="h-3 w-3" /> Add to the list
+                  </span>
                 </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+              </SelectContent>
+            </Select>
+          )}
         </FieldWithHelp>
 
 
@@ -737,18 +959,6 @@ export const InspectionSetupTab = ({
             value={data.drawingNumber || ""}
             onChange={(e) => updateField("drawingNumber", e.target.value)}
             placeholder="DWG-12345"
-            className="bg-background"
-          />
-        </FieldWithHelp>
-
-        <FieldWithHelp
-          label="Heat Treat"
-          fieldKey="material"
-        >
-          <Input
-            value={data.heatTreatment || ""}
-            onChange={(e) => updateField("heatTreatment", e.target.value)}
-            placeholder="T6, Annealed..."
             className="bg-background"
           />
         </FieldWithHelp>
