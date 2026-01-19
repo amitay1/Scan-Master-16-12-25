@@ -15,34 +15,7 @@ import type { PartGeometry } from '@/types/techniqueSheet';
 // API endpoint (for browser mode only)
 const CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages';
 
-// Type declaration for Electron API
-declare global {
-  interface Window {
-    electron?: {
-      isElectron: boolean;
-      claude?: {
-        analyzeDrawing: (imageBase64: string, mediaType: string) => Promise<{
-          success: boolean;
-          geometry?: string;
-          confidence?: number;
-          reasoning?: string;
-          suggestedArrows?: Array<{
-            direction: string;
-            x: number;
-            y: number;
-            angle: number;
-            label: string;
-          }>;
-          error?: string;
-        }>;
-        checkStatus: () => Promise<{
-          available: boolean;
-          error?: string;
-        }>;
-      };
-    };
-  }
-}
+// Type definitions are in src/contexts/LicenseContext.tsx (Window.electron.claude)
 
 /**
  * Check if running in Electron with Claude API support
@@ -333,7 +306,7 @@ export async function analyzeDrawing(imageBase64: string): Promise<GeometryAnaly
     }
   }
 
-  // Browser mode - use direct fetch
+  // Browser mode - use direct fetch with retry and fallback
   console.log('🌐 Using browser fetch for Claude Vision');
   const apiKey = getApiKey();
 
@@ -345,66 +318,101 @@ export async function analyzeDrawing(imageBase64: string): Promise<GeometryAnaly
     };
   }
 
-  try {
-    const response = await fetch(CLAUDE_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true',
-      },
-      body: JSON.stringify({
-        model: 'claude-opus-4-5-20251101',
-        max_tokens: 1200,
-        messages: [
-          {
-            role: 'user',
-            content: [
+  // Models to try in order (fallback chain)
+  const models = [
+    'claude-sonnet-4-20250514',      // Fast and capable
+    'claude-opus-4-20250514',        // Most powerful
+    'claude-3-5-sonnet-20241022',    // Fallback
+  ];
+
+  for (const model of models) {
+    console.log(`🔄 Trying model: ${model}`);
+
+    // Retry up to 2 times per model
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        const response = await fetch(CLAUDE_API_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': apiKey,
+            'anthropic-version': '2023-06-01',
+            'anthropic-dangerous-direct-browser-access': 'true',
+          },
+          body: JSON.stringify({
+            model: model,
+            max_tokens: 1200,
+            messages: [
               {
-                type: 'image',
-                source: {
-                  type: 'base64',
-                  media_type: mediaType,
-                  data: base64Data,
-                },
-              },
-              {
-                type: 'text',
-                text: NDT_ANALYSIS_PROMPT,
+                role: 'user',
+                content: [
+                  {
+                    type: 'image',
+                    source: {
+                      type: 'base64',
+                      media_type: mediaType,
+                      data: base64Data,
+                    },
+                  },
+                  {
+                    type: 'text',
+                    text: NDT_ANALYSIS_PROMPT,
+                  },
+                ],
               },
             ],
-          },
-        ],
-      }),
-    });
+          }),
+        });
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.error('🔴 Claude API Error:', JSON.stringify(errorData, null, 2));
-      const errorMessage = errorData.error?.message || `API returned ${response.status}`;
-      throw new Error(errorMessage);
+        if (response.status === 503 || response.status === 529) {
+          // Server overloaded - wait and retry or try next model
+          console.warn(`⚠️ ${model} returned ${response.status} (overloaded), attempt ${attempt}/2`);
+          if (attempt < 2) {
+            await new Promise(r => setTimeout(r, 2000)); // Wait 2 seconds
+            continue;
+          }
+          break; // Try next model
+        }
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          console.error('🔴 Claude API Error:', JSON.stringify(errorData, null, 2));
+
+          // If it's a model not found error, try next model
+          if (response.status === 404) {
+            console.warn(`⚠️ Model ${model} not found, trying next...`);
+            break;
+          }
+
+          const errorMessage = errorData.error?.message || `API returned ${response.status}`;
+          throw new Error(errorMessage);
+        }
+
+        const data = await response.json();
+        const responseText = data.content?.[0]?.text || '';
+
+        console.log(`✅ ${model} responded successfully`);
+        console.log('🤖 Claude Raw Response:', responseText.substring(0, 200));
+
+        // Parse JSON from response
+        const result = parseGeometryResponse(responseText);
+        console.log('✅ Parsed Result:', JSON.stringify(result, null, 2));
+        console.log('🎯 Suggested Arrows:', result.suggestedArrows?.length || 0, 'arrows');
+
+        return result;
+      } catch (error) {
+        console.error(`❌ Error with ${model} attempt ${attempt}:`, error);
+        if (attempt === 2) break; // Try next model
+      }
     }
-
-    const data = await response.json();
-    const responseText = data.content?.[0]?.text || '';
-
-    console.log('🤖 Claude Raw Response:', responseText);
-
-    // Parse JSON from response
-    const result = parseGeometryResponse(responseText);
-    console.log('✅ Parsed Result:', JSON.stringify(result, null, 2));
-    console.log('🎯 Suggested Arrows:', result.suggestedArrows?.length || 0, 'arrows');
-
-    return result;
-  } catch (error) {
-    const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-    return {
-      geometry: 'unknown',
-      confidence: 0,
-      reasoning: `Analysis failed: ${errorMsg}`,
-    };
   }
+
+  // All models failed
+  return {
+    geometry: 'unknown',
+    confidence: 0,
+    reasoning: 'All Claude models are currently unavailable. Please try again later.',
+  };
 }
 
 /**

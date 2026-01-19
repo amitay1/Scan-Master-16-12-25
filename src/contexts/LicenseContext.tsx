@@ -215,6 +215,27 @@ declare global {
           osVersion: string;
         }>;
       };
+      // Claude Vision API (for geometry detection)
+      claude?: {
+        analyzeDrawing: (imageBase64: string, mediaType: string) => Promise<{
+          success: boolean;
+          geometry?: string;
+          confidence?: number;
+          reasoning?: string;
+          suggestedArrows?: Array<{
+            direction: string;
+            x: number;
+            y: number;
+            angle: number;
+            label: string;
+          }>;
+          error?: string;
+        }>;
+        checkStatus: () => Promise<{
+          available: boolean;
+          error?: string;
+        }>;
+      };
     };
   }
 }
