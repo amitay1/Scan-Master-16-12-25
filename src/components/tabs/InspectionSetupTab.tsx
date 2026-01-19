@@ -39,6 +39,7 @@ const materials: { value: MaterialType; label: string }[] = [
   { value: "steel", label: "Steel" },
   { value: "stainless_steel", label: "Stainless Steel" },
   { value: "titanium", label: "Titanium" },
+  { value: "nickel_alloy", label: "Nickel Alloy" },
   { value: "magnesium", label: "Magnesium" },
   { value: "custom", label: "Custom Material" },
 ];
@@ -67,6 +68,8 @@ const partTypes: PartTypeOption[] = [
   { value: "forging", label: "Forging (Generic)", description: "Use specific type if known" },
   { value: "ring", label: "Ring (Generic)", description: "Use ring_forging if applicable" },
   { value: "disk", label: "Disk (Generic)", description: "Use disk_forging if applicable" },
+  { value: "impeller", label: "Impeller", description: "Complex stepped disk (aero engine)" },
+  { value: "blisk", label: "Blisk (Bladed Disk)", description: "Integrated blade-disk (aero engine)" },
 ];
 
 
@@ -74,7 +77,8 @@ const materialSpecs: Record<MaterialType, string[]> = {
   aluminum: ["7075-T6 (QQ-A200/11)", "2024 (QQ-A-200/3)", "6061-T6", "2219-T87"],
   steel: ["4340 annealed (MIL-S-5000)", "4130", "17-4 PH", "15-5 PH"],
   stainless_steel: ["304 (AMS 5513)", "316 (AMS 5524)", "17-4 PH (AMS 5604)", "15-5 PH (AMS 5659)", "410", "420"],
-  titanium: ["Ti-6Al-4V annealed (AMS 4928)", "Ti-6Al-4V STA", "Ti-5Al-2.5Sn", "CP Ti Grade 2"],
+  titanium: ["Ti-6Al-4V annealed (AMS 4928)", "Ti-6Al-4V STA", "Ti-6Al-2Sn-4Zr-2Mo (Ti-6242)", "Ti-5Al-2.5Sn", "CP Ti Grade 2"],
+  nickel_alloy: ["Inconel 718 (AMS 5662)", "Waspaloy (AMS 5544)", "Inconel 625 (AMS 5666)", "Rene 41", "Hastelloy X"],
   magnesium: ["ZK60A (QQ-M-31)", "AZ31B", "AZ80A", "ZE41A"],
   custom: ["Custom Specification"],
 };

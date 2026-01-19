@@ -794,7 +794,7 @@ export const exportInspectionReportPDF = (
       if (scan.gain || scan.range || scan.velocity) {
         doc.setFontSize(7);
         doc.setFont('helvetica', 'normal');
-        let params = [];
+        const params = [];
         if (scan.gain) params.push(`Gain: ${scan.gain}`);
         if (scan.range) params.push(`Range: ${scan.range}`);
         if (scan.velocity) params.push(`Velocity: ${scan.velocity}`);

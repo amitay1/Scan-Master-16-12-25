@@ -498,6 +498,271 @@ function setupIPCHandlers() {
   ipcMain.handle('offline-update:getCurrentVersion', () => {
     return app.getVersion();
   });
+
+  // ==========================================
+  // Claude Vision API Handler (Secure)
+  // API key stays in main process, never exposed to renderer
+  // ==========================================
+  ipcMain.handle('claude:analyzeDrawing', async (event, { imageBase64, mediaType }) => {
+    try {
+      // Get API key from environment (secure - not exposed to renderer)
+      const apiKey = process.env.VITE_ANTHROPIC_API_KEY;
+
+      if (!apiKey) {
+        return {
+          success: false,
+          error: 'No Claude API key configured',
+          geometry: 'unknown',
+          confidence: 0,
+          reasoning: 'API key not found. Set VITE_ANTHROPIC_API_KEY in environment.'
+        };
+      }
+
+      // NDT Analysis Prompt - optimized for precise arrow placement
+      const NDT_PROMPT = `You are an expert NDT (Non-Destructive Testing) engineer analyzing a technical drawing.
+
+YOUR TASKS:
+1. Identify the geometry type of the part
+2. Visually locate EXACTLY where the part appears in the image
+3. Place scan direction arrows PRECISELY on the visible surfaces
+
+=== STEP 1: IDENTIFY GEOMETRY ===
+Look for text labels or analyze the visual shape:
+• PLATE/BLOCK: Rectangular solid with flat faces
+• CYLINDER: Solid circular cross-section (NO center hole)
+• TUBE: HOLLOW circular with visible ID (inner diameter) and OD (outer diameter)
+• CONE: Tapered shape - wider at one end, narrower at other
+• DISK: Flat circular shape, like a coin or pancake
+• RING: Thick-walled donut/annular shape with large center hole
+• IMPELLER: Complex part with blades/vanes, stepped hub profile
+• SPHERE: Round ball shape
+
+=== STEP 2: MEASURE THE ACTUAL PART LOCATION ===
+CRITICAL - You MUST visually measure where the part is in the image!
+
+Look at the image and identify:
+1. The LEFT-MOST pixel of the part → this is x_left (as 0-1 fraction of image width)
+2. The RIGHT-MOST pixel of the part → this is x_right
+3. The TOP-MOST pixel of the part → this is y_top
+4. The BOTTOM-MOST pixel of the part → this is y_bottom
+
+IGNORE these when measuring: title blocks, dimension lines, text labels, borders, whitespace
+
+Example: If the part occupies the center-right portion of the image:
+- x_left might be 0.35, x_right might be 0.90
+- y_top might be 0.15, y_bottom might be 0.85
+
+=== STEP 3: PLACE ARROWS ON MEASURED SURFACES ===
+Now place arrows AT THE EDGES of the part you measured!
+
+Coordinate system:
+- x=0 is LEFT edge of IMAGE, x=1 is RIGHT edge
+- y=0 is TOP edge of IMAGE, y=1 is BOTTOM edge
+- angle: 0°=pointing right, 90°=pointing down, 180°=pointing left, 270°=pointing up
+
+ARROW RULES:
+1. Arrow BASE (origin point) should be OUTSIDE the part, about 5-10% away from the surface
+2. Arrow points INTO the part (toward the surface where ultrasound enters)
+3. Arrows must be perpendicular to the entry surface
+4. Place arrows on ALL accessible surfaces shown in ALL views
+
+MULTI-VIEW DRAWINGS:
+Many drawings show multiple views (Front + Side, or Top + Front + Side).
+You MUST place arrows on EACH VIEW separately!
+
+Example: A tube drawing with front view (circle) at x=0.2-0.4 and side view (rectangle) at x=0.55-0.95:
+- For front view circle centered at x=0.30:
+  - Place "C" arrow at x=0.12 (left of circle OD), y=0.50, angle=0
+  - Place "D" arrow at x=0.48 (right of circle OD), y=0.50, angle=180
+- For side view rectangle from x=0.55 to x=0.95:
+  - Place "A" arrow at x=0.75, y=(y_top - 0.05), angle=90 (from top)
+  - Place "B" arrow at x=0.75, y=(y_bottom + 0.05), angle=270 (from bottom)
+
+=== ARROW DIRECTIONS BY GEOMETRY ===
+
+PLATE/BLOCK:
+- A: Top surface entry (perpendicular, angle=90)
+- B: Bottom surface entry (perpendicular, angle=270)
+- C: Left side entry (angle=0)
+- D: Right side entry (angle=180)
+- E,F: 45° shear waves
+
+TUBE/CYLINDER (place on BOTH front circle view AND side profile view):
+- A: Axial from top end
+- B: Axial from bottom end
+- C: Radial from OD (left side of circle)
+- D: Radial from OD (right side of circle)
+- E: Circumferential CW
+- F: Circumferential CCW
+- If tube has ID visible: also add arrows from ID surface
+
+CONE:
+- A: Axial from large end
+- B: Axial from small end
+- C,D: Radial from OD at various heights
+- E: Along tapered surface (angle matches taper)
+
+IMPELLER:
+- A: Axial from hub top
+- B: Axial from hub bottom
+- C,D: Radial from hub OD
+- E,F: At blade/vane surfaces if visible
+
+=== OUTPUT FORMAT ===
+Return ONLY a JSON object (no other text):
+{
+  "geometry": "tube",
+  "confidence": 0.92,
+  "reasoning": "Describe what you see: the views present, where the part is located in the image, key features identified",
+  "partBounds": {
+    "x_left": 0.15,
+    "x_right": 0.85,
+    "y_top": 0.10,
+    "y_bottom": 0.90
+  },
+  "suggestedArrows": [
+    {"direction": "A", "x": 0.50, "y": 0.05, "angle": 90, "label": "Axial top"},
+    {"direction": "B", "x": 0.50, "y": 0.95, "angle": 270, "label": "Axial bottom"},
+    {"direction": "C", "x": 0.10, "y": 0.50, "angle": 0, "label": "Radial OD left"},
+    {"direction": "D", "x": 0.90, "y": 0.50, "angle": 180, "label": "Radial OD right"}
+  ]
+}
+
+CRITICAL REMINDERS:
+- The x,y coordinates MUST match where you actually SEE the part in this specific image
+- Do NOT use generic template positions - LOOK at the image and MEASURE
+- If the part is in the right half of the image, x values should be 0.5-1.0
+- If there are multiple views, place arrows on EACH view
+- Arrow base should be slightly OUTSIDE the part surface (5-10% gap)`;
+
+      // Make API call to Claude (using node-fetch in main process)
+      const https = require('https');
+
+      const requestBody = JSON.stringify({
+        model: 'claude-opus-4-5-20251101',
+        max_tokens: 1200,
+        messages: [{
+          role: 'user',
+          content: [
+            {
+              type: 'image',
+              source: {
+                type: 'base64',
+                media_type: mediaType || 'image/png',
+                data: imageBase64,
+              },
+            },
+            {
+              type: 'text',
+              text: NDT_PROMPT,
+            },
+          ],
+        }],
+      });
+
+      return new Promise((resolve) => {
+        const req = https.request({
+          hostname: 'api.anthropic.com',
+          path: '/v1/messages',
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': apiKey,
+            'anthropic-version': '2023-06-01',
+            'Content-Length': Buffer.byteLength(requestBody),
+          },
+        }, (res) => {
+          let data = '';
+          res.on('data', chunk => data += chunk);
+          res.on('end', () => {
+            try {
+              const response = JSON.parse(data);
+
+              if (res.statusCode !== 200) {
+                console.error('Claude API Error:', response);
+                resolve({
+                  success: false,
+                  error: response.error?.message || `API returned ${res.statusCode}`,
+                  geometry: 'unknown',
+                  confidence: 0,
+                  reasoning: `API Error: ${response.error?.message || res.statusCode}`
+                });
+                return;
+              }
+
+              const responseText = response.content?.[0]?.text || '';
+              console.log('Claude Response:', responseText.substring(0, 200));
+
+              // Parse JSON from response
+              const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+              if (!jsonMatch) {
+                resolve({
+                  success: false,
+                  error: 'Could not parse Claude response',
+                  geometry: 'unknown',
+                  confidence: 0,
+                  reasoning: 'Failed to parse AI response'
+                });
+                return;
+              }
+
+              const parsed = JSON.parse(jsonMatch[0]);
+
+              resolve({
+                success: true,
+                geometry: parsed.geometry || 'unknown',
+                confidence: parsed.confidence || 0,
+                reasoning: parsed.reasoning || 'No reasoning provided',
+                suggestedArrows: parsed.suggestedArrows || []
+              });
+            } catch (parseError) {
+              console.error('Parse error:', parseError);
+              resolve({
+                success: false,
+                error: parseError.message,
+                geometry: 'unknown',
+                confidence: 0,
+                reasoning: 'Failed to parse response'
+              });
+            }
+          });
+        });
+
+        req.on('error', (error) => {
+          console.error('Request error:', error);
+          resolve({
+            success: false,
+            error: error.message,
+            geometry: 'unknown',
+            confidence: 0,
+            reasoning: `Request failed: ${error.message}`
+          });
+        });
+
+        req.write(requestBody);
+        req.end();
+      });
+
+    } catch (error) {
+      console.error('Claude Vision IPC Error:', error);
+      return {
+        success: false,
+        error: error.message,
+        geometry: 'unknown',
+        confidence: 0,
+        reasoning: `Error: ${error.message}`
+      };
+    }
+  });
+
+  // Check Claude API availability
+  ipcMain.handle('claude:checkStatus', async () => {
+    const apiKey = process.env.VITE_ANTHROPIC_API_KEY;
+    return {
+      available: !!apiKey,
+      error: apiKey ? null : 'No API key configured'
+    };
+  });
 }
 
 // Build menu template with dynamic update status

@@ -101,6 +101,13 @@ contextBridge.exposeInMainWorld('electron', {
   // File operations - for PDF export etc.
   savePDF: (data, filename) => ipcRenderer.invoke('save-pdf', { data, filename }),
 
+  // Claude Vision API (Secure - API key stays in main process)
+  claude: {
+    analyzeDrawing: (imageBase64, mediaType) =>
+      ipcRenderer.invoke('claude:analyzeDrawing', { imageBase64, mediaType }),
+    checkStatus: () => ipcRenderer.invoke('claude:checkStatus'),
+  },
+
   // Offline Update API (USB Updates for air-gapped factories)
   offlineUpdate: {
     browse: () => ipcRenderer.invoke('offline-update:browse'),

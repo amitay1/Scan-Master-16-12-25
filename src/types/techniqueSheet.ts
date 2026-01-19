@@ -23,7 +23,7 @@ export type StandardType =
   | "NDIP-1226"      // PW V2500 1st Stage HPT Disk
   | "NDIP-1227";     // PW V2500 2nd Stage HPT Disk
 
-export type MaterialType = "aluminum" | "steel" | "stainless_steel" | "titanium" | "magnesium" | "custom";
+export type MaterialType = "aluminum" | "steel" | "stainless_steel" | "titanium" | "nickel_alloy" | "magnesium" | "custom";
 
 export type PartGeometry =
   // Basic Geometries (ASTM E2375 Wrought Products)
@@ -63,6 +63,7 @@ export type PartGeometry =
   | "pipe" | "ring" | "ring_forging" | "sleeve" | "bushing" | "square_tube"
   | "hex_bar"
   | "forging" | "round_forging_stock" | "rectangular_forging_stock" | "near_net_forging"
+  | "impeller" | "blisk"  // Aero engine complex forgings (stepped profiles, R surfaces)
   | "machined_component" | "bar" | "custom";
 
 export type AcceptanceClass = "AAA" | "AA" | "A" | "B" | "C";

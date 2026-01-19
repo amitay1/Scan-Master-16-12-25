@@ -319,7 +319,7 @@ export const GEOMETRY_GROUPS = {
   
   // Group 4: Disks - Use Flat FBH Block (face inspection)
   DISKS: [
-    'disk', 'disk_forging', 'hub'
+    'disk', 'disk_forging', 'hub', 'impeller', 'blisk'
   ] as PartGeometry[],
   
   // Group 5: Thin-wall tubes/rings - Use Cylinder Notched Block

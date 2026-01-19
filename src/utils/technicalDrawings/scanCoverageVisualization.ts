@@ -928,9 +928,22 @@ export function calculateScanZones(
       return calculateBarZones(dimensions.width, dimensions.height, dimensions.thickness, numZones, scanType);
     
     case 'disk':
+    case 'disk_forging':
+    case 'impeller':
       return calculateDiskZones(dimensions.diameter || dimensions.width, dimensions.thickness, numZones, scanType);
-    
+
+    case 'blisk':
+      // Blisk has inner diameter - treat as ring/hollow disk
+      return calculateRingZones(
+        dimensions.outerDiameter || dimensions.diameter || dimensions.width,
+        dimensions.innerDiameter || ((dimensions.diameter || dimensions.width) * 0.3),
+        dimensions.thickness,
+        numZones,
+        scanType
+      );
+
     case 'ring':
+    case 'ring_forging':
       return calculateRingZones(
         dimensions.outerDiameter || dimensions.diameter,
         dimensions.innerDiameter || (dimensions.diameter * 0.5),
@@ -938,7 +951,7 @@ export function calculateScanZones(
         numZones,
         scanType
       );
-    
+
     case 'cylinder':
       return calculateCylinderZones(dimensions.diameter || dimensions.width, dimensions.length, numZones, scanType);
     

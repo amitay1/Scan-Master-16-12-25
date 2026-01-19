@@ -85,6 +85,23 @@ export interface ScanDetailsData {
   scanDetails: ScanDetail[];
   /** Global pulsar/scanner parameters (applies to all directions) */
   pulsarParameters?: PulsarParameters;
+  /** Custom drawing overlay data */
+  customDrawingData?: {
+    /** Base64 encoded image */
+    image: string;
+    /** Original image width */
+    imageWidth: number;
+    /** Original image height */
+    imageHeight: number;
+    /** Geometry confirmed by user */
+    confirmedGeometry: string;
+    /** AI detected geometry (if available) */
+    detectedGeometry?: string;
+    /** AI confidence (if available) */
+    aiConfidence?: number;
+    /** ISO timestamp of last modification */
+    lastModified: string;
+  };
 }
 
 // Comprehensive scan directions based on ASTM E2375 (Figures 6 & 7)
@@ -129,7 +146,7 @@ export const SCAN_DIRECTION_DEFINITIONS: ScanDirectionDefinition[] = [
     entrySurface: "top",
     angle: 0,
     color: "#22c55e", // green
-    applicableParts: ["plate", "rectangular_bar", "round_bar", "disk", "disk_forging", "billet", "cylinder", "hex_bar", "ring_forging"]
+    applicableParts: ["plate", "rectangular_bar", "round_bar", "disk", "disk_forging", "billet", "cylinder", "hex_bar", "ring_forging", "impeller", "blisk"]
   },
   {
     code: "A₁",
@@ -140,7 +157,7 @@ export const SCAN_DIRECTION_DEFINITIONS: ScanDirectionDefinition[] = [
     entrySurface: "top",
     angle: 0,
     color: "#16a34a", // darker green
-    applicableParts: ["plate", "rectangular_bar", "round_bar", "disk", "disk_forging", "billet", "cylinder", "hex_bar", "ring_forging"]
+    applicableParts: ["plate", "rectangular_bar", "round_bar", "disk", "disk_forging", "billet", "cylinder", "hex_bar", "ring_forging", "impeller", "blisk"]
   },
   {
     code: "B",
@@ -151,7 +168,7 @@ export const SCAN_DIRECTION_DEFINITIONS: ScanDirectionDefinition[] = [
     entrySurface: "side",
     angle: 0,
     color: "#3b82f6", // blue
-    applicableParts: ["plate", "rectangular_bar", "round_bar", "disk", "disk_forging", "billet", "cylinder", "hex_bar"]
+    applicableParts: ["plate", "rectangular_bar", "round_bar", "disk", "disk_forging", "billet", "cylinder", "hex_bar", "impeller", "blisk"]
   },
   {
     code: "B₁",
@@ -162,7 +179,7 @@ export const SCAN_DIRECTION_DEFINITIONS: ScanDirectionDefinition[] = [
     entrySurface: "side",
     angle: 0,
     color: "#2563eb", // darker blue
-    applicableParts: ["plate", "rectangular_bar", "round_bar", "disk", "disk_forging", "billet", "cylinder", "hex_bar"]
+    applicableParts: ["plate", "rectangular_bar", "round_bar", "disk", "disk_forging", "billet", "cylinder", "hex_bar", "impeller", "blisk"]
   },
   {
     code: "C",
@@ -173,7 +190,7 @@ export const SCAN_DIRECTION_DEFINITIONS: ScanDirectionDefinition[] = [
     entrySurface: "od",
     angle: 0,
     color: "#f59e0b", // amber
-    applicableParts: ["round_bar", "tube", "pipe", "cylinder", "ring", "ring_forging", "shaft", "sleeve", "hex_bar", "disk", "disk_forging"]
+    applicableParts: ["round_bar", "tube", "pipe", "cylinder", "ring", "ring_forging", "shaft", "sleeve", "hex_bar", "disk", "disk_forging", "impeller", "blisk"]
   },
   {
     code: "C₁",
@@ -184,7 +201,7 @@ export const SCAN_DIRECTION_DEFINITIONS: ScanDirectionDefinition[] = [
     entrySurface: "od",
     angle: 0,
     color: "#d97706", // darker amber
-    applicableParts: ["round_bar", "tube", "pipe", "cylinder", "ring", "ring_forging", "shaft", "sleeve", "hex_bar", "disk", "disk_forging"]
+    applicableParts: ["round_bar", "tube", "pipe", "cylinder", "ring", "ring_forging", "shaft", "sleeve", "hex_bar", "disk", "disk_forging", "impeller", "blisk"]
   },
   {
     code: "D",
@@ -195,7 +212,7 @@ export const SCAN_DIRECTION_DEFINITIONS: ScanDirectionDefinition[] = [
     entrySurface: "od",
     angle: 45,
     color: "#ef4444", // red
-    applicableParts: ["ring", "ring_forging", "tube", "pipe", "round_bar", "cylinder", "shaft"]
+    applicableParts: ["ring", "ring_forging", "tube", "pipe", "round_bar", "cylinder", "shaft", "impeller", "blisk"]
   },
   {
     code: "E",
@@ -206,7 +223,7 @@ export const SCAN_DIRECTION_DEFINITIONS: ScanDirectionDefinition[] = [
     entrySurface: "od",
     angle: 45,
     color: "#ec4899", // pink
-    applicableParts: ["ring", "ring_forging", "tube", "pipe", "round_bar", "cylinder", "shaft"]
+    applicableParts: ["ring", "ring_forging", "tube", "pipe", "round_bar", "cylinder", "shaft", "impeller", "blisk"]
   },
   {
     code: "F",
@@ -239,7 +256,7 @@ export const SCAN_DIRECTION_DEFINITIONS: ScanDirectionDefinition[] = [
     entrySurface: "id",
     angle: 0,
     color: "#06b6d4", // cyan
-    applicableParts: ["tube", "pipe", "ring", "ring_forging", "sleeve", "bushing"]
+    applicableParts: ["tube", "pipe", "ring", "ring_forging", "sleeve", "bushing", "blisk"]
   },
   {
     code: "I",
@@ -283,6 +300,6 @@ export const SCAN_DIRECTION_DEFINITIONS: ScanDirectionDefinition[] = [
     entrySurface: "radial",
     angle: 0,
     color: "#a855f7", // violet
-    applicableParts: ["round_bar", "cylinder", "shaft", "hub"]
+    applicableParts: ["round_bar", "cylinder", "shaft", "hub", "impeller", "blisk"]
   }
 ];

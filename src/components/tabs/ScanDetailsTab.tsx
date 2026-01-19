@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Info, ChevronDown, ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Info, ChevronDown, ChevronRight, Upload, ImageIcon, X } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import type { PartGeometry, StandardType } from "@/types/techniqueSheet";
@@ -16,7 +17,13 @@ import { CylinderScanDiagram } from "@/components/CylinderScanDiagram";
 import { DiskScanDiagram } from "@/components/DiskScanDiagram";
 import { RingScanDiagram } from "@/components/RingScanDiagram";
 import { HexBarScanDiagram } from "@/components/HexBarScanDiagram";
+import { ImpellerScanDiagram } from "@/components/ImpellerScanDiagram";
+import { BliskScanDiagram } from "@/components/BliskScanDiagram";
 import { getFrequencyOptionsForStandard } from "@/utils/frequencyUtils";
+import { CustomDrawingUpload, ArrowOverlay, GeometrySelector } from "@/components/scan-overlay";
+import { useOllamaVision } from "@/components/scan-overlay/hooks/useOllamaVision";
+import { generateArrowsForGeometry, syncArrowsWithScanDetails } from "@/utils/scanArrowPlacement";
+import type { ScanArrow } from "@/types/scanOverlay";
 
 // Extended ScanDetail with per-row pulsar parameters
 interface ExtendedScanDetail extends ScanDetail {
@@ -50,6 +57,14 @@ const isCylinderType = (partType?: PartGeometry | ""): boolean => {
 
 const isDiskType = (partType?: PartGeometry | ""): boolean => {
   return !!partType && ["disk", "disk_forging", "hub"].includes(partType);
+};
+
+const isImpellerType = (partType?: PartGeometry | ""): boolean => {
+  return !!partType && partType === "impeller";
+};
+
+const isBliskType = (partType?: PartGeometry | ""): boolean => {
+  return !!partType && partType === "blisk";
 };
 
 const isRingType = (partType?: PartGeometry | ""): boolean => {
@@ -109,6 +124,24 @@ export const ScanDetailsTab = ({ data, onChange, partType, standard = "AMS-STD-2
   const [highlightedDirection, setHighlightedDirection] = useState<string | null>(null);
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
 
+  // Custom drawing state
+  const [useCustomDrawing, setUseCustomDrawing] = useState<boolean>(!!data.customDrawingData?.image);
+  const [customDrawingGeometry, setCustomDrawingGeometry] = useState<PartGeometry | null>(
+    (data.customDrawingData?.confirmedGeometry as PartGeometry) || null
+  );
+  const [scanArrows, setScanArrows] = useState<ScanArrow[]>([]);
+
+  // AI vision hook (supports Claude + Ollama)
+  const {
+    isAnalyzing,
+    result: aiAnalysisResult,
+    error: aiError,
+    activeProvider,
+    analyze: analyzeWithOllama,
+    reset: resetAnalysis,
+    setApiKey,
+  } = useOllamaVision();
+
   useEffect(() => {
     if (!data?.scanDetails || data.scanDetails.length === 0) {
       onChange({ scanDetails: FIXED_SCAN_DETAILS, pulsarParameters: data.pulsarParameters });
@@ -142,6 +175,110 @@ export const ScanDetailsTab = ({ data, onChange, partType, standard = "AMS-STD-2
   const toggleExpand = (direction: string) => {
     setExpandedRow(expandedRow === direction ? null : direction);
   };
+
+  // Custom drawing handlers
+  const handleImageUpload = useCallback((imageBase64: string, width: number, height: number) => {
+    // Save the image to data
+    onChange({
+      ...data,
+      customDrawingData: {
+        image: imageBase64,
+        imageWidth: width,
+        imageHeight: height,
+        confirmedGeometry: '',
+        lastModified: new Date().toISOString(),
+      }
+    });
+
+    // Trigger AI analysis
+    analyzeWithOllama(imageBase64);
+  }, [onChange, data, analyzeWithOllama]);
+
+  const handleGeometrySelect = useCallback((geometry: PartGeometry) => {
+    setCustomDrawingGeometry(geometry);
+
+    // Use AI-suggested arrows if available, otherwise use templates
+    let arrows: ScanArrow[];
+    if (aiAnalysisResult?.suggestedArrows && aiAnalysisResult.suggestedArrows.length > 0) {
+      // Define colors for each direction
+      const directionColors: Record<string, string> = {
+        A: '#22c55e', B: '#3b82f6', C: '#f59e0b', D: '#ef4444',
+        E: '#8b5cf6', F: '#ec4899', G: '#06b6d4', H: '#84cc16',
+        I: '#f97316', J: '#6366f1', K: '#14b8a6', L: '#a855f7',
+      };
+      // Convert AI suggested arrows to ScanArrow format
+      arrows = aiAnalysisResult.suggestedArrows.map(sa => ({
+        direction: sa.direction,
+        x: sa.x,
+        y: sa.y,
+        angle: sa.angle,
+        length: 0.12,
+        visible: true,
+        color: directionColors[sa.direction] || '#6b7280',
+        label: sa.label,
+      }));
+      console.log('🎯 Using AI-suggested arrow positions');
+    } else {
+      // Fall back to template arrows
+      arrows = generateArrowsForGeometry(geometry);
+      console.log('📐 Using template arrow positions');
+    }
+
+    // Sync with current scan details enabled state
+    const syncedArrows = syncArrowsWithScanDetails(arrows, scanDetails);
+    setScanArrows(syncedArrows);
+
+    // Update data with confirmed geometry
+    if (data.customDrawingData) {
+      onChange({
+        ...data,
+        customDrawingData: {
+          ...data.customDrawingData,
+          confirmedGeometry: geometry,
+          lastModified: new Date().toISOString(),
+        }
+      });
+    }
+  }, [data, onChange, scanDetails, aiAnalysisResult]);
+
+  const handleRemoveCustomDrawing = useCallback(() => {
+    setUseCustomDrawing(false);
+    setCustomDrawingGeometry(null);
+    setScanArrows([]);
+    resetAnalysis();
+
+    // Remove custom drawing data
+    const { customDrawingData, ...restData } = data;
+    onChange(restData as ScanDetailsData);
+  }, [data, onChange, resetAnalysis]);
+
+  // Handle arrow drag/move
+  const handleArrowMove = useCallback((direction: string, x: number, y: number) => {
+    setScanArrows(prev => prev.map(arrow =>
+      arrow.direction === direction
+        ? { ...arrow, x, y }
+        : arrow
+    ));
+  }, []);
+
+  // Sync arrows when scan details enabled state changes
+  useEffect(() => {
+    if (scanArrows.length > 0) {
+      const syncedArrows = syncArrowsWithScanDetails(scanArrows, scanDetails);
+      setScanArrows(syncedArrows);
+    }
+  }, [scanDetails.map(d => d.enabled).join(',')]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Initialize arrows if custom drawing exists with confirmed geometry
+  useEffect(() => {
+    if (data.customDrawingData?.confirmedGeometry && scanArrows.length === 0) {
+      const geometry = data.customDrawingData.confirmedGeometry as PartGeometry;
+      setCustomDrawingGeometry(geometry);
+      const arrows = generateArrowsForGeometry(geometry);
+      const syncedArrows = syncArrowsWithScanDetails(arrows, scanDetails);
+      setScanArrows(syncedArrows);
+    }
+  }, [data.customDrawingData]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Render expanded details panel - Dark theme design
   const renderExpandedDetails = (detail: ExtendedScanDetail, index: number) => (
@@ -378,47 +515,167 @@ export const ScanDetailsTab = ({ data, onChange, partType, standard = "AMS-STD-2
     </tr>
   );
 
+  // Render predefined diagram based on part type
+  const renderPredefinedDiagram = () => {
+    if (isTubeType(partType)) {
+      return <TubeScanDiagram scanDetails={scanDetails} highlightedDirection={highlightedDirection} />;
+    } else if (isConeType(partType)) {
+      return <ConeScanDiagram scanDetails={scanDetails} highlightedDirection={highlightedDirection} />;
+    } else if (isBoxType(partType)) {
+      return <BoxScanDiagram scanDetails={scanDetails} highlightedDirection={highlightedDirection} partType={partType} dimensions={dimensions} />;
+    } else if (isCylinderType(partType)) {
+      return <CylinderScanDiagram scanDetails={scanDetails} highlightedDirection={highlightedDirection} />;
+    } else if (isDiskType(partType)) {
+      return <DiskScanDiagram scanDetails={scanDetails} highlightedDirection={highlightedDirection} />;
+    } else if (isImpellerType(partType)) {
+      return <ImpellerScanDiagram scanDetails={scanDetails} highlightedDirection={highlightedDirection} />;
+    } else if (isBliskType(partType)) {
+      return <BliskScanDiagram scanDetails={scanDetails} highlightedDirection={highlightedDirection} />;
+    } else if (isRingType(partType)) {
+      return <RingScanDiagram scanDetails={scanDetails} highlightedDirection={highlightedDirection} />;
+    } else if (isHexType(partType)) {
+      return <HexBarScanDiagram scanDetails={scanDetails} highlightedDirection={highlightedDirection} />;
+    } else if (isProfileType(partType)) {
+      return <BoxScanDiagram scanDetails={scanDetails} highlightedDirection={highlightedDirection} partType={partType} dimensions={dimensions} />;
+    } else {
+      return (
+        <Card className="h-full flex items-center justify-center bg-muted/30">
+          <div className="text-center p-4">
+            <Info className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+            <p className="text-xs text-muted-foreground">
+              {partType ? `Diagram for "${partType}" coming soon` : "Select Part Type in Setup"}
+            </p>
+          </div>
+        </Card>
+      );
+    }
+  };
+
+  // Render custom drawing with arrow overlay
+  const renderCustomDrawing = () => {
+    const customData = data.customDrawingData;
+
+    // No image uploaded yet - show upload component
+    if (!customData?.image) {
+      return (
+        <div className="h-full flex flex-col">
+          <CustomDrawingUpload
+            onImageUpload={handleImageUpload}
+            currentImage={null}
+          />
+        </div>
+      );
+    }
+
+    // Image uploaded but geometry not confirmed - show selector
+    if (!customDrawingGeometry) {
+      return (
+        <div className="h-full flex flex-col gap-3 overflow-auto">
+          <div className="flex-shrink-0">
+            <div className="relative">
+              <img
+                src={customData.image}
+                alt="Uploaded drawing"
+                className="w-full h-auto max-h-[200px] object-contain rounded-lg bg-gray-100"
+              />
+              <Button
+                size="sm"
+                variant="destructive"
+                className="absolute top-2 right-2"
+                onClick={handleRemoveCustomDrawing}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+          <GeometrySelector
+            selectedGeometry={customDrawingGeometry}
+            onGeometrySelect={handleGeometrySelect}
+            aiAnalysis={aiAnalysisResult}
+            isAnalyzing={isAnalyzing}
+            aiError={aiError}
+            activeProvider={activeProvider}
+            onSetApiKey={setApiKey}
+          />
+        </div>
+      );
+    }
+
+    // Full view with arrows
+    return (
+      <div className="h-full flex flex-col">
+        <div className="flex-1 relative overflow-hidden rounded-lg bg-gray-100">
+          <ArrowOverlay
+            image={customData.image}
+            width={400}
+            height={300}
+            arrows={scanArrows}
+            highlightedDirection={highlightedDirection}
+            onArrowHover={setHighlightedDirection}
+            onArrowMove={handleArrowMove}
+            showLabels={true}
+            enableDrag={true}
+          />
+          <Button
+            size="sm"
+            variant="secondary"
+            className="absolute top-2 right-2 shadow-md"
+            onClick={handleRemoveCustomDrawing}
+          >
+            <X className="h-4 w-4 mr-1" />
+            Remove
+          </Button>
+        </div>
+        <div className="flex-shrink-0 pt-2">
+          <div className="flex items-center justify-between text-xs text-slate-400">
+            <span>Geometry: <strong className="text-slate-200">{customDrawingGeometry}</strong></span>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-6 text-xs"
+              onClick={() => setCustomDrawingGeometry(null)}
+            >
+              Change
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="h-full flex flex-col overflow-hidden">
       <div className="flex-1 flex gap-2 min-h-0 p-1">
-        {/* LEFT: Diagram */}
-        <div className="w-1/3 min-h-0 flex-shrink-0" data-testid="e2375-diagram">
-          {isTubeType(partType) ? (
-            <TubeScanDiagram scanDetails={scanDetails} highlightedDirection={highlightedDirection} />
-          ) : isConeType(partType) ? (
-            <ConeScanDiagram scanDetails={scanDetails} highlightedDirection={highlightedDirection} />
-          ) : isBoxType(partType) ? (
-            <BoxScanDiagram 
-              scanDetails={scanDetails} 
-              highlightedDirection={highlightedDirection}
-              partType={partType}
-              dimensions={dimensions}
-            />
-          ) : isCylinderType(partType) ? (
-            <CylinderScanDiagram scanDetails={scanDetails} highlightedDirection={highlightedDirection} />
-          ) : isDiskType(partType) ? (
-            <DiskScanDiagram scanDetails={scanDetails} highlightedDirection={highlightedDirection} />
-          ) : isRingType(partType) ? (
-            <RingScanDiagram scanDetails={scanDetails} highlightedDirection={highlightedDirection} />
-          ) : isHexType(partType) ? (
-            <HexBarScanDiagram scanDetails={scanDetails} highlightedDirection={highlightedDirection} />
-          ) : isProfileType(partType) ? (
-            <BoxScanDiagram 
-              scanDetails={scanDetails} 
-              highlightedDirection={highlightedDirection}
-              partType={partType}
-              dimensions={dimensions}
-            />
-          ) : (
-            <Card className="h-full flex items-center justify-center bg-muted/30">
-              <div className="text-center p-4">
-                <Info className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                <p className="text-xs text-muted-foreground">
-                  {partType ? `Diagram for "${partType}" coming soon` : "Select Part Type in Setup"}
-                </p>
-              </div>
-            </Card>
-          )}
+        {/* LEFT: Diagram / Custom Drawing */}
+        <div className="w-1/3 min-h-0 flex-shrink-0 flex flex-col" data-testid="e2375-diagram">
+          {/* Toggle between predefined and custom drawing */}
+          <div className="flex items-center justify-between mb-2 px-1">
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant={!useCustomDrawing ? "default" : "outline"}
+                className="h-7 text-xs"
+                onClick={() => setUseCustomDrawing(false)}
+              >
+                <ImageIcon className="h-3 w-3 mr-1" />
+                Auto
+              </Button>
+              <Button
+                size="sm"
+                variant={useCustomDrawing ? "default" : "outline"}
+                className="h-7 text-xs"
+                onClick={() => setUseCustomDrawing(true)}
+              >
+                <Upload className="h-3 w-3 mr-1" />
+                Custom
+              </Button>
+            </div>
+          </div>
+
+          {/* Diagram content */}
+          <div className="flex-1 min-h-0">
+            {useCustomDrawing ? renderCustomDrawing() : renderPredefinedDiagram()}
+          </div>
         </div>
 
         {/* RIGHT: Compact Table with Expandable Rows */}

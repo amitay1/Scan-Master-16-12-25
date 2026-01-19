@@ -74,6 +74,19 @@ import {
 // Import OEM Rule Engine for vendor-specific requirements
 import { getOEMRules, getCalibrationRules, getRecommendedSettings, getVendorFromStandard, getOEMRulesFromStandard, isOEMStandard, getNDIPPartData } from "./oemRuleEngine";
 
+// Import impeller/blisk calibration standards
+import {
+  IMPELLER_ZONES,
+  BLISK_ZONES,
+  IMPELLER_BORE_FBH_HOLES,
+  IMPELLER_SCAN_PARAMETERS,
+  IMPELLER_CLASS_AAA_CRITERIA,
+  IMPELLER_MATERIAL_VELOCITIES,
+  generateImpellerCalibrationRecommendation,
+  getActiveFBHHoles,
+  calculateImpellerZones
+} from "@/rules/impellerCalibration";
+
 // ============================================================================
 // INPUT/OUTPUT INTERFACES
 // ============================================================================
@@ -210,6 +223,11 @@ const REFERENCE_MATERIALS: Record<MaterialType, ReferenceMaterial> = {
     primary: "ZK60A",
     specification: "QQ-M-31",
     alternates: ["AZ31B"]
+  },
+  nickel_alloy: {
+    primary: "Inconel 718",
+    specification: "AMS 5662",
+    alternates: ["Waspaloy (AMS 5544)", "Inconel 625 (AMS 5666)"]
   },
   custom: {
     primary: "As specified",
@@ -461,8 +479,65 @@ function selectStraightBeamBlock(
     };
   }
   
-  // Group 3: Disks
+  // Group 3: Disks - with special handling for Impeller and Blisk
   if (geometryGroup === 'DISKS') {
+    // IMPELLER: Stepped disk with Hub/Web/Rim zones - requires multi-zone inspection
+    if (partType === 'impeller') {
+      const hasCircumferentialScan = input.scanDirections?.hasCircumferentialScan;
+      const hasBore = innerDiameter && innerDiameter > 0;
+
+      // If bore inspection with shear wave is needed
+      if (hasCircumferentialScan && hasBore) {
+        return {
+          category: 'cylinder_notched',
+          reasoning: `Cylinder Notched block (Figure 5) for impeller bore inspection. ` +
+                     `Circumferential shear wave (45°) required for bore/hub region. ` +
+                     `CRITICAL: Multi-zone inspection required (Hub/Web/Rim). ` +
+                     `Use Flat FBH for face inspection of each zone.`,
+          alternatives: ['flat_fbh', 'curved_fbh']
+        };
+      }
+
+      // Standard impeller face inspection
+      return {
+        category: 'flat_fbh',
+        reasoning: `Flat FBH block (Figure 4) for impeller face inspection. ` +
+                   `CRITICAL: Multi-zone inspection required - Hub (30% OD), Web (60% OD), Rim (100% OD). ` +
+                   `Each zone requires separate calibration verification. ` +
+                   `Class AAA typical for aero engine components.`,
+        alternatives: ['curved_fbh']
+      };
+    }
+
+    // BLISK: Bladed disk with integrated blades - requires special blade root inspection
+    if (partType === 'blisk') {
+      const hasCircumferentialScan = input.scanDirections?.hasCircumferentialScan;
+      const hasBore = innerDiameter && innerDiameter > 0;
+
+      // If bore inspection with shear wave is needed
+      if (hasCircumferentialScan && hasBore) {
+        return {
+          category: 'cylinder_notched',
+          reasoning: `Cylinder Notched block (Figure 5) for blisk bore inspection. ` +
+                     `Circumferential shear wave (45°) for bore region integrity. ` +
+                     `CRITICAL: Dual inspection zones - Disk body + Blade roots. ` +
+                     `Blade roots require focused beam inspection (high stress concentration).`,
+          alternatives: ['flat_fbh', 'curved_fbh']
+        };
+      }
+
+      // Standard blisk inspection
+      return {
+        category: 'flat_fbh',
+        reasoning: `Flat FBH block (Figure 4) for blisk disk body inspection. ` +
+                   `CRITICAL: Separate inspection required for blade roots (focused beam). ` +
+                   `Disk region: standard radial/axial inspection. ` +
+                   `Class AAA typical for integrated blade-disk components.`,
+        alternatives: ['curved_fbh']
+      };
+    }
+
+    // Standard disk inspection
     return {
       category: 'flat_fbh',
       reasoning: `Flat FBH block (Figure 4) for ${partType}. ` +
@@ -742,6 +817,7 @@ function mapMaterialToVelocityKey(material: MaterialType): string {
     'stainless_steel': 'stainless_304',
     'titanium': 'titanium_6al4v',
     'magnesium': 'aluminum_6061', // Use aluminum as approximation
+    'nickel_alloy': 'inconel_718', // Aero engine alloys (Inconel 718, Waspaloy, IN625)
     'custom': 'carbon_steel'
   };
   return mapping[material] || 'carbon_steel';
@@ -1131,7 +1207,67 @@ export function generateCalibrationRecommendationV2(
   if (geometryGroup === 'COMPLEX') {
     warnings.push("Complex geometry: Custom procedure development recommended.");
   }
-  
+
+  // Impeller-specific warnings and notes (using industry-standard data)
+  if (input.partType === 'impeller') {
+    // Generate detailed recommendation using impeller module
+    const impellerRec = generateImpellerCalibrationRecommendation(
+      input.outerDiameter || 200,
+      input.thickness,
+      input.material,
+      !!(input.innerDiameter && input.innerDiameter > 0)
+    );
+
+    warnings.push("IMPELLER: Multi-zone inspection required - Hub, Web, and Rim must be inspected separately.");
+
+    // Add zone definitions from module
+    IMPELLER_ZONES.forEach(zone => {
+      notes.push(`${zone.name}: ${zone.inspectionMethod} (${zone.criticality} criticality)`);
+    });
+
+    // Add calibration criteria from module
+    const criteria = IMPELLER_CLASS_AAA_CRITERIA;
+    notes.push(`Calibration: #1 FBH at ${criteria.amplitudeCriteria.calibrationAmplitude}%FSH`);
+    notes.push(`Rejection threshold: ${criteria.amplitudeCriteria.rejectThreshold}%FSH (${criteria.standard})`);
+    notes.push(`Min pixel grouping: ${criteria.amplitudeCriteria.minPixelGrouping} pixels`);
+
+    if (input.innerDiameter && input.innerDiameter > 0) {
+      const hubParams = IMPELLER_SCAN_PARAMETERS.find(p => p.zone === 'hub');
+      if (hubParams) {
+        notes.push(`Bore scan: ${hubParams.waveType} wave at ${hubParams.refractedAngle}°, water path ${hubParams.waterPath}mm`);
+      }
+      notes.push("Active FBH holes (L-S): depths 6.35mm to 25.4mm per aerospace standard");
+    }
+
+    // Add material-specific notes
+    impellerRec.warnings.forEach(w => warnings.push(w));
+    impellerRec.notes.forEach(n => notes.push(n));
+  }
+
+  // Blisk-specific warnings and notes (using industry-standard data)
+  if (input.partType === 'blisk') {
+    warnings.push("BLISK: Dual inspection zones required - Disk body and Blade roots must be inspected separately.");
+
+    // Add all blisk zones from module
+    BLISK_ZONES.forEach(zone => {
+      notes.push(`${zone.name}: ${zone.inspectionMethod} (${zone.criticality} criticality)`);
+    });
+
+    // Add calibration criteria
+    const criteria = IMPELLER_CLASS_AAA_CRITERIA;
+    notes.push(`Calibration: #1 FBH at ${criteria.amplitudeCriteria.calibrationAmplitude}%FSH`);
+    notes.push(`Rejection threshold: ${criteria.amplitudeCriteria.rejectThreshold}%FSH`);
+    notes.push(`TOF SNR requirement: ≥${criteria.tofCriteria.snrThreshold}:1`);
+
+    if (input.innerDiameter && input.innerDiameter > 0) {
+      notes.push("Bore region: Circumferential shear wave (45°) for ID surface integrity verification");
+      notes.push("FBH holes L-S active for DAC (depths: 0.250\"-1.000\" / 6.35-25.4mm)");
+    }
+
+    notes.push("BLADE ROOT CRITICAL: Highest stress concentration - focused beam 5-10 MHz required");
+    notes.push("Class AAA mandatory for integrated blade-disk components (AMS-STD-2154)");
+  }
+
   // Build alternative blocks if available
   let alternativeBlocks: CalibrationBlockSpec[] | undefined;
   if (blockSelection.alternatives && blockSelection.alternatives.length > 0) {

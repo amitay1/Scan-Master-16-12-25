@@ -16,6 +16,8 @@ import { drawEllipseTechnicalDrawing } from '@/utils/technicalDrawings/ellipseDr
 import { drawForgingTechnicalDrawing } from '@/utils/technicalDrawings/forgingDrawing';
 import { drawIrregularTechnicalDrawing } from '@/utils/technicalDrawings/irregularDrawing';
 import { drawRectangularTubeTechnicalDrawing } from '@/utils/technicalDrawings/rectangularTubeDrawing';
+import { drawImpellerTechnicalDrawing } from '@/utils/technicalDrawings/impellerDrawing';
+import { drawBliskTechnicalDrawing } from '@/utils/technicalDrawings/bliskDrawing';
 import {
   ScanType,
   calculateScanZones,
@@ -262,6 +264,20 @@ export const RealTimeTechnicalDrawing = ({
           case 'ring':
           case 'ring_forging':
             drawRingTechnicalDrawing(generator, drawingDimensions, layout);
+            break;
+
+          // ============================================
+          // IMPELLER - Stepped disk shapes (aero engine)
+          // ============================================
+          case 'impeller':
+            drawImpellerTechnicalDrawing(generator, drawingDimensions, layout);
+            break;
+
+          // ============================================
+          // BLISK - Bladed disk (integrated blades)
+          // ============================================
+          case 'blisk':
+            drawBliskTechnicalDrawing(generator, drawingDimensions, layout);
             break;
 
           case 'pyramid':

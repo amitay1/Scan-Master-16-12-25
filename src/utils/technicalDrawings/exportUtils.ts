@@ -73,6 +73,7 @@ export function exportToDXF(
     case 'round_forging_stock':
     case 'disk':
     case 'disk_forging':
+    case 'impeller':
       drawCylinderDXF(drawing, dimensions);
       break;
 
@@ -83,6 +84,7 @@ export function exportToDXF(
     case 'bushing':
     case 'ring':
     case 'ring_forging':
+    case 'blisk':
       drawTubeDXF(drawing, dimensions);
       break;
 

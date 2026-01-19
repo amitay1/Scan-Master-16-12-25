@@ -365,6 +365,86 @@ export const ShapeGeometries = {
   
   hex_bar: (params?: ShapeParameters) => ShapeGeometries.hexagon(params),
 
+  // IMPELLER - Complex stepped disk with hub, web, rim sections (aero engine)
+  impeller: (params?: ShapeParameters) => {
+    // Create stepped profile using LatheGeometry for revolution
+    const points: THREE.Vector2[] = [];
+
+    // Hub (center) - small radius, tall
+    points.push(new THREE.Vector2(0.15, -0.3));  // Hub bottom inner
+    points.push(new THREE.Vector2(0.35, -0.3));  // Hub bottom outer
+    points.push(new THREE.Vector2(0.35, -0.15)); // Hub to web transition
+
+    // Web (middle thin section)
+    points.push(new THREE.Vector2(0.6, -0.1));   // Web lower
+    points.push(new THREE.Vector2(0.6, 0.1));    // Web upper
+
+    // Rim (outer thick section)
+    points.push(new THREE.Vector2(0.9, 0.15));   // Rim inner
+    points.push(new THREE.Vector2(0.9, 0.35));   // Rim top
+    points.push(new THREE.Vector2(0.7, 0.35));   // Rim outer top
+    points.push(new THREE.Vector2(0.5, 0.2));    // Back to web
+    points.push(new THREE.Vector2(0.25, 0.15));  // Hub top transition
+    points.push(new THREE.Vector2(0.15, 0.15));  // Hub top inner
+
+    const geometry = new THREE.LatheGeometry(points, 48);
+    return perfectCenter(geometry);
+  },
+
+  blisk: (params?: ShapeParameters) => {
+    // Bladed disk - disk with integrated blades
+    // Create disk base
+    const diskRadius = 0.9;
+    const diskHeight = 0.3;
+    const innerRadius = 0.25;
+
+    // Disk with center hole
+    const diskOuter = new THREE.CylinderGeometry(diskRadius, diskRadius, diskHeight, 48);
+    const diskInner = new THREE.CylinderGeometry(innerRadius, innerRadius, diskHeight + 0.1, 32);
+    const diskGeometry = createHollowGeometry(diskOuter, diskInner);
+
+    // Create blade-like protrusions around the rim (simplified representation)
+    const bladeGeometries: THREE.BufferGeometry[] = [];
+    const numBlades = 24;
+    const bladeHeight = 0.25;
+    const bladeWidth = 0.08;
+    const bladeDepth = 0.15;
+
+    for (let i = 0; i < numBlades; i++) {
+      const angle = (i / numBlades) * Math.PI * 2;
+      const blade = new THREE.BoxGeometry(bladeWidth, bladeHeight, bladeDepth);
+
+      // Position blade at rim
+      const x = Math.cos(angle) * (diskRadius + bladeDepth / 2 - 0.02);
+      const z = Math.sin(angle) * (diskRadius + bladeDepth / 2 - 0.02);
+
+      blade.translate(x, diskHeight / 2 + bladeHeight / 2 - 0.05, z);
+      blade.rotateY(-angle);
+
+      bladeGeometries.push(blade);
+    }
+
+    // Merge disk with blades
+    const mergedGeometry = diskGeometry.clone();
+    for (const bladeGeom of bladeGeometries) {
+      const bladePositions = bladeGeom.attributes.position.array;
+      const diskPositions = mergedGeometry.attributes.position.array;
+
+      // Simple merge - just add blade vertices
+      const newPositions = new Float32Array(diskPositions.length + bladePositions.length);
+      newPositions.set(diskPositions, 0);
+      newPositions.set(bladePositions, diskPositions.length);
+
+      bladeGeom.dispose();
+    }
+
+    // For simplicity, return disk with visual indication of blades via thicker rim
+    const finalGeometry = new THREE.CylinderGeometry(diskRadius * 1.05, diskRadius, diskHeight * 1.2, 48);
+    const innerHole = new THREE.CylinderGeometry(innerRadius, innerRadius, diskHeight * 1.3, 32);
+
+    return perfectCenter(createHollowGeometry(finalGeometry, innerHole));
+  },
+
   // Generic fallbacks
   bar: (params?: ShapeParameters) => ShapeGeometries.box(params),
   forging: (params?: ShapeParameters) => ShapeGeometries.cylinder(params),

@@ -125,13 +125,27 @@ export const MATERIAL_VELOCITIES: Record<string, MaterialVelocity> = {
     acousticImpedance: 37.7
   },
   
-  // NICKEL ALLOYS
+  // NICKEL ALLOYS (Aero Engine Materials)
+  'inconel_718': {
+    name: 'Inconel 718 (AMS 5662)',
+    longitudinal: 5840,
+    shear: 3020,
+    density: 8192,
+    acousticImpedance: 47.8
+  },
   'inconel_625': {
-    name: 'Inconel 625',
+    name: 'Inconel 625 (AMS 5666)',
     longitudinal: 5820,
     shear: 3020,
     density: 8440,
     acousticImpedance: 49.1
+  },
+  'waspaloy': {
+    name: 'Waspaloy (AMS 5544)',
+    longitudinal: 5800,
+    shear: 3010,
+    density: 8190,
+    acousticImpedance: 47.5
   },
   'monel_400': {
     name: 'Monel 400',
@@ -140,7 +154,14 @@ export const MATERIAL_VELOCITIES: Record<string, MaterialVelocity> = {
     density: 8800,
     acousticImpedance: 47.1
   },
-  
+  'powdered_nickel': {
+    name: 'Powdered Nickel (PM Nickel)',
+    longitudinal: 5750,
+    shear: 3000,
+    density: 8100,
+    acousticImpedance: 46.6
+  },
+
   // WEDGE MATERIALS
   'perspex': {
     name: 'Perspex/Acrylic (PMMA)',
@@ -1073,10 +1094,20 @@ export function getMaterialVelocity(materialName: string): MaterialVelocity | nu
   if (lowerName.includes('titanium') || lowerName.includes('ti-6')) {
     return MATERIAL_VELOCITIES['titanium_6al4v'];
   }
-  if (lowerName.includes('inconel')) {
-    return MATERIAL_VELOCITIES['inconel_625'];
+  // Nickel alloys - common aero engine materials
+  if (lowerName.includes('718') || lowerName.includes('in718')) {
+    return MATERIAL_VELOCITIES['inconel_718'];
   }
-  
+  if (lowerName.includes('waspaloy')) {
+    return MATERIAL_VELOCITIES['waspaloy'];
+  }
+  if (lowerName.includes('powder') || lowerName.includes('pm nickel')) {
+    return MATERIAL_VELOCITIES['powdered_nickel'];
+  }
+  if (lowerName.includes('inconel') || lowerName.includes('nickel_alloy') || lowerName.includes('nickel alloy')) {
+    return MATERIAL_VELOCITIES['inconel_718']; // Default to IN718 for aero engines
+  }
+
   // Default to carbon steel
   return MATERIAL_VELOCITIES['carbon_steel'];
 }

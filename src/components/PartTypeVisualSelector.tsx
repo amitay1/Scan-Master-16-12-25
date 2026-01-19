@@ -38,6 +38,8 @@ const allPartTypes: PartTypeOption[] = [
   { value: "hexagon", label: "Hex Bar", description: "Hexagonal bar products", color: "#8E44AD", icon: "⬡", gradient: "from-violet-500/20 via-violet-400/10 to-transparent" },
   { value: "cone", label: "Tapered Tube / Cone", description: "Hollow tapered tube (like tube with different OD at each end)", color: "#1ABC9C", icon: "🔻", gradient: "from-teal-500/20 via-teal-400/10 to-transparent" },
   { value: "sphere", label: "Sphere", description: "Spherical parts", color: "#3498DB", icon: "🔵", gradient: "from-cyan-500/20 via-cyan-400/10 to-transparent" },
+  { value: "impeller", label: "Impeller", description: "Complex stepped disk with R surfaces (aero engine)", color: "#E74C3C", icon: "🌀", gradient: "from-red-500/20 via-red-400/10 to-transparent" },
+  { value: "blisk", label: "Blisk (Bladed Disk)", description: "Integrated blade-disk for aero engines", color: "#2980B9", icon: "🔷", gradient: "from-blue-600/20 via-blue-500/10 to-transparent" },
 ];
 
 // Mini 3D Shape Component for inline preview

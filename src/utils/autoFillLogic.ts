@@ -57,6 +57,15 @@ export const materialDatabase: Record<MaterialType, MaterialProperties> = {
     surfaceCondition: "Machined, protective coating acceptable if <0.05mm",
     typicalSpecs: ["ZK60A (QQ-M-31)", "AZ31B", "AZ80A", "ZE41A"]
   },
+  nickel_alloy: {
+    velocity: 5.72,
+    velocityShear: 3.05,
+    acousticImpedance: 47.5,
+    attenuation: 3.5,
+    density: 8.3,
+    surfaceCondition: "Ground or machined, Ra ≤ 3.2 μm",
+    typicalSpecs: ["Inconel 718 (AMS 5662)", "Waspaloy (AMS 5544)", "Inconel 625 (AMS 5666)", "Rene 41", "Hastelloy X"]
+  },
   custom: {
     velocity: 5.90,
     velocityShear: 3.20,
@@ -444,6 +453,18 @@ export const geometryRecommendations: Record<PartGeometry, GeometryRecommendatio
     scanPattern: "Drawing-specific",
     transducerType: "contact",
     specialConsiderations: "Follow parent form inspection method."
+  },
+  impeller: {
+    calibrationBlockType: ["flat_block", "curved_block", "cylinder_notched"],
+    scanPattern: "Multi-zone: Hub (30% OD), Web (60% OD), Rim (100% OD). Bore: circumferential shear wave 45°",
+    transducerType: "immersion",
+    specialConsiderations: "CRITICAL: Stepped geometry requires zone-by-zone inspection with separate gate settings. Hub=full height, Web=60% height, Rim=30% height. R-surfaces need contour-following. Bore inspection requires cylinder notched block (Figure 5). Class AAA per AMS-STD-2154."
+  },
+  blisk: {
+    calibrationBlockType: ["flat_block", "curved_block", "cylinder_notched"],
+    scanPattern: "Disk body: radial/axial. Blade roots: focused beam. Bore: circumferential shear wave 45°",
+    transducerType: "immersion",
+    specialConsiderations: "CRITICAL: Dual inspection zones - Disk body + Blade roots. Blade roots are high stress concentration areas requiring focused beam. Bore inspection requires cylinder notched block (Figure 5). Blade envelope extends 15% beyond disk OD. Class AAA mandatory per AMS-STD-2154."
   },
   custom: {
     calibrationBlockType: ["flat_block"],
