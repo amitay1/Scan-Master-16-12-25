@@ -318,11 +318,10 @@ export async function analyzeDrawing(imageBase64: string): Promise<GeometryAnaly
     };
   }
 
-  // Models to try in order (fallback chain)
+  // Models to try in order (fallback chain) - Claude 4.5 series
   const models = [
-    'claude-sonnet-4-20250514',      // Fast and capable
-    'claude-opus-4-20250514',        // Most powerful
-    'claude-3-5-sonnet-20241022',    // Fallback
+    'claude-sonnet-4-5-20250514',    // Sonnet 4.5 - Fast and capable
+    'claude-opus-4-5-20251101',      // Opus 4.5 - Most powerful
   ];
 
   for (const model of models) {
