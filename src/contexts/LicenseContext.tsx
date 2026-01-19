@@ -99,15 +99,8 @@ export const LicenseProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const canUseStandard = (standardCode: string): boolean => {
-    if (!license || !license.valid) {
-      return false;
-    }
-
-    if (!license.purchasedStandards) {
-      return false;
-    }
-
-    return license.purchasedStandards.includes(standardCode);
+    // All standards are now open to everyone - no license check required
+    return true;
   };
 
   const activateLicense = async (licenseKey: string): Promise<{ success: boolean; error?: string }> => {

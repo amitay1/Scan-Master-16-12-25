@@ -1607,10 +1607,10 @@ const Index = () => {
                         <TabsTrigger value="setup" className="flex-shrink-0 px-3">Setup</TabsTrigger>
                         <TabsTrigger value="equipment" className="flex-shrink-0 px-3">Equipment</TabsTrigger>
                         <TabsTrigger value="scan" className="flex-shrink-0 px-3 whitespace-nowrap">Scan Params</TabsTrigger>
+                        <TabsTrigger value="calibration" className="flex-shrink-0 px-3 whitespace-nowrap">Reference Standard</TabsTrigger>
                         <TabsTrigger value="acceptance" className="flex-shrink-0 px-3">Acceptance</TabsTrigger>
                         <TabsTrigger value="scandetails" className="flex-shrink-0 px-3 whitespace-nowrap">Scan Details</TabsTrigger>
                         <TabsTrigger value="docs" className="flex-shrink-0 px-3">Documentation</TabsTrigger>
-                        <TabsTrigger value="calibration" className="flex-shrink-0 px-3 whitespace-nowrap">Reference Standard</TabsTrigger>
                         <TabsTrigger value="scanplan" className="flex-shrink-0 px-3 whitespace-nowrap">Scan Plan</TabsTrigger>
                       </TabsList>
                     </div>

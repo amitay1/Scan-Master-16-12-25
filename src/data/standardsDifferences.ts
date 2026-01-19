@@ -143,44 +143,44 @@ const acceptanceCriteriaByStandardBase = {
   // AMS-STD-2154E Table 6 - Ultrasonic Classes (verified from official document)
   "AMS-STD-2154E": {
     "AAA": {
-      singleDiscontinuity: "1/64\" (0.4mm) - 25% of 3/64\" FBH response",
-      multipleDiscontinuities: "10% of 3/64\" FBH (centers <1\" apart)",
-      linearDiscontinuity: "1/8\" max length - 10% of 3/64\" response",
+      singleDiscontinuity: "1/64\" (0.4mm) FBH response",
+      multipleDiscontinuities: "1/64\" (0.4mm) FBH (centers <1\" apart)",
+      linearDiscontinuity: "1/64\" (0.4mm) FBH, 1/8\" max length",
       backReflectionLoss: "Per Note 4 - with noise change indication",
       noiseLevel: "Alarm level",
-      specialNotes: "Most stringent - for rotating turbine components. Note: For titanium, multiple discontinuity separation = 1/4\". Single = 50% of 2/64\" = 25% of 3/64\". Linear/Multiple = 1/64\" or 25% of 2/64\" = 10% of 3/64\"."
+      specialNotes: "Most stringent - for rotating turbine components. Note: For titanium, multiple discontinuity separation = 1/4\"."
     },
     "AA": {
       singleDiscontinuity: "3/64\" (1.2mm) FBH response",
-      multipleDiscontinuities: "3/64\" FBH (centers <1\" apart)",
-      linearDiscontinuity: "1/2\" max length - 2/64\" response",
+      multipleDiscontinuities: "2/64\" (0.8mm) FBH (centers <1\" apart)",
+      linearDiscontinuity: "2/64\" (0.8mm) FBH, 1/2\" max length",
       backReflectionLoss: "50% maximum",
       noiseLevel: "Alarm level",
       specialNotes: "For engine mounts, landing gear primary structure, rotor hubs"
     },
     "A": {
       singleDiscontinuity: "5/64\" (2.0mm) FBH response",
-      multipleDiscontinuities: "2/64\" FBH (centers <1\" apart)",
-      linearDiscontinuity: "1\" max length - 3/64\" response",
+      multipleDiscontinuities: "2/64\" (0.8mm) FBH (centers <1\" apart)",
+      linearDiscontinuity: "3/64\" (1.2mm) FBH, 1\" max length",
       backReflectionLoss: "50% maximum",
       noiseLevel: "Alarm level",
       specialNotes: "For primary airframe structure, engine and transmission components"
     },
     "B": {
       singleDiscontinuity: "8/64\" (3.2mm) FBH response",
-      multipleDiscontinuities: "3/64\" FBH (centers <1\" apart)",
-      linearDiscontinuity: "1\" max length - 5/64\" response",
+      multipleDiscontinuities: "3/64\" (1.2mm) FBH (centers <1\" apart)",
+      linearDiscontinuity: "5/64\" (2.0mm) FBH, 1\" max length",
       backReflectionLoss: "50% maximum",
       noiseLevel: "Alarm level",
       specialNotes: "For secondary structure, non-flight critical components"
     },
     "C": {
       singleDiscontinuity: "8/64\" (3.2mm) FBH response",
-      multipleDiscontinuities: "5/64\" FBH",
+      multipleDiscontinuities: "5/64\" (2.0mm) FBH",
       linearDiscontinuity: "Not applicable",
       backReflectionLoss: "50% maximum",
       noiseLevel: "Alarm level",
-      specialNotes: "For non-structural components, tooling, ground support. No linear discontinuity or multiple proximity limits."
+      specialNotes: "For non-structural components, tooling, ground support. No linear discontinuity limits."
     },
   },
   "ASTM-A388": {
@@ -310,40 +310,40 @@ const acceptanceCriteriaByStandardBase = {
   // ASTM E2375 - Adopted from MIL-STD-2154 (same criteria as AMS-STD-2154E)
   "ASTM-E2375": {
     "AAA": {
-      singleDiscontinuity: "1/64\" (0.4mm) - 25% of 3/64\" FBH response",
-      multipleDiscontinuities: "10% of 3/64\" FBH (centers <1\" apart)",
-      linearDiscontinuity: "1/8\" max length - 10% of 3/64\" response",
+      singleDiscontinuity: "1/64\" (0.4mm) FBH response",
+      multipleDiscontinuities: "1/64\" (0.4mm) FBH (centers <1\" apart)",
+      linearDiscontinuity: "1/64\" (0.4mm) FBH, 1/8\" max length",
       backReflectionLoss: "Per Note 4 - with noise change indication",
       noiseLevel: "Alarm level",
       specialNotes: "ASTM E2375 adopted MIL-STD-2154 criteria. Most stringent class for rotating parts."
     },
     "AA": {
       singleDiscontinuity: "3/64\" (1.2mm) FBH response",
-      multipleDiscontinuities: "3/64\" FBH (centers <1\" apart)",
-      linearDiscontinuity: "1/2\" max length - 2/64\" response",
+      multipleDiscontinuities: "2/64\" (0.8mm) FBH (centers <1\" apart)",
+      linearDiscontinuity: "2/64\" (0.8mm) FBH, 1/2\" max length",
       backReflectionLoss: "50% maximum",
       noiseLevel: "Alarm level",
       specialNotes: "Super-critical applications per ASTM E2375"
     },
     "A": {
       singleDiscontinuity: "5/64\" (2.0mm) FBH response",
-      multipleDiscontinuities: "2/64\" FBH (centers <1\" apart)",
-      linearDiscontinuity: "1\" max length - 3/64\" response",
+      multipleDiscontinuities: "2/64\" (0.8mm) FBH (centers <1\" apart)",
+      linearDiscontinuity: "3/64\" (1.2mm) FBH, 1\" max length",
       backReflectionLoss: "50% maximum",
       noiseLevel: "Alarm level",
       specialNotes: "Critical applications per ASTM E2375"
     },
     "B": {
       singleDiscontinuity: "8/64\" (3.2mm) FBH response",
-      multipleDiscontinuities: "3/64\" FBH (centers <1\" apart)",
-      linearDiscontinuity: "1\" max length - 5/64\" response",
+      multipleDiscontinuities: "3/64\" (1.2mm) FBH (centers <1\" apart)",
+      linearDiscontinuity: "5/64\" (2.0mm) FBH, 1\" max length",
       backReflectionLoss: "50% maximum",
       noiseLevel: "Alarm level",
       specialNotes: "Semi-critical applications per ASTM E2375"
     },
     "C": {
       singleDiscontinuity: "8/64\" (3.2mm) FBH response",
-      multipleDiscontinuities: "5/64\" FBH",
+      multipleDiscontinuities: "5/64\" (2.0mm) FBH",
       linearDiscontinuity: "Not applicable",
       backReflectionLoss: "50% maximum",
       noiseLevel: "Alarm level",
@@ -394,40 +394,40 @@ const acceptanceCriteriaByStandardBase = {
   // AMS-2630 - Products >0.5" thick
   "AMS-2630": {
     "AAA": {
-      singleDiscontinuity: "1/64\" (0.4mm) - 25% of 3/64\" FBH response",
-      multipleDiscontinuities: "10% of 3/64\" FBH (centers <1\" apart)",
-      linearDiscontinuity: "1/8\" max length - 10% of 3/64\" response",
+      singleDiscontinuity: "1/64\" (0.4mm) FBH response",
+      multipleDiscontinuities: "1/64\" (0.4mm) FBH (centers <1\" apart)",
+      linearDiscontinuity: "1/64\" (0.4mm) FBH, 1/8\" max length",
       backReflectionLoss: "Per specification",
       noiseLevel: "Alarm level",
       specialNotes: "Products over 0.5\" thick. Ultra-critical class. Consistent with AMS-STD-2154E methodology."
     },
     "AA": {
       singleDiscontinuity: "3/64\" (1.2mm) FBH response",
-      multipleDiscontinuities: "3/64\" FBH (centers <1\" apart)",
-      linearDiscontinuity: "1/2\" max length - 2/64\" response",
+      multipleDiscontinuities: "2/64\" (0.8mm) FBH (centers <1\" apart)",
+      linearDiscontinuity: "2/64\" (0.8mm) FBH, 1/2\" max length",
       backReflectionLoss: "50% maximum",
       noiseLevel: "Alarm level",
       specialNotes: "Products over 0.5\" thick. Super-critical class."
     },
     "A": {
       singleDiscontinuity: "5/64\" (2.0mm) FBH response",
-      multipleDiscontinuities: "2/64\" FBH (centers <1\" apart)",
-      linearDiscontinuity: "1\" max length - 3/64\" response",
+      multipleDiscontinuities: "2/64\" (0.8mm) FBH (centers <1\" apart)",
+      linearDiscontinuity: "3/64\" (1.2mm) FBH, 1\" max length",
       backReflectionLoss: "50% maximum",
       noiseLevel: "Alarm level",
       specialNotes: "Products over 0.5\" thick. Critical class."
     },
     "B": {
       singleDiscontinuity: "8/64\" (3.2mm) FBH response",
-      multipleDiscontinuities: "3/64\" FBH (centers <1\" apart)",
-      linearDiscontinuity: "1\" max length - 5/64\" response",
+      multipleDiscontinuities: "3/64\" (1.2mm) FBH (centers <1\" apart)",
+      linearDiscontinuity: "5/64\" (2.0mm) FBH, 1\" max length",
       backReflectionLoss: "50% maximum",
       noiseLevel: "Alarm level",
       specialNotes: "Products over 0.5\" thick. Semi-critical class."
     },
     "C": {
       singleDiscontinuity: "8/64\" (3.2mm) FBH response",
-      multipleDiscontinuities: "5/64\" FBH",
+      multipleDiscontinuities: "5/64\" (2.0mm) FBH",
       linearDiscontinuity: "Not applicable",
       backReflectionLoss: "50% maximum",
       noiseLevel: "Alarm level",
