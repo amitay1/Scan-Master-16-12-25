@@ -1,6 +1,7 @@
 import { MaterialType, PartGeometry, StandardType, AcceptanceClass } from "@/types/techniqueSheet";
 
-// ============= TABLE VI - ULTRASONIC CLASSES (MIL-STD-2154) =============
+// ============= TABLE VI - ULTRASONIC CLASSES (AMS-STD-2154E / MIL-STD-2154) =============
+// Corrected January 2026 - Values now match standardsDifferences.ts (FBH-based, not DAC%)
 export interface AcceptanceLimitsEnhanced {
   singleDiscontinuity: string;
   multipleDiscontinuities: string;
@@ -12,44 +13,44 @@ export interface AcceptanceLimitsEnhanced {
 
 export const TABLE_VI_ACCEPTANCE_LIMITS: Record<AcceptanceClass, AcceptanceLimitsEnhanced> = {
   "AAA": {
-    singleDiscontinuity: "2% or less of DAC curve",
-    multipleDiscontinuities: "1% or less of DAC curve",
-    linearDiscontinuity: "Not permitted",
-    backReflectionLoss: 2,
-    noiseLevel: "Grass height shall not exceed 5% of full screen height",
-    specialNotes: "Titanium: Maximum permissible back reflection loss is 6 dB"
+    singleDiscontinuity: "1/64\" (0.4mm) FBH response",
+    multipleDiscontinuities: "1/64\" (0.4mm) FBH (centers <1\" apart)",
+    linearDiscontinuity: "1/64\" (0.4mm) FBH, 1/8\" max length",
+    backReflectionLoss: 50,
+    noiseLevel: "Alarm level",
+    specialNotes: "Most stringent - for rotating turbine components. Titanium: multiple discontinuity separation = 1/4\""
   },
   "AA": {
-    singleDiscontinuity: "5% or less of DAC curve",
-    multipleDiscontinuities: "2% or less of DAC curve",
-    linearDiscontinuity: "Not permitted",
-    backReflectionLoss: 4,
-    noiseLevel: "Grass height shall not exceed 10% of full screen height",
-    specialNotes: "Titanium: Maximum permissible back reflection loss is 8 dB"
+    singleDiscontinuity: "3/64\" (1.2mm) FBH response",
+    multipleDiscontinuities: "2/64\" (0.8mm) FBH (centers <1\" apart)",
+    linearDiscontinuity: "2/64\" (0.8mm) FBH, 1/2\" max length",
+    backReflectionLoss: 50,
+    noiseLevel: "Alarm level",
+    specialNotes: "For engine mounts, landing gear primary structure, rotor hubs"
   },
   "A": {
-    singleDiscontinuity: "8% or less of DAC curve",
-    multipleDiscontinuities: "5% or less of DAC curve",
-    linearDiscontinuity: "Linear indications greater than 1/4 inch not permitted",
-    backReflectionLoss: 6,
-    noiseLevel: "Grass height shall not exceed 15% of full screen height",
-    specialNotes: "Titanium: Maximum permissible back reflection loss is 10 dB"
+    singleDiscontinuity: "5/64\" (2.0mm) FBH response",
+    multipleDiscontinuities: "2/64\" (0.8mm) FBH (centers <1\" apart)",
+    linearDiscontinuity: "3/64\" (1.2mm) FBH, 1\" max length",
+    backReflectionLoss: 50,
+    noiseLevel: "Alarm level",
+    specialNotes: "For primary airframe structure, engine and transmission components"
   },
   "B": {
-    singleDiscontinuity: "15% or less of DAC curve",
-    multipleDiscontinuities: "8% or less of DAC curve",
-    linearDiscontinuity: "Linear indications greater than 1/2 inch not permitted",
-    backReflectionLoss: 10,
-    noiseLevel: "Grass height shall not exceed 20% of full screen height",
-    specialNotes: "Titanium: Maximum permissible back reflection loss is 14 dB"
+    singleDiscontinuity: "8/64\" (3.2mm) FBH response",
+    multipleDiscontinuities: "3/64\" (1.2mm) FBH (centers <1\" apart)",
+    linearDiscontinuity: "5/64\" (2.0mm) FBH, 1\" max length",
+    backReflectionLoss: 50,
+    noiseLevel: "Alarm level",
+    specialNotes: "For secondary structure, non-flight critical components"
   },
   "C": {
-    singleDiscontinuity: "25% or less of DAC curve",
-    multipleDiscontinuities: "15% or less of DAC curve",
-    linearDiscontinuity: "Linear indications greater than 1 inch not permitted",
-    backReflectionLoss: 15,
-    noiseLevel: "Grass height shall not exceed 25% of full screen height",
-    specialNotes: "Titanium: Maximum permissible back reflection loss is 20 dB"
+    singleDiscontinuity: "8/64\" (3.2mm) FBH response",
+    multipleDiscontinuities: "5/64\" (2.0mm) FBH",
+    linearDiscontinuity: "Not applicable",
+    backReflectionLoss: 50,
+    noiseLevel: "Alarm level",
+    specialNotes: "For non-structural components, tooling, ground support. No linear discontinuity limits."
   }
 };
 

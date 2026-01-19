@@ -543,44 +543,38 @@ interface AcceptanceLimits {
  * which has the correct AMS-STD-2154E Table 6 FBH-based criteria.
  */
 export const acceptanceLimits: Record<AcceptanceClass, AcceptanceLimits> = {
-  // WARNING: These values are INCORRECT and kept only for backwards compatibility
-  // Correct values per AMS-STD-2154E Table 6:
-  // AAA: Single=1/64", Multiple=10% of 3/64", Linear=1/8" max
-  // AA:  Single=3/64", Multiple=3/64", Linear=1/2" max
-  // A:   Single=5/64", Multiple=2/64", Linear=1" max
-  // B:   Single=8/64", Multiple=3/64", Linear=1" max
-  // C:   Single=8/64", Multiple=5/64", Linear=N/A
+  // Values per AMS-STD-2154E Table VI (corrected January 2026)
   "AAA": {
-    singleDiscontinuity: "1/64\" (0.4mm) FBH - see standardsDifferences.ts",
-    multipleDiscontinuities: "10% of 3/64\" FBH - see standardsDifferences.ts",
-    linearDiscontinuity: "1/8\" max - 10% of 3/64\"",
+    singleDiscontinuity: "1/64\" (0.4mm) FBH response",
+    multipleDiscontinuities: "1/64\" (0.4mm) FBH (centers <1\" apart)",
+    linearDiscontinuity: "1/64\" (0.4mm) FBH, 1/8\" max length",
     backReflectionLoss: 50,
     noiseLevel: "Alarm level"
   },
   "AA": {
-    singleDiscontinuity: "3/64\" (1.2mm) FBH",
-    multipleDiscontinuities: "3/64\" FBH (centers <1\" apart)",
-    linearDiscontinuity: "1/2\" max - 2/64\" response",
+    singleDiscontinuity: "3/64\" (1.2mm) FBH response",
+    multipleDiscontinuities: "2/64\" (0.8mm) FBH (centers <1\" apart)",
+    linearDiscontinuity: "2/64\" (0.8mm) FBH, 1/2\" max length",
     backReflectionLoss: 50,
     noiseLevel: "Alarm level"
   },
   "A": {
-    singleDiscontinuity: "5/64\" (2.0mm) FBH",
-    multipleDiscontinuities: "2/64\" FBH (centers <1\" apart)",
-    linearDiscontinuity: "1\" max - 3/64\" response",
+    singleDiscontinuity: "5/64\" (2.0mm) FBH response",
+    multipleDiscontinuities: "2/64\" (0.8mm) FBH (centers <1\" apart)",
+    linearDiscontinuity: "3/64\" (1.2mm) FBH, 1\" max length",
     backReflectionLoss: 50,
     noiseLevel: "Alarm level"
   },
   "B": {
-    singleDiscontinuity: "8/64\" (3.2mm) FBH",
-    multipleDiscontinuities: "3/64\" FBH (centers <1\" apart)",
-    linearDiscontinuity: "1\" max - 5/64\" response",
+    singleDiscontinuity: "8/64\" (3.2mm) FBH response",
+    multipleDiscontinuities: "3/64\" (1.2mm) FBH (centers <1\" apart)",
+    linearDiscontinuity: "5/64\" (2.0mm) FBH, 1\" max length",
     backReflectionLoss: 50,
     noiseLevel: "Alarm level"
   },
   "C": {
-    singleDiscontinuity: "8/64\" (3.2mm) FBH",
-    multipleDiscontinuities: "5/64\" FBH",
+    singleDiscontinuity: "8/64\" (3.2mm) FBH response",
+    multipleDiscontinuities: "5/64\" (2.0mm) FBH",
     linearDiscontinuity: "Not applicable",
     backReflectionLoss: 50,
     noiseLevel: "Alarm level"

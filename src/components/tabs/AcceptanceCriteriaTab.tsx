@@ -309,54 +309,63 @@ export const AcceptanceCriteriaTab = ({ data, onChange, material, standard = "AM
           <strong>Reference:</strong> All acceptance criteria are based on <strong>{getStandardLabel(standard)}</strong>.
           {standard === "AMS-STD-2154E" && " Class AAA is the most stringent, Class C is the least."}
           {standard === "ASTM-A388" && " Quality Level 1 (QL1) is the most stringent, QL4 is the least."}
-          {standard.startsWith("BS-EN") && " Quality Class 1 is the most stringent, Class 4 is the least. Levels are defined in dB relative to DAC reference."}
+          {standard === "BS-EN-10228-3" && " Quality Class 4 is the most stringent, Class 1 is the least. Based on EFBH (Equivalent Flat Bottom Hole) sizes."}
+          {standard === "BS-EN-10228-4" && " Quality Class 3 is the most stringent, Class 1 is the least. For austenitic/duplex steels only."}
           {" "}Ensure your inspection meets or exceeds the specified requirements.
         </p>
       </div>
 
       {/* Standards Comparison Quick Reference */}
-      {standard === "AMS-STD-2154E" && (
+      {(standard === "AMS-STD-2154E" || standard === "MIL-STD-2154") && (
         <div className="border border-border rounded-lg overflow-hidden">
           <div className="bg-muted/50 px-4 py-2 border-b border-border">
-            <h4 className="text-sm font-semibold">Quick Reference: AMS-STD-2154E Classes</h4>
+            <h4 className="text-sm font-semibold">Quick Reference: AMS-STD-2154E / MIL-STD-2154 Table VI</h4>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead className="bg-muted/30">
                 <tr>
                   <th className="px-3 py-2 text-left">Class</th>
-                  <th className="px-3 py-2 text-left">Single</th>
-                  <th className="px-3 py-2 text-left">Multiple</th>
-                  <th className="px-3 py-2 text-left">Linear</th>
+                  <th className="px-3 py-2 text-left">Single FBH</th>
+                  <th className="px-3 py-2 text-left">Multiple FBH</th>
+                  <th className="px-3 py-2 text-left">Linear FBH</th>
+                  <th className="px-3 py-2 text-left">Linear Max</th>
                   <th className="px-3 py-2 text-left">BWL</th>
-                  <th className="px-3 py-2 text-left">Noise</th>
                 </tr>
               </thead>
               <tbody>
                 {["AAA", "AA", "A", "B", "C"].map((cls) => {
-                  const criteria = acceptanceCriteriaByStandard["AMS-STD-2154E"][cls];
                   const isSelected = data.acceptanceClass === cls;
+                  const singleFBH = ["1/64\" (0.4mm)", "3/64\" (1.2mm)", "5/64\" (2.0mm)", "8/64\" (3.2mm)", "8/64\" (3.2mm)"];
+                  const multipleFBH = ["1/64\" (0.4mm)", "2/64\" (0.8mm)", "2/64\" (0.8mm)", "3/64\" (1.2mm)", "5/64\" (2.0mm)"];
+                  const linearFBH = ["1/64\" (0.4mm)", "2/64\" (0.8mm)", "3/64\" (1.2mm)", "5/64\" (2.0mm)", "N/A"];
+                  const linearMax = ["1/8\"", "1/2\"", "1\"", "1\"", "N/A"];
+                  const bwl = ["Note 4", "50%", "50%", "50%", "50%"];
+                  const idx = ["AAA", "AA", "A", "B", "C"].indexOf(cls);
                   return (
                     <tr key={cls} className={isSelected ? "bg-primary/10" : ""}>
                       <td className="px-3 py-2 font-medium">{cls}</td>
-                      <td className="px-3 py-2">{criteria.singleDiscontinuity.substring(0, 20)}...</td>
-                      <td className="px-3 py-2">{criteria.multipleDiscontinuities.substring(0, 20)}...</td>
-                      <td className="px-3 py-2">{criteria.linearDiscontinuity.substring(0, 15)}...</td>
-                      <td className="px-3 py-2">{criteria.backReflectionLoss}</td>
-                      <td className="px-3 py-2">{criteria.noiseLevel}</td>
+                      <td className="px-3 py-2">{singleFBH[idx]}</td>
+                      <td className="px-3 py-2">{multipleFBH[idx]}</td>
+                      <td className="px-3 py-2">{linearFBH[idx]}</td>
+                      <td className="px-3 py-2">{linearMax[idx]}</td>
+                      <td className="px-3 py-2">{bwl[idx]}</td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
           </div>
+          <p className="text-xs text-muted-foreground px-4 py-2 bg-muted/20">
+            Note: Multiple discontinuities = centers &lt;1&quot; apart. Class AAA = Most stringent, Class C = Least stringent.
+          </p>
         </div>
       )}
 
       {standard === "ASTM-A388" && (
         <div className="border border-border rounded-lg overflow-hidden">
           <div className="bg-muted/50 px-4 py-2 border-b border-border">
-            <h4 className="text-sm font-semibold">Quick Reference: ASTM A388 Quality Levels</h4>
+            <h4 className="text-sm font-semibold">Quick Reference: ASTM A388 Quality Levels (Industry Convention)</h4>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
@@ -366,75 +375,116 @@ export const AcceptanceCriteriaTab = ({ data, onChange, material, standard = "AM
                   <th className="px-3 py-2 text-left">Single</th>
                   <th className="px-3 py-2 text-left">Multiple</th>
                   <th className="px-3 py-2 text-left">Linear</th>
-                  <th className="px-3 py-2 text-left">BWL</th>
+                  <th className="px-3 py-2 text-left">BWL Max</th>
                 </tr>
               </thead>
               <tbody>
                 {["QL1", "QL2", "QL3", "QL4"].map((cls) => {
-                  const criteria = acceptanceCriteriaByStandard["ASTM-A388"][cls];
                   const isSelected = data.acceptanceClass === cls;
+                  const single = ["Ref FBH", "2× Ref", "4× Ref", "No limit"];
+                  const multiple = ["50% Ref", "Ref FBH", "2× Ref", "4× Ref"];
+                  const linear = ["Not allowed", "≤1\"", "≤2\"", "As agreed"];
+                  const bwl = ["50%", "75%", "90%", "100%"];
+                  const idx = ["QL1", "QL2", "QL3", "QL4"].indexOf(cls);
                   return (
                     <tr key={cls} className={isSelected ? "bg-primary/10" : ""}>
                       <td className="px-3 py-2 font-medium">{cls}</td>
-                      <td className="px-3 py-2">{criteria.singleDiscontinuity}</td>
-                      <td className="px-3 py-2">{criteria.multipleDiscontinuities}</td>
-                      <td className="px-3 py-2">{criteria.linearDiscontinuity}</td>
-                      <td className="px-3 py-2">{criteria.backReflectionLoss}</td>
+                      <td className="px-3 py-2">{single[idx]}</td>
+                      <td className="px-3 py-2">{multiple[idx]}</td>
+                      <td className="px-3 py-2">{linear[idx]}</td>
+                      <td className="px-3 py-2">{bwl[idx]}</td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
           </div>
+          <p className="text-xs text-muted-foreground px-4 py-2 bg-muted/20">
+            Note: QL1-QL4 are industry conventions, not defined in ASTM A388. Reference FBH by thickness: &lt;1.5&quot;=1/16&quot;, 1.5-6&quot;=1/8&quot;, &gt;6&quot;=1/4&quot;.
+          </p>
         </div>
       )}
 
-      {standard.startsWith("BS-EN-10228") && (
+      {standard === "BS-EN-10228-3" && (
         <div className="border border-border rounded-lg overflow-hidden">
           <div className="bg-muted/50 px-4 py-2 border-b border-border">
-            <h4 className="text-sm font-semibold">Quick Reference: {standard} Quality Classes (dB from DAC)</h4>
+            <h4 className="text-sm font-semibold">Quick Reference: BS EN 10228-3 Quality Classes (EFBH sizes)</h4>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead className="bg-muted/30">
                 <tr>
                   <th className="px-3 py-2 text-left">Class</th>
-                  <th className="px-3 py-2 text-left">Recording</th>
-                  <th className="px-3 py-2 text-left">Acceptance</th>
-                  <th className="px-3 py-2 text-left">Evaluation</th>
-                  <th className="px-3 py-2 text-left">Max Indications</th>
+                  <th className="px-3 py-2 text-left">Recording Level</th>
+                  <th className="px-3 py-2 text-left">Isolated Max</th>
+                  <th className="px-3 py-2 text-left">Extended Max</th>
+                  <th className="px-3 py-2 text-left">BWE Ratio</th>
                 </tr>
               </thead>
               <tbody>
                 {["1", "2", "3", "4"].map((cls) => {
-                  const criteria = acceptanceCriteriaByStandard[standard][cls];
                   const isSelected = data.acceptanceClass === cls;
-                  const levels = standard === "BS-EN-10228-3"
-                    ? ["-12 dB", "-6 dB", "REF", "+6 dB"]
-                    : ["-14 dB", "-8 dB", "-2 dB", "+4 dB"];
-                  const acceptLevels = standard === "BS-EN-10228-3"
-                    ? ["-6 dB", "REF", "+6 dB", "+12 dB"]
-                    : ["-8 dB", "-2 dB", "+4 dB", "+10 dB"];
-                  const evalLevels = standard === "BS-EN-10228-3"
-                    ? ["REF", "+6 dB", "+12 dB", "+16 dB"]
-                    : ["-2 dB", "+4 dB", "+10 dB", "+14 dB"];
-                  const maxInd = standard === "BS-EN-10228-3"
-                    ? ["0", "3", "5", "As agreed"]
-                    : ["0", "2", "4", "As agreed"];
+                  const recording = [">8mm EFBH", ">5mm EFBH", ">3mm EFBH", ">2mm EFBH"];
+                  const isolated = ["≤12mm", "≤8mm", "≤5mm", "≤3mm"];
+                  const extended = ["≤8mm", "≤5mm", "≤3mm", "≤2mm"];
+                  const bweRatio = ["R ≤ 0.1", "R ≤ 0.3", "R ≤ 0.5", "R ≤ 0.6"];
                   const idx = parseInt(cls) - 1;
                   return (
                     <tr key={cls} className={isSelected ? "bg-primary/10" : ""}>
                       <td className="px-3 py-2 font-medium">Class {cls}</td>
-                      <td className="px-3 py-2">{levels[idx]}</td>
-                      <td className="px-3 py-2">{acceptLevels[idx]}</td>
-                      <td className="px-3 py-2">{evalLevels[idx]}</td>
-                      <td className="px-3 py-2">{maxInd[idx]} per 100cm²</td>
+                      <td className="px-3 py-2">{recording[idx]}</td>
+                      <td className="px-3 py-2">{isolated[idx]}</td>
+                      <td className="px-3 py-2">{extended[idx]}</td>
+                      <td className="px-3 py-2">{bweRatio[idx]}</td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
           </div>
+          <p className="text-xs text-muted-foreground px-4 py-2 bg-muted/20">
+            Note: Class 1 = Least stringent, Class 4 = Most stringent. EFBH = Equivalent Flat Bottom Hole.
+          </p>
+        </div>
+      )}
+
+      {standard === "BS-EN-10228-4" && (
+        <div className="border border-border rounded-lg overflow-hidden">
+          <div className="bg-muted/50 px-4 py-2 border-b border-border">
+            <h4 className="text-sm font-semibold">Quick Reference: BS EN 10228-4 Quality Classes (Austenitic)</h4>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead className="bg-muted/30">
+                <tr>
+                  <th className="px-3 py-2 text-left">Class</th>
+                  <th className="px-3 py-2 text-left">Stringency</th>
+                  <th className="px-3 py-2 text-left">S/N Ratio</th>
+                  <th className="px-3 py-2 text-left">Notes</th>
+                </tr>
+              </thead>
+              <tbody>
+                {["1", "2", "3"].map((cls) => {
+                  const isSelected = data.acceptanceClass === cls;
+                  const stringency = ["Least stringent", "Intermediate", "Most stringent"];
+                  const snRatio = ["Per agreement", "Min 3:1", "Preferred 6:1"];
+                  const notes = ["Largest allowable sizes", "Intermediate sizes", "Smallest allowable sizes"];
+                  const idx = parseInt(cls) - 1;
+                  return (
+                    <tr key={cls} className={isSelected ? "bg-primary/10" : ""}>
+                      <td className="px-3 py-2 font-medium">Class {cls}</td>
+                      <td className="px-3 py-2">{stringency[idx]}</td>
+                      <td className="px-3 py-2">{snRatio[idx]}</td>
+                      <td className="px-3 py-2">{notes[idx]}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <p className="text-xs text-muted-foreground px-4 py-2 bg-muted/20">
+            Note: BS EN 10228-4 has only 3 Quality Classes. Limits are thickness-dependent per Table 5.
+          </p>
         </div>
       )}
     </div>
