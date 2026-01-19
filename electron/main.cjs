@@ -5,6 +5,48 @@ const fs = require('fs');
 const LicenseManager = require('./license-manager.cjs');
 const OfflineUpdater = require('./offline-updater.cjs');
 
+// Load environment variables from .env files
+// Order: .env.local > .env (for API keys like Claude)
+function loadEnvFiles() {
+  try {
+    const dotenv = require('dotenv');
+    const appRoot = path.join(__dirname, '..');
+
+    // Try .env.local first (user's private keys)
+    const localEnvPath = path.join(appRoot, '.env.local');
+    if (fs.existsSync(localEnvPath)) {
+      dotenv.config({ path: localEnvPath });
+      console.log('✅ Loaded .env.local');
+    }
+
+    // Then .env (fallback)
+    const envPath = path.join(appRoot, '.env');
+    if (fs.existsSync(envPath)) {
+      dotenv.config({ path: envPath });
+      console.log('✅ Loaded .env');
+    }
+  } catch (err) {
+    console.log('⚠️ Could not load .env files:', err.message);
+  }
+}
+
+// Load from project folder immediately
+loadEnvFiles();
+
+// Function to load user-specific API keys (called after app.ready)
+function loadUserApiKeys() {
+  try {
+    const dotenv = require('dotenv');
+    const userDataEnv = path.join(app.getPath('userData'), 'api-keys.env');
+    if (fs.existsSync(userDataEnv)) {
+      dotenv.config({ path: userDataEnv });
+      console.log('✅ Loaded api-keys.env from user data');
+    }
+  } catch (err) {
+    console.log('⚠️ Could not load user API keys:', err.message);
+  }
+}
+
 // GPU stability flags - keep GPU enabled for WebGL but with safe settings
 app.commandLine.appendSwitch('disable-gpu-sandbox');
 app.commandLine.appendSwitch('disable-gpu-watchdog');
@@ -1376,6 +1418,9 @@ function startEmbeddedServer() {
 app.whenReady().then(async () => {
   // In packaged app, app.isPackaged is true
   isDev = !app.isPackaged;
+
+  // Load user-specific API keys from userData folder
+  loadUserApiKeys();
 
   // Initialize license manager with app data path and version
   licenseManager = new LicenseManager(app.getPath('userData'), app.getVersion());
