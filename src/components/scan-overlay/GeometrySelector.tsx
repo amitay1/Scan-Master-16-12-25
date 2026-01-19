@@ -14,11 +14,11 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { CheckCircle2, Shapes, Sparkles, Loader2, AlertCircle, Key, Cloud, Cpu } from 'lucide-react';
+import { CheckCircle2, Shapes, Sparkles, Loader2, AlertCircle, Key, Cloud, Cpu, Settings } from 'lucide-react';
 import type { PartGeometry } from '@/types/techniqueSheet';
 import type { GeometryAnalysis } from '@/services/ollamaVision';
 import type { VisionProvider } from './hooks/useOllamaVision';
+import { ClaudeApiSettings } from '@/components/ClaudeApiSettings';
 
 // Geometry options with display names
 const GEOMETRY_OPTIONS: Array<{ value: PartGeometry; label: string; icon: string }> = [
@@ -60,8 +60,7 @@ export const GeometrySelector: React.FC<GeometrySelectorProps> = ({
   activeProvider = 'none',
   onSetApiKey,
 }) => {
-  const [showApiKeyInput, setShowApiKeyInput] = useState(false);
-  const [apiKeyInput, setApiKeyInput] = useState('');
+  const [showApiSettings, setShowApiSettings] = useState(false);
 
   // Get confidence percentage and color
   const getConfidenceInfo = (confidence: number) => {
@@ -85,15 +84,21 @@ export const GeometrySelector: React.FC<GeometrySelectorProps> = ({
 
   const providerInfo = getProviderInfo();
 
-  const handleSaveApiKey = () => {
-    if (apiKeyInput.trim() && onSetApiKey) {
-      onSetApiKey(apiKeyInput.trim());
-      setApiKeyInput('');
-      setShowApiKeyInput(false);
+  const handleApiKeyConfigured = () => {
+    // Trigger re-check of Claude status
+    if (onSetApiKey) {
+      onSetApiKey('configured');
     }
   };
 
   return (
+    <>
+      {/* Claude API Settings Dialog */}
+      <ClaudeApiSettings
+        open={showApiSettings}
+        onOpenChange={setShowApiSettings}
+        onKeyConfigured={handleApiKeyConfigured}
+      />
     <Card className="border-2 border-blue-200">
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
@@ -109,59 +114,22 @@ export const GeometrySelector: React.FC<GeometrySelectorProps> = ({
       </CardHeader>
       <CardContent className="space-y-3">
         {/* API Key Configuration */}
-        {activeProvider === 'none' && onSetApiKey && (
+        {activeProvider === 'none' && (
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-            {!showApiKeyInput ? (
-              <div className="space-y-2">
-                <p className="text-xs text-blue-700">
-                  Add Claude API key for accurate geometry detection
-                </p>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="w-full text-xs"
-                  onClick={() => setShowApiKeyInput(true)}
-                >
-                  <Key className="h-3 w-3 mr-1" />
-                  Add Claude API Key
-                </Button>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <Input
-                  type="password"
-                  placeholder="sk-ant-..."
-                  value={apiKeyInput}
-                  onChange={(e) => setApiKeyInput(e.target.value)}
-                  className="text-xs h-8"
-                />
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    variant="default"
-                    className="flex-1 text-xs h-7"
-                    onClick={handleSaveApiKey}
-                    disabled={!apiKeyInput.trim()}
-                  >
-                    Save
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="text-xs h-7"
-                    onClick={() => {
-                      setShowApiKeyInput(false);
-                      setApiKeyInput('');
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-                <p className="text-[10px] text-blue-600">
-                  Get key from: console.anthropic.com
-                </p>
-              </div>
-            )}
+            <div className="space-y-2">
+              <p className="text-xs text-blue-700">
+                Configure Claude API key for AI-powered geometry detection
+              </p>
+              <Button
+                size="sm"
+                variant="outline"
+                className="w-full text-xs"
+                onClick={() => setShowApiSettings(true)}
+              >
+                <Settings className="h-3 w-3 mr-1" />
+                Configure Claude API Key
+              </Button>
+            </div>
           </div>
         )}
 
@@ -261,6 +229,7 @@ export const GeometrySelector: React.FC<GeometrySelectorProps> = ({
         )}
       </CardContent>
     </Card>
+    </>
   );
 };
 

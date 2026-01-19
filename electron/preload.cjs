@@ -106,6 +106,10 @@ contextBridge.exposeInMainWorld('electron', {
     analyzeDrawing: (imageBase64, mediaType) =>
       ipcRenderer.invoke('claude:analyzeDrawing', { imageBase64, mediaType }),
     checkStatus: () => ipcRenderer.invoke('claude:checkStatus'),
+    // API Key Management
+    saveApiKey: (apiKey) => ipcRenderer.invoke('claude:saveApiKey', apiKey),
+    loadApiKey: () => ipcRenderer.invoke('claude:loadApiKey'),
+    deleteApiKey: () => ipcRenderer.invoke('claude:deleteApiKey'),
   },
 
   // Offline Update API (USB Updates for air-gapped factories)

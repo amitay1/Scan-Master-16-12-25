@@ -12,18 +12,32 @@ function loadEnvFiles() {
     const dotenv = require('dotenv');
     const appRoot = path.join(__dirname, '..');
 
-    // Try .env.local first (user's private keys)
-    const localEnvPath = path.join(appRoot, '.env.local');
-    if (fs.existsSync(localEnvPath)) {
-      dotenv.config({ path: localEnvPath });
-      console.log('✅ Loaded .env.local');
-    }
+    console.log('📁 Looking for .env files in:', appRoot);
 
-    // Then .env (fallback)
+    // Try .env first (base config)
     const envPath = path.join(appRoot, '.env');
     if (fs.existsSync(envPath)) {
-      dotenv.config({ path: envPath });
-      console.log('✅ Loaded .env');
+      const result = dotenv.config({ path: envPath, override: true });
+      console.log('✅ Loaded .env:', result.error ? result.error.message : 'OK');
+    } else {
+      console.log('⚠️ .env not found at:', envPath);
+    }
+
+    // Then .env.local (overrides - user's private keys)
+    const localEnvPath = path.join(appRoot, '.env.local');
+    if (fs.existsSync(localEnvPath)) {
+      const result = dotenv.config({ path: localEnvPath, override: true });
+      console.log('✅ Loaded .env.local:', result.error ? result.error.message : 'OK');
+    } else {
+      console.log('⚠️ .env.local not found at:', localEnvPath);
+    }
+
+    // Debug: show if API key is loaded (masked)
+    const apiKey = process.env.VITE_ANTHROPIC_API_KEY;
+    if (apiKey) {
+      console.log('🔑 VITE_ANTHROPIC_API_KEY loaded:', apiKey.substring(0, 15) + '...');
+    } else {
+      console.log('❌ VITE_ANTHROPIC_API_KEY not found in environment');
     }
   } catch (err) {
     console.log('⚠️ Could not load .env files:', err.message);
@@ -547,8 +561,8 @@ function setupIPCHandlers() {
   // ==========================================
   ipcMain.handle('claude:analyzeDrawing', async (event, { imageBase64, mediaType }) => {
     try {
-      // Get API key from environment (secure - not exposed to renderer)
-      const apiKey = process.env.VITE_ANTHROPIC_API_KEY;
+      // Get API key from saved location or environment
+      const apiKey = getClaudeApiKey();
 
       if (!apiKey) {
         return {
@@ -556,7 +570,7 @@ function setupIPCHandlers() {
           error: 'No Claude API key configured',
           geometry: 'unknown',
           confidence: 0,
-          reasoning: 'API key not found. Set VITE_ANTHROPIC_API_KEY in environment.'
+          reasoning: 'API key not found. Please configure it in Settings → Claude API Key.'
         };
       }
 
@@ -799,12 +813,86 @@ CRITICAL REMINDERS:
 
   // Check Claude API availability
   ipcMain.handle('claude:checkStatus', async () => {
-    const apiKey = process.env.VITE_ANTHROPIC_API_KEY;
+    const apiKey = getClaudeApiKey();
     return {
       available: !!apiKey,
       error: apiKey ? null : 'No API key configured'
     };
   });
+
+  // Save Claude API key to user data folder
+  ipcMain.handle('claude:saveApiKey', async (event, apiKey) => {
+    try {
+      const keyFile = path.join(app.getPath('userData'), 'claude-api-key.enc');
+
+      // Simple obfuscation (not true encryption, but hides from casual viewing)
+      const obfuscated = Buffer.from(apiKey).toString('base64');
+      fs.writeFileSync(keyFile, obfuscated, 'utf8');
+
+      // Also set in process.env for immediate use
+      process.env.VITE_ANTHROPIC_API_KEY = apiKey;
+
+      console.log('✅ Claude API key saved');
+      return { success: true };
+    } catch (error) {
+      console.error('❌ Failed to save API key:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  // Load Claude API key from user data folder
+  ipcMain.handle('claude:loadApiKey', async () => {
+    try {
+      const apiKey = getClaudeApiKey();
+      return {
+        success: true,
+        hasKey: !!apiKey,
+        // Return masked key for display (first 10 chars + ...)
+        maskedKey: apiKey ? apiKey.substring(0, 15) + '...' : null
+      };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  });
+
+  // Delete Claude API key
+  ipcMain.handle('claude:deleteApiKey', async () => {
+    try {
+      const keyFile = path.join(app.getPath('userData'), 'claude-api-key.enc');
+      if (fs.existsSync(keyFile)) {
+        fs.unlinkSync(keyFile);
+      }
+      delete process.env.VITE_ANTHROPIC_API_KEY;
+      console.log('✅ Claude API key deleted');
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  });
+}
+
+// Helper function to get Claude API key from various sources
+function getClaudeApiKey() {
+  // 1. Check process.env (from .env files or previously set)
+  if (process.env.VITE_ANTHROPIC_API_KEY) {
+    return process.env.VITE_ANTHROPIC_API_KEY;
+  }
+
+  // 2. Check saved key in user data folder
+  try {
+    const keyFile = path.join(app.getPath('userData'), 'claude-api-key.enc');
+    if (fs.existsSync(keyFile)) {
+      const obfuscated = fs.readFileSync(keyFile, 'utf8');
+      const apiKey = Buffer.from(obfuscated, 'base64').toString('utf8');
+      // Cache it in process.env
+      process.env.VITE_ANTHROPIC_API_KEY = apiKey;
+      return apiKey;
+    }
+  } catch (err) {
+    console.error('Error reading saved API key:', err);
+  }
+
+  return null;
 }
 
 // Build menu template with dynamic update status

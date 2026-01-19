@@ -235,6 +235,21 @@ declare global {
           available: boolean;
           error?: string;
         }>;
+        // API Key Management
+        saveApiKey: (apiKey: string) => Promise<{
+          success: boolean;
+          error?: string;
+        }>;
+        loadApiKey: () => Promise<{
+          success: boolean;
+          hasKey: boolean;
+          maskedKey?: string;
+          error?: string;
+        }>;
+        deleteApiKey: () => Promise<{
+          success: boolean;
+          error?: string;
+        }>;
       };
     };
   }
