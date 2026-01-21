@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { CalibrationData, InspectionSetupData, AcceptanceClass, CalibrationBlockType, StandardType } from "@/types/techniqueSheet";
@@ -16,7 +16,12 @@ import { BlockTypeSelection, getBlockTypeOptions } from "@/types/calibrationBloc
 import { FBHHoleTable } from "../FBHHoleTable";
 import { FBHStraightBeamDrawing } from "../FBHStraightBeamDrawing";
 import { AngleBeamCalibrationBlockDrawing } from "../AngleBeamCalibrationBlockDrawing";
-import { DEFAULT_FBH_HOLES, type FBHHoleRowData } from "@/data/fbhStandardsData";
+import {
+  DEFAULT_FBH_HOLES,
+  type FBHHoleRowData,
+  FBH_DIAMETER_OPTIONS,
+  METAL_TRAVEL_OPTIONS
+} from "@/data/fbhStandardsData";
 import {
   calibrationByStandard,
   getFBHSizeForStandard,
@@ -25,6 +30,106 @@ import {
   getBeamRequirement,
   BEAM_TYPE_LABELS,
 } from "@/utils/beamTypeClassification";
+
+// ============================================================================
+// HELPER FUNCTIONS FOR FBH AUTO-FILL
+// ============================================================================
+
+/**
+ * Parse FBH diameter from the string returned by getFBHSizeForStandard()
+ * Examples:
+ *   "1/64\" (0.4mm)" → { inch: "1/64", mm: 0.4 }
+ *   "3mm (0.118\")" → { inch: "-", mm: 3 }
+ *   "#1 FBH (1/64\" / 0.4mm)" → { inch: "1/64", mm: 0.4 }
+ */
+function parseFBHSizeString(sizeStr: string): { inch: string; mm: number } | null {
+  if (!sizeStr) return null;
+
+  // Try to match patterns like "1/64" or "3/64"
+  const inchMatch = sizeStr.match(/(\d+\/\d+)"/);
+  if (inchMatch) {
+    const inchVal = inchMatch[1];
+    // Find in options
+    const option = FBH_DIAMETER_OPTIONS.find(opt => opt.inch === inchVal);
+    if (option) {
+      return { inch: option.inch, mm: option.mm };
+    }
+    // Calculate mm from fraction
+    const [num, denom] = inchVal.split('/').map(Number);
+    if (num && denom) {
+      const mm = Number(((num / denom) * 25.4).toFixed(2));
+      return { inch: inchVal, mm };
+    }
+  }
+
+  // Try to match metric patterns like "3mm" or "5mm"
+  const mmMatch = sizeStr.match(/(\d+(?:\.\d+)?)\s*mm/i);
+  if (mmMatch) {
+    const mmVal = parseFloat(mmMatch[1]);
+    // Find metric option in FBH_DIAMETER_OPTIONS
+    const metricOption = FBH_DIAMETER_OPTIONS.find(
+      opt => opt.standard.includes('EN') && Math.abs(opt.mm - mmVal) < 0.5
+    );
+    if (metricOption) {
+      return { inch: metricOption.inch, mm: metricOption.mm };
+    }
+    return { inch: '-', mm: mmVal };
+  }
+
+  return null;
+}
+
+/**
+ * Calculate DAC depths for 3 holes based on part thickness.
+ * Standard practice: holes at approximately 25%, 50%, 75% of thickness.
+ * Then find the closest standard METAL_TRAVEL_OPTIONS values.
+ */
+function calculateDACDepths(thicknessMm: number): number[] {
+  if (!thicknessMm || thicknessMm <= 0) {
+    // Return default depths if no thickness
+    return [19.05, 38.10, 57.15];
+  }
+
+  // Calculate target depths at 25%, 50%, 75% of thickness
+  const targetDepths = [
+    thicknessMm * 0.25,
+    thicknessMm * 0.50,
+    thicknessMm * 0.75
+  ];
+
+  // Find closest standard values from METAL_TRAVEL_OPTIONS
+  const standardDepths = targetDepths.map(target => {
+    // Find the closest standard depth
+    let closest = METAL_TRAVEL_OPTIONS[0].depthMm;
+    let minDiff = Math.abs(target - closest);
+
+    for (const opt of METAL_TRAVEL_OPTIONS) {
+      const diff = Math.abs(target - opt.depthMm);
+      if (diff < minDiff) {
+        minDiff = diff;
+        closest = opt.depthMm;
+      }
+    }
+
+    return closest;
+  });
+
+  // Ensure depths are unique and in ascending order
+  const uniqueDepths = [...new Set(standardDepths)].sort((a, b) => a - b);
+
+  // If we have less than 3 unique depths, pad with nearby values
+  while (uniqueDepths.length < 3) {
+    const lastDepth = uniqueDepths[uniqueDepths.length - 1];
+    const nextOption = METAL_TRAVEL_OPTIONS.find(opt => opt.depthMm > lastDepth);
+    if (nextOption) {
+      uniqueDepths.push(nextOption.depthMm);
+    } else {
+      break;
+    }
+  }
+
+  return uniqueDepths.slice(0, 3);
+}
 
 interface CalibrationTabProps {
   data: CalibrationData;
@@ -59,6 +164,11 @@ export const CalibrationTab = ({
   const [activeBeamTab, setActiveBeamTab] = useState<"straight" | "angle">("straight");
   // Block type selection (curved vs flat) for tubular parts
   const [selectedBlockType, setSelectedBlockType] = useState<BlockTypeSelection>("curved");
+  // Track if FBH table was auto-filled from standards
+  const [fbhAutoFilled, setFbhAutoFilled] = useState(false);
+  const [fbhAutoFillReason, setFbhAutoFillReason] = useState<string>("");
+  // Ref to prevent auto-fill from triggering on initial mount
+  const isInitialMount = useRef(true);
 
   // Determine beam requirements based on part type and hollow status
   const beamRequirement = useMemo(
@@ -78,9 +188,14 @@ export const CalibrationTab = ({
     onChange({ ...data, [field]: value });
   };
 
-  // Handle FBH holes changes from table
+  // Handle FBH holes changes from table (manual user changes)
   const handleFbhHolesChange = (newHoles: FBHHoleRowData[]) => {
     setFbhHoles(newHoles);
+    // Clear auto-fill state when user manually changes - indicates manual override
+    if (fbhAutoFilled) {
+      setFbhAutoFilled(false);
+      setFbhAutoFillReason("");
+    }
     // Update calibration data with FBH info - both legacy string AND structured array
     const fbhSizesStr = newHoles.map(h => h.diameterInch).join(', ');
     const avgMetalTravel = newHoles.length > 0
@@ -140,8 +255,92 @@ export const CalibrationTab = ({
         metalTravelDistance: avgMetalTravel,
       });
     }
+    // Mark initial mount as complete
+    isInitialMount.current = false;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // ==========================================================================
+  // AUTO-FILL FBH TABLE FROM STANDARDS
+  // Triggers when acceptanceClass, standard, or partThickness changes
+  // ==========================================================================
+  useEffect(() => {
+    // Need acceptance class and thickness to auto-fill
+    if (!acceptanceClass) return;
+
+    // Get thickness - try partThickness first, then wallThickness
+    const thickness = inspectionSetup.partThickness || inspectionSetup.wallThickness || 0;
+    if (thickness <= 0) return;
+
+    // Get recommended FBH size from standards
+    const recommendedFBH = getFBHSizeForStandard(standard, thickness, acceptanceClass);
+    if (!recommendedFBH) return;
+
+    // Parse the FBH size string to get diameter
+    const parsed = parseFBHSizeString(recommendedFBH);
+    if (!parsed) return;
+
+    // Calculate DAC depths based on part thickness
+    const dacDepths = calculateDACDepths(thickness);
+
+    // Check if values are already set to the same - avoid unnecessary updates
+    const currentDiameter = fbhHoles[0]?.diameterInch;
+    const currentDepths = fbhHoles.map(h => h.metalTravelH);
+    const isSameDiameter = currentDiameter === parsed.inch;
+    const isSameDepths = dacDepths.every((d, i) => currentDepths[i] === d);
+
+    if (isSameDiameter && isSameDepths && fbhAutoFilled) {
+      // Already auto-filled with same values, skip
+      return;
+    }
+
+    // Build the auto-filled holes array
+    const autoFilledHoles: FBHHoleRowData[] = dacDepths.map((depth, index) => ({
+      id: index + 1,
+      partNumber: '',
+      deltaType: 'dac', // DAC for distance-amplitude correction
+      diameterInch: parsed.inch,
+      diameterMm: parsed.mm,
+      distanceB: 0,
+      metalTravelH: depth,
+      isCustom: false,
+    }));
+
+    // Update state
+    setFbhHoles(autoFilledHoles);
+    setFbhAutoFilled(true);
+    setFbhAutoFillReason(
+      `FBH ${parsed.inch}" (${parsed.mm}mm) selected per ${standard} Class ${acceptanceClass} for ${thickness}mm thickness. ` +
+      `DAC depths: ${dacDepths.map(d => `${d}mm`).join(', ')} (25%, 50%, 75% of thickness).`
+    );
+
+    // Update parent data
+    const fbhSizesStr = autoFilledHoles.map(h => h.diameterInch).join(', ');
+    const avgMetalTravel = autoFilledHoles.reduce((sum, h) => sum + h.metalTravelH, 0) / autoFilledHoles.length;
+    onChange({
+      ...data,
+      fbhSizes: fbhSizesStr,
+      fbhHoles: autoFilledHoles.map(h => ({
+        id: h.id,
+        partNumber: h.partNumber,
+        deltaType: h.deltaType,
+        diameterInch: h.diameterInch,
+        diameterMm: h.diameterMm,
+        distanceB: h.distanceB,
+        metalTravelH: h.metalTravelH,
+      })),
+      metalTravelDistance: avgMetalTravel,
+    });
+
+    // Show toast notification only if not initial mount
+    if (!isInitialMount.current) {
+      toast.success("FBH Table Auto-Filled", {
+        description: `${parsed.inch}" FBH selected per ${standard} Class ${acceptanceClass}`,
+      });
+    }
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [acceptanceClass, standard, inspectionSetup.partThickness, inspectionSetup.wallThickness]);
 
   const handleSelectModel = (modelId: string) => {
     setSelectedModelId(modelId as CalibrationBlockType);
@@ -161,7 +360,35 @@ export const CalibrationTab = ({
       />
       {/* FBH Holes Table - 3 rows with dropdowns */}
       <div className="border rounded-lg p-4 bg-card">
-        <h4 className="font-semibold mb-4">FBH Hole Specifications</h4>
+        <div className="flex items-center justify-between mb-4">
+          <h4 className="font-semibold">FBH Hole Specifications</h4>
+          {fbhAutoFilled && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300 cursor-help">
+                    <Sparkles className="h-3 w-3 mr-1" />
+                    Auto-Selected
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-md">
+                  <div className="space-y-2">
+                    <p className="text-sm font-semibold">🎯 FBH Auto-Fill Based On:</p>
+                    <ul className="text-xs space-y-1 list-disc list-inside">
+                      <li>Standard: {standard}</li>
+                      <li>Acceptance Class: {acceptanceClass}</li>
+                      <li>Part Thickness: {inspectionSetup.partThickness || inspectionSetup.wallThickness}mm</li>
+                    </ul>
+                    <p className="text-sm border-t pt-2">{fbhAutoFillReason}</p>
+                    <p className="text-xs text-muted-foreground italic">
+                      You can manually override these values by editing the table below.
+                    </p>
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+        </div>
         <FBHHoleTable
           holes={fbhHoles}
           onChange={handleFbhHolesChange}
@@ -169,7 +396,7 @@ export const CalibrationTab = ({
           minHoles={1}
           showPartNumber={true}
           showDeltaType={true}
-          standard={standard}
+          standard="All"
         />
       </div>
     </>

@@ -178,40 +178,67 @@ export function FBHStraightBeamDrawing({
           strokeDasharray="6,3"
         />
 
-        {/* Dimension labels */}
+        {/* Dimension labels - Matching FBH Table columns (ØFBH, B, H) */}
         {showDimensions && (
           <>
-            {/* E - Right height */}
+            {/* ØFBH - FBH Diameter (left side of hole) - BLUE */}
             <g>
-              <line x1={blockRight + 25} y1={blockTop} x2={blockRight + 25} y2={blockBottom} stroke="#333" strokeWidth={1} />
-              <line x1={blockRight + 20} y1={blockTop} x2={blockRight + 30} y2={blockTop} stroke="#333" strokeWidth={1} />
-              <line x1={blockRight + 20} y1={blockBottom} x2={blockRight + 30} y2={blockBottom} stroke="#333" strokeWidth={1} />
-              <text x={blockRight + 35} y={(blockTop + blockBottom) / 2 + 4} fill="#333" style={{ fontSize: 12 }}>E</text>
+              {/* Horizontal line showing hole width */}
+              <line
+                x1={fbhCenterX - fbhHoleWidth/2}
+                y1={fbhTop + 20}
+                x2={fbhCenterX + fbhHoleWidth/2}
+                y2={fbhTop + 20}
+                stroke="#2563eb"
+                strokeWidth={1.5}
+              />
+              {/* End ticks */}
+              <line x1={fbhCenterX - fbhHoleWidth/2} y1={fbhTop + 15} x2={fbhCenterX - fbhHoleWidth/2} y2={fbhTop + 25} stroke="#2563eb" strokeWidth={1.5} />
+              <line x1={fbhCenterX + fbhHoleWidth/2} y1={fbhTop + 15} x2={fbhCenterX + fbhHoleWidth/2} y2={fbhTop + 25} stroke="#2563eb" strokeWidth={1.5} />
+              {/* Label with arrow */}
+              <line x1={fbhCenterX - fbhHoleWidth/2 - 5} y1={fbhTop + 20} x2={fbhCenterX - fbhHoleWidth/2 - 25} y2={fbhTop + 5} stroke="#2563eb" strokeWidth={1} />
+              <text x={fbhCenterX - fbhHoleWidth/2 - 28} y={fbhTop} textAnchor="end" fill="#2563eb" style={{ fontSize: 11, fontWeight: 600 }}>ØFBH</text>
             </g>
 
-            {/* F - Bottom width */}
-            <g>
-              <line x1={blockLeft} y1={blockBottom + 28} x2={blockRight} y2={blockBottom + 28} stroke="#333" strokeWidth={1} />
-              <line x1={blockLeft} y1={blockBottom + 22} x2={blockLeft} y2={blockBottom + 34} stroke="#333" strokeWidth={1} />
-              <line x1={blockRight} y1={blockBottom + 22} x2={blockRight} y2={blockBottom + 34} stroke="#333" strokeWidth={1} />
-              <text x={fbhCenterX} y={blockBottom + 45} textAnchor="middle" fill="#333" style={{ fontSize: 12 }}>F</text>
-            </g>
-
-            {/* H - FBH depth */}
+            {/* H - Metal Travel Distance (right side) - GREEN */}
             <g>
               <line
                 x1={fbhCenterX + fbhHoleWidth/2 + 18}
                 y1={fbhTop}
                 x2={fbhCenterX + fbhHoleWidth/2 + 18}
                 y2={blockBottom}
-                stroke="#333"
-                strokeWidth={1}
+                stroke="#16a34a"
+                strokeWidth={1.5}
               />
-              <line x1={fbhCenterX + fbhHoleWidth/2 + 12} y1={fbhTop} x2={fbhCenterX + fbhHoleWidth/2 + 24} y2={fbhTop} stroke="#333" strokeWidth={1} />
-              <line x1={fbhCenterX + fbhHoleWidth/2 + 12} y1={blockBottom} x2={fbhCenterX + fbhHoleWidth/2 + 24} y2={blockBottom} stroke="#333" strokeWidth={1} />
-              {/* Arrow to H */}
-              <line x1={fbhCenterX + fbhHoleWidth/2 + 24} y1={fbhTop + fbhHoleDepth/2} x2={fbhCenterX + fbhHoleWidth/2 + 45} y2={fbhTop + fbhHoleDepth/2} stroke="#333" strokeWidth={1} />
-              <text x={fbhCenterX + fbhHoleWidth/2 + 50} y={fbhTop + fbhHoleDepth/2 + 4} fill="#333" style={{ fontSize: 12 }}>H</text>
+              <line x1={fbhCenterX + fbhHoleWidth/2 + 12} y1={fbhTop} x2={fbhCenterX + fbhHoleWidth/2 + 24} y2={fbhTop} stroke="#16a34a" strokeWidth={1.5} />
+              <line x1={fbhCenterX + fbhHoleWidth/2 + 12} y1={blockBottom} x2={fbhCenterX + fbhHoleWidth/2 + 24} y2={blockBottom} stroke="#16a34a" strokeWidth={1.5} />
+              {/* Arrow and label */}
+              <line x1={fbhCenterX + fbhHoleWidth/2 + 24} y1={fbhTop + fbhHoleDepth/2} x2={fbhCenterX + fbhHoleWidth/2 + 40} y2={fbhTop + fbhHoleDepth/2} stroke="#16a34a" strokeWidth={1} />
+              <text x={fbhCenterX + fbhHoleWidth/2 + 45} y={fbhTop + fbhHoleDepth/2 + 4} fill="#16a34a" style={{ fontSize: 12, fontWeight: 600 }}>H</text>
+            </g>
+
+            {/* B - Distance from bottom (B=0 for standard FBH) - RED */}
+            <g>
+              {/* B indicator at bottom of block - shows B=0 */}
+              <line x1={blockLeft - 20} y1={blockBottom} x2={blockLeft - 10} y2={blockBottom} stroke="#dc2626" strokeWidth={1.5} />
+              <text x={blockLeft - 25} y={blockBottom + 4} textAnchor="end" fill="#dc2626" style={{ fontSize: 11, fontWeight: 600 }}>B=0</text>
+            </g>
+
+            {/* Block dimensions (secondary - lighter gray) */}
+            {/* E - Block height */}
+            <g opacity={0.4}>
+              <line x1={blockRight + 35} y1={blockTop} x2={blockRight + 35} y2={blockBottom} stroke="#666" strokeWidth={0.5} />
+              <line x1={blockRight + 31} y1={blockTop} x2={blockRight + 39} y2={blockTop} stroke="#666" strokeWidth={0.5} />
+              <line x1={blockRight + 31} y1={blockBottom} x2={blockRight + 39} y2={blockBottom} stroke="#666" strokeWidth={0.5} />
+              <text x={blockRight + 45} y={(blockTop + blockBottom) / 2 + 4} fill="#888" style={{ fontSize: 10 }}>E</text>
+            </g>
+
+            {/* F - Block width */}
+            <g opacity={0.4}>
+              <line x1={blockLeft} y1={blockBottom + 28} x2={blockRight} y2={blockBottom + 28} stroke="#666" strokeWidth={0.5} />
+              <line x1={blockLeft} y1={blockBottom + 24} x2={blockLeft} y2={blockBottom + 32} stroke="#666" strokeWidth={0.5} />
+              <line x1={blockRight} y1={blockBottom + 24} x2={blockRight} y2={blockBottom + 32} stroke="#666" strokeWidth={0.5} />
+              <text x={fbhCenterX} y={blockBottom + 42} textAnchor="middle" fill="#888" style={{ fontSize: 10 }}>F</text>
             </g>
           </>
         )}

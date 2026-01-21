@@ -444,26 +444,14 @@ export const StandardSelector = ({ value, onChange, showComparisonIndicator = fa
         
         {currentStandard && (
           <div className={`p-3 rounded-xl bg-gradient-to-br from-slate-800 to-slate-900 border-2 ${currentStandard.borderColor} mt-4 w-full shadow-lg ring-1 ring-offset-1 ring-offset-slate-900 ${currentStandard.borderColor.replace('border-', 'ring-')}`}>
-            {/* Header Row with Icon and Badge - more prominent */}
-            <div className="flex items-center justify-between gap-2 mb-3">
-              <div className="flex items-center gap-2 min-w-0 flex-1">
-                <div className={`p-1.5 rounded-lg ${currentStandard.iconBg}`}>
-                  <currentStandard.icon className="h-4 w-4 text-white" />
-                </div>
-                <span className="text-sm font-bold text-white truncate">
-                  {currentStandard.value}
-                </span>
+            {/* Header Row with Icon */}
+            <div className="flex items-center gap-2 mb-3">
+              <div className={`p-1.5 rounded-lg ${currentStandard.iconBg} shrink-0`}>
+                <currentStandard.icon className="h-4 w-4 text-white" />
               </div>
-              <Badge 
-                className="font-semibold text-xs px-2 py-1 border-2"
-                style={{ 
-                  backgroundColor: currentStandard.badgeBg, 
-                  color: currentStandard.badgeText,
-                  borderColor: currentStandard.badgeBorder 
-                }}
-              >
-                {currentStandard.stringency}
-              </Badge>
+              <span className="text-sm font-bold text-white">
+                {currentStandard.value}
+              </span>
             </div>
             
             {/* Feature Tags - 2x2 Grid with better visibility */}
