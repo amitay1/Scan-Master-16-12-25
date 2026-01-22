@@ -259,92 +259,121 @@ const buildApprovalsSection = (documentation: ExtendedDocumentationData, approva
 
   // Section title
   elements.push(new Paragraph({
-    children: [new TextRun({ text: '8. APPROVALS & SIGNATURES', bold: true, size: 26 })],
+    children: [new TextRun({ text: '8. APPROVALS & DOCUMENT CONTROL', bold: true, size: 26 })],
     heading: HeadingLevel.HEADING_2,
     spacing: { before: 400, after: 200 },
   }));
 
-  // Signature table with 4 columns like PDF
-  const signatureRows: TableRow[] = [];
+  // ========== REVISION HISTORY TABLE ==========
+  elements.push(new Paragraph({
+    children: [new TextRun({ text: 'Revision History', bold: true, size: 22, color: '374151' })],
+    heading: HeadingLevel.HEADING_3,
+    spacing: { before: 200, after: 100 },
+  }));
 
-  // Header row
-  signatureRows.push(new TableRow({
-    children: ['Role', 'Name / Signature', 'Date', 'Comments'].map(text => new TableCell({
+  const revisionHeaderRow = new TableRow({
+    children: ['Rev', 'Date', 'Description', 'Prepared By', 'Approved By', 'Sign'].map(text => new TableCell({
       children: [new Paragraph({
-        children: [new TextRun({ text, bold: true, size: 20, color: 'FFFFFF' })],
+        children: [new TextRun({ text, bold: true, size: 18, color: 'FFFFFF' })],
         alignment: AlignmentType.CENTER,
       })],
-      shading: { fill: '1e3a5f', type: ShadingType.SOLID, color: 'FFFFFF' },
-      width: { size: 25, type: WidthType.PERCENTAGE },
+      shading: { fill: '005293', type: ShadingType.SOLID },
     })),
-  }));
+  });
 
-  // Inspector row
-  signatureRows.push(new TableRow({
-    children: [
-      new TableCell({
-        children: [new Paragraph({ children: [new TextRun({ text: 'UT Inspector', bold: true, size: 20 })] })],
-      }),
-      new TableCell({
-        children: [new Paragraph({ children: [new TextRun({ text: documentation.inspectorName || '', size: 20 })] })],
-      }),
-      new TableCell({
-        children: [new Paragraph({ children: [new TextRun({ text: formatDate(documentation.inspectionDate), size: 20 })] })],
-      }),
-      new TableCell({
-        children: [new Paragraph({ children: [new TextRun({ text: `Level ${documentation.inspectorLevel || '-'}`, size: 20 })] })],
-      }),
-    ],
-  }));
-
-  // Level III row
-  signatureRows.push(new TableRow({
-    children: [
-      new TableCell({
-        children: [new Paragraph({ children: [new TextRun({ text: 'Level III Approval', bold: true, size: 20 })] })],
-      }),
-      new TableCell({
-        children: [new Paragraph({ children: [new TextRun({ text: documentation.levelIIIName || '', size: 20 })] })],
-      }),
-      new TableCell({
-        children: [new Paragraph({ children: [new TextRun({ text: formatDate(documentation.levelIIIDate), size: 20 })] })],
-      }),
-      new TableCell({
-        children: [new Paragraph({ children: [new TextRun({ text: '', size: 20 })] })],
-      }),
-    ],
-  }));
-
-  // Customer Representative row (if approval required)
-  if (approvalRequired) {
-    signatureRows.push(new TableRow({
+  const revisionDataRows = [
+    new TableRow({
       children: [
-        new TableCell({
-          children: [new Paragraph({ children: [new TextRun({ text: 'Customer Representative', bold: true, size: 20 })] })],
-        }),
-        new TableCell({
-          children: [new Paragraph({ children: [new TextRun({ text: '', size: 20 })] })],
-        }),
-        new TableCell({
-          children: [new Paragraph({ children: [new TextRun({ text: '', size: 20 })] })],
-        }),
-        new TableCell({
-          children: [new Paragraph({ children: [new TextRun({ text: '', size: 20 })] })],
-        }),
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: documentation.revision || 'A', bold: true, size: 18 })] })] }),
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: formatDate(documentation.inspectionDate), size: 18 })] })] }),
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Initial Release', size: 18 })] })] }),
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: documentation.inspectorName || '', size: 18 })] })] }),
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: '', size: 18 })] })] }),
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: '', size: 18 })] })] }),
+      ],
+    }),
+    // Empty row for future revisions
+    new TableRow({
+      children: Array(6).fill(null).map(() => new TableCell({
+        children: [new Paragraph({ children: [new TextRun({ text: '', size: 18 })] })],
+      })),
+    }),
+  ];
+
+  elements.push(new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    rows: [revisionHeaderRow, ...revisionDataRows],
+  }));
+
+  // ========== APPROVAL SIGNATURES TABLE ==========
+  elements.push(new Paragraph({
+    children: [new TextRun({ text: 'Approval Signatures', bold: true, size: 22, color: '374151' })],
+    heading: HeadingLevel.HEADING_3,
+    spacing: { before: 300, after: 100 },
+  }));
+
+  const signatureHeaderRow = new TableRow({
+    children: ['Role', 'Name (Print)', 'Cert. Number', 'Date', 'Signature'].map(text => new TableCell({
+      children: [new Paragraph({
+        children: [new TextRun({ text, bold: true, size: 18, color: 'FFFFFF' })],
+        alignment: AlignmentType.CENTER,
+      })],
+      shading: { fill: '4080b2', type: ShadingType.SOLID },
+    })),
+  });
+
+  const signatureDataRows: TableRow[] = [
+    new TableRow({
+      children: [
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'UT Inspector (Level II)', bold: true, size: 18 })] })] }),
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: documentation.inspectorName || '', size: 18 })] })] }),
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: documentation.inspectorCertification || '', size: 18 })] })] }),
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: formatDate(documentation.inspectionDate), size: 18 })] })] }),
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: '', size: 18 })] })] }),
+      ],
+    }),
+    new TableRow({
+      children: [
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Level III Review', bold: true, size: 18 })] })] }),
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: documentation.levelIIIName || '', size: 18 })] })] }),
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: '', size: 18 })] })] }),
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: formatDate(documentation.levelIIIDate), size: 18 })] })] }),
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: '', size: 18 })] })] }),
+      ],
+    }),
+    new TableRow({
+      children: [
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Quality Assurance', bold: true, size: 18 })] })] }),
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: '', size: 18 })] })] }),
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: '', size: 18 })] })] }),
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: '', size: 18 })] })] }),
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: '', size: 18 })] })] }),
+      ],
+    }),
+  ];
+
+  if (approvalRequired) {
+    signatureDataRows.push(new TableRow({
+      children: [
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Customer Representative', bold: true, size: 18 })] })] }),
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: '', size: 18 })] })] }),
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: '', size: 18 })] })] }),
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: '', size: 18 })] })] }),
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: '', size: 18 })] })] }),
       ],
     }));
   }
 
   elements.push(new Table({
     width: { size: 100, type: WidthType.PERCENTAGE },
-    rows: signatureRows,
+    rows: [signatureHeaderRow, ...signatureDataRows],
   }));
 
   // NOTICE message with yellow background (if approval required)
   if (approvalRequired) {
     elements.push(new Paragraph({
       children: [new TextRun({
-        text: 'NOTICE: This technique sheet requires Level III approval before use.',
+        text: 'NOTICE: This technique sheet requires Level III approval before use in production.',
         bold: true,
         size: 20,
         color: '856404',
@@ -355,27 +384,38 @@ const buildApprovalsSection = (documentation: ExtendedDocumentationData, approva
     }));
   }
 
-  // Document control text
+  // ========== DOCUMENT CONTROL FOOTER ==========
   elements.push(new Paragraph({
-    children: [new TextRun({
-      text: 'This document is controlled. Unauthorized reproduction or distribution is prohibited.',
-      italics: true,
-      size: 18,
-      color: '666666',
-    })],
-    spacing: { before: 200, after: 100 },
-    alignment: AlignmentType.CENTER,
+    children: [new TextRun({ text: 'DOCUMENT CONTROL', bold: true, size: 20, color: '005293' })],
+    spacing: { before: 300, after: 100 },
   }));
 
   elements.push(new Paragraph({
     children: [new TextRun({
-      text: `Document generated on ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} by Scan-Master.`,
-      italics: true,
+      text: 'This is a controlled document. Unauthorized reproduction, modification, or distribution is strictly prohibited.',
       size: 18,
       color: '666666',
     })],
+    spacing: { before: 50, after: 50 },
+  }));
+
+  elements.push(new Paragraph({
+    children: [new TextRun({
+      text: 'Printed copies are uncontrolled unless stamped "CONTROLLED COPY" with a valid date.',
+      size: 18,
+      color: '666666',
+    })],
+    spacing: { before: 50, after: 50 },
+  }));
+
+  elements.push(new Paragraph({
+    children: [new TextRun({
+      text: `Document generated: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} | Scan-Master v1.0`,
+      italics: true,
+      size: 18,
+      color: '888888',
+    })],
     spacing: { before: 100, after: 200 },
-    alignment: AlignmentType.CENTER,
   }));
 
   return elements;
@@ -392,30 +432,151 @@ export async function exportTechniqueSheetWord(
 
   const children: (Paragraph | Table)[] = [];
 
+  // ========== COVER PAGE HEADER ==========
   // Title
   children.push(new Paragraph({
     children: [
-      new TextRun({ text: 'ULTRASONIC INSPECTION', bold: true, size: 44 }),
+      new TextRun({ text: 'UT TECHNIQUE SHEET', bold: true, size: 48, color: '005293' }),
     ],
     alignment: AlignmentType.CENTER,
     spacing: { after: 100 },
-  }));
-  children.push(new Paragraph({
-    children: [
-      new TextRun({ text: 'TECHNIQUE SHEET', bold: true, size: 44 }),
-    ],
-    alignment: AlignmentType.CENTER,
-    spacing: { after: 400 },
   }));
 
   // Company name
   if (options.companyName) {
     children.push(new Paragraph({
-      children: [new TextRun({ text: options.companyName, size: 24 })],
+      children: [new TextRun({ text: options.companyName, size: 24, color: '666666' })],
       alignment: AlignmentType.CENTER,
-      spacing: { after: 400 },
+      spacing: { after: 200 },
     }));
   }
+
+  // Document info line
+  const docNum = documentation.procedureNumber || `TS-${inspectionSetup.partNumber || 'XXX'}`;
+  children.push(new Paragraph({
+    children: [
+      new TextRun({ text: `Document: ${docNum}`, size: 20 }),
+      new TextRun({ text: `  |  Rev: ${documentation.revision || 'A'}`, size: 20 }),
+      new TextRun({ text: `  |  Date: ${formatDate(documentation.inspectionDate)}`, size: 20 }),
+    ],
+    alignment: AlignmentType.CENTER,
+    spacing: { after: 300 },
+  }));
+
+  // ========== DOCUMENT SUMMARY TABLE (FRISA Style) ==========
+  children.push(new Paragraph({
+    children: [new TextRun({ text: 'DOCUMENT SUMMARY', bold: true, size: 24, color: '005293' })],
+    spacing: { before: 200, after: 150 },
+  }));
+
+  // Summary table with key info
+  const summaryTable = new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    rows: [
+      // Row 1
+      new TableRow({
+        children: [
+          new TableCell({
+            children: [new Paragraph({ children: [new TextRun({ text: 'Customer', bold: true, size: 18, color: '666666' })] })],
+            shading: { fill: 'E6EBF0', type: ShadingType.SOLID },
+            width: { size: 18, type: WidthType.PERCENTAGE },
+          }),
+          new TableCell({
+            children: [new Paragraph({ children: [new TextRun({ text: formatValue(documentation.customerName), size: 20 })] })],
+            width: { size: 32, type: WidthType.PERCENTAGE },
+          }),
+          new TableCell({
+            children: [new Paragraph({ children: [new TextRun({ text: 'Purchase Order', bold: true, size: 18, color: '666666' })] })],
+            shading: { fill: 'E6EBF0', type: ShadingType.SOLID },
+            width: { size: 18, type: WidthType.PERCENTAGE },
+          }),
+          new TableCell({
+            children: [new Paragraph({ children: [new TextRun({ text: formatValue(documentation.purchaseOrder), size: 20 })] })],
+            width: { size: 32, type: WidthType.PERCENTAGE },
+          }),
+        ],
+      }),
+      // Row 2
+      new TableRow({
+        children: [
+          new TableCell({
+            children: [new Paragraph({ children: [new TextRun({ text: 'Part Number', bold: true, size: 18, color: '666666' })] })],
+            shading: { fill: 'E6EBF0', type: ShadingType.SOLID },
+          }),
+          new TableCell({
+            children: [new Paragraph({ children: [new TextRun({ text: formatValue(inspectionSetup.partNumber), bold: true, size: 20 })] })],
+          }),
+          new TableCell({
+            children: [new Paragraph({ children: [new TextRun({ text: 'Part Name', bold: true, size: 18, color: '666666' })] })],
+            shading: { fill: 'E6EBF0', type: ShadingType.SOLID },
+          }),
+          new TableCell({
+            children: [new Paragraph({ children: [new TextRun({ text: formatValue(inspectionSetup.partName), size: 20 })] })],
+          }),
+        ],
+      }),
+      // Row 3
+      new TableRow({
+        children: [
+          new TableCell({
+            children: [new Paragraph({ children: [new TextRun({ text: 'Material', bold: true, size: 18, color: '666666' })] })],
+            shading: { fill: 'E6EBF0', type: ShadingType.SOLID },
+          }),
+          new TableCell({
+            children: [new Paragraph({ children: [new TextRun({ text: formatMaterial(inspectionSetup.material, inspectionSetup.customMaterialName), size: 20 })] })],
+          }),
+          new TableCell({
+            children: [new Paragraph({ children: [new TextRun({ text: 'Material Spec', bold: true, size: 18, color: '666666' })] })],
+            shading: { fill: 'E6EBF0', type: ShadingType.SOLID },
+          }),
+          new TableCell({
+            children: [new Paragraph({ children: [new TextRun({ text: formatValue(inspectionSetup.materialSpec), size: 20 })] })],
+          }),
+        ],
+      }),
+      // Row 4
+      new TableRow({
+        children: [
+          new TableCell({
+            children: [new Paragraph({ children: [new TextRun({ text: 'Part Type', bold: true, size: 18, color: '666666' })] })],
+            shading: { fill: 'E6EBF0', type: ShadingType.SOLID },
+          }),
+          new TableCell({
+            children: [new Paragraph({ children: [new TextRun({ text: formatPartType(inspectionSetup.partType), size: 20 })] })],
+          }),
+          new TableCell({
+            children: [new Paragraph({ children: [new TextRun({ text: 'Drawing No', bold: true, size: 18, color: '666666' })] })],
+            shading: { fill: 'E6EBF0', type: ShadingType.SOLID },
+          }),
+          new TableCell({
+            children: [new Paragraph({ children: [new TextRun({ text: formatValue(inspectionSetup.drawingNumber), size: 20 })] })],
+          }),
+        ],
+      }),
+      // Row 5
+      new TableRow({
+        children: [
+          new TableCell({
+            children: [new Paragraph({ children: [new TextRun({ text: 'Process Spec', bold: true, size: 18, color: '666666' })] })],
+            shading: { fill: 'E6EBF0', type: ShadingType.SOLID },
+          }),
+          new TableCell({
+            children: [new Paragraph({ children: [new TextRun({ text: formatValue(data.standard), size: 20 })] })],
+          }),
+          new TableCell({
+            children: [new Paragraph({ children: [new TextRun({ text: 'Acceptance Class', bold: true, size: 18, color: '666666' })] })],
+            shading: { fill: 'E6EBF0', type: ShadingType.SOLID },
+          }),
+          new TableCell({
+            children: [new Paragraph({ children: [new TextRun({ text: formatAcceptanceClass(acceptanceCriteria.acceptanceClass).class, bold: true, size: 22, color: '005293' })] })],
+          }),
+        ],
+      }),
+    ],
+  });
+  children.push(summaryTable);
+
+  children.push(new Paragraph({ children: [], spacing: { after: 300 } }));
 
   // Table of Contents
   children.push(...buildTableOfContents());
@@ -515,7 +676,7 @@ export async function exportTechniqueSheetWord(
 
     // FBH table header
     const fbhHeaderRow = new TableRow({
-      children: ['P/N', 'Δ Type', 'Ø FBH (inch)', 'Ø FBH (mm)', 'B (mm)', 'H (mm)'].map(text => new TableCell({
+      children: ['P/N', 'Δ Type', 'Ø FBH (inch)', 'Ø FBH (mm)', 'E (mm)', 'H (mm)'].map(text => new TableCell({
         children: [new Paragraph({
           children: [new TextRun({ text, bold: true, size: 18, color: 'FFFFFF' })],
           alignment: AlignmentType.CENTER,
@@ -530,7 +691,7 @@ export async function exportTechniqueSheetWord(
         hole.deltaType || '-',
         hole.diameterInch || '-',
         formatNumber(hole.diameterMm, 2, 'mm'),
-        formatNumber(hole.distanceB, 1, 'mm'),
+        formatNumber(hole.blockHeightE, 1, 'mm'),
         formatNumber(hole.metalTravelH, 1, 'mm'),
       ].map(text => new TableCell({
         children: [new Paragraph({ children: [new TextRun({ text, size: 18 })] })],

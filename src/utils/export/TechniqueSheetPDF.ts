@@ -403,80 +403,89 @@ class TechniqueSheetPDFBuilder {
     const doc = this.data.documentation;
     const setup = this.data.inspectionSetup;
 
-    // ========== ULTIMATE HEADER DESIGN ==========
-    // Main header background with TUV blue
+    // ========== FRISA-STYLE PROFESSIONAL HEADER ==========
+    // Main header background
     this.pdf.setFillColor(...COLORS.primary);
     this.pdf.rect(0, 0, PAGE.width, PAGE.headerHeight, 'F');
 
     // Gold accent line at bottom
     this.pdf.setFillColor(...COLORS.accentGold);
-    this.pdf.rect(0, PAGE.headerHeight - 1.5, PAGE.width, 1.5, 'F');
+    this.pdf.rect(0, PAGE.headerHeight - 1, PAGE.width, 1, 'F');
 
     // Company logo (left side)
-    const logoX = PAGE.marginLeft;
-    const logoY = 3;
-    const logoMaxHeight = PAGE.headerHeight - 6;
-    const logoMaxWidth = 30;
-
-    let textStartX = logoX;
+    let textStartX = PAGE.marginLeft;
 
     if (this.options.companyLogo) {
       try {
-        // Get actual image dimensions to preserve aspect ratio
         const imgProps = this.pdf.getImageProperties(this.options.companyLogo);
         const aspectRatio = imgProps.width / imgProps.height;
-
-        // Calculate dimensions that fit within bounds while preserving aspect ratio
-        let finalWidth = logoMaxWidth;
-        let finalHeight = logoMaxWidth / aspectRatio;
-
-        // If height exceeds max, scale based on height instead
-        if (finalHeight > logoMaxHeight) {
-          finalHeight = logoMaxHeight;
-          finalWidth = logoMaxHeight * aspectRatio;
+        let logoHeight = PAGE.headerHeight - 5;
+        let logoWidth = logoHeight * aspectRatio;
+        if (logoWidth > 28) {
+          logoWidth = 28;
+          logoHeight = logoWidth / aspectRatio;
         }
-
-        this.pdf.addImage(
-          this.options.companyLogo,
-          'AUTO',
-          logoX,
-          logoY,
-          finalWidth,
-          finalHeight,
-          undefined,
-          'FAST'
-        );
-        textStartX = logoX + finalWidth + 5;
+        this.pdf.addImage(this.options.companyLogo, 'AUTO', PAGE.marginLeft, 2, logoWidth, logoHeight, undefined, 'FAST');
+        textStartX = PAGE.marginLeft + logoWidth + 3;
       } catch (e) {
         console.warn('Failed to add company logo:', e);
       }
     }
 
-    // Company name (after logo)
+    // Document title and company name (left-center)
     this.pdf.setTextColor(255, 255, 255);
-    this.pdf.setFontSize(9);
+    this.pdf.setFontSize(10);
     this.pdf.setFont('helvetica', 'bold');
+    this.pdf.text('UT TECHNIQUE SHEET', textStartX, 7);
+
     if (this.options.companyName) {
-      this.pdf.text(this.options.companyName, textStartX, 10);
-    }
-
-    // Document title (center) - Two lines
-    this.pdf.setTextColor(255, 255, 255);
-    this.pdf.setFontSize(11);
-    this.pdf.setFont('helvetica', 'bold');
-    this.pdf.text('UT TECHNIQUE SHEET', PAGE.width / 2, 10, { align: 'center' });
-
-    // Part number & Revision badge (right side)
-    const rightX = PAGE.width - PAGE.marginRight;
-    if (setup.partNumber) {
       this.pdf.setFontSize(7);
       this.pdf.setFont('helvetica', 'normal');
+      this.pdf.setTextColor(200, 220, 240);
+      this.pdf.text(this.options.companyName, textStartX, 12);
+    }
+
+    // Document Info Box (right side - FRISA style)
+    const boxWidth = 48;
+    const boxX = PAGE.width - PAGE.marginRight - boxWidth;
+    this.pdf.setFillColor(255, 255, 255);
+    this.pdf.roundedRect(boxX, 1.5, boxWidth, PAGE.headerHeight - 4, 1.5, 1.5, 'F');
+
+    // Info in box - compact layout
+    this.pdf.setFontSize(6);
+    this.pdf.setFont('helvetica', 'bold');
+    this.pdf.setTextColor(...COLORS.lightText);
+
+    const docNum = this.options.documentNumber || doc.procedureNumber || `TS-${setup.partNumber || 'XXX'}`;
+
+    // Row 1: Doc No
+    this.pdf.text('Doc:', boxX + 2, 5);
+    this.pdf.setTextColor(...COLORS.primaryDark);
+    this.pdf.setFontSize(7);
+    this.pdf.text(docNum, boxX + 12, 5);
+
+    // Row 2: Rev and Page
+    this.pdf.setFontSize(6);
+    this.pdf.setTextColor(...COLORS.lightText);
+    this.pdf.text('Rev:', boxX + 2, 9.5);
+    this.pdf.setTextColor(...COLORS.primaryDark);
+    this.pdf.text(doc.revision || 'A', boxX + 12, 9.5);
+
+    this.pdf.setTextColor(...COLORS.lightText);
+    this.pdf.text('Page:', boxX + 24, 9.5);
+    this.pdf.setTextColor(...COLORS.primaryDark);
+    this.pdf.text(`${this.currentPage}/${this.totalPages}`, boxX + 35, 9.5);
+
+    // Part number display (between title and box)
+    if (setup.partNumber) {
+      const pnX = boxX - 5;
+      this.pdf.setFontSize(6);
       this.pdf.setTextColor(180, 200, 220);
-      this.pdf.text('P/N', rightX, 6, { align: 'right' });
-      this.pdf.setFontSize(9);
+      this.pdf.text('P/N:', pnX - 25, 5);
+      this.pdf.setFontSize(8);
       this.pdf.setFont('helvetica', 'bold');
       this.pdf.setTextColor(255, 255, 255);
-      this.pdf.text(setup.partNumber, rightX, 12, { align: 'right' });
+      this.pdf.text(setup.partNumber, pnX - 25, 11);
     }
 
     this.pdf.setTextColor(...COLORS.text);
@@ -484,42 +493,43 @@ class TechniqueSheetPDFBuilder {
 
   private addFooter(): void {
     const doc = this.data.documentation;
+    const setup = this.data.inspectionSetup;
     const footerY = PAGE.height - PAGE.footerHeight;
-    const centerY = footerY + PAGE.footerHeight / 2; // Center of footer area
 
-    // ========== CLEAN FOOTER DESIGN ==========
-    // Top accent line (blue + gold)
-    this.pdf.setFillColor(...COLORS.primary);
-    this.pdf.rect(0, footerY, PAGE.width, 0.5, 'F');
+    // ========== FRISA-STYLE PROFESSIONAL FOOTER ==========
+    // Top accent lines
     this.pdf.setFillColor(...COLORS.accentGold);
+    this.pdf.rect(0, footerY, PAGE.width, 0.5, 'F');
+    this.pdf.setFillColor(...COLORS.primary);
     this.pdf.rect(0, footerY + 0.5, PAGE.width, 0.3, 'F');
 
     // Footer background
     this.pdf.setFillColor(...COLORS.sectionBg);
     this.pdf.rect(0, footerY + 0.8, PAGE.width, PAGE.footerHeight - 0.8, 'F');
 
-    // Left section: Revision and Standard
+    const textY = footerY + 6;
+
+    // Left: Document info
+    const docNum = this.options.documentNumber || doc.procedureNumber || `TS-${setup.partNumber || 'XXX'}`;
     this.pdf.setFontSize(7);
     this.pdf.setFont('helvetica', 'bold');
     this.pdf.setTextColor(...COLORS.primary);
-    this.pdf.text(`Rev. ${doc.revision || 'A'}`, PAGE.marginLeft, centerY + 1);
+    this.pdf.text(docNum, PAGE.marginLeft, textY);
 
     this.pdf.setFont('helvetica', 'normal');
     this.pdf.setTextColor(...COLORS.lightText);
-    const revWidth = this.pdf.getTextWidth(`Rev. ${doc.revision || 'A'}`);
-    this.pdf.text(` | ${formatValue(this.data.standard)} | ${formatDate(doc.inspectionDate)}`, PAGE.marginLeft + revWidth, centerY + 1);
+    this.pdf.text(` | Rev. ${doc.revision || 'A'} | ${formatValue(this.data.standard)}`, PAGE.marginLeft + this.pdf.getTextWidth(docNum), textY);
 
-    // Center: Confidentiality notice (single line)
-    this.pdf.setFontSize(6);
-    this.pdf.setTextColor(...COLORS.confidential);
-    this.pdf.setFont('helvetica', 'bold');
-    this.pdf.text('CONFIDENTIAL - Proprietary Document', PAGE.width / 2, centerY + 1, { align: 'center' });
+    // Center: Part number
+    this.pdf.setFontSize(7);
+    this.pdf.setTextColor(...COLORS.lightText);
+    this.pdf.text(`P/N: ${setup.partNumber || '-'}`, PAGE.width / 2, textY, { align: 'center' });
 
-    // Right: Page number (simple format without circle)
-    this.pdf.setFontSize(8);
+    // Right: Page number with format "Page X of Y | Date"
+    this.pdf.setFontSize(7);
     this.pdf.setFont('helvetica', 'bold');
     this.pdf.setTextColor(...COLORS.primary);
-    this.pdf.text(`Page ${this.currentPage} of ${this.totalPages}`, PAGE.width - PAGE.marginRight, centerY + 1, { align: 'right' });
+    this.pdf.text(`Page ${this.currentPage} of ${this.totalPages}`, PAGE.width - PAGE.marginRight, textY, { align: 'right' });
 
     this.pdf.setTextColor(...COLORS.text);
   }
@@ -605,281 +615,332 @@ class TechniqueSheetPDFBuilder {
   }
 
   // =========================================================================
-  // PAGE 1: COVER PAGE - Ultimate Professional Design
+  // PAGE 1: COVER PAGE - Professional FRISA/TÜV Style Design
   // =========================================================================
 
   private buildCoverPage(): void {
     const setup = this.data.inspectionSetup;
     const doc = this.data.documentation;
-    const colWidth = PAGE.contentWidth / 2 - 5;
+    const acceptance = this.data.acceptanceCriteria;
 
-    // ========== CLEAN WHITE HEADER DESIGN ==========
-    // White background - no fill needed (page is already white)
+    // ========== HEADER BAR (FRISA Style) ==========
+    // Main header background
+    this.pdf.setFillColor(...COLORS.primary);
+    this.pdf.rect(0, 0, PAGE.width, 28, 'F');
 
-    // Company logo on cover page (top-left, larger on white background)
-    const coverLogoMaxWidth = 55;
-    const coverLogoMaxHeight = 30;
-    let logoBottomY = 35;
+    // Gold accent line at bottom of header
+    this.pdf.setFillColor(...COLORS.accentGold);
+    this.pdf.rect(0, 28, PAGE.width, 1.5, 'F');
 
+    // Company logo (left side of header)
+    let titleStartX = PAGE.marginLeft;
     if (this.options.companyLogo) {
       try {
-        // Get actual image dimensions to preserve aspect ratio
         const imgProps = this.pdf.getImageProperties(this.options.companyLogo);
         const aspectRatio = imgProps.width / imgProps.height;
-
-        // Calculate dimensions that fit within bounds while preserving aspect ratio
-        let finalWidth = coverLogoMaxWidth;
-        let finalHeight = coverLogoMaxWidth / aspectRatio;
-
-        // If height exceeds max, scale based on height instead
-        if (finalHeight > coverLogoMaxHeight) {
-          finalHeight = coverLogoMaxHeight;
-          finalWidth = coverLogoMaxHeight * aspectRatio;
+        let logoHeight = 20;
+        let logoWidth = logoHeight * aspectRatio;
+        if (logoWidth > 45) {
+          logoWidth = 45;
+          logoHeight = logoWidth / aspectRatio;
         }
-
-        this.pdf.addImage(
-          this.options.companyLogo,
-          'AUTO',
-          PAGE.marginLeft,
-          10,
-          finalWidth,
-          finalHeight,
-          undefined,
-          'FAST'
-        );
-        logoBottomY = 10 + finalHeight + 5;
+        this.pdf.addImage(this.options.companyLogo, 'AUTO', PAGE.marginLeft, 4, logoWidth, logoHeight, undefined, 'FAST');
+        titleStartX = PAGE.marginLeft + logoWidth + 5;
       } catch (e) {
-        console.warn('Failed to add company logo on cover:', e);
+        console.warn('Failed to add company logo:', e);
       }
     }
 
-    // Main Title - Blue text on white background
-    this.pdf.setTextColor(...COLORS.primary);
-    this.pdf.setFontSize(FONTS.coverTitle.size);
+    // Document title (center-left)
+    this.pdf.setTextColor(255, 255, 255);
+    this.pdf.setFontSize(14);
     this.pdf.setFont('helvetica', 'bold');
-    this.pdf.text('ULTRASONIC INSPECTION', PAGE.width / 2, logoBottomY + 8, { align: 'center' });
+    this.pdf.text('UT TECHNIQUE SHEET', titleStartX, 12);
 
-    this.pdf.setFontSize(20);
-    this.pdf.text('TECHNIQUE SHEET', PAGE.width / 2, logoBottomY + 20, { align: 'center' });
-
-    // Company name subtitle
+    // Company name below title
     if (this.options.companyName) {
-      this.pdf.setFontSize(10);
-      this.pdf.setFont('helvetica', 'normal');
-      this.pdf.setTextColor(...COLORS.lightText);
-      this.pdf.text(this.options.companyName, PAGE.width / 2, logoBottomY + 30, { align: 'center' });
-    }
-
-    // Accent line below title area
-    this.pdf.setFillColor(...COLORS.primary);
-    this.pdf.rect(PAGE.marginLeft, logoBottomY + 35, PAGE.contentWidth, 1.5, 'F');
-
-    // Gold accent line
-    this.pdf.setFillColor(...COLORS.accentGold);
-    this.pdf.rect(PAGE.marginLeft, logoBottomY + 37, PAGE.contentWidth, 1, 'F');
-
-    this.pdf.setTextColor(...COLORS.text);
-
-    // ========== DOCUMENT INFO BAR ==========
-    let y = logoBottomY + 45;
-    const docInfoBarHeight = 22;
-    this.pdf.setFillColor(...COLORS.sectionBg);
-    this.pdf.rect(0, y, PAGE.width, docInfoBarHeight, 'F');
-
-    // Document info items with stylish icons/labels
-    const docInfoItems = [
-      { label: 'Document No:', value: formatValue(this.options.documentNumber || doc.procedureNumber) },
-      { label: 'Date:', value: formatDate(doc.inspectionDate) },
-      { label: 'Part No:', value: formatValue(setup.partNumber) },
-    ];
-
-    const infoWidth = PAGE.contentWidth / 3;
-    docInfoItems.forEach((item, i) => {
-      const x = PAGE.marginLeft + (i * infoWidth);
-
-      // Label with small accent dot
-      this.pdf.setFillColor(...COLORS.accentGold);
-      this.pdf.circle(x + 1, y + 8, 0.5, 'F');
-
-      this.pdf.setFontSize(7);
-      this.pdf.setFont('helvetica', 'bold');
-      this.pdf.setTextColor(...COLORS.lightText);
-      this.pdf.text(item.label, x + 3, y + 9);
-
-      this.pdf.setFontSize(10);
-      this.pdf.setFont('helvetica', 'bold');
-      this.pdf.setTextColor(...COLORS.primaryDark);
-      this.pdf.text(item.value, x, y + 17);
-    });
-
-    // ========== PART INFORMATION CARD ==========
-    y = y + docInfoBarHeight + 8; // Dynamic positioning after doc info bar
-    const cardHeight = 55;
-
-    // Card shadow effect
-    this.pdf.setFillColor(...COLORS.divider);
-    this.pdf.roundedRect(PAGE.marginLeft + 1, y + 1, PAGE.contentWidth, cardHeight, 3, 3, 'F');
-
-    // Card background
-    this.pdf.setFillColor(...COLORS.white);
-    this.pdf.roundedRect(PAGE.marginLeft, y, PAGE.contentWidth, cardHeight, 3, 3, 'F');
-
-    // Card header with icon-style number
-    this.pdf.setFillColor(...COLORS.primary);
-    this.pdf.roundedRect(PAGE.marginLeft, y, PAGE.contentWidth, 14, 3, 3, 'F');
-    this.pdf.rect(PAGE.marginLeft, y + 7, PAGE.contentWidth, 7, 'F');
-
-    // Section number badge
-    this.pdf.setFillColor(...COLORS.accentGold);
-    this.pdf.roundedRect(PAGE.marginLeft + 5, y + 2, 20, 10, 2, 2, 'F');
-    this.pdf.setTextColor(...COLORS.primaryDark);
-    this.pdf.setFontSize(8);
-    this.pdf.setFont('helvetica', 'bold');
-    this.pdf.text('01', PAGE.marginLeft + 15, y + 9, { align: 'center' });
-
-    this.pdf.setTextColor(255, 255, 255);
-    this.pdf.setFontSize(11);
-    this.pdf.text('PART IDENTIFICATION', PAGE.marginLeft + 32, y + 10);
-
-    // Part details in grid with better spacing and contrast
-    const partData = [
-      ['Part Number', formatValue(setup.partNumber)],
-      ['Part Name', formatValue(setup.partName)],
-      ['Material', formatMaterial(setup.material, setup.customMaterialName)],
-      ['Material Spec', formatValue(setup.materialSpec)],
-      ['Geometry', formatPartType(setup.partType)],
-      ['Drawing No', formatValue(setup.drawingNumber)],
-    ];
-
-    const partY = y + 24;
-    partData.forEach((row, i) => {
-      const col = i % 2;
-      const x = PAGE.marginLeft + 10 + (col * (colWidth + 10));
-      const currY = partY + Math.floor(i / 2) * 12;
-
-      // Label
-      this.pdf.setFont('helvetica', 'bold');
-      this.pdf.setFontSize(7.5);
-      this.pdf.setTextColor(...COLORS.lightText);
-      this.pdf.text(row[0].toUpperCase(), x, currY);
-
-      // Value
-      this.pdf.setFont('helvetica', 'bold');
-      this.pdf.setFontSize(9.5);
-      this.pdf.setTextColor(...COLORS.text);
-      this.pdf.text(row[1], x, currY + 4.5);
-
-      // Decorative bottom line for each item
-      this.pdf.setDrawColor(...COLORS.divider);
-      this.pdf.setLineWidth(0.1);
-      this.pdf.line(x, currY + 6, x + colWidth - 15, currY + 6);
-    });
-
-    // ========== INSPECTOR & CERTIFICATION CARD ==========
-    y = y + cardHeight + 10; // Dynamic positioning after part info card
-    const certCardHeight = 45;
-
-    // Card shadow
-    this.pdf.setFillColor(...COLORS.divider);
-    this.pdf.roundedRect(PAGE.marginLeft + 1, y + 1, PAGE.contentWidth, certCardHeight, 3, 3, 'F');
-
-    // Card background
-    this.pdf.setFillColor(...COLORS.white);
-    this.pdf.roundedRect(PAGE.marginLeft, y, PAGE.contentWidth, certCardHeight, 3, 3, 'F');
-
-    // Card header
-    this.pdf.setFillColor(...COLORS.secondary);
-    this.pdf.roundedRect(PAGE.marginLeft, y, PAGE.contentWidth, 14, 3, 3, 'F');
-    this.pdf.rect(PAGE.marginLeft, y + 7, PAGE.contentWidth, 7, 'F');
-
-    // Section number badge
-    this.pdf.setFillColor(...COLORS.accentGold);
-    this.pdf.roundedRect(PAGE.marginLeft + 5, y + 2, 20, 10, 2, 2, 'F');
-    this.pdf.setTextColor(...COLORS.primaryDark);
-    this.pdf.setFontSize(8);
-    this.pdf.setFont('helvetica', 'bold');
-    this.pdf.text('02', PAGE.marginLeft + 15, y + 9, { align: 'center' });
-
-    this.pdf.setTextColor(255, 255, 255);
-    this.pdf.setFontSize(11);
-    this.pdf.text('INSPECTOR & CERTIFICATION', PAGE.marginLeft + 32, y + 10);
-
-    const certData = [
-      ['Inspector', formatValue(doc.inspectorName)],
-      ['Level', formatValue(doc.inspectorLevel)],
-      ['Cert. Number', formatValue(doc.inspectorCertification)],
-      ['Organization', formatValue(doc.certifyingOrganization)],
-    ];
-
-    const certY = y + 24;
-    certData.forEach((row, i) => {
-      const col = i % 2;
-      const x = PAGE.marginLeft + 10 + (col * (colWidth + 10));
-      const currY = certY + Math.floor(i / 2) * 12;
-
-      this.pdf.setFont('helvetica', 'bold');
-      this.pdf.setFontSize(7.5);
-      this.pdf.setTextColor(...COLORS.lightText);
-      this.pdf.text(row[0].toUpperCase(), x, currY);
-
-      this.pdf.setFont('helvetica', 'bold');
-      this.pdf.setFontSize(9.5);
-      this.pdf.setTextColor(...COLORS.text);
-      this.pdf.text(row[1], x, currY + 4.5);
-
-      this.pdf.setDrawColor(...COLORS.divider);
-      this.pdf.setLineWidth(0.1);
-      this.pdf.line(x, currY + 6, x + colWidth - 15, currY + 6);
-    });
-
-    // ========== ACCEPTANCE CLASS (Clean Inline Design) ==========
-    y = y + certCardHeight + 10; // Dynamic positioning after certification card
-    const classInfo = formatAcceptanceClass(this.data.acceptanceCriteria.acceptanceClass);
-    if (classInfo.class !== '-') {
-      // Simple horizontal line with class info
-      const lineY = y + 5;
-
-      // Light background bar
-      this.pdf.setFillColor(248, 250, 252);
-      this.pdf.rect(PAGE.marginLeft, y, PAGE.contentWidth, 14, 'F');
-
-      // Left accent line
-      this.pdf.setFillColor(...COLORS.primary);
-      this.pdf.rect(PAGE.marginLeft, y, 3, 14, 'F');
-
-      // Label text
-      this.pdf.setTextColor(...COLORS.lightText);
       this.pdf.setFontSize(9);
       this.pdf.setFont('helvetica', 'normal');
-      this.pdf.text('Acceptance Class:', PAGE.marginLeft + 8, lineY + 5);
-
-      // Class value
-      this.pdf.setTextColor(...COLORS.primary);
-      this.pdf.setFontSize(12);
-      this.pdf.setFont('helvetica', 'bold');
-      this.pdf.text(classInfo.class, PAGE.marginLeft + 45, lineY + 5);
-
-      // Standard reference (if available)
-      if (classInfo.description) {
-        this.pdf.setTextColor(...COLORS.lightText);
-        this.pdf.setFontSize(8);
-        this.pdf.setFont('helvetica', 'normal');
-        this.pdf.text(`(${classInfo.description})`, PAGE.marginLeft + 60, lineY + 5);
-      }
+      this.pdf.setTextColor(200, 220, 240);
+      this.pdf.text(this.options.companyName, titleStartX, 20);
     }
 
-    // ========== CONFIDENTIALITY FOOTER ==========
-    y = PAGE.height - 20;
-    this.pdf.setFillColor(...COLORS.sectionBg);
-    this.pdf.rect(0, y - 5, PAGE.width, 18, 'F');
+    // Document Info Box (right side - FRISA style)
+    const boxWidth = 55;
+    const boxX = PAGE.width - PAGE.marginRight - boxWidth;
+    this.pdf.setFillColor(255, 255, 255);
+    this.pdf.roundedRect(boxX, 3, boxWidth, 22, 2, 2, 'F');
 
+    // Document info in box
     this.pdf.setFontSize(7);
     this.pdf.setFont('helvetica', 'bold');
-    this.pdf.setTextColor(...COLORS.confidential);
-    this.pdf.text('CONFIDENTIAL', PAGE.width / 2, y, { align: 'center' });
+    this.pdf.setTextColor(...COLORS.lightText);
+    this.pdf.text('Document No:', boxX + 3, 8);
+    this.pdf.text('Revision:', boxX + 3, 14);
+    this.pdf.text('Date:', boxX + 3, 20);
+
+    this.pdf.setFontSize(8);
+    this.pdf.setFont('helvetica', 'bold');
+    this.pdf.setTextColor(...COLORS.primaryDark);
+    const docNum = this.options.documentNumber || doc.procedureNumber || `TS-${setup.partNumber || 'XXX'}`;
+    this.pdf.text(docNum, boxX + 28, 8);
+    this.pdf.text(doc.revision || 'A', boxX + 28, 14);
+    this.pdf.text(formatDate(doc.inspectionDate), boxX + 28, 20);
+
+    // Page indicator
+    this.pdf.setFontSize(7);
+    this.pdf.setTextColor(200, 220, 240);
+    this.pdf.text(`Page 1 of ${this.totalPages}`, PAGE.width - PAGE.marginRight, 26, { align: 'right' });
+
+    // ========== MAIN CONTENT AREA ==========
+    let y = 38;
+
+    // ===== SUMMARY TABLE (like FRISA first page) =====
+    this.pdf.setFillColor(...COLORS.sectionBg);
+    this.pdf.rect(PAGE.marginLeft, y, PAGE.contentWidth, 10, 'F');
+    this.pdf.setFillColor(...COLORS.primary);
+    this.pdf.rect(PAGE.marginLeft, y, 4, 10, 'F');
+
+    this.pdf.setFontSize(11);
+    this.pdf.setFont('helvetica', 'bold');
+    this.pdf.setTextColor(...COLORS.primary);
+    this.pdf.text('DOCUMENT SUMMARY', PAGE.marginLeft + 8, y + 7);
+
+    y += 14;
+
+    // Summary table with key information
+    const summaryData = [
+      ['Customer', formatValue(doc.customerName), 'Purchase Order', formatValue(doc.purchaseOrder)],
+      ['Part Number', formatValue(setup.partNumber), 'Part Name', formatValue(setup.partName)],
+      ['Material', formatMaterial(setup.material, setup.customMaterialName), 'Material Spec', formatValue(setup.materialSpec)],
+      ['Part Type', formatPartType(setup.partType), 'Drawing No', formatValue(setup.drawingNumber)],
+      ['Process Spec', formatValue(this.data.standard), 'Acceptance Class', formatAcceptanceClass(acceptance.acceptanceClass).class],
+      ['Inspection Type', formatScanMethod(this.data.scanParameters.scanMethod), 'Criticality', formatAcceptanceClass(acceptance.acceptanceClass).description.split(' - ')[0] || '-'],
+    ];
+
+    // Draw summary table
+    const colWidths = [35, 55, 35, 55];
+    const rowHeight = 8;
+    let tableY = y;
+
+    summaryData.forEach((row, rowIndex) => {
+      const isEvenRow = rowIndex % 2 === 0;
+
+      // Row background
+      if (isEvenRow) {
+        this.pdf.setFillColor(...COLORS.rowAlt);
+        this.pdf.rect(PAGE.marginLeft, tableY, PAGE.contentWidth, rowHeight, 'F');
+      }
+
+      // Draw cells
+      let cellX = PAGE.marginLeft;
+      row.forEach((cell, cellIndex) => {
+        const isLabel = cellIndex % 2 === 0;
+
+        if (isLabel) {
+          // Label cell - darker background
+          this.pdf.setFillColor(230, 235, 240);
+          this.pdf.rect(cellX, tableY, colWidths[cellIndex], rowHeight, 'F');
+
+          this.pdf.setFontSize(7.5);
+          this.pdf.setFont('helvetica', 'bold');
+          this.pdf.setTextColor(...COLORS.lightText);
+        } else {
+          // Value cell
+          this.pdf.setFontSize(8);
+          this.pdf.setFont('helvetica', 'bold');
+          this.pdf.setTextColor(...COLORS.text);
+        }
+
+        this.pdf.text(cell, cellX + 2, tableY + 5.5);
+        cellX += colWidths[cellIndex];
+      });
+
+      tableY += rowHeight;
+    });
+
+    // Table border
+    this.pdf.setDrawColor(...COLORS.tableBorder);
+    this.pdf.setLineWidth(0.3);
+    this.pdf.rect(PAGE.marginLeft, y, PAGE.contentWidth, tableY - y);
+
+    y = tableY + 8;
+
+    // ===== PART SKETCH AREA =====
+    const sketchAreaHeight = 75;
+    this.pdf.setFillColor(...COLORS.sectionBg);
+    this.pdf.rect(PAGE.marginLeft, y, PAGE.contentWidth, 10, 'F');
+    this.pdf.setFillColor(...COLORS.secondary);
+    this.pdf.rect(PAGE.marginLeft, y, 4, 10, 'F');
+
+    this.pdf.setFontSize(11);
+    this.pdf.setFont('helvetica', 'bold');
+    this.pdf.setTextColor(...COLORS.secondary);
+    this.pdf.text('PART SKETCH / DIMENSIONS', PAGE.marginLeft + 8, y + 7);
+
+    y += 12;
+
+    // Sketch box - white background for technical drawing
+    this.pdf.setFillColor(255, 255, 255);
+    this.pdf.rect(PAGE.marginLeft, y, PAGE.contentWidth, sketchAreaHeight, 'F');
+    this.pdf.setDrawColor(...COLORS.tableBorder);
+    this.pdf.setLineWidth(0.3);
+    this.pdf.rect(PAGE.marginLeft, y, PAGE.contentWidth, sketchAreaHeight);
+
+    // Add technical drawing if available, otherwise show placeholder
+    if (this.data.capturedDrawing) {
+      try {
+        console.log('[PDF] Adding technical drawing to cover page...');
+        const dims = this.calculateImageDimensions(this.data.capturedDrawing, PAGE.contentWidth - 10, sketchAreaHeight - 10);
+        const imgX = PAGE.marginLeft + (PAGE.contentWidth - dims.width) / 2;
+        const imgY = y + (sketchAreaHeight - dims.height) / 2;
+        this.pdf.addImage(this.data.capturedDrawing, 'PNG', imgX, imgY, dims.width, dims.height, undefined, 'FAST');
+        console.log('[PDF] Technical drawing added successfully');
+      } catch (e) {
+        console.warn('[PDF] Failed to add technical drawing:', e);
+        this.drawSketchPlaceholder(y, sketchAreaHeight);
+      }
+    } else {
+      console.log('[PDF] No captured drawing available, showing placeholder');
+      this.drawSketchPlaceholder(y, sketchAreaHeight);
+    }
+
+    y += sketchAreaHeight + 8;
+
+    // ===== KEY DIMENSIONS BOX =====
+    const dimensionRows = getPartDimensionRows(setup);
+    if (dimensionRows.length > 0) {
+      this.pdf.setFillColor(...COLORS.sectionBg);
+      this.pdf.rect(PAGE.marginLeft, y, PAGE.contentWidth, 8, 'F');
+
+      this.pdf.setFontSize(9);
+      this.pdf.setFont('helvetica', 'bold');
+      this.pdf.setTextColor(...COLORS.primary);
+      this.pdf.text('Key Dimensions:', PAGE.marginLeft + 4, y + 5.5);
+
+      // Display dimensions inline
+      let dimX = PAGE.marginLeft + 45;
+      this.pdf.setFont('helvetica', 'normal');
+      this.pdf.setTextColor(...COLORS.text);
+      this.pdf.setFontSize(8);
+
+      dimensionRows.slice(0, 4).forEach((dim, i) => {
+        if (i > 0) {
+          this.pdf.setTextColor(...COLORS.lightText);
+          this.pdf.text(' | ', dimX, y + 5.5);
+          dimX += 5;
+        }
+        this.pdf.setTextColor(...COLORS.lightText);
+        this.pdf.text(`${dim[0]}: `, dimX, y + 5.5);
+        dimX += this.pdf.getTextWidth(`${dim[0]}: `);
+        this.pdf.setTextColor(...COLORS.text);
+        this.pdf.setFont('helvetica', 'bold');
+        this.pdf.text(dim[1], dimX, y + 5.5);
+        dimX += this.pdf.getTextWidth(dim[1]) + 3;
+        this.pdf.setFont('helvetica', 'normal');
+      });
+
+      y += 12;
+    }
+
+    // ===== APPROVAL SIGNATURES BOX (FRISA style) =====
+    y = PAGE.height - 55;
+
+    this.pdf.setFillColor(...COLORS.sectionBg);
+    this.pdf.rect(PAGE.marginLeft, y, PAGE.contentWidth, 8, 'F');
+    this.pdf.setFillColor(...COLORS.accentGold);
+    this.pdf.rect(PAGE.marginLeft, y, 4, 8, 'F');
+
+    this.pdf.setFontSize(9);
+    this.pdf.setFont('helvetica', 'bold');
+    this.pdf.setTextColor(...COLORS.primaryDark);
+    this.pdf.text('APPROVALS', PAGE.marginLeft + 8, y + 5.5);
+
+    y += 10;
+
+    // Signature table
+    const sigColWidths = [18, 35, 50, 35, 35, 10];
+    const sigHeaders = ['Rev', 'Date', 'Description', 'Prepared', 'Approved', 'Sign'];
+
+    // Header row
+    this.pdf.setFillColor(...COLORS.primary);
+    this.pdf.rect(PAGE.marginLeft, y, PAGE.contentWidth, 7, 'F');
+
+    let sigX = PAGE.marginLeft;
+    this.pdf.setFontSize(7);
+    this.pdf.setFont('helvetica', 'bold');
+    this.pdf.setTextColor(255, 255, 255);
+    sigHeaders.forEach((header, i) => {
+      this.pdf.text(header, sigX + 2, y + 5);
+      sigX += sigColWidths[i];
+    });
+
+    y += 7;
+
+    // Data row
+    this.pdf.setDrawColor(...COLORS.tableBorder);
+    this.pdf.rect(PAGE.marginLeft, y, PAGE.contentWidth, 10);
+
+    sigX = PAGE.marginLeft;
+    const sigData = [
+      doc.revision || 'A',
+      formatDate(doc.inspectionDate),
+      'Initial Release',
+      doc.inspectorName || '',
+      '',  // Approved by - left blank for signature
+      '',  // Signature - left blank
+    ];
+
+    this.pdf.setFontSize(8);
+    this.pdf.setFont('helvetica', 'normal');
+    this.pdf.setTextColor(...COLORS.text);
+    sigData.forEach((cell, i) => {
+      // Vertical dividers
+      if (i > 0) {
+        this.pdf.line(sigX, y, sigX, y + 10);
+      }
+      this.pdf.text(cell, sigX + 2, y + 6.5);
+      sigX += sigColWidths[i];
+    });
+
+    // Empty row for additional revisions
+    y += 10;
+    this.pdf.rect(PAGE.marginLeft, y, PAGE.contentWidth, 10);
+    sigX = PAGE.marginLeft;
+    sigColWidths.forEach((width, i) => {
+      if (i > 0) {
+        this.pdf.line(sigX, y, sigX, y + 10);
+      }
+      sigX += width;
+    });
+
+    // ===== CONFIDENTIALITY FOOTER =====
+    y = PAGE.height - 12;
+    this.pdf.setFontSize(6);
     this.pdf.setFont('helvetica', 'normal');
     this.pdf.setTextColor(...COLORS.lightText);
-    this.pdf.text('This document contains proprietary inspection data. Unauthorized reproduction or distribution is strictly prohibited.', PAGE.width / 2, y + 6, { align: 'center' });
+    this.pdf.text('CONFIDENTIAL - This document contains proprietary inspection data. Unauthorized reproduction prohibited.', PAGE.width / 2, y, { align: 'center' });
+
+    this.pdf.setTextColor(...COLORS.text);
+  }
+
+  // Helper method for sketch placeholder
+  private drawSketchPlaceholder(y: number, height: number): void {
+    // Placeholder text
+    this.pdf.setFontSize(10);
+    this.pdf.setFont('helvetica', 'italic');
+    this.pdf.setTextColor(...COLORS.lightText);
+    this.pdf.text('Part sketch will be generated from Technical Drawing tab', PAGE.width / 2, y + height / 2 - 5, { align: 'center' });
+    this.pdf.setFontSize(8);
+    this.pdf.text('Or attach custom drawing in Setup', PAGE.width / 2, y + height / 2 + 5, { align: 'center' });
+
+    // Dashed border inside
+    this.pdf.setDrawColor(...COLORS.divider);
+    this.pdf.setLineDashPattern([3, 3], 0);
+    this.pdf.rect(PAGE.marginLeft + 5, y + 5, PAGE.contentWidth - 10, height - 10);
+    this.pdf.setLineDashPattern([], 0);
+
+    this.pdf.setTextColor(...COLORS.text);
   }
 
   // =========================================================================
@@ -1011,7 +1072,7 @@ class TechniqueSheetPDFBuilder {
         0: { fontStyle: 'bold', cellWidth: 60 },
         1: { cellWidth: 'auto' },
       },
-      margin: { left: PAGE.marginLeft, right: PAGE.marginRight },
+      margin: { left: PAGE.marginLeft, right: PAGE.marginRight, bottom: PAGE.footerHeight + 5 },
     });
 
     y = this.getTableEndY(y);
@@ -1032,7 +1093,7 @@ class TechniqueSheetPDFBuilder {
           0: { fontStyle: 'bold', cellWidth: 60 },
           1: { cellWidth: 'auto' },
         },
-        margin: { left: PAGE.marginLeft, right: PAGE.marginRight },
+        margin: { left: PAGE.marginLeft, right: PAGE.marginRight, bottom: PAGE.footerHeight + 5 },
       });
 
       y = this.getTableEndY(y);
@@ -1057,7 +1118,7 @@ class TechniqueSheetPDFBuilder {
             0: { fontStyle: 'bold', cellWidth: 60 },
             1: { cellWidth: 'auto' },
           },
-          margin: { left: PAGE.marginLeft, right: PAGE.marginRight },
+          margin: { left: PAGE.marginLeft, right: PAGE.marginRight, bottom: PAGE.footerHeight + 5 },
         });
 
         y = this.getTableEndY(y);
@@ -1125,7 +1186,7 @@ class TechniqueSheetPDFBuilder {
         0: { fontStyle: 'bold', cellWidth: 60 },
         1: { cellWidth: 'auto' },
       },
-      margin: { left: PAGE.marginLeft, right: PAGE.marginRight },
+      margin: { left: PAGE.marginLeft, right: PAGE.marginRight, bottom: PAGE.footerHeight + 5 },
     });
 
     y = this.getTableEndY(y);
@@ -1152,7 +1213,7 @@ class TechniqueSheetPDFBuilder {
         0: { fontStyle: 'bold', cellWidth: 60 },
         1: { cellWidth: 'auto' },
       },
-      margin: { left: PAGE.marginLeft, right: PAGE.marginRight },
+      margin: { left: PAGE.marginLeft, right: PAGE.marginRight, bottom: PAGE.footerHeight + 5 },
     });
 
     y = this.getTableEndY(y);
@@ -1176,7 +1237,7 @@ class TechniqueSheetPDFBuilder {
         0: { fontStyle: 'bold', cellWidth: 60 },
         1: { cellWidth: 'auto' },
       },
-      margin: { left: PAGE.marginLeft, right: PAGE.marginRight },
+      margin: { left: PAGE.marginLeft, right: PAGE.marginRight, bottom: PAGE.footerHeight + 5 },
     });
 
     y = this.getTableEndY(y);
@@ -1205,7 +1266,7 @@ class TechniqueSheetPDFBuilder {
             0: { fontStyle: 'bold', cellWidth: 60 },
             1: { cellWidth: 'auto' },
           },
-          margin: { left: PAGE.marginLeft, right: PAGE.marginRight },
+          margin: { left: PAGE.marginLeft, right: PAGE.marginRight, bottom: PAGE.footerHeight + 5 },
         });
       }
     }
@@ -1246,7 +1307,7 @@ class TechniqueSheetPDFBuilder {
         0: { fontStyle: 'bold', cellWidth: 70 },
         1: { cellWidth: 'auto' },
       },
-      margin: { left: PAGE.marginLeft, right: PAGE.marginRight },
+      margin: { left: PAGE.marginLeft, right: PAGE.marginRight, bottom: PAGE.footerHeight + 5 },
     });
 
     y = this.getTableEndY(y);
@@ -1260,18 +1321,18 @@ class TechniqueSheetPDFBuilder {
         hole.deltaType || '-',
         hole.diameterInch || '-',
         formatNumber(hole.diameterMm, 2, 'mm'),
-        formatNumber(hole.distanceB, 1, 'mm'),
+        formatNumber(hole.blockHeightE, 1, 'mm'),
         formatNumber(hole.metalTravelH, 1, 'mm'),
       ]);
 
       autoTable(this.pdf, {
         startY: y,
-        head: [['P/N', 'Δ Type', 'Ø FBH (inch)', 'Ø FBH (mm)', 'B (mm)', 'H (mm)']],
+        head: [['P/N', 'Δ Type', 'Ø FBH (inch)', 'Ø FBH (mm)', 'E (mm)', 'H (mm)']],
         body: fbhRows,
         theme: 'grid',
         styles: { fontSize: 8, cellPadding: 2 },
         headStyles: { fillColor: COLORS.secondary, textColor: [255, 255, 255] },
-        margin: { left: PAGE.marginLeft, right: PAGE.marginRight },
+        margin: { left: PAGE.marginLeft, right: PAGE.marginRight, bottom: PAGE.footerHeight + 5 },
       });
 
       y = this.getTableEndY(y);
@@ -1527,7 +1588,7 @@ class TechniqueSheetPDFBuilder {
         0: { fontStyle: 'bold', cellWidth: 60 },
         1: { cellWidth: 'auto' },
       },
-      margin: { left: PAGE.marginLeft, right: PAGE.marginRight },
+      margin: { left: PAGE.marginLeft, right: PAGE.marginRight, bottom: PAGE.footerHeight + 5 },
     });
 
     y = this.getTableEndY(y);
@@ -1551,7 +1612,7 @@ class TechniqueSheetPDFBuilder {
         0: { fontStyle: 'bold', cellWidth: 60 },
         1: { cellWidth: 'auto' },
       },
-      margin: { left: PAGE.marginLeft, right: PAGE.marginRight },
+      margin: { left: PAGE.marginLeft, right: PAGE.marginRight, bottom: PAGE.footerHeight + 5 },
     });
 
     y = this.getTableEndY(y);
@@ -1574,7 +1635,7 @@ class TechniqueSheetPDFBuilder {
         0: { fontStyle: 'bold', cellWidth: 70 },
         1: { cellWidth: 'auto' },
       },
-      margin: { left: PAGE.marginLeft, right: PAGE.marginRight },
+      margin: { left: PAGE.marginLeft, right: PAGE.marginRight, bottom: PAGE.footerHeight + 5 },
     });
 
     y = this.getTableEndY(y);
@@ -1603,7 +1664,7 @@ class TechniqueSheetPDFBuilder {
             0: { fontStyle: 'bold', cellWidth: 60 },
             1: { cellWidth: 'auto' },
           },
-          margin: { left: PAGE.marginLeft, right: PAGE.marginRight },
+          margin: { left: PAGE.marginLeft, right: PAGE.marginRight, bottom: PAGE.footerHeight + 5 },
         });
       }
     }
@@ -1664,7 +1725,7 @@ class TechniqueSheetPDFBuilder {
         0: { fontStyle: 'bold', cellWidth: 70 },
         1: { cellWidth: 'auto' },
       },
-      margin: { left: PAGE.marginLeft, right: PAGE.marginRight },
+      margin: { left: PAGE.marginLeft, right: PAGE.marginRight, bottom: PAGE.footerHeight + 5 },
     });
 
     y = this.getTableEndY(y);
@@ -1706,7 +1767,7 @@ class TechniqueSheetPDFBuilder {
     this.addHeader();
     let y = PAGE.contentStart;
 
-    y = this.addSectionTitle('6. SCAN DETAILS & DIRECTIONS', y);
+    y = this.addSectionTitle('6. SCAN PLAN', y);
 
     if (!this.data.scanDetails) {
       this.pdf.setFontSize(10);
@@ -1718,8 +1779,6 @@ class TechniqueSheetPDFBuilder {
     }
 
     const sd = this.data.scanDetails;
-
-    // Get enabled scan directions
     const enabledDetails = sd.scanDetails?.filter(d => d.enabled) || [];
 
     if (enabledDetails.length === 0) {
@@ -1731,159 +1790,181 @@ class TechniqueSheetPDFBuilder {
       return;
     }
 
-    // Table 1: Basic Direction Info
-    y = this.addSubsectionTitle('Scan Directions Overview', y);
+    // ========== FRISA-STYLE INTEGRATED SCAN PLAN TABLE ==========
+    // Main scan plan table with all key parameters in one view
 
-    const directionRows: string[][] = enabledDetails.map((detail) => [
+    // Wave mode color coding legend
+    this.pdf.setFontSize(7);
+    this.pdf.setTextColor(...COLORS.lightText);
+    this.pdf.text('Legend:', PAGE.marginLeft, y + 3);
+
+    // L-Wave indicator
+    this.pdf.setFillColor(0, 122, 194); // Blue
+    this.pdf.rect(PAGE.marginLeft + 18, y, 8, 4, 'F');
+    this.pdf.setTextColor(255, 255, 255);
+    this.pdf.setFontSize(6);
+    this.pdf.text('L', PAGE.marginLeft + 20.5, y + 3);
+
+    this.pdf.setTextColor(...COLORS.lightText);
+    this.pdf.setFontSize(7);
+    this.pdf.text('Longitudinal', PAGE.marginLeft + 28, y + 3);
+
+    // S-Wave indicator
+    this.pdf.setFillColor(220, 53, 69); // Red
+    this.pdf.rect(PAGE.marginLeft + 55, y, 8, 4, 'F');
+    this.pdf.setTextColor(255, 255, 255);
+    this.pdf.setFontSize(6);
+    this.pdf.text('S', PAGE.marginLeft + 57.5, y + 3);
+
+    this.pdf.setTextColor(...COLORS.lightText);
+    this.pdf.setFontSize(7);
+    this.pdf.text('Shear', PAGE.marginLeft + 65, y + 3);
+
+    y += 8;
+
+    // Main scan plan table
+    const scanPlanRows: string[][] = enabledDetails.map((detail, index) => {
+      const waveType = (detail.waveMode || '').toLowerCase().includes('shear') ? 'S' :
+                       (detail.waveMode || '').toLowerCase().includes('long') ? 'L' : '-';
+      return [
+        String(index + 1),                                        // Seq
+        detail.scanningDirection,                                 // Dir (A, B, C, etc.)
+        detail.surface || '-',                                    // Surface
+        waveType,                                                 // Wave (L/S)
+        detail.beamDirection || detail.waveMode || '-',           // Beam Direction
+        detail.sensitivity || (detail.fbhSize ? `${detail.fbhSize}" FBH DAC` : '-'),  // Sensitivity
+        detail.angle !== undefined ? `${detail.angle}°` : '0°',   // Angle
+        detail.probe || '-',                                      // Probe
+        detail.frequency ? `${detail.frequency}` : '-',           // Freq (MHz)
+      ];
+    });
+
+    autoTable(this.pdf, {
+      startY: y,
+      head: [['Seq', 'Dir', 'Surface', 'Wave', 'Beam Direction', 'Sensitivity', 'Angle', 'Probe', 'MHz']],
+      body: scanPlanRows,
+      theme: 'grid',
+      styles: { fontSize: 7, cellPadding: 2, lineColor: COLORS.tableBorder, lineWidth: 0.2 },
+      headStyles: {
+        fillColor: COLORS.primary,
+        textColor: [255, 255, 255],
+        fontSize: 7,
+        fontStyle: 'bold',
+        halign: 'center',
+      },
+      columnStyles: {
+        0: { cellWidth: 10, halign: 'center', fontStyle: 'bold' },   // Seq
+        1: { cellWidth: 12, halign: 'center', fontStyle: 'bold' },   // Dir
+        2: { cellWidth: 22 },                                         // Surface
+        3: { cellWidth: 12, halign: 'center' },                       // Wave
+        4: { cellWidth: 32 },                                         // Beam Direction
+        5: { cellWidth: 32 },                                         // Sensitivity
+        6: { cellWidth: 14, halign: 'center' },                       // Angle
+        7: { cellWidth: 28 },                                         // Probe
+        8: { cellWidth: 12, halign: 'center' },                       // Freq
+      },
+      didParseCell: (data) => {
+        // Color code the Wave column
+        if (data.column.index === 3 && data.section === 'body') {
+          const wave = data.cell.raw as string;
+          if (wave === 'L') {
+            data.cell.styles.fillColor = [0, 122, 194]; // Blue for L-wave
+            data.cell.styles.textColor = [255, 255, 255];
+            data.cell.styles.fontStyle = 'bold';
+          } else if (wave === 'S') {
+            data.cell.styles.fillColor = [220, 53, 69]; // Red for S-wave
+            data.cell.styles.textColor = [255, 255, 255];
+            data.cell.styles.fontStyle = 'bold';
+          }
+        }
+        // Highlight Direction column
+        if (data.column.index === 1 && data.section === 'body') {
+          data.cell.styles.fillColor = COLORS.sectionBg;
+        }
+      },
+      alternateRowStyles: { fillColor: COLORS.rowAlt },
+      margin: { left: PAGE.marginLeft, right: PAGE.marginRight, bottom: PAGE.footerHeight + 5 },
+    });
+
+    y = this.getTableEndY(y);
+
+    // ========== PROBE & EQUIPMENT DETAILS TABLE ==========
+    y = this.addSubsectionTitle('Search Unit Details', y);
+
+    const probeDetailRows: string[][] = enabledDetails.map((detail) => [
       detail.scanningDirection,
-      detail.waveMode || '-',
-      detail.angle !== undefined ? `${detail.angle}°` : '-',
+      detail.probe || '-',
       detail.frequency ? `${detail.frequency} MHz` : '-',
       detail.make || '-',
-      detail.probe || '-',
-      detail.remarkDetails || '-',
+      detail.partNumber || '-',
+      detail.serialNumber || '-',
+      detail.waveMode || '-',
     ]);
 
     autoTable(this.pdf, {
       startY: y,
-      head: [['Dir.', 'Wave Mode', 'Angle', 'Freq.', 'Make', 'Probe/Size', 'Remarks']],
-      body: directionRows,
+      head: [['Dir', 'Probe Details (Size, Type, Angle)', 'Freq', 'Make', 'Part No.', 'Serial No.', 'Wave Mode']],
+      body: probeDetailRows,
       theme: 'grid',
       styles: { fontSize: 7, cellPadding: 2 },
-      headStyles: { fillColor: COLORS.primary, textColor: [255, 255, 255], fontSize: 8 },
+      headStyles: { fillColor: COLORS.secondary, textColor: [255, 255, 255], fontSize: 7 },
       columnStyles: {
         0: { fontStyle: 'bold', cellWidth: 12, halign: 'center' },
-        1: { cellWidth: 35 },
-        2: { cellWidth: 14, halign: 'center' },
-        3: { cellWidth: 16, halign: 'center' },
-        4: { cellWidth: 22 },
+        1: { cellWidth: 55 },
+        2: { cellWidth: 18, halign: 'center' },
+        3: { cellWidth: 22 },
+        4: { cellWidth: 25 },
         5: { cellWidth: 25 },
         6: { cellWidth: 'auto' },
       },
-      margin: { left: PAGE.marginLeft, right: PAGE.marginRight },
+      alternateRowStyles: { fillColor: COLORS.rowAlt },
+      margin: { left: PAGE.marginLeft, right: PAGE.marginRight, bottom: PAGE.footerHeight + 5 },
     });
 
     y = this.getTableEndY(y);
 
-    // Table 2: Probe Details (P/N, S/N, Range, Attenuation, BWE, SSS)
-    y = this.addSubsectionTitle('Probe Details', y);
-
-    const probeRows: string[][] = enabledDetails.map((detail) => [
-      detail.scanningDirection,
-      detail.partNumber || '-',
-      detail.serialNumber || '-',
-      detail.rangeMm !== undefined ? `${detail.rangeMm} mm` : '-',
-      detail.attenuation !== undefined ? `${detail.attenuation} dB` : '-',
-      detail.backWallEcho !== undefined ? `${detail.backWallEcho}%` : '-',
-      detail.sss || '-',
-    ]);
-
-    autoTable(this.pdf, {
-      startY: y,
-      head: [['Dir.', 'Part Number', 'Serial Number', 'Range', 'Attenuation', 'BWE', 'SSS']],
-      body: probeRows,
-      theme: 'grid',
-      styles: { fontSize: 7, cellPadding: 2 },
-      headStyles: { fillColor: COLORS.secondary, textColor: [255, 255, 255], fontSize: 8 },
-      columnStyles: {
-        0: { fontStyle: 'bold', cellWidth: 12, halign: 'center' },
-        1: { cellWidth: 28 },
-        2: { cellWidth: 28 },
-        3: { cellWidth: 20, halign: 'center' },
-        4: { cellWidth: 22, halign: 'center' },
-        5: { cellWidth: 18, halign: 'center' },
-        6: { cellWidth: 'auto' },
-      },
-      margin: { left: PAGE.marginLeft, right: PAGE.marginRight },
-    });
-
-    y = this.getTableEndY(y);
-
-    // Table 3: Gate Settings
-    y = this.addSubsectionTitle('Gate Settings', y);
+    // ========== CALIBRATION & SENSITIVITY TABLE ==========
+    y = this.addSubsectionTitle('Calibration & Sensitivity', y);
 
     const formatGate = (gate?: { start: number; length: number; level: number }): string => {
       if (!gate) return '-';
       return `${gate.start}-${gate.length}-${gate.level}%`;
     };
 
-    const gateRows: string[][] = enabledDetails.map((detail) => {
-      // Access extended properties (they exist on the detail object from ScanDetailsTab)
+    const calibRows: string[][] = enabledDetails.map((detail) => {
       const extDetail = detail as typeof detail & {
         gate1?: { start: number; length: number; level: number };
-        gate2?: { start: number; length: number; level: number };
-      };
-      return [
-        detail.scanningDirection,
-        formatGate(extDetail.gate1),
-        formatGate(extDetail.gate2),
-      ];
-    });
-
-    autoTable(this.pdf, {
-      startY: y,
-      head: [['Dir.', 'Gate 1 (Start-Length-Level)', 'Gate 2 (Start-Length-Level)']],
-      body: gateRows,
-      theme: 'grid',
-      styles: { fontSize: 8, cellPadding: 3 },
-      headStyles: { fillColor: [16, 185, 129], textColor: [255, 255, 255], fontSize: 9 }, // Green
-      columnStyles: {
-        0: { fontStyle: 'bold', cellWidth: 15, halign: 'center' },
-        1: { cellWidth: 70, halign: 'center' },
-        2: { cellWidth: 'auto', halign: 'center' },
-      },
-      margin: { left: PAGE.marginLeft, right: PAGE.marginRight },
-    });
-
-    y = this.getTableEndY(y);
-
-    // Table 4: Pulsar Parameters
-    y = this.addSubsectionTitle('Pulsar Parameters', y);
-
-    const pulsarRows: string[][] = enabledDetails.map((detail) => {
-      // Access extended properties
-      const extDetail = detail as typeof detail & {
-        scanningFile?: string;
-        pulsarParams?: string;
-        prf?: number;
-        indexMode?: string;
-        db?: number;
-        filter?: string;
-        reject?: string;
         tcgMode?: boolean;
       };
       return [
         detail.scanningDirection,
-        extDetail.scanningFile || '-',
-        extDetail.pulsarParams || '-',
-        extDetail.prf !== undefined ? `${extDetail.prf} Hz` : '-',
-        extDetail.indexMode || '-',
-        extDetail.db !== undefined ? `${extDetail.db} dB` : '-',
-        extDetail.filter || '-',
-        extDetail.reject || '-',
-        extDetail.tcgMode !== undefined ? (extDetail.tcgMode ? 'ON' : 'OFF') : '-',
+        detail.sensitivity || (detail.fbhSize ? `${detail.fbhSize}" FBH` : '-'),
+        detail.rangeMm !== undefined ? `${detail.rangeMm}` : '-',
+        detail.attenuation !== undefined ? `${detail.attenuation}` : '-',
+        detail.backWallEcho !== undefined ? `${detail.backWallEcho}%` : '-',
+        formatGate(extDetail.gate1),
+        extDetail.tcgMode !== undefined ? (extDetail.tcgMode ? 'YES' : 'NO') : '-',
       ];
     });
 
     autoTable(this.pdf, {
       startY: y,
-      head: [['Dir.', 'Scan File', 'Pulsar Params', 'PRF', 'Index', 'DB', 'Filter', 'Reject', 'TCG']],
-      body: pulsarRows,
+      head: [['Dir', 'Sensitivity', 'Range (mm)', 'Atten (dB)', 'BWE', 'Gate 1', 'TCG']],
+      body: calibRows,
       theme: 'grid',
-      styles: { fontSize: 6, cellPadding: 2 },
-      headStyles: { fillColor: [139, 92, 246], textColor: [255, 255, 255], fontSize: 7 }, // Purple
+      styles: { fontSize: 7, cellPadding: 2 },
+      headStyles: { fillColor: [16, 185, 129], textColor: [255, 255, 255], fontSize: 7 },
       columnStyles: {
-        0: { fontStyle: 'bold', cellWidth: 10, halign: 'center' },
-        1: { cellWidth: 22 },
-        2: { cellWidth: 30 },
-        3: { cellWidth: 16, halign: 'center' },
-        4: { cellWidth: 14, halign: 'center' },
-        5: { cellWidth: 14, halign: 'center' },
+        0: { fontStyle: 'bold', cellWidth: 12, halign: 'center' },
+        1: { cellWidth: 40 },
+        2: { cellWidth: 22, halign: 'center' },
+        3: { cellWidth: 22, halign: 'center' },
+        4: { cellWidth: 20, halign: 'center' },
+        5: { cellWidth: 35, halign: 'center' },
         6: { cellWidth: 18, halign: 'center' },
-        7: { cellWidth: 14, halign: 'center' },
-        8: { cellWidth: 12, halign: 'center' },
       },
-      margin: { left: PAGE.marginLeft, right: PAGE.marginRight },
+      alternateRowStyles: { fillColor: COLORS.rowAlt },
+      margin: { left: PAGE.marginLeft, right: PAGE.marginRight, bottom: PAGE.footerHeight + 5 },
     });
 
     this.addFooter();
@@ -2087,7 +2168,7 @@ class TechniqueSheetPDFBuilder {
         3: { cellWidth: 30 },
         4: { cellWidth: 35, fontSize: 8 },
       },
-      margin: { left: PAGE.marginLeft, right: PAGE.marginRight },
+      margin: { left: PAGE.marginLeft, right: PAGE.marginRight, bottom: PAGE.footerHeight + 5 },
     });
 
     y = this.getTableEndY(y, 15);
@@ -2161,7 +2242,7 @@ class TechniqueSheetPDFBuilder {
         0: { fontStyle: 'bold', cellWidth: 60 },
         1: { cellWidth: 'auto' },
       },
-      margin: { left: PAGE.marginLeft, right: PAGE.marginRight },
+      margin: { left: PAGE.marginLeft, right: PAGE.marginRight, bottom: PAGE.footerHeight + 5 },
     });
 
     y = this.getTableEndY(y);
@@ -2188,7 +2269,7 @@ class TechniqueSheetPDFBuilder {
         0: { fontStyle: 'bold', cellWidth: 60 },
         1: { cellWidth: 'auto' },
       },
-      margin: { left: PAGE.marginLeft, right: PAGE.marginRight },
+      margin: { left: PAGE.marginLeft, right: PAGE.marginRight, bottom: PAGE.footerHeight + 5 },
     });
 
     y = this.getTableEndY(y);
@@ -2216,62 +2297,135 @@ class TechniqueSheetPDFBuilder {
     if (this.data.scanDetails) approvalSectionNum++;
     if (this.data.scanDirectionsDrawing && !this.data.scanDetails) approvalSectionNum++;
     if (this.data.capturedDrawing) approvalSectionNum++;
-    // Account for scan plan page - safe check
     const scanPlanDocsForApproval = this.data.scanPlan?.documents || [];
     if (scanPlanDocsForApproval.filter(d => d && d.isActive).length > 0) approvalSectionNum++;
 
-    y = this.addSectionTitle(`${approvalSectionNum}. APPROVAL SIGNATURES`, y);
+    y = this.addSectionTitle(`${approvalSectionNum}. APPROVALS & DOCUMENT CONTROL`, y);
 
     const doc = this.data.documentation;
+    const setup = this.data.inspectionSetup;
 
-    // Signature table
+    // ========== REVISION HISTORY TABLE (FRISA/TÜV Style) ==========
+    y = this.addSubsectionTitle('Revision History', y);
+
+    const revisionRows = [
+      [doc.revision || 'A', formatDate(doc.inspectionDate), 'Initial Release', doc.inspectorName || '', '', ''],
+      ['', '', '', '', '', ''],  // Empty row for future revisions
+      ['', '', '', '', '', ''],  // Empty row for future revisions
+    ];
+
+    autoTable(this.pdf, {
+      startY: y,
+      head: [['Rev', 'Date', 'Description', 'Prepared By', 'Approved By', 'Sign']],
+      body: revisionRows,
+      theme: 'grid',
+      styles: { fontSize: 8, cellPadding: 3, minCellHeight: 10 },
+      headStyles: { fillColor: COLORS.primary, textColor: [255, 255, 255], fontSize: 8 },
+      columnStyles: {
+        0: { cellWidth: 12, halign: 'center', fontStyle: 'bold' },
+        1: { cellWidth: 28 },
+        2: { cellWidth: 45 },
+        3: { cellWidth: 35 },
+        4: { cellWidth: 35 },
+        5: { cellWidth: 25 },
+      },
+      margin: { left: PAGE.marginLeft, right: PAGE.marginRight, bottom: PAGE.footerHeight + 5 },
+    });
+
+    y = this.getTableEndY(y, 8);
+
+    // ========== APPROVAL SIGNATURES TABLE ==========
+    y = this.addSubsectionTitle('Approval Signatures', y);
+
     const signatureRows = [
-      ['Prepared By', doc.inspectorName || '________________', formatDate(doc.inspectionDate), ''],
-      ['Reviewed By (Level III)', '________________', '________________', ''],
-      ['Approved By', '________________', '________________', ''],
+      ['UT Inspector (Level II)', doc.inspectorName || '', doc.inspectorCertification || '', formatDate(doc.inspectionDate), ''],
+      ['Level III Review', '', '', '', ''],
+      ['Quality Assurance', '', '', '', ''],
     ];
 
     if (doc.approvalRequired) {
-      signatureRows.push(['Customer Representative', '________________', '________________', '']);
+      signatureRows.push(['Customer Representative', '', '', '', '']);
     }
 
     autoTable(this.pdf, {
       startY: y,
-      head: [['Role', 'Name / Signature', 'Date', 'Comments']],
+      head: [['Role', 'Name (Print)', 'Cert. Number', 'Date', 'Signature']],
       body: signatureRows,
       theme: 'grid',
-      styles: { fontSize: 9, cellPadding: 5, minCellHeight: 15 },
-      headStyles: { fillColor: COLORS.primary, textColor: [255, 255, 255] },
+      styles: { fontSize: 8, cellPadding: 4, minCellHeight: 12 },
+      headStyles: { fillColor: COLORS.secondary, textColor: [255, 255, 255], fontSize: 8 },
       columnStyles: {
-        0: { fontStyle: 'bold', cellWidth: 45 },
-        1: { cellWidth: 55 },
-        2: { cellWidth: 35 },
-        3: { cellWidth: 'auto' },
+        0: { fontStyle: 'bold', cellWidth: 42 },
+        1: { cellWidth: 38 },
+        2: { cellWidth: 30 },
+        3: { cellWidth: 28 },
+        4: { cellWidth: 42 },
       },
-      margin: { left: PAGE.marginLeft, right: PAGE.marginRight },
+      margin: { left: PAGE.marginLeft, right: PAGE.marginRight, bottom: PAGE.footerHeight + 5 },
     });
 
-    y = this.getTableEndY(y, 15);
+    y = this.getTableEndY(y, 10);
 
-    // Approval notice
+    // ========== APPROVAL NOTICE (if required) ==========
     if (doc.approvalRequired) {
       this.pdf.setFillColor(255, 243, 205);
-      this.pdf.roundedRect(PAGE.marginLeft, y, PAGE.contentWidth, 15, 2, 2, 'F');
-      this.pdf.setFontSize(9);
+      this.pdf.roundedRect(PAGE.marginLeft, y, PAGE.contentWidth, 12, 2, 2, 'F');
+      this.pdf.setFillColor(...COLORS.accentGold);
+      this.pdf.rect(PAGE.marginLeft, y, 4, 12, 'F');
+
+      this.pdf.setFontSize(8);
       this.pdf.setFont('helvetica', 'bold');
       this.pdf.setTextColor(133, 100, 4);
-      this.pdf.text('NOTICE: This technique sheet requires Level III approval before use.', PAGE.marginLeft + 5, y + 9);
+      this.pdf.text('NOTICE: This technique sheet requires Level III approval before use in production.', PAGE.marginLeft + 8, y + 7);
       this.pdf.setFont('helvetica', 'normal');
       this.pdf.setTextColor(...COLORS.text);
-      y += 20;
+      y += 18;
     }
 
-    // Document control note
-    y += 10;
-    this.pdf.setFontSize(8);
+    // ========== DOCUMENT INFORMATION BOX ==========
+    y = this.addSubsectionTitle('Document Information', y);
+
+    const docNum = this.options.documentNumber || doc.procedureNumber || `TS-${setup.partNumber || 'XXX'}`;
+    const docInfoRows = [
+      ['Document Number', docNum],
+      ['Current Revision', doc.revision || 'A'],
+      ['Part Number', setup.partNumber || '-'],
+      ['Applicable Standard', formatValue(this.data.standard)],
+      ['Reference Procedure', doc.procedureNumber || '-'],
+      ['Customer', doc.customerName || '-'],
+    ];
+
+    autoTable(this.pdf, {
+      startY: y,
+      body: docInfoRows,
+      theme: 'grid',
+      styles: { fontSize: 8, cellPadding: 3 },
+      columnStyles: {
+        0: { fontStyle: 'bold', cellWidth: 45, fillColor: COLORS.sectionBg },
+        1: { cellWidth: 'auto' },
+      },
+      margin: { left: PAGE.marginLeft, right: PAGE.marginRight, bottom: PAGE.footerHeight + 5 },
+    });
+
+    y = this.getTableEndY(y, 10);
+
+    // ========== DOCUMENT CONTROL FOOTER ==========
+    this.pdf.setFillColor(...COLORS.sectionBg);
+    this.pdf.rect(PAGE.marginLeft, y, PAGE.contentWidth, 25, 'F');
+    this.pdf.setFillColor(...COLORS.primary);
+    this.pdf.rect(PAGE.marginLeft, y, PAGE.contentWidth, 0.5, 'F');
+
+    this.pdf.setFontSize(7);
+    this.pdf.setFont('helvetica', 'bold');
+    this.pdf.setTextColor(...COLORS.primary);
+    this.pdf.text('DOCUMENT CONTROL', PAGE.marginLeft + 5, y + 6);
+
+    this.pdf.setFont('helvetica', 'normal');
     this.pdf.setTextColor(...COLORS.lightText);
-    this.pdf.text('This document is controlled. Unauthorized reproduction or modification is prohibited.', PAGE.marginLeft, y);
-    this.pdf.text(`Document generated on ${new Date().toLocaleDateString()} by Scan-Master.`, PAGE.marginLeft, y + 5);
+    this.pdf.setFontSize(7);
+    this.pdf.text('This is a controlled document. Unauthorized reproduction, modification, or distribution is strictly prohibited.', PAGE.marginLeft + 5, y + 12);
+    this.pdf.text('Printed copies are uncontrolled unless stamped "CONTROLLED COPY" with a valid date.', PAGE.marginLeft + 5, y + 17);
+    this.pdf.text(`Document generated: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} | Scan-Master v1.0`, PAGE.marginLeft + 5, y + 22);
 
     this.pdf.setTextColor(...COLORS.text);
     this.addFooter();

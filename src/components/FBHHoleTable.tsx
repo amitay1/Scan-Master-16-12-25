@@ -17,14 +17,12 @@ import { Button } from "@/components/ui/button";
 import { Plus, Trash2 } from "lucide-react";
 import {
   FBH_DIAMETER_OPTIONS,
-  METAL_TRAVEL_OPTIONS,
-  DISTANCE_B_OPTIONS,
+  BLOCK_HEIGHT_E_OPTIONS,
   DELTA_TYPE_OPTIONS,
   inchFractionToMm,
   type FBHHoleRowData,
   type FBHDiameterOption,
-  type MetalTravelOption,
-  type DistanceBOption,
+  type BlockHeightEOption,
 } from "@/data/fbhStandardsData";
 
 interface FBHHoleTableProps {
@@ -53,13 +51,9 @@ export function FBHHoleTable({
     ? FBH_DIAMETER_OPTIONS
     : FBH_DIAMETER_OPTIONS.filter(opt => opt.standard.includes(standard));
 
-  const filteredMetalTravel = standard === "All"
-    ? METAL_TRAVEL_OPTIONS
-    : METAL_TRAVEL_OPTIONS.filter(opt => opt.standard.includes(standard));
-
-  const filteredDistanceB = standard === "All"
-    ? DISTANCE_B_OPTIONS
-    : DISTANCE_B_OPTIONS.filter(opt => opt.standard.includes(standard));
+  const filteredBlockHeightE = standard === "All"
+    ? BLOCK_HEIGHT_E_OPTIONS
+    : BLOCK_HEIGHT_E_OPTIONS.filter(opt => opt.standard.includes(standard));
 
   const updateHole = useCallback((id: number, field: keyof FBHHoleRowData, value: any) => {
     const newHoles = holes.map(hole => {
@@ -77,6 +71,11 @@ export function FBHHoleTable({
         } else {
           updatedHole.diameterMm = inchFractionToMm(value);
         }
+      }
+
+      // Auto-update H (metal travel) when E (block height) changes - H equals E for standard FBH blocks
+      if (field === "blockHeightE") {
+        updatedHole.metalTravelH = value;
       }
 
       return updatedHole;
@@ -104,7 +103,7 @@ export function FBHHoleTable({
       deltaType: 'area',
       diameterInch: '3/64',
       diameterMm: 1.19,
-      distanceB: 0,
+      blockHeightE: 19.05,
       metalTravelH: 19.05,
     }]);
   };
@@ -130,8 +129,8 @@ export function FBHHoleTable({
               )}
               <th className="border px-3 py-2 text-center font-semibold text-sm w-28">ØFBH inch</th>
               <th className="border px-3 py-2 text-center font-semibold text-sm w-24">ØFBH mm</th>
-              <th className="border px-3 py-2 text-center font-semibold text-sm w-28">B (mm)</th>
-              <th className="border px-3 py-2 text-center font-semibold text-sm w-28">H (mm)</th>
+              <th className="border px-3 py-2 text-center font-semibold text-sm w-32">E (mm)</th>
+              <th className="border px-3 py-2 text-center font-semibold text-sm w-24">H (mm)</th>
               <th className="border px-3 py-2 text-center font-semibold text-sm w-12"></th>
             </tr>
           </thead>
@@ -256,14 +255,14 @@ export function FBHHoleTable({
                   )}
                 </td>
 
-                {/* B (distance from bottom) */}
+                {/* E (block height) - dropdown selection */}
                 <td className="border px-2 py-1">
-                  {customInputs[hole.id]?.distanceB ? (
+                  {customInputs[hole.id]?.blockHeightE ? (
                     <div className="flex gap-1">
                       <Input
                         type="number"
-                        value={hole.distanceB}
-                        onChange={(e) => updateHole(hole.id, "distanceB", parseFloat(e.target.value) || 0)}
+                        value={hole.blockHeightE}
+                        onChange={(e) => updateHole(hole.id, "blockHeightE", parseFloat(e.target.value) || 0)}
                         step="0.1"
                         className="h-8 text-sm flex-1"
                       />
@@ -271,19 +270,19 @@ export function FBHHoleTable({
                         variant="ghost"
                         size="sm"
                         className="h-8 w-8 p-0"
-                        onClick={() => toggleCustomInput(hole.id, "distanceB")}
+                        onClick={() => toggleCustomInput(hole.id, "blockHeightE")}
                       >
                         ✓
                       </Button>
                     </div>
                   ) : (
                     <Select
-                      value={String(hole.distanceB)}
+                      value={String(hole.blockHeightE)}
                       onValueChange={(v) => {
                         if (v === "Custom") {
-                          toggleCustomInput(hole.id, "distanceB");
+                          toggleCustomInput(hole.id, "blockHeightE");
                         } else {
-                          updateHole(hole.id, "distanceB", parseFloat(v));
+                          updateHole(hole.id, "blockHeightE", parseFloat(v));
                         }
                       }}
                     >
@@ -291,9 +290,9 @@ export function FBHHoleTable({
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {filteredDistanceB.map(opt => (
-                          <SelectItem key={opt.id} value={String(opt.valueMm)}>
-                            {opt.valueMm} mm {opt.valueInch !== '-' && `(${opt.valueInch})`}
+                        {filteredBlockHeightE.map(opt => (
+                          <SelectItem key={opt.id} value={String(opt.heightMm)}>
+                            {opt.heightMm} mm {opt.heightInch !== '-' && `(${opt.heightInch})`}
                           </SelectItem>
                         ))}
                         <SelectItem value="Custom" className="text-blue-600 font-medium">
@@ -304,52 +303,14 @@ export function FBHHoleTable({
                   )}
                 </td>
 
-                {/* H (metal travel) */}
+                {/* H (metal travel) - fixed/read-only, equals E */}
                 <td className="border px-2 py-1">
-                  {customInputs[hole.id]?.metalTravelH ? (
-                    <div className="flex gap-1">
-                      <Input
-                        type="number"
-                        value={hole.metalTravelH}
-                        onChange={(e) => updateHole(hole.id, "metalTravelH", parseFloat(e.target.value) || 0)}
-                        step="0.1"
-                        className="h-8 text-sm flex-1"
-                      />
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0"
-                        onClick={() => toggleCustomInput(hole.id, "metalTravelH")}
-                      >
-                        ✓
-                      </Button>
-                    </div>
-                  ) : (
-                    <Select
-                      value={String(hole.metalTravelH)}
-                      onValueChange={(v) => {
-                        if (v === "Custom") {
-                          toggleCustomInput(hole.id, "metalTravelH");
-                        } else {
-                          updateHole(hole.id, "metalTravelH", parseFloat(v));
-                        }
-                      }}
-                    >
-                      <SelectTrigger className="h-8 text-sm">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {filteredMetalTravel.map(opt => (
-                          <SelectItem key={opt.id} value={String(opt.depthMm)}>
-                            {opt.depthMm} mm {opt.depthInch !== '-' && `(${opt.depthInch})`}
-                          </SelectItem>
-                        ))}
-                        <SelectItem value="Custom" className="text-blue-600 font-medium">
-                          Custom...
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  )}
+                  <div
+                    className="h-8 flex items-center justify-center text-sm bg-muted/30 rounded font-medium"
+                    title="גובה החור קבוע - שווה לגובה הבלוק (E)"
+                  >
+                    {hole.metalTravelH.toFixed(2)}
+                  </div>
                 </td>
 
                 {/* Delete button */}

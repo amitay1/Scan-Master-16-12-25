@@ -208,7 +208,7 @@ export const CalibrationTab = ({
       deltaType: h.deltaType,
       diameterInch: h.diameterInch,
       diameterMm: h.diameterMm,
-      distanceB: h.distanceB,
+      blockHeightE: h.blockHeightE,
       metalTravelH: h.metalTravelH,
     }));
     onChange({
@@ -243,7 +243,7 @@ export const CalibrationTab = ({
         deltaType: h.deltaType,
         diameterInch: h.diameterInch,
         diameterMm: h.diameterMm,
-        distanceB: h.distanceB,
+        blockHeightE: h.blockHeightE,
         metalTravelH: h.metalTravelH,
       }));
       const fbhSizesStr = fbhHoles.map(h => h.diameterInch).join(', ');
@@ -301,8 +301,8 @@ export const CalibrationTab = ({
       deltaType: 'dac', // DAC for distance-amplitude correction
       diameterInch: parsed.inch,
       diameterMm: parsed.mm,
-      distanceB: 0,
-      metalTravelH: depth,
+      blockHeightE: depth,   // E - block height equals DAC depth
+      metalTravelH: depth,   // H - hole depth equals block height
       isCustom: false,
     }));
 
@@ -326,7 +326,7 @@ export const CalibrationTab = ({
         deltaType: h.deltaType,
         diameterInch: h.diameterInch,
         diameterMm: h.diameterMm,
-        distanceB: h.distanceB,
+        blockHeightE: h.blockHeightE,
         metalTravelH: h.metalTravelH,
       })),
       metalTravelDistance: avgMetalTravel,

@@ -427,7 +427,7 @@ export class CSIExporter extends BaseExporter {
           diameter: hole.diameterInch,
           diameterMm: hole.diameterMm,
           metalTravel: hole.metalTravelH,
-          distanceFromBottom: hole.distanceB,
+          blockHeight: hole.blockHeightE,
         });
       }
       xml.closeElement('FBHTable');

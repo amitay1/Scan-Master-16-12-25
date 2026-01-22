@@ -1163,10 +1163,28 @@ const Index = () => {
         setActiveTab('setup');
         await new Promise(resolve => setTimeout(resolve, 1000)); // Wait for canvas to render
 
-        const drawingCanvas = document.getElementById('technical-drawing-canvas') as HTMLCanvasElement;
-        console.log('[PDF Export] Technical drawing canvas found:', !!drawingCanvas);
+        // Wait for canvas to be available with content
+        let drawingCanvas: HTMLCanvasElement | null = null;
+        let retryCount = 0;
+        const maxRetries = 5;
 
+        while (!drawingCanvas && retryCount < maxRetries) {
+          drawingCanvas = document.getElementById('technical-drawing-canvas') as HTMLCanvasElement;
+          if (drawingCanvas && drawingCanvas.width > 0 && drawingCanvas.height > 0) {
+            break;
+          }
+          drawingCanvas = null;
+          retryCount++;
+          console.log(`[PDF Export] Canvas not ready, retry ${retryCount}/${maxRetries}...`);
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+
+        console.log('[PDF Export] Technical drawing canvas found:', !!drawingCanvas);
         if (drawingCanvas) {
+          console.log('[PDF Export] Canvas dimensions:', drawingCanvas.width, 'x', drawingCanvas.height);
+        }
+
+        if (drawingCanvas && drawingCanvas.width > 0 && drawingCanvas.height > 0) {
           try {
             // Create a high-resolution copy of the canvas for better print quality
             const scale = 3; // 3x resolution for crisp printing
@@ -1175,8 +1193,11 @@ const Index = () => {
             highResCanvas.height = drawingCanvas.height * scale;
             const ctx = highResCanvas.getContext('2d');
             if (ctx) {
-              // DON'T fill with white background - keep the dark background with white lines
-              // This preserves the original technical drawing appearance
+              // Fill with white background first for better PDF compatibility
+              ctx.fillStyle = '#FFFFFF';
+              ctx.fillRect(0, 0, highResCanvas.width, highResCanvas.height);
+
+              // Draw the technical drawing on top
               ctx.scale(scale, scale);
               ctx.drawImage(drawingCanvas, 0, 0);
               const drawingImage = highResCanvas.toDataURL('image/png', 1.0);
@@ -1189,7 +1210,7 @@ const Index = () => {
             console.warn('[PDF Export] Could not capture technical drawing:', error);
           }
         } else {
-          console.warn('[PDF Export] Technical drawing canvas not found! Make sure a part type is selected.');
+          console.warn('[PDF Export] Technical drawing canvas not found or has no dimensions! Make sure a part type is selected.');
         }
 
         // Step 2: Go to calibration tab and capture straight beam (FBH) diagram

@@ -170,8 +170,8 @@ export interface FBHHoleData {
   deltaType: string;         // Δ type: 'area', 'distance', 'dac', 'tcg', 'ref'
   diameterInch: string;      // ØFBH inch (e.g., "3/64")
   diameterMm: number;        // ØFBH mm (e.g., 1.19)
-  distanceB: number;         // B - distance from bottom (mm)
-  metalTravelH: number;      // H - metal travel depth (mm)
+  blockHeightE: number;      // E - calibration block height (mm)
+  metalTravelH: number;      // H - hole depth (mm), equals E for standard FBH blocks
 }
 
 export interface CalibrationData {

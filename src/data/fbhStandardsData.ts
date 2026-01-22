@@ -82,31 +82,30 @@ export const METAL_TRAVEL_OPTIONS: MetalTravelOption[] = [
 ];
 
 // ============================================================================
-// DISTANCE B OPTIONS (from bottom of block to FBH)
+// BLOCK HEIGHT E OPTIONS (ASTM E127 standard calibration block heights)
 // ============================================================================
 
-export interface DistanceBOption {
+export interface BlockHeightEOption {
   id: string;
-  valueMm: number;
-  valueInch: string;
+  heightMm: number;
+  heightInch: string;
   standard: string;
 }
 
-export const DISTANCE_B_OPTIONS: DistanceBOption[] = [
-  { id: 'b_0', valueMm: 0, valueInch: '0"', standard: 'Common' },
-  { id: 'b_3', valueMm: 3.18, valueInch: '1/8"', standard: 'ASTM E127' },
-  { id: 'b_6', valueMm: 6.35, valueInch: '1/4"', standard: 'ASTM E127' },
-  { id: 'b_9.5', valueMm: 9.53, valueInch: '3/8"', standard: 'ASTM E127' },
-  { id: 'b_12.7', valueMm: 12.70, valueInch: '1/2"', standard: 'ASTM E127' },
-  { id: 'b_19', valueMm: 19.05, valueInch: '3/4"', standard: 'ASTM E127' },
-  { id: 'b_25.4', valueMm: 25.40, valueInch: '1"', standard: 'ASTM E127' },
-  // Metric options
-  { id: 'b_5mm', valueMm: 5.0, valueInch: '-', standard: 'Metric' },
-  { id: 'b_10mm', valueMm: 10.0, valueInch: '-', standard: 'Metric' },
-  { id: 'b_15mm', valueMm: 15.0, valueInch: '-', standard: 'Metric' },
-  { id: 'b_20mm', valueMm: 20.0, valueInch: '-', standard: 'Metric' },
-  { id: 'b_25mm', valueMm: 25.0, valueInch: '-', standard: 'Metric' },
-  { id: 'b_30mm', valueMm: 30.0, valueInch: '-', standard: 'Metric' },
+// ASTM E127 standard calibration block heights (same as metal travel depths)
+export const BLOCK_HEIGHT_E_OPTIONS: BlockHeightEOption[] = [
+  { id: 'e127_19', heightMm: 19.05, heightInch: '3/4"', standard: 'ASTM E127' },
+  { id: 'e127_25', heightMm: 25.40, heightInch: '1"', standard: 'ASTM E127' },
+  { id: 'e127_38', heightMm: 38.10, heightInch: '1-1/2"', standard: 'ASTM E127' },
+  { id: 'e127_50.8', heightMm: 50.80, heightInch: '2"', standard: 'ASTM E127' },
+  { id: 'e127_76.2', heightMm: 76.20, heightInch: '3"', standard: 'ASTM E127' },
+  { id: 'e127_101.6', heightMm: 101.60, heightInch: '4"', standard: 'ASTM E127' },
+  { id: 'e127_152.4', heightMm: 152.40, heightInch: '6"', standard: 'ASTM E127' },
+  // EN 10228-3 metric heights
+  { id: 'en_25', heightMm: 25.0, heightInch: '-', standard: 'EN 10228-3' },
+  { id: 'en_50', heightMm: 50.0, heightInch: '-', standard: 'EN 10228-3' },
+  { id: 'en_75', heightMm: 75.0, heightInch: '-', standard: 'EN 10228-3' },
+  { id: 'en_100', heightMm: 100.0, heightInch: '-', standard: 'EN 10228-3' },
 ];
 
 // ============================================================================
@@ -137,16 +136,16 @@ export interface FBHHoleRowData {
   deltaType: string;         // Δ type
   diameterInch: string;      // ØFBH inch (selected from dropdown)
   diameterMm: number;        // ØFBH mm (auto-calculated)
-  distanceB: number;         // B - distance from bottom
-  metalTravelH: number;      // H - metal travel depth
+  blockHeightE: number;      // E - calibration block height (mm)
+  metalTravelH: number;      // H - metal travel depth (fixed, calculated from E)
   isCustom?: boolean;        // True if custom values entered
 }
 
 // Default 3 holes for the table
 export const DEFAULT_FBH_HOLES: FBHHoleRowData[] = [
-  { id: 1, partNumber: '', deltaType: 'area', diameterInch: '3/64', diameterMm: 1.19, distanceB: 0, metalTravelH: 19.05 },
-  { id: 2, partNumber: '', deltaType: 'area', diameterInch: '3/64', diameterMm: 1.19, distanceB: 0, metalTravelH: 19.05 },
-  { id: 3, partNumber: '', deltaType: 'area', diameterInch: '3/64', diameterMm: 1.19, distanceB: 0, metalTravelH: 18.05 },
+  { id: 1, partNumber: '', deltaType: 'area', diameterInch: '3/64', diameterMm: 1.19, blockHeightE: 19.05, metalTravelH: 19.05 },
+  { id: 2, partNumber: '', deltaType: 'area', diameterInch: '3/64', diameterMm: 1.19, blockHeightE: 19.05, metalTravelH: 19.05 },
+  { id: 3, partNumber: '', deltaType: 'area', diameterInch: '3/64', diameterMm: 1.19, blockHeightE: 19.05, metalTravelH: 19.05 },
 ];
 
 // ============================================================================
@@ -213,9 +212,9 @@ export function getMetalTravelByStandard(standard: string): MetalTravelOption[] 
   return METAL_TRAVEL_OPTIONS.filter(opt => opt.standard.includes(standard));
 }
 
-export function getDistanceBByStandard(standard: string): DistanceBOption[] {
-  if (standard === 'All') return DISTANCE_B_OPTIONS;
-  return DISTANCE_B_OPTIONS.filter(opt => opt.standard.includes(standard));
+export function getBlockHeightEByStandard(standard: string): BlockHeightEOption[] {
+  if (standard === 'All') return BLOCK_HEIGHT_E_OPTIONS;
+  return BLOCK_HEIGHT_E_OPTIONS.filter(opt => opt.standard.includes(standard));
 }
 
 /**
