@@ -19,6 +19,12 @@ import {
   ShadingType,
   PageBreak,
   ImageRun,
+  Header,
+  Footer,
+  PageNumber,
+  NumberFormat,
+  BorderStyle,
+  convertInchesToTwip,
 } from 'docx';
 import { saveAs } from 'file-saver';
 import type {
@@ -111,7 +117,7 @@ const base64ToArrayBuffer = (base64: string): ArrayBuffer => {
   return bytes.buffer;
 };
 
-const createTableRow = (cells: string[], isHeader = false): TableRow => {
+const createTableRow = (cells: string[], isHeader = false, rowIndex = 0): TableRow => {
   return new TableRow({
     children: cells.map((cell, index) => new TableCell({
       children: [new Paragraph({
@@ -119,15 +125,28 @@ const createTableRow = (cells: string[], isHeader = false): TableRow => {
           text: cell,
           bold: isHeader || index === 0,
           size: isHeader ? 22 : 20,
+          color: isHeader ? 'FFFFFF' : (index === 0 ? '374151' : '1f2937'),
         })],
         alignment: AlignmentType.LEFT,
+        spacing: { before: 60, after: 60 },
       })],
       shading: isHeader ? {
-        fill: '1e3a5f',
+        fill: '005293',
         type: ShadingType.SOLID,
-        color: 'FFFFFF',
-      } : undefined,
-      width: { size: index === 0 ? 30 : 70, type: WidthType.PERCENTAGE },
+      } : (index === 0 ? {
+        fill: 'E6EBF0',
+        type: ShadingType.SOLID,
+      } : (rowIndex % 2 === 1 ? {
+        fill: 'F8FAFC',
+        type: ShadingType.SOLID,
+      } : undefined)),
+      borders: {
+        top: { style: BorderStyle.SINGLE, size: 4, color: 'C8D2DC' },
+        bottom: { style: BorderStyle.SINGLE, size: 4, color: 'C8D2DC' },
+        left: { style: BorderStyle.SINGLE, size: 4, color: 'C8D2DC' },
+        right: { style: BorderStyle.SINGLE, size: 4, color: 'C8D2DC' },
+      },
+      width: { size: index === 0 ? 35 : 65, type: WidthType.PERCENTAGE },
     })),
   });
 };
@@ -136,7 +155,7 @@ const createSection = (title: string, rows: [string, string][]): (Paragraph | Ta
   const elements: (Paragraph | Table)[] = [];
 
   elements.push(new Paragraph({
-    children: [new TextRun({ text: title, bold: true, size: 26 })],
+    children: [new TextRun({ text: title, bold: true, size: 26, color: '005293' })],
     heading: HeadingLevel.HEADING_2,
     spacing: { before: 400, after: 200 },
   }));
@@ -144,7 +163,7 @@ const createSection = (title: string, rows: [string, string][]): (Paragraph | Ta
   if (rows.length > 0) {
     elements.push(new Table({
       width: { size: 100, type: WidthType.PERCENTAGE },
-      rows: rows.map(([label, value]) => createTableRow([label, value])),
+      rows: rows.map(([label, value], index) => createTableRow([label, value], false, index)),
     }));
   }
 
@@ -155,7 +174,7 @@ const createSubsection = (title: string, rows: [string, string][]): (Paragraph |
   const elements: (Paragraph | Table)[] = [];
 
   elements.push(new Paragraph({
-    children: [new TextRun({ text: title, bold: true, size: 22, color: '374151' })],
+    children: [new TextRun({ text: title, bold: true, size: 22, color: '4080B2' })],
     heading: HeadingLevel.HEADING_3,
     spacing: { before: 200, after: 100 },
   }));
@@ -163,7 +182,7 @@ const createSubsection = (title: string, rows: [string, string][]): (Paragraph |
   if (rows.length > 0) {
     elements.push(new Table({
       width: { size: 100, type: WidthType.PERCENTAGE },
-      rows: rows.map(([label, value]) => createTableRow([label, value])),
+      rows: rows.map(([label, value], index) => createTableRow([label, value], false, index)),
     }));
   }
 
@@ -197,19 +216,19 @@ const buildTableOfContents = (): (Paragraph | Table)[] => {
     spacing: { before: 200, after: 400 },
   }));
 
-  // TOC items - simple list without page numbers
+  // TOC items - simple list without page numbers (order matches PDF)
   const tocItems: string[] = [
     '1. Part Information',
     '2. Equipment',
-    '3. Calibration',
-    '   3.1 FBH Reference Diagram',
-    '   3.2 Block Configuration',
-    '4. Scan Parameters',
-    '5. Acceptance Criteria',
-    '6. Scan Details',
-    '   6.1 Scanning Directions',
-    '   6.2 Technical Drawing',
-    '7. Documentation',
+    '3. Scan Parameters',
+    '4. Acceptance Criteria',
+    '5. Scan Details',
+    '   5.1 Scanning Directions',
+    '   5.2 Technical Drawing',
+    '6. Documentation',
+    '7. Calibration / Reference Standard',
+    '   7.1 FBH Table',
+    '   7.2 Calibration Block Diagram',
     '8. Approvals & Signatures',
   ];
 
@@ -259,14 +278,14 @@ const buildApprovalsSection = (documentation: ExtendedDocumentationData, approva
 
   // Section title
   elements.push(new Paragraph({
-    children: [new TextRun({ text: '8. APPROVALS & DOCUMENT CONTROL', bold: true, size: 26 })],
+    children: [new TextRun({ text: '8. APPROVALS & DOCUMENT CONTROL', bold: true, size: 26, color: '005293' })],
     heading: HeadingLevel.HEADING_2,
     spacing: { before: 400, after: 200 },
   }));
 
   // ========== REVISION HISTORY TABLE ==========
   elements.push(new Paragraph({
-    children: [new TextRun({ text: 'Revision History', bold: true, size: 22, color: '374151' })],
+    children: [new TextRun({ text: 'Revision History', bold: true, size: 22, color: '4080B2' })],
     heading: HeadingLevel.HEADING_3,
     spacing: { before: 200, after: 100 },
   }));
@@ -307,7 +326,7 @@ const buildApprovalsSection = (documentation: ExtendedDocumentationData, approva
 
   // ========== APPROVAL SIGNATURES TABLE ==========
   elements.push(new Paragraph({
-    children: [new TextRun({ text: 'Approval Signatures', bold: true, size: 22, color: '374151' })],
+    children: [new TextRun({ text: 'Approval Signatures', bold: true, size: 22, color: '4080B2' })],
     heading: HeadingLevel.HEADING_3,
     spacing: { before: 300, after: 100 },
   }));
@@ -472,6 +491,14 @@ export async function exportTechniqueSheetWord(
   // Summary table with key info
   const summaryTable = new Table({
     width: { size: 100, type: WidthType.PERCENTAGE },
+    borders: {
+      top: { style: BorderStyle.SINGLE, size: 8, color: '005293' },
+      bottom: { style: BorderStyle.SINGLE, size: 8, color: '005293' },
+      left: { style: BorderStyle.SINGLE, size: 8, color: '005293' },
+      right: { style: BorderStyle.SINGLE, size: 8, color: '005293' },
+      insideHorizontal: { style: BorderStyle.SINGLE, size: 4, color: 'C8D2DC' },
+      insideVertical: { style: BorderStyle.SINGLE, size: 4, color: 'C8D2DC' },
+    },
     rows: [
       // Row 1
       new TableRow({
@@ -656,59 +683,8 @@ export async function exportTechniqueSheetWord(
     }
   }
 
-  // Calibration (matching PDF structure)
-  children.push(...createSection('3. CALIBRATION', [
-    ['Standard/Block Type', formatBlockType(calibration.standardType)],
-    ['Reference Material', formatValue(calibration.referenceMaterial)],
-    ['Block Dimensions', formatValue(calibration.blockDimensions)],
-    ['Block Serial Number', formatValue(calibration.blockSerialNumber)],
-    ['Last Calibration Date', formatDate(calibration.lastCalibrationDate)],
-    ['Metal Travel Distance', calibration.metalTravelDistance ? formatNumber(calibration.metalTravelDistance, 1, 'mm') : '-'],
-  ]));
-
-  // FBH Table (matching PDF - if fbhHoles array exists)
-  if (calibration.fbhHoles && calibration.fbhHoles.length > 0) {
-    children.push(new Paragraph({
-      children: [new TextRun({ text: 'Flat Bottom Holes (FBH)', bold: true, size: 22, color: '374151' })],
-      heading: HeadingLevel.HEADING_3,
-      spacing: { before: 200, after: 100 },
-    }));
-
-    // FBH table header
-    const fbhHeaderRow = new TableRow({
-      children: ['P/N', 'Δ Type', 'Ø FBH (inch)', 'Ø FBH (mm)', 'E (mm)', 'H (mm)'].map(text => new TableCell({
-        children: [new Paragraph({
-          children: [new TextRun({ text, bold: true, size: 18, color: 'FFFFFF' })],
-          alignment: AlignmentType.CENTER,
-        })],
-        shading: { fill: '1e3a5f', type: ShadingType.SOLID, color: 'FFFFFF' },
-      })),
-    });
-
-    const fbhDataRows = calibration.fbhHoles.map(hole => new TableRow({
-      children: [
-        hole.partNumber || '-',
-        hole.deltaType || '-',
-        hole.diameterInch || '-',
-        formatNumber(hole.diameterMm, 2, 'mm'),
-        formatNumber(hole.blockHeightE, 1, 'mm'),
-        formatNumber(hole.metalTravelH, 1, 'mm'),
-      ].map(text => new TableCell({
-        children: [new Paragraph({ children: [new TextRun({ text, size: 18 })] })],
-      })),
-    }));
-
-    children.push(new Table({
-      width: { size: 100, type: WidthType.PERCENTAGE },
-      rows: [fbhHeaderRow, ...fbhDataRows],
-    }));
-  } else if (calibration.fbhSizes) {
-    // Legacy FBH sizes string
-    children.push(...createSubsection('FBH Sizes', [['FBH Sizes', formatValue(calibration.fbhSizes)]]));
-  }
-
-  // Scan Parameters (matching PDF structure)
-  children.push(...createSection('4. SCAN PARAMETERS', [
+  // Scan Parameters (matching PDF structure - moved before Calibration to match PDF order)
+  children.push(...createSection('3. SCAN PARAMETERS', [
     ['Scan Method', formatScanMethod(scanParameters.scanMethod)],
     ['Technique', formatTechnique(scanParameters.technique)],
     ['Scan Type', formatValue(scanParameters.scanType)],
@@ -751,7 +727,7 @@ export async function exportTechniqueSheetWord(
   if (classInfo.class !== '-') {
     children.push(new Paragraph({
       children: [
-        new TextRun({ text: '5. ACCEPTANCE CRITERIA', bold: true, size: 26 }),
+        new TextRun({ text: '4. ACCEPTANCE CRITERIA', bold: true, size: 26, color: '005293' }),
       ],
       heading: HeadingLevel.HEADING_2,
       spacing: { before: 400, after: 200 },
@@ -766,7 +742,7 @@ export async function exportTechniqueSheetWord(
       spacing: { before: 100, after: 200 },
     }));
   } else {
-    children.push(...createSection('5. ACCEPTANCE CRITERIA', []));
+    children.push(...createSection('4. ACCEPTANCE CRITERIA', []));
   }
 
   // Criteria Table (matching PDF)
@@ -784,7 +760,7 @@ export async function exportTechniqueSheetWord(
   // Special Requirements (matching PDF)
   if (acceptanceCriteria.specialRequirements) {
     children.push(new Paragraph({
-      children: [new TextRun({ text: 'Special Requirements', bold: true, size: 22, color: '374151' })],
+      children: [new TextRun({ text: 'Special Requirements', bold: true, size: 22, color: '4080B2' })],
       heading: HeadingLevel.HEADING_3,
       spacing: { before: 200, after: 100 },
     }));
@@ -802,7 +778,7 @@ export async function exportTechniqueSheetWord(
   // Scan Details (if available - matching PDF structure with multiple tables)
   if (scanDetails?.scanDetails && scanDetails.scanDetails.some(d => d.enabled)) {
     children.push(new Paragraph({
-      children: [new TextRun({ text: '6. SCAN DETAILS & DIRECTIONS', bold: true, size: 26 })],
+      children: [new TextRun({ text: '5. SCAN DETAILS & DIRECTIONS', bold: true, size: 26, color: '005293' })],
       heading: HeadingLevel.HEADING_2,
       spacing: { before: 400, after: 200 },
     }));
@@ -811,7 +787,7 @@ export async function exportTechniqueSheetWord(
 
     // Table 1: Scan Directions Overview (matching PDF)
     children.push(new Paragraph({
-      children: [new TextRun({ text: 'Scan Directions Overview', bold: true, size: 22, color: '374151' })],
+      children: [new TextRun({ text: 'Scan Directions Overview', bold: true, size: 22, color: '4080B2' })],
       heading: HeadingLevel.HEADING_3,
       spacing: { before: 200, after: 100 },
     }));
@@ -844,7 +820,7 @@ export async function exportTechniqueSheetWord(
 
     // Table 2: Probe Details (matching PDF)
     children.push(new Paragraph({
-      children: [new TextRun({ text: 'Probe Details', bold: true, size: 22, color: '374151' })],
+      children: [new TextRun({ text: 'Probe Details', bold: true, size: 22, color: '4080B2' })],
       heading: HeadingLevel.HEADING_3,
       spacing: { before: 300, after: 100 },
     }));
@@ -877,7 +853,7 @@ export async function exportTechniqueSheetWord(
 
     // Table 3: Gate Settings (matching PDF)
     children.push(new Paragraph({
-      children: [new TextRun({ text: 'Gate Settings', bold: true, size: 22, color: '374151' })],
+      children: [new TextRun({ text: 'Gate Settings', bold: true, size: 22, color: '4080B2' })],
       heading: HeadingLevel.HEADING_3,
       spacing: { before: 300, after: 100 },
     }));
@@ -917,7 +893,7 @@ export async function exportTechniqueSheetWord(
 
     // Table 4: Pulsar Parameters (matching PDF)
     children.push(new Paragraph({
-      children: [new TextRun({ text: 'Pulsar Parameters', bold: true, size: 22, color: '374151' })],
+      children: [new TextRun({ text: 'Pulsar Parameters', bold: true, size: 22, color: '4080B2' })],
       heading: HeadingLevel.HEADING_3,
       spacing: { before: 300, after: 100 },
     }));
@@ -965,7 +941,7 @@ export async function exportTechniqueSheetWord(
 
   // Documentation (matching PDF structure)
   children.push(new Paragraph({
-    children: [new TextRun({ text: '7. DOCUMENTATION', bold: true, size: 26 })],
+    children: [new TextRun({ text: '6. DOCUMENTATION', bold: true, size: 26, color: '005293' })],
     heading: HeadingLevel.HEADING_2,
     spacing: { before: 400, after: 200 },
   }));
@@ -992,7 +968,7 @@ export async function exportTechniqueSheetWord(
   // Additional Notes (matching PDF)
   if (documentation.additionalNotes) {
     children.push(new Paragraph({
-      children: [new TextRun({ text: 'Additional Notes', bold: true, size: 22, color: '374151' })],
+      children: [new TextRun({ text: 'Additional Notes', bold: true, size: 22, color: '4080B2' })],
       heading: HeadingLevel.HEADING_3,
       spacing: { before: 200, after: 100 },
     }));
@@ -1000,6 +976,66 @@ export async function exportTechniqueSheetWord(
       children: [new TextRun({ text: documentation.additionalNotes, size: 20 })],
       spacing: { before: 100, after: 200 },
     }));
+  }
+
+  // ========== 7. CALIBRATION (matching PDF order - after Documentation) ==========
+  children.push(...createSection('7. CALIBRATION / REFERENCE STANDARD', [
+    ['Standard/Block Type', formatBlockType(calibration.standardType)],
+    ['Reference Material', formatValue(calibration.referenceMaterial)],
+    ['Block Dimensions', formatValue(calibration.blockDimensions)],
+    ['Block Serial Number', formatValue(calibration.blockSerialNumber)],
+    ['Last Calibration Date', formatDate(calibration.lastCalibrationDate)],
+    ['Metal Travel Distance', calibration.metalTravelDistance ? formatNumber(calibration.metalTravelDistance, 1, 'mm') : '-'],
+  ]));
+
+  // FBH Table (matching PDF - if fbhHoles array exists)
+  if (calibration.fbhHoles && calibration.fbhHoles.length > 0) {
+    children.push(new Paragraph({
+      children: [new TextRun({ text: 'Flat Bottom Holes (FBH)', bold: true, size: 22, color: '4080B2' })],
+      heading: HeadingLevel.HEADING_3,
+      spacing: { before: 200, after: 100 },
+    }));
+
+    // FBH table header
+    const fbhHeaderRow = new TableRow({
+      children: ['P/N', 'Δ Type', 'Ø FBH (inch)', 'Ø FBH (mm)', 'E (mm)', 'H (mm)'].map(text => new TableCell({
+        children: [new Paragraph({
+          children: [new TextRun({ text, bold: true, size: 18, color: 'FFFFFF' })],
+          alignment: AlignmentType.CENTER,
+        })],
+        shading: { fill: '005293', type: ShadingType.SOLID },
+      })),
+    });
+
+    const fbhDataRows = calibration.fbhHoles.map((hole, idx) => new TableRow({
+      children: [
+        hole.partNumber || '-',
+        hole.deltaType || '-',
+        hole.diameterInch || '-',
+        formatNumber(hole.diameterMm, 2, 'mm'),
+        formatNumber(hole.blockHeightE, 1, 'mm'),
+        formatNumber(hole.metalTravelH, 1, 'mm'),
+      ].map(text => new TableCell({
+        children: [new Paragraph({ children: [new TextRun({ text, size: 18 })] })],
+        shading: idx % 2 === 1 ? { fill: 'F8FAFC', type: ShadingType.SOLID } : undefined,
+      })),
+    }));
+
+    children.push(new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      borders: {
+        top: { style: BorderStyle.SINGLE, size: 4, color: 'C8D2DC' },
+        bottom: { style: BorderStyle.SINGLE, size: 4, color: 'C8D2DC' },
+        left: { style: BorderStyle.SINGLE, size: 4, color: 'C8D2DC' },
+        right: { style: BorderStyle.SINGLE, size: 4, color: 'C8D2DC' },
+        insideHorizontal: { style: BorderStyle.SINGLE, size: 4, color: 'C8D2DC' },
+        insideVertical: { style: BorderStyle.SINGLE, size: 4, color: 'C8D2DC' },
+      },
+      rows: [fbhHeaderRow, ...fbhDataRows],
+    }));
+  } else if (calibration.fbhSizes) {
+    // Legacy FBH sizes string
+    children.push(...createSubsection('FBH Sizes', [['FBH Sizes', formatValue(calibration.fbhSizes)]]));
   }
 
   // Technical Drawing (if available - matching PDF)
@@ -1176,10 +1212,205 @@ export async function exportTechniqueSheetWord(
   // Approvals & Signatures
   children.push(...buildApprovalsSection(documentation as ExtendedDocumentationData, documentation.approvalRequired));
 
-  // Create document
+  // Document header content
+  const headerDocNum = documentation.procedureNumber || `TS-${inspectionSetup.partNumber || 'XXX'}`;
+
+  // Create document with professional styling
   const doc = new Document({
+    styles: {
+      default: {
+        document: {
+          run: {
+            font: 'Arial',
+            size: 20, // 10pt
+          },
+          paragraph: {
+            spacing: { line: 276 }, // 1.15 line spacing
+          },
+        },
+        heading1: {
+          run: {
+            font: 'Arial',
+            size: 32, // 16pt
+            bold: true,
+            color: '005293',
+          },
+          paragraph: {
+            spacing: { before: 400, after: 200 },
+          },
+        },
+        heading2: {
+          run: {
+            font: 'Arial',
+            size: 26, // 13pt
+            bold: true,
+            color: '005293', // Match PDF primary color
+          },
+          paragraph: {
+            spacing: { before: 300, after: 150 },
+          },
+        },
+        heading3: {
+          run: {
+            font: 'Arial',
+            size: 22, // 11pt
+            bold: true,
+            color: '4080B2', // Match PDF secondary color
+          },
+          paragraph: {
+            spacing: { before: 200, after: 100 },
+          },
+        },
+      },
+    },
     sections: [{
-      properties: {},
+      properties: {
+        page: {
+          margin: {
+            top: convertInchesToTwip(0.75),
+            bottom: convertInchesToTwip(0.75),
+            left: convertInchesToTwip(0.75),
+            right: convertInchesToTwip(0.75),
+          },
+          size: {
+            width: convertInchesToTwip(8.27), // A4 width
+            height: convertInchesToTwip(11.69), // A4 height
+          },
+        },
+      },
+      headers: {
+        default: new Header({
+          children: [
+            new Table({
+              width: { size: 100, type: WidthType.PERCENTAGE },
+              borders: {
+                top: { style: BorderStyle.NONE },
+                bottom: { style: BorderStyle.SINGLE, size: 12, color: '005293' },
+                left: { style: BorderStyle.NONE },
+                right: { style: BorderStyle.NONE },
+                insideHorizontal: { style: BorderStyle.NONE },
+                insideVertical: { style: BorderStyle.NONE },
+              },
+              rows: [
+                new TableRow({
+                  children: [
+                    new TableCell({
+                      borders: {
+                        top: { style: BorderStyle.NONE },
+                        bottom: { style: BorderStyle.NONE },
+                        left: { style: BorderStyle.NONE },
+                        right: { style: BorderStyle.NONE },
+                      },
+                      children: [new Paragraph({
+                        children: [
+                          new TextRun({ text: 'UT TECHNIQUE SHEET', bold: true, size: 20, color: '005293' }),
+                        ],
+                      })],
+                      width: { size: 50, type: WidthType.PERCENTAGE },
+                    }),
+                    new TableCell({
+                      borders: {
+                        top: { style: BorderStyle.NONE },
+                        bottom: { style: BorderStyle.NONE },
+                        left: { style: BorderStyle.NONE },
+                        right: { style: BorderStyle.NONE },
+                      },
+                      children: [new Paragraph({
+                        alignment: AlignmentType.RIGHT,
+                        children: [
+                          new TextRun({ text: `Doc: ${headerDocNum}`, size: 18, color: '666666' }),
+                          new TextRun({ text: `  |  Rev: ${documentation.revision || 'A'}`, size: 18, color: '666666' }),
+                        ],
+                      })],
+                      width: { size: 50, type: WidthType.PERCENTAGE },
+                    }),
+                  ],
+                }),
+              ],
+            }),
+          ],
+        }),
+      },
+      footers: {
+        default: new Footer({
+          children: [
+            new Table({
+              width: { size: 100, type: WidthType.PERCENTAGE },
+              borders: {
+                top: { style: BorderStyle.SINGLE, size: 6, color: 'D4AF37' },
+                bottom: { style: BorderStyle.NONE },
+                left: { style: BorderStyle.NONE },
+                right: { style: BorderStyle.NONE },
+                insideHorizontal: { style: BorderStyle.NONE },
+                insideVertical: { style: BorderStyle.NONE },
+              },
+              rows: [
+                new TableRow({
+                  children: [
+                    new TableCell({
+                      borders: {
+                        top: { style: BorderStyle.NONE },
+                        bottom: { style: BorderStyle.NONE },
+                        left: { style: BorderStyle.NONE },
+                        right: { style: BorderStyle.NONE },
+                      },
+                      children: [new Paragraph({
+                        children: [
+                          new TextRun({ text: `P/N: ${inspectionSetup.partNumber || '-'}`, size: 16, color: '666666' }),
+                        ],
+                      })],
+                      width: { size: 33, type: WidthType.PERCENTAGE },
+                    }),
+                    new TableCell({
+                      borders: {
+                        top: { style: BorderStyle.NONE },
+                        bottom: { style: BorderStyle.NONE },
+                        left: { style: BorderStyle.NONE },
+                        right: { style: BorderStyle.NONE },
+                      },
+                      children: [new Paragraph({
+                        alignment: AlignmentType.CENTER,
+                        children: [
+                          new TextRun({ text: 'CONFIDENTIAL', size: 14, color: '999999' }),
+                        ],
+                      })],
+                      width: { size: 34, type: WidthType.PERCENTAGE },
+                    }),
+                    new TableCell({
+                      borders: {
+                        top: { style: BorderStyle.NONE },
+                        bottom: { style: BorderStyle.NONE },
+                        left: { style: BorderStyle.NONE },
+                        right: { style: BorderStyle.NONE },
+                      },
+                      children: [new Paragraph({
+                        alignment: AlignmentType.RIGHT,
+                        children: [
+                          new TextRun({ text: 'Page ', size: 16, color: '666666' }),
+                          new TextRun({
+                            children: [PageNumber.CURRENT],
+                            size: 16,
+                            color: '005293',
+                            bold: true,
+                          }),
+                          new TextRun({ text: ' of ', size: 16, color: '666666' }),
+                          new TextRun({
+                            children: [PageNumber.TOTAL_PAGES],
+                            size: 16,
+                            color: '005293',
+                            bold: true,
+                          }),
+                        ],
+                      })],
+                      width: { size: 33, type: WidthType.PERCENTAGE },
+                    }),
+                  ],
+                }),
+              ],
+            }),
+          ],
+        }),
+      },
       children,
     }],
   });
