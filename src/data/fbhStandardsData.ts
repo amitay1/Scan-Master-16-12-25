@@ -106,6 +106,17 @@ export const BLOCK_HEIGHT_E_OPTIONS: BlockHeightEOption[] = [
   { id: 'en_50', heightMm: 50.0, heightInch: '-', standard: 'EN 10228-3' },
   { id: 'en_75', heightMm: 75.0, heightInch: '-', standard: 'EN 10228-3' },
   { id: 'en_100', heightMm: 100.0, heightInch: '-', standard: 'EN 10228-3' },
+  // Extended metric heights (up to 350mm)
+  { id: 'metric_125', heightMm: 125.0, heightInch: '-', standard: 'Metric' },
+  { id: 'metric_150', heightMm: 150.0, heightInch: '-', standard: 'Metric' },
+  { id: 'metric_175', heightMm: 175.0, heightInch: '-', standard: 'Metric' },
+  { id: 'metric_200', heightMm: 200.0, heightInch: '-', standard: 'Metric' },
+  { id: 'metric_225', heightMm: 225.0, heightInch: '-', standard: 'Metric' },
+  { id: 'metric_250', heightMm: 250.0, heightInch: '-', standard: 'Metric' },
+  { id: 'metric_275', heightMm: 275.0, heightInch: '-', standard: 'Metric' },
+  { id: 'metric_300', heightMm: 300.0, heightInch: '-', standard: 'Metric' },
+  { id: 'metric_325', heightMm: 325.0, heightInch: '-', standard: 'Metric' },
+  { id: 'metric_350', heightMm: 350.0, heightInch: '-', standard: 'Metric' },
 ];
 
 // ============================================================================
@@ -138,14 +149,28 @@ export interface FBHHoleRowData {
   diameterMm: number;        // ØFBH mm (auto-calculated)
   blockHeightE: number;      // E - calibration block height (mm)
   metalTravelH: number;      // H - metal travel depth (fixed, calculated from E)
+  soundPath?: string;        // Sound path (optional, for angle beam only)
   isCustom?: boolean;        // True if custom values entered
 }
 
-// Default 3 holes for the table
+// Default 3 holes for Straight Beam table - RECOMMENDED values for DAC curve construction
+// Uses 3 different depths: 1", 2", 3" for proper area-amplitude calibration per ASTM E127
+// FBH diameter 3/64" (1.19mm) is standard for AAA/AA acceptance class
 export const DEFAULT_FBH_HOLES: FBHHoleRowData[] = [
-  { id: 1, partNumber: '', deltaType: 'area', diameterInch: '3/64', diameterMm: 1.19, blockHeightE: 19.05, metalTravelH: 19.05 },
-  { id: 2, partNumber: '', deltaType: 'area', diameterInch: '3/64', diameterMm: 1.19, blockHeightE: 19.05, metalTravelH: 19.05 },
-  { id: 3, partNumber: '', deltaType: 'area', diameterInch: '3/64', diameterMm: 1.19, blockHeightE: 19.05, metalTravelH: 19.05 },
+  { id: 1, partNumber: '', deltaType: 'area', diameterInch: '3/64', diameterMm: 1.19, blockHeightE: 25.40, metalTravelH: 25.40 },   // 1" depth
+  { id: 2, partNumber: '', deltaType: 'area', diameterInch: '3/64', diameterMm: 1.19, blockHeightE: 50.80, metalTravelH: 50.80 },   // 2" depth
+  { id: 3, partNumber: '', deltaType: 'area', diameterInch: '3/64', diameterMm: 1.19, blockHeightE: 76.20, metalTravelH: 76.20 },   // 3" depth
+];
+
+// Default 3 holes for Angle Beam table (SDH configuration per EN 1714 / AWS D1.1)
+// Uses DAC (Distance Amplitude Correction) with SDH reflectors at T/4, T/2, T/3/4 positions
+// SDH diameter: 1.5mm (4/64" = 1.59mm is closest standard inch size)
+// Block height: 25mm typical for angle beam calibration
+// Depths represent quarter, half, and three-quarter positions
+export const DEFAULT_ANGLE_BEAM_HOLES: FBHHoleRowData[] = [
+  { id: 1, partNumber: '', deltaType: 'dac', diameterInch: '4/64', diameterMm: 1.59, blockHeightE: 25.0, metalTravelH: 6.35, soundPath: '' },
+  { id: 2, partNumber: '', deltaType: 'dac', diameterInch: '4/64', diameterMm: 1.59, blockHeightE: 25.0, metalTravelH: 12.70, soundPath: '' },
+  { id: 3, partNumber: '', deltaType: 'dac', diameterInch: '4/64', diameterMm: 1.59, blockHeightE: 25.0, metalTravelH: 19.05, soundPath: '' },
 ];
 
 // ============================================================================
@@ -227,3 +252,130 @@ export const AVAILABLE_STANDARDS = [
   { id: 'ASTM A388', label: 'ASTM A388' },
   { id: 'Metric', label: 'Metric' },
 ];
+
+// ============================================================================
+// ANGLE BEAM CALIBRATION - REFLECTOR TYPES
+// ============================================================================
+
+export type ReflectorType = 'FBH' | 'SDH' | 'Notch_EDM' | 'Notch_Saw';
+
+export interface ReflectorTypeOption {
+  id: ReflectorType;
+  label: string;
+  description: string;
+}
+
+export const REFLECTOR_TYPE_OPTIONS: ReflectorTypeOption[] = [
+  { id: 'FBH', label: 'FBH', description: 'Flat Bottom Hole' },
+  { id: 'SDH', label: 'SDH', description: 'Side Drilled Hole' },
+  { id: 'Notch_EDM', label: 'Notch (EDM)', description: 'EDM Notch' },
+  { id: 'Notch_Saw', label: 'Notch (Saw)', description: 'Saw Cut Notch' },
+];
+
+// ============================================================================
+// ANGLE BEAM CALIBRATION - ROW DATA STRUCTURE
+// ============================================================================
+
+export interface AngleBeamCalibrationRow {
+  id: number;
+  reflectorType: ReflectorType;
+  reflectorSizeMm: number;       // Diameter (mm) for FBH/SDH, or length for notch
+  acceptanceSizeInch: string;    // e.g., "3/64" - acceptance size in inches
+  acceptanceSizeMm: number;      // e.g., 1.19 - acceptance size in mm
+  sizeDbCorrection: number;      // Size ΔdB (auto-calculated)
+  transferDbCorrection: number;  // Transfer ΔdB (manual entry)
+  totalDb: number;               // Auto-calculated: sizeDb + transferDb
+  depthMm: number;               // Depth position in mm
+  soundPathMm: number;           // Sound path in mm
+  notes: string;                 // Free text
+}
+
+// Default 3 rows for Angle Beam calibration table
+export const DEFAULT_ANGLE_BEAM_CALIBRATION_ROWS: AngleBeamCalibrationRow[] = [
+  {
+    id: 1,
+    reflectorType: 'SDH',
+    reflectorSizeMm: 1.5,
+    acceptanceSizeInch: '3/64',
+    acceptanceSizeMm: 1.19,
+    sizeDbCorrection: 0,
+    transferDbCorrection: 0,
+    totalDb: 0,
+    depthMm: 6.35,
+    soundPathMm: 0,
+    notes: '',
+  },
+  {
+    id: 2,
+    reflectorType: 'SDH',
+    reflectorSizeMm: 1.5,
+    acceptanceSizeInch: '3/64',
+    acceptanceSizeMm: 1.19,
+    sizeDbCorrection: 0,
+    transferDbCorrection: 0,
+    totalDb: 0,
+    depthMm: 12.70,
+    soundPathMm: 0,
+    notes: '',
+  },
+  {
+    id: 3,
+    reflectorType: 'SDH',
+    reflectorSizeMm: 1.5,
+    acceptanceSizeInch: '3/64',
+    acceptanceSizeMm: 1.19,
+    sizeDbCorrection: 0,
+    transferDbCorrection: 0,
+    totalDb: 0,
+    depthMm: 19.05,
+    soundPathMm: 0,
+    notes: '',
+  },
+];
+
+// ============================================================================
+// ANGLE BEAM CALIBRATION - HELPER FUNCTIONS
+// ============================================================================
+
+/**
+ * Calculate size dB correction using the 6 dB per doubling rule
+ * Formula: dB = 20 * log10(actual/reference)
+ * Examples:
+ *   - Same size → 0 dB
+ *   - Half size → -6 dB
+ *   - Double size → +6 dB
+ */
+export function calculateSizeDbCorrection(
+  actualSizeMm: number,
+  referenceSizeMm: number
+): number {
+  if (actualSizeMm <= 0 || referenceSizeMm <= 0) return 0;
+  // 6 dB per doubling: dB = 20 * log10(actual/reference)
+  return Number((20 * Math.log10(actualSizeMm / referenceSizeMm)).toFixed(1));
+}
+
+/**
+ * Calculate sound path from depth and beam angle
+ * Formula: soundPath = depth / cos(angle)
+ * @param depthMm - Depth in mm
+ * @param beamAngleDegrees - Beam angle in degrees (e.g., 45, 60, 70)
+ * @returns Sound path in mm
+ */
+export function calculateSoundPath(
+  depthMm: number,
+  beamAngleDegrees: number
+): number {
+  if (depthMm <= 0 || beamAngleDegrees <= 0 || beamAngleDegrees >= 90) return depthMm;
+  const angleRadians = (beamAngleDegrees * Math.PI) / 180;
+  return Number((depthMm / Math.cos(angleRadians)).toFixed(1));
+}
+
+/**
+ * Calculate total dB correction
+ */
+export function calculateTotalDb(
+  sizeDbCorrection: number,
+  transferDbCorrection: number
+): number {
+  return Number((sizeDbCorrection + transferDbCorrection).toFixed(1));
+}

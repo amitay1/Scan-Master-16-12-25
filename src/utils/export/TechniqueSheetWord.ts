@@ -2,7 +2,13 @@
  * TechniqueSheetWord - Professional Word Export for Technique Sheets
  *
  * Creates professional DOCX documents using the docx library.
- * SYNCHRONIZED WITH TechniqueSheetPDF.ts - Both exports must have identical content.
+ * SYNCHRONIZED WITH TechniqueSheetPDF.ts - Both exports must have identical content and styling.
+ *
+ * Design matches PDF: FRISA/TÜV professional style with:
+ * - Blue header bars with gold accents
+ * - Document info boxes
+ * - Professional table styling
+ * - Alternating row colors
  */
 
 import {
@@ -15,16 +21,16 @@ import {
   TableCell,
   WidthType,
   AlignmentType,
-  HeadingLevel,
   ShadingType,
   PageBreak,
   ImageRun,
   Header,
   Footer,
   PageNumber,
-  NumberFormat,
   BorderStyle,
   convertInchesToTwip,
+  VerticalAlign,
+  TableLayoutType,
 } from 'docx';
 import { saveAs } from 'file-saver';
 import type {
@@ -51,6 +57,33 @@ import {
   getPartDimensionRows,
   getMaterialWarning,
 } from './exportHelpers';
+
+// ============================================================================
+// COLORS - Matching PDF TUV-style blue theme (hex values for docx)
+// ============================================================================
+const WORD_COLORS = {
+  primary: '005293',         // TUV blue - headers
+  primaryDark: '003C6E',     // Darker blue
+  secondary: '4080B2',       // Medium blue - subheaders
+  accent: '007AC2',          // Light blue - highlights
+  accentGold: 'D4AF37',      // Gold accent
+
+  // Background colors
+  headerBg: 'F0F5FA',        // Light gray-blue
+  sectionBg: 'F5F7FA',       // Section backgrounds
+  rowAlt: 'F8FAFC',          // Alternating row
+  labelBg: 'E6EBF0',         // Label cell background
+  white: 'FFFFFF',
+
+  // Border colors
+  tableBorder: 'C8D2DC',
+  divider: 'DCE1E6',
+
+  // Text colors
+  text: '1E1E1E',
+  lightText: '646464',
+  mutedText: '828282',
+};
 
 // ============================================================================
 // TYPES
@@ -92,7 +125,6 @@ const formatDate = (date: string | Date | undefined): string => {
   return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 };
 
-// Format technique type for display (matching PDF)
 const formatTechnique = (technique?: string): string => {
   if (!technique) return '-';
   const techniqueMap: Record<string, string> = {
@@ -106,7 +138,6 @@ const formatTechnique = (technique?: string): string => {
 
 // Convert base64 image to array buffer for Word document
 const base64ToArrayBuffer = (base64: string): ArrayBuffer => {
-  // Remove data URL prefix if present
   const base64Data = base64.includes(',') ? base64.split(',')[1] : base64;
   const binaryString = atob(base64Data);
   const len = binaryString.length;
@@ -117,150 +148,771 @@ const base64ToArrayBuffer = (base64: string): ArrayBuffer => {
   return bytes.buffer;
 };
 
-const createTableRow = (cells: string[], isHeader = false, rowIndex = 0): TableRow => {
-  return new TableRow({
-    children: cells.map((cell, index) => new TableCell({
-      children: [new Paragraph({
-        children: [new TextRun({
-          text: cell,
-          bold: isHeader || index === 0,
-          size: isHeader ? 22 : 20,
-          color: isHeader ? 'FFFFFF' : (index === 0 ? '374151' : '1f2937'),
-        })],
-        alignment: AlignmentType.LEFT,
-        spacing: { before: 60, after: 60 },
-      })],
-      shading: isHeader ? {
-        fill: '005293',
-        type: ShadingType.SOLID,
-      } : (index === 0 ? {
-        fill: 'E6EBF0',
-        type: ShadingType.SOLID,
-      } : (rowIndex % 2 === 1 ? {
-        fill: 'F8FAFC',
-        type: ShadingType.SOLID,
-      } : undefined)),
+// ============================================================================
+// COVER PAGE HEADER BAR (matching PDF FRISA style)
+// ============================================================================
+const createCoverHeader = (
+  docNum: string,
+  revision: string,
+  dateStr: string,
+  companyName?: string,
+  companyLogo?: string
+): Table => {
+  // Main header table with blue background
+  const headerCells: TableCell[] = [];
+
+  // LOGO CELL (if logo provided) - Far left with white background
+  if (companyLogo) {
+    try {
+      const logoBuffer = base64ToArrayBuffer(companyLogo);
+      headerCells.push(
+        new TableCell({
+          children: [
+            new Paragraph({
+              alignment: AlignmentType.CENTER,
+              children: [
+                new ImageRun({
+                  type: 'png',
+                  data: logoBuffer,
+                  transformation: { width: 70, height: 50 },
+                }),
+              ],
+            }),
+          ],
+          shading: { fill: WORD_COLORS.white, type: ShadingType.CLEAR },
+          borders: {
+            top: { style: BorderStyle.NONE },
+            bottom: { style: BorderStyle.NONE },
+            left: { style: BorderStyle.NONE },
+            right: { style: BorderStyle.SINGLE, size: 8, color: WORD_COLORS.accentGold },
+          },
+          width: { size: 15, type: WidthType.PERCENTAGE },
+          verticalAlign: VerticalAlign.CENTER,
+          margins: {
+            top: convertInchesToTwip(0.05),
+            bottom: convertInchesToTwip(0.05),
+            left: convertInchesToTwip(0.1),
+            right: convertInchesToTwip(0.1),
+          },
+        })
+      );
+    } catch {
+      // If logo fails to load, skip it
+    }
+  }
+
+  // Title and company name section
+  const leftContent: Paragraph[] = [
+    new Paragraph({
+      children: [
+        new TextRun({
+          text: 'UT TECHNIQUE SHEET',
+          bold: true,
+          size: 28, // 14pt
+          color: 'FFFFFF',
+        }),
+      ],
+      spacing: { after: 60 },
+    }),
+  ];
+
+  if (companyName) {
+    leftContent.push(
+      new Paragraph({
+        children: [
+          new TextRun({
+            text: companyName,
+            size: 18, // 9pt
+            color: 'C8DCF0', // Light blue-gray
+          }),
+        ],
+      })
+    );
+  }
+
+  // Calculate width based on whether logo is present
+  const titleWidth = companyLogo ? 40 : 55;
+
+  headerCells.push(
+    new TableCell({
+      children: leftContent,
+      shading: { fill: WORD_COLORS.primary, type: ShadingType.CLEAR },
       borders: {
-        top: { style: BorderStyle.SINGLE, size: 4, color: 'C8D2DC' },
-        bottom: { style: BorderStyle.SINGLE, size: 4, color: 'C8D2DC' },
-        left: { style: BorderStyle.SINGLE, size: 4, color: 'C8D2DC' },
-        right: { style: BorderStyle.SINGLE, size: 4, color: 'C8D2DC' },
+        top: { style: BorderStyle.NONE },
+        bottom: { style: BorderStyle.NONE },
+        left: { style: BorderStyle.NONE },
+        right: { style: BorderStyle.NONE },
       },
-      width: { size: index === 0 ? 35 : 65, type: WidthType.PERCENTAGE },
-    })),
+      width: { size: titleWidth, type: WidthType.PERCENTAGE },
+      verticalAlign: VerticalAlign.CENTER,
+      margins: {
+        left: convertInchesToTwip(0.15),
+      },
+    })
+  );
+
+  // Right side: Document info box (white background)
+  const infoBoxContent: Paragraph[] = [
+    new Paragraph({
+      children: [
+        new TextRun({ text: 'Document No:', size: 14, color: WORD_COLORS.lightText }),
+        new TextRun({ text: '  ', size: 14 }),
+        new TextRun({ text: docNum, bold: true, size: 16, color: WORD_COLORS.primaryDark }),
+      ],
+      spacing: { after: 40 },
+    }),
+    new Paragraph({
+      children: [
+        new TextRun({ text: 'Revision:', size: 14, color: WORD_COLORS.lightText }),
+        new TextRun({ text: '  ', size: 14 }),
+        new TextRun({ text: revision, bold: true, size: 16, color: WORD_COLORS.primaryDark }),
+      ],
+      spacing: { after: 40 },
+    }),
+    new Paragraph({
+      children: [
+        new TextRun({ text: 'Date:', size: 14, color: WORD_COLORS.lightText }),
+        new TextRun({ text: '  ', size: 14 }),
+        new TextRun({ text: dateStr, bold: true, size: 16, color: WORD_COLORS.primaryDark }),
+      ],
+    }),
+  ];
+
+  headerCells.push(
+    new TableCell({
+      children: [
+        new Table({
+          width: { size: 100, type: WidthType.PERCENTAGE },
+          rows: [
+            new TableRow({
+              children: [
+                new TableCell({
+                  children: infoBoxContent,
+                  shading: { fill: WORD_COLORS.white, type: ShadingType.CLEAR },
+                  borders: {
+                    top: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
+                    bottom: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
+                    left: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
+                    right: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
+                  },
+                  margins: {
+                    top: convertInchesToTwip(0.08),
+                    bottom: convertInchesToTwip(0.08),
+                    left: convertInchesToTwip(0.1),
+                    right: convertInchesToTwip(0.1),
+                  },
+                }),
+              ],
+            }),
+          ],
+        }),
+      ],
+      shading: { fill: WORD_COLORS.primary, type: ShadingType.CLEAR },
+      borders: {
+        top: { style: BorderStyle.NONE },
+        bottom: { style: BorderStyle.NONE },
+        left: { style: BorderStyle.NONE },
+        right: { style: BorderStyle.NONE },
+      },
+      width: { size: 45, type: WidthType.PERCENTAGE },
+      verticalAlign: VerticalAlign.CENTER,
+      margins: {
+        top: convertInchesToTwip(0.1),
+        bottom: convertInchesToTwip(0.1),
+        left: convertInchesToTwip(0.1),
+        right: convertInchesToTwip(0.15),
+      },
+    })
+  );
+
+  // Calculate column span for gold line based on number of header cells
+  const goldLineColumnSpan = headerCells.length;
+
+  return new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    layout: TableLayoutType.FIXED,
+    rows: [
+      new TableRow({
+        children: headerCells,
+        height: { value: convertInchesToTwip(0.9), rule: 'atLeast' as const },
+      }),
+      // Gold accent line
+      new TableRow({
+        children: [
+          new TableCell({
+            children: [new Paragraph({ children: [] })],
+            shading: { fill: WORD_COLORS.accentGold, type: ShadingType.CLEAR },
+            borders: {
+              top: { style: BorderStyle.NONE },
+              bottom: { style: BorderStyle.NONE },
+              left: { style: BorderStyle.NONE },
+              right: { style: BorderStyle.NONE },
+            },
+            columnSpan: goldLineColumnSpan,
+          }),
+        ],
+        height: { value: convertInchesToTwip(0.04), rule: 'exact' as const },
+      }),
+    ],
+    borders: {
+      top: { style: BorderStyle.NONE },
+      bottom: { style: BorderStyle.NONE },
+      left: { style: BorderStyle.NONE },
+      right: { style: BorderStyle.NONE },
+      insideHorizontal: { style: BorderStyle.NONE },
+      insideVertical: { style: BorderStyle.NONE },
+    },
   });
 };
 
-const createSection = (title: string, rows: [string, string][]): (Paragraph | Table)[] => {
-  const elements: (Paragraph | Table)[] = [];
-
-  elements.push(new Paragraph({
-    children: [new TextRun({ text: title, bold: true, size: 26, color: '005293' })],
-    heading: HeadingLevel.HEADING_2,
-    spacing: { before: 400, after: 200 },
-  }));
-
-  if (rows.length > 0) {
-    elements.push(new Table({
-      width: { size: 100, type: WidthType.PERCENTAGE },
-      rows: rows.map(([label, value], index) => createTableRow([label, value], false, index)),
-    }));
-  }
-
-  return elements;
+// ============================================================================
+// SECTION TITLE (matching PDF addSectionTitle)
+// ============================================================================
+const createSectionTitle = (title: string): Table => {
+  return new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    rows: [
+      new TableRow({
+        children: [
+          // Gold left accent bar
+          new TableCell({
+            children: [new Paragraph({ children: [] })],
+            shading: { fill: WORD_COLORS.accentGold, type: ShadingType.CLEAR },
+            borders: {
+              top: { style: BorderStyle.NONE },
+              bottom: { style: BorderStyle.NONE },
+              left: { style: BorderStyle.NONE },
+              right: { style: BorderStyle.NONE },
+            },
+            width: { size: 2, type: WidthType.PERCENTAGE },
+          }),
+          // Blue main bar with title
+          new TableCell({
+            children: [
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: title,
+                    bold: true,
+                    size: 24, // 12pt
+                    color: 'FFFFFF',
+                  }),
+                ],
+                alignment: AlignmentType.LEFT,
+              }),
+            ],
+            shading: { fill: WORD_COLORS.primary, type: ShadingType.CLEAR },
+            borders: {
+              top: { style: BorderStyle.NONE },
+              bottom: { style: BorderStyle.NONE },
+              left: { style: BorderStyle.NONE },
+              right: { style: BorderStyle.NONE },
+            },
+            width: { size: 98, type: WidthType.PERCENTAGE },
+            margins: {
+              top: convertInchesToTwip(0.08),
+              bottom: convertInchesToTwip(0.08),
+              left: convertInchesToTwip(0.15),
+              right: convertInchesToTwip(0.1),
+            },
+          }),
+        ],
+      }),
+    ],
+    borders: {
+      top: { style: BorderStyle.NONE },
+      bottom: { style: BorderStyle.NONE },
+      left: { style: BorderStyle.NONE },
+      right: { style: BorderStyle.NONE },
+      insideHorizontal: { style: BorderStyle.NONE },
+      insideVertical: { style: BorderStyle.NONE },
+    },
+  });
 };
 
-const createSubsection = (title: string, rows: [string, string][]): (Paragraph | Table)[] => {
-  const elements: (Paragraph | Table)[] = [];
-
-  elements.push(new Paragraph({
-    children: [new TextRun({ text: title, bold: true, size: 22, color: '4080B2' })],
-    heading: HeadingLevel.HEADING_3,
-    spacing: { before: 200, after: 100 },
-  }));
-
-  if (rows.length > 0) {
-    elements.push(new Table({
-      width: { size: 100, type: WidthType.PERCENTAGE },
-      rows: rows.map(([label, value], index) => createTableRow([label, value], false, index)),
-    }));
-  }
-
-  return elements;
+// ============================================================================
+// SUBSECTION TITLE (matching PDF addSubsectionTitle)
+// ============================================================================
+const createSubsectionTitle = (title: string): Table => {
+  return new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    rows: [
+      new TableRow({
+        children: [
+          // Blue accent bar
+          new TableCell({
+            children: [new Paragraph({ children: [] })],
+            shading: { fill: WORD_COLORS.primary, type: ShadingType.CLEAR },
+            borders: {
+              top: { style: BorderStyle.NONE },
+              bottom: { style: BorderStyle.NONE },
+              left: { style: BorderStyle.NONE },
+              right: { style: BorderStyle.NONE },
+            },
+            width: { size: 1, type: WidthType.PERCENTAGE },
+          }),
+          // Gold accent bar
+          new TableCell({
+            children: [new Paragraph({ children: [] })],
+            shading: { fill: WORD_COLORS.accentGold, type: ShadingType.CLEAR },
+            borders: {
+              top: { style: BorderStyle.NONE },
+              bottom: { style: BorderStyle.NONE },
+              left: { style: BorderStyle.NONE },
+              right: { style: BorderStyle.NONE },
+            },
+            width: { size: 1, type: WidthType.PERCENTAGE },
+          }),
+          // Light background with title
+          new TableCell({
+            children: [
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: title,
+                    bold: true,
+                    size: 20, // 10pt
+                    color: WORD_COLORS.primary,
+                  }),
+                ],
+              }),
+            ],
+            shading: { fill: WORD_COLORS.sectionBg, type: ShadingType.CLEAR },
+            borders: {
+              top: { style: BorderStyle.NONE },
+              bottom: { style: BorderStyle.NONE },
+              left: { style: BorderStyle.NONE },
+              right: { style: BorderStyle.NONE },
+            },
+            width: { size: 98, type: WidthType.PERCENTAGE },
+            margins: {
+              top: convertInchesToTwip(0.06),
+              bottom: convertInchesToTwip(0.06),
+              left: convertInchesToTwip(0.1),
+              right: convertInchesToTwip(0.1),
+            },
+          }),
+        ],
+      }),
+    ],
+    borders: {
+      top: { style: BorderStyle.NONE },
+      bottom: { style: BorderStyle.NONE },
+      left: { style: BorderStyle.NONE },
+      right: { style: BorderStyle.NONE },
+      insideHorizontal: { style: BorderStyle.NONE },
+      insideVertical: { style: BorderStyle.NONE },
+    },
+  });
 };
 
-// Create a warning/notice paragraph
-const createWarningParagraph = (text: string): Paragraph => {
+// ============================================================================
+// DOCUMENT SUMMARY TABLE (4-column layout matching PDF)
+// ============================================================================
+const createDocumentSummaryTable = (
+  data: TechniqueSheetWordExportData,
+  standard: string
+): Table => {
+  const { inspectionSetup: setup, documentation: doc, acceptanceCriteria: acceptance, scanParameters } = data;
+
+  const rows: string[][] = [
+    ['Customer', formatValue(doc.customerName), 'Purchase Order', formatValue(doc.purchaseOrder)],
+    ['Part Number', formatValue(setup.partNumber), 'Part Name', formatValue(setup.partName)],
+    ['Material', formatMaterial(setup.material, setup.customMaterialName), 'Material Spec', formatValue(setup.materialSpec)],
+    ['Part Type', formatPartType(setup.partType), 'Drawing No', formatValue(setup.drawingNumber)],
+    ['Process Spec', formatValue(standard), 'Acceptance Class', formatAcceptanceClass(acceptance.acceptanceClass).class],
+    ['Inspection Type', formatScanMethod(scanParameters.scanMethod), 'Criticality', formatAcceptanceClass(acceptance.acceptanceClass).description.split(' - ')[0] || '-'],
+  ];
+
+  const tableRows = rows.map((row, rowIndex) => {
+    return new TableRow({
+      children: row.map((cell, cellIndex) => {
+        const isLabel = cellIndex % 2 === 0;
+        const isAcceptanceClass = rowIndex === 4 && cellIndex === 3;
+
+        return new TableCell({
+          children: [
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: cell,
+                  bold: isLabel || isAcceptanceClass,
+                  size: isAcceptanceClass ? 22 : (isLabel ? 15 : 18),
+                  color: isLabel ? WORD_COLORS.lightText : (isAcceptanceClass ? WORD_COLORS.primary : WORD_COLORS.text),
+                }),
+              ],
+            }),
+          ],
+          shading: isLabel ? { fill: WORD_COLORS.labelBg, type: ShadingType.CLEAR } : (rowIndex % 2 === 0 ? { fill: WORD_COLORS.rowAlt, type: ShadingType.CLEAR } : undefined),
+          borders: {
+            top: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
+            bottom: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
+            left: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
+            right: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
+          },
+          width: { size: isLabel ? 18 : 32, type: WidthType.PERCENTAGE },
+          margins: {
+            top: convertInchesToTwip(0.04),
+            bottom: convertInchesToTwip(0.04),
+            left: convertInchesToTwip(0.06),
+            right: convertInchesToTwip(0.06),
+          },
+        });
+      }),
+    });
+  });
+
+  return new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    rows: tableRows,
+    borders: {
+      top: { style: BorderStyle.SINGLE, size: 8, color: WORD_COLORS.primary },
+      bottom: { style: BorderStyle.SINGLE, size: 8, color: WORD_COLORS.primary },
+      left: { style: BorderStyle.SINGLE, size: 8, color: WORD_COLORS.primary },
+      right: { style: BorderStyle.SINGLE, size: 8, color: WORD_COLORS.primary },
+      insideHorizontal: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
+      insideVertical: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
+    },
+  });
+};
+
+// ============================================================================
+// KEY-VALUE TABLE (2 columns with header)
+// ============================================================================
+const createKeyValueTable = (
+  rows: [string, string][],
+  headerText?: string,
+  headerColor?: string
+): Table => {
+  const tableRows: TableRow[] = [];
+
+  // Optional header row
+  if (headerText) {
+    tableRows.push(
+      new TableRow({
+        children: [
+          new TableCell({
+            children: [
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: 'Parameter',
+                    bold: true,
+                    size: 18,
+                    color: 'FFFFFF',
+                  }),
+                ],
+              }),
+            ],
+            shading: { fill: headerColor || WORD_COLORS.primary, type: ShadingType.CLEAR },
+            width: { size: 35, type: WidthType.PERCENTAGE },
+            margins: {
+              top: convertInchesToTwip(0.04),
+              bottom: convertInchesToTwip(0.04),
+              left: convertInchesToTwip(0.08),
+              right: convertInchesToTwip(0.08),
+            },
+          }),
+          new TableCell({
+            children: [
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: 'Value',
+                    bold: true,
+                    size: 18,
+                    color: 'FFFFFF',
+                  }),
+                ],
+              }),
+            ],
+            shading: { fill: headerColor || WORD_COLORS.primary, type: ShadingType.CLEAR },
+            width: { size: 65, type: WidthType.PERCENTAGE },
+            margins: {
+              top: convertInchesToTwip(0.04),
+              bottom: convertInchesToTwip(0.04),
+              left: convertInchesToTwip(0.08),
+              right: convertInchesToTwip(0.08),
+            },
+          }),
+        ],
+      })
+    );
+  }
+
+  // Data rows
+  rows.forEach(([label, value], index) => {
+    tableRows.push(
+      new TableRow({
+        children: [
+          new TableCell({
+            children: [
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: label,
+                    bold: true,
+                    size: 18,
+                    color: WORD_COLORS.text,
+                  }),
+                ],
+              }),
+            ],
+            shading: { fill: WORD_COLORS.labelBg, type: ShadingType.CLEAR },
+            borders: {
+              top: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
+              bottom: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
+              left: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
+              right: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
+            },
+            width: { size: 35, type: WidthType.PERCENTAGE },
+            margins: {
+              top: convertInchesToTwip(0.04),
+              bottom: convertInchesToTwip(0.04),
+              left: convertInchesToTwip(0.08),
+              right: convertInchesToTwip(0.08),
+            },
+          }),
+          new TableCell({
+            children: [
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: value,
+                    size: 18,
+                    color: WORD_COLORS.text,
+                  }),
+                ],
+              }),
+            ],
+            shading: index % 2 === 1 ? { fill: WORD_COLORS.rowAlt, type: ShadingType.CLEAR } : undefined,
+            borders: {
+              top: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
+              bottom: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
+              left: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
+              right: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
+            },
+            width: { size: 65, type: WidthType.PERCENTAGE },
+            margins: {
+              top: convertInchesToTwip(0.04),
+              bottom: convertInchesToTwip(0.04),
+              left: convertInchesToTwip(0.08),
+              right: convertInchesToTwip(0.08),
+            },
+          }),
+        ],
+      })
+    );
+  });
+
+  return new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    rows: tableRows,
+  });
+};
+
+// ============================================================================
+// WARNING BOX
+// ============================================================================
+const createWarningBox = (text: string): Table => {
+  return new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    rows: [
+      new TableRow({
+        children: [
+          new TableCell({
+            children: [
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: `⚠️ ${text}`,
+                    size: 18,
+                    color: '856404',
+                  }),
+                ],
+              }),
+            ],
+            shading: { fill: 'FFF3CD', type: ShadingType.CLEAR },
+            borders: {
+              top: { style: BorderStyle.SINGLE, size: 4, color: 'FFE69C' },
+              bottom: { style: BorderStyle.SINGLE, size: 4, color: 'FFE69C' },
+              left: { style: BorderStyle.SINGLE, size: 4, color: 'FFE69C' },
+              right: { style: BorderStyle.SINGLE, size: 4, color: 'FFE69C' },
+            },
+            margins: {
+              top: convertInchesToTwip(0.08),
+              bottom: convertInchesToTwip(0.08),
+              left: convertInchesToTwip(0.1),
+              right: convertInchesToTwip(0.1),
+            },
+          }),
+        ],
+      }),
+    ],
+  });
+};
+
+// ============================================================================
+// PART SKETCH SECTION HEADER
+// ============================================================================
+const createPartSketchSectionHeader = (): Table => {
+  return new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    rows: [
+      new TableRow({
+        children: [
+          // Secondary color accent
+          new TableCell({
+            children: [new Paragraph({ children: [] })],
+            shading: { fill: WORD_COLORS.secondary, type: ShadingType.CLEAR },
+            borders: {
+              top: { style: BorderStyle.NONE },
+              bottom: { style: BorderStyle.NONE },
+              left: { style: BorderStyle.NONE },
+              right: { style: BorderStyle.NONE },
+            },
+            width: { size: 2, type: WidthType.PERCENTAGE },
+          }),
+          // Light background with title
+          new TableCell({
+            children: [
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: 'PART SKETCH / DIMENSIONS',
+                    bold: true,
+                    size: 22,
+                    color: WORD_COLORS.secondary,
+                  }),
+                ],
+              }),
+            ],
+            shading: { fill: WORD_COLORS.sectionBg, type: ShadingType.CLEAR },
+            borders: {
+              top: { style: BorderStyle.NONE },
+              bottom: { style: BorderStyle.NONE },
+              left: { style: BorderStyle.NONE },
+              right: { style: BorderStyle.NONE },
+            },
+            width: { size: 98, type: WidthType.PERCENTAGE },
+            margins: {
+              top: convertInchesToTwip(0.08),
+              bottom: convertInchesToTwip(0.08),
+              left: convertInchesToTwip(0.15),
+              right: convertInchesToTwip(0.1),
+            },
+          }),
+        ],
+      }),
+    ],
+    borders: {
+      top: { style: BorderStyle.NONE },
+      bottom: { style: BorderStyle.NONE },
+      left: { style: BorderStyle.NONE },
+      right: { style: BorderStyle.NONE },
+      insideHorizontal: { style: BorderStyle.NONE },
+      insideVertical: { style: BorderStyle.NONE },
+    },
+  });
+};
+
+// ============================================================================
+// KEY DIMENSIONS LINE
+// ============================================================================
+const createKeyDimensionsLine = (setup: InspectionSetupData): Paragraph | null => {
+  const dimensionRows = getPartDimensionRows(setup);
+  if (dimensionRows.length === 0) return null;
+
+  const parts: TextRun[] = [
+    new TextRun({
+      text: 'Key Dimensions:  ',
+      bold: true,
+      size: 18,
+      color: WORD_COLORS.primary,
+    }),
+  ];
+
+  dimensionRows.slice(0, 4).forEach((dim, i) => {
+    if (i > 0) {
+      parts.push(new TextRun({ text: '  |  ', size: 16, color: WORD_COLORS.lightText }));
+    }
+    parts.push(new TextRun({ text: `${dim[0]}: `, size: 16, color: WORD_COLORS.lightText }));
+    parts.push(new TextRun({ text: dim[1], bold: true, size: 16, color: WORD_COLORS.text }));
+  });
+
   return new Paragraph({
-    children: [new TextRun({
-      text: `⚠️ ${text}`,
-      size: 20,
-      color: '856404',
-    })],
-    shading: { fill: 'FFF3CD', type: ShadingType.SOLID, color: '856404' },
-    spacing: { before: 200, after: 200 },
+    children: parts,
+    shading: { fill: WORD_COLORS.sectionBg, type: ShadingType.CLEAR, color: WORD_COLORS.sectionBg },
+    spacing: { before: 100, after: 200 },
   });
 };
 
 // ============================================================================
 // TABLE OF CONTENTS
 // ============================================================================
-const buildTableOfContents = (): (Paragraph | Table)[] => {
+const buildTableOfContents = (hasDrawing: boolean, hasScanDetails: boolean, hasAngleBeam: boolean): (Paragraph | Table)[] => {
   const elements: (Paragraph | Table)[] = [];
 
-  // Title
-  elements.push(new Paragraph({
-    children: [new TextRun({ text: 'TABLE OF CONTENTS', bold: true, size: 28 })],
-    heading: HeadingLevel.HEADING_1,
-    alignment: AlignmentType.CENTER,
-    spacing: { before: 200, after: 400 },
-  }));
+  elements.push(createSectionTitle('TABLE OF CONTENTS'));
+  elements.push(new Paragraph({ children: [], spacing: { after: 200 } }));
 
-  // TOC items - simple list without page numbers (order matches PDF)
   const tocItems: string[] = [
     '1. Part Information',
     '2. Equipment',
     '3. Scan Parameters',
     '4. Acceptance Criteria',
-    '5. Scan Details',
-    '   5.1 Scanning Directions',
-    '   5.2 Technical Drawing',
-    '6. Documentation',
-    '7. Calibration / Reference Standard',
-    '   7.1 FBH Table',
-    '   7.2 Calibration Block Diagram',
-    '8. Approvals & Signatures',
   ];
+
+  let sectionNum = 5;
+
+  if (hasScanDetails) {
+    tocItems.push(`${sectionNum}. Scan Details & Directions`);
+    tocItems.push(`   ${sectionNum}.1 Scanning Directions`);
+    if (hasDrawing) {
+      tocItems.push(`   ${sectionNum}.2 Technical Drawing`);
+    }
+    sectionNum++;
+  }
+
+  tocItems.push(`${sectionNum}. Documentation`);
+  sectionNum++;
+
+  tocItems.push(`${sectionNum}. Calibration / Reference Standard`);
+  tocItems.push(`   ${sectionNum}.1 FBH Table`);
+  tocItems.push(`   ${sectionNum}.2 Calibration Block Diagram`);
+  if (hasAngleBeam) {
+    tocItems.push(`   ${sectionNum}.3 Angle Beam Calibration Block`);
+  }
+  sectionNum++;
+
+  tocItems.push(`${sectionNum}. Approvals & Signatures`);
 
   tocItems.forEach(item => {
     const isSubsection = item.startsWith('   ');
     elements.push(new Paragraph({
       children: [new TextRun({
         text: isSubsection ? item.trim() : item,
-        size: isSubsection ? 20 : 22,
+        size: isSubsection ? 18 : 20,
         bold: !isSubsection,
+        color: isSubsection ? WORD_COLORS.lightText : WORD_COLORS.text,
       })],
-      spacing: { before: isSubsection ? 80 : 160, after: isSubsection ? 80 : 160 },
+      spacing: { before: isSubsection ? 60 : 120, after: isSubsection ? 60 : 120 },
       indent: { left: isSubsection ? 400 : 0 },
     }));
   });
 
-  // Note about page numbers
   elements.push(new Paragraph({
     children: [new TextRun({
       text: 'Note: Page numbers may vary based on content.',
       italics: true,
-      size: 18,
-      color: '666666',
+      size: 16,
+      color: WORD_COLORS.mutedText,
     })],
     spacing: { before: 300, after: 200 },
     alignment: AlignmentType.CENTER,
   }));
 
-  // Page break after TOC
-  elements.push(new Paragraph({
-    children: [new PageBreak()],
-  }));
+  elements.push(new Paragraph({ children: [new PageBreak()] }));
 
   return elements;
 };
@@ -276,45 +928,61 @@ interface ExtendedDocumentationData extends DocumentationData {
 const buildApprovalsSection = (documentation: ExtendedDocumentationData, approvalRequired?: boolean): (Paragraph | Table)[] => {
   const elements: (Paragraph | Table)[] = [];
 
-  // Section title
-  elements.push(new Paragraph({
-    children: [new TextRun({ text: '8. APPROVALS & DOCUMENT CONTROL', bold: true, size: 26, color: '005293' })],
-    heading: HeadingLevel.HEADING_2,
-    spacing: { before: 400, after: 200 },
-  }));
+  elements.push(createSectionTitle('8. APPROVALS & DOCUMENT CONTROL'));
+  elements.push(new Paragraph({ children: [], spacing: { after: 200 } }));
 
-  // ========== REVISION HISTORY TABLE ==========
-  elements.push(new Paragraph({
-    children: [new TextRun({ text: 'Revision History', bold: true, size: 22, color: '4080B2' })],
-    heading: HeadingLevel.HEADING_3,
-    spacing: { before: 200, after: 100 },
-  }));
+  // Revision History subsection
+  elements.push(createSubsectionTitle('Revision History'));
+  elements.push(new Paragraph({ children: [], spacing: { after: 100 } }));
 
+  // Revision history table
+  const revisionHeaders = ['Rev', 'Date', 'Description', 'Prepared By', 'Approved By', 'Sign'];
   const revisionHeaderRow = new TableRow({
-    children: ['Rev', 'Date', 'Description', 'Prepared By', 'Approved By', 'Sign'].map(text => new TableCell({
+    children: revisionHeaders.map(text => new TableCell({
       children: [new Paragraph({
-        children: [new TextRun({ text, bold: true, size: 18, color: 'FFFFFF' })],
+        children: [new TextRun({ text, bold: true, size: 16, color: 'FFFFFF' })],
         alignment: AlignmentType.CENTER,
       })],
-      shading: { fill: '005293', type: ShadingType.SOLID },
+      shading: { fill: WORD_COLORS.primary, type: ShadingType.CLEAR },
+      margins: {
+        top: convertInchesToTwip(0.04),
+        bottom: convertInchesToTwip(0.04),
+        left: convertInchesToTwip(0.04),
+        right: convertInchesToTwip(0.04),
+      },
     })),
   });
 
   const revisionDataRows = [
     new TableRow({
       children: [
-        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: documentation.revision || 'A', bold: true, size: 18 })] })] }),
-        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: formatDate(documentation.inspectionDate), size: 18 })] })] }),
-        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Initial Release', size: 18 })] })] }),
-        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: documentation.inspectorName || '', size: 18 })] })] }),
-        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: '', size: 18 })] })] }),
-        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: '', size: 18 })] })] }),
-      ],
+        documentation.revision || 'A',
+        formatDate(documentation.inspectionDate),
+        'Initial Release',
+        documentation.inspectorName || '',
+        '',
+        '',
+      ].map(text => new TableCell({
+        children: [new Paragraph({
+          children: [new TextRun({ text, size: 16 })],
+        })],
+        margins: {
+          top: convertInchesToTwip(0.04),
+          bottom: convertInchesToTwip(0.04),
+          left: convertInchesToTwip(0.04),
+          right: convertInchesToTwip(0.04),
+        },
+      })),
     }),
-    // Empty row for future revisions
     new TableRow({
       children: Array(6).fill(null).map(() => new TableCell({
-        children: [new Paragraph({ children: [new TextRun({ text: '', size: 18 })] })],
+        children: [new Paragraph({ children: [new TextRun({ text: '', size: 16 })] })],
+        margins: {
+          top: convertInchesToTwip(0.04),
+          bottom: convertInchesToTwip(0.04),
+          left: convertInchesToTwip(0.04),
+          right: convertInchesToTwip(0.04),
+        },
       })),
     }),
   ];
@@ -324,117 +992,98 @@ const buildApprovalsSection = (documentation: ExtendedDocumentationData, approva
     rows: [revisionHeaderRow, ...revisionDataRows],
   }));
 
-  // ========== APPROVAL SIGNATURES TABLE ==========
-  elements.push(new Paragraph({
-    children: [new TextRun({ text: 'Approval Signatures', bold: true, size: 22, color: '4080B2' })],
-    heading: HeadingLevel.HEADING_3,
-    spacing: { before: 300, after: 100 },
-  }));
+  elements.push(new Paragraph({ children: [], spacing: { after: 200 } }));
 
+  // Approval Signatures subsection
+  elements.push(createSubsectionTitle('Approval Signatures'));
+  elements.push(new Paragraph({ children: [], spacing: { after: 100 } }));
+
+  const signatureHeaders = ['Role', 'Name (Print)', 'Cert. Number', 'Date', 'Signature'];
   const signatureHeaderRow = new TableRow({
-    children: ['Role', 'Name (Print)', 'Cert. Number', 'Date', 'Signature'].map(text => new TableCell({
+    children: signatureHeaders.map(text => new TableCell({
       children: [new Paragraph({
-        children: [new TextRun({ text, bold: true, size: 18, color: 'FFFFFF' })],
+        children: [new TextRun({ text, bold: true, size: 16, color: 'FFFFFF' })],
         alignment: AlignmentType.CENTER,
       })],
-      shading: { fill: '4080b2', type: ShadingType.SOLID },
+      shading: { fill: WORD_COLORS.secondary, type: ShadingType.CLEAR },
+      margins: {
+        top: convertInchesToTwip(0.04),
+        bottom: convertInchesToTwip(0.04),
+        left: convertInchesToTwip(0.04),
+        right: convertInchesToTwip(0.04),
+      },
     })),
   });
 
-  const signatureDataRows: TableRow[] = [
-    new TableRow({
-      children: [
-        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'UT Inspector (Level II)', bold: true, size: 18 })] })] }),
-        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: documentation.inspectorName || '', size: 18 })] })] }),
-        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: documentation.inspectorCertification || '', size: 18 })] })] }),
-        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: formatDate(documentation.inspectionDate), size: 18 })] })] }),
-        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: '', size: 18 })] })] }),
-      ],
-    }),
-    new TableRow({
-      children: [
-        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Level III Review', bold: true, size: 18 })] })] }),
-        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: documentation.levelIIIName || '', size: 18 })] })] }),
-        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: '', size: 18 })] })] }),
-        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: formatDate(documentation.levelIIIDate), size: 18 })] })] }),
-        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: '', size: 18 })] })] }),
-      ],
-    }),
-    new TableRow({
-      children: [
-        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Quality Assurance', bold: true, size: 18 })] })] }),
-        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: '', size: 18 })] })] }),
-        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: '', size: 18 })] })] }),
-        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: '', size: 18 })] })] }),
-        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: '', size: 18 })] })] }),
-      ],
-    }),
+  const signatureRoles = [
+    ['UT Inspector (Level II)', documentation.inspectorName || '', documentation.inspectorCertification || '', formatDate(documentation.inspectionDate), ''],
+    ['Level III Review', documentation.levelIIIName || '', '', formatDate(documentation.levelIIIDate), ''],
+    ['Quality Assurance', '', '', '', ''],
   ];
 
   if (approvalRequired) {
-    signatureDataRows.push(new TableRow({
-      children: [
-        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Customer Representative', bold: true, size: 18 })] })] }),
-        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: '', size: 18 })] })] }),
-        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: '', size: 18 })] })] }),
-        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: '', size: 18 })] })] }),
-        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: '', size: 18 })] })] }),
-      ],
-    }));
+    signatureRoles.push(['Customer Representative', '', '', '', '']);
   }
+
+  const signatureDataRows = signatureRoles.map(row => new TableRow({
+    children: row.map((text, i) => new TableCell({
+      children: [new Paragraph({
+        children: [new TextRun({ text, bold: i === 0, size: 16 })],
+      })],
+      margins: {
+        top: convertInchesToTwip(0.04),
+        bottom: convertInchesToTwip(0.04),
+        left: convertInchesToTwip(0.04),
+        right: convertInchesToTwip(0.04),
+      },
+    })),
+  }));
 
   elements.push(new Table({
     width: { size: 100, type: WidthType.PERCENTAGE },
     rows: [signatureHeaderRow, ...signatureDataRows],
   }));
 
-  // NOTICE message with yellow background (if approval required)
+  // Notice if approval required
   if (approvalRequired) {
-    elements.push(new Paragraph({
-      children: [new TextRun({
-        text: 'NOTICE: This technique sheet requires Level III approval before use in production.',
-        bold: true,
-        size: 20,
-        color: '856404',
-      })],
-      shading: { fill: 'FFF3CD', type: ShadingType.SOLID, color: '856404' },
-      spacing: { before: 300, after: 200 },
-      alignment: AlignmentType.CENTER,
-    }));
+    elements.push(new Paragraph({ children: [], spacing: { after: 100 } }));
+    elements.push(createWarningBox('NOTICE: This technique sheet requires Level III approval before use in production.'));
   }
 
-  // ========== DOCUMENT CONTROL FOOTER ==========
+  elements.push(new Paragraph({ children: [], spacing: { after: 200 } }));
+
+  // Document Control Footer
   elements.push(new Paragraph({
-    children: [new TextRun({ text: 'DOCUMENT CONTROL', bold: true, size: 20, color: '005293' })],
-    spacing: { before: 300, after: 100 },
+    children: [new TextRun({ text: 'DOCUMENT CONTROL', bold: true, size: 18, color: WORD_COLORS.primary })],
+    spacing: { before: 200, after: 100 },
   }));
 
   elements.push(new Paragraph({
     children: [new TextRun({
       text: 'This is a controlled document. Unauthorized reproduction, modification, or distribution is strictly prohibited.',
-      size: 18,
-      color: '666666',
+      size: 16,
+      color: WORD_COLORS.lightText,
     })],
-    spacing: { before: 50, after: 50 },
+    spacing: { after: 50 },
   }));
 
   elements.push(new Paragraph({
     children: [new TextRun({
       text: 'Printed copies are uncontrolled unless stamped "CONTROLLED COPY" with a valid date.',
-      size: 18,
-      color: '666666',
+      size: 16,
+      color: WORD_COLORS.lightText,
     })],
-    spacing: { before: 50, after: 50 },
+    spacing: { after: 50 },
   }));
 
   elements.push(new Paragraph({
     children: [new TextRun({
       text: `Document generated: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} | Scan-Master v1.0`,
       italics: true,
-      size: 18,
-      color: '888888',
+      size: 16,
+      color: WORD_COLORS.mutedText,
     })],
-    spacing: { before: 100, after: 200 },
+    spacing: { before: 100 },
   }));
 
   return elements;
@@ -451,165 +1100,238 @@ export async function exportTechniqueSheetWord(
 
   const children: (Paragraph | Table)[] = [];
 
-  // ========== COVER PAGE HEADER ==========
-  // Title
-  children.push(new Paragraph({
-    children: [
-      new TextRun({ text: 'UT TECHNIQUE SHEET', bold: true, size: 48, color: '005293' }),
-    ],
-    alignment: AlignmentType.CENTER,
-    spacing: { after: 100 },
-  }));
+  // Document info
+  const docNum = documentation.procedureNumber || `TS-${inspectionSetup.partNumber || 'XXX'}`;
+  const revision = documentation.revision || 'A';
+  const dateStr = formatDate(documentation.inspectionDate);
 
-  // Company name
-  if (options.companyName) {
-    children.push(new Paragraph({
-      children: [new TextRun({ text: options.companyName, size: 24, color: '666666' })],
-      alignment: AlignmentType.CENTER,
-      spacing: { after: 200 },
+  // ========== COVER PAGE ==========
+  // Header bar with document info
+  children.push(createCoverHeader(docNum, revision, dateStr, options.companyName, options.companyLogo));
+  children.push(new Paragraph({ children: [], spacing: { after: 300 } }));
+
+  // Document Summary section header
+  children.push(new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    rows: [
+      new TableRow({
+        children: [
+          new TableCell({
+            children: [new Paragraph({ children: [] })],
+            shading: { fill: WORD_COLORS.primary, type: ShadingType.CLEAR },
+            borders: {
+              top: { style: BorderStyle.NONE },
+              bottom: { style: BorderStyle.NONE },
+              left: { style: BorderStyle.NONE },
+              right: { style: BorderStyle.NONE },
+            },
+            width: { size: 2, type: WidthType.PERCENTAGE },
+          }),
+          new TableCell({
+            children: [
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: 'DOCUMENT SUMMARY',
+                    bold: true,
+                    size: 22,
+                    color: WORD_COLORS.primary,
+                  }),
+                ],
+              }),
+            ],
+            shading: { fill: WORD_COLORS.sectionBg, type: ShadingType.CLEAR },
+            borders: {
+              top: { style: BorderStyle.NONE },
+              bottom: { style: BorderStyle.NONE },
+              left: { style: BorderStyle.NONE },
+              right: { style: BorderStyle.NONE },
+            },
+            width: { size: 98, type: WidthType.PERCENTAGE },
+            margins: {
+              top: convertInchesToTwip(0.08),
+              bottom: convertInchesToTwip(0.08),
+              left: convertInchesToTwip(0.15),
+              right: convertInchesToTwip(0.1),
+            },
+          }),
+        ],
+      }),
+    ],
+    borders: {
+      top: { style: BorderStyle.NONE },
+      bottom: { style: BorderStyle.NONE },
+      left: { style: BorderStyle.NONE },
+      right: { style: BorderStyle.NONE },
+      insideHorizontal: { style: BorderStyle.NONE },
+      insideVertical: { style: BorderStyle.NONE },
+    },
+  }));
+  children.push(new Paragraph({ children: [], spacing: { after: 100 } }));
+
+  // Document Summary table
+  children.push(createDocumentSummaryTable(data, data.standard));
+  children.push(new Paragraph({ children: [], spacing: { after: 200 } }));
+
+  // Part Sketch section
+  children.push(createPartSketchSectionHeader());
+  children.push(new Paragraph({ children: [], spacing: { after: 100 } }));
+
+  // Part sketch area (with drawing or placeholder)
+  if (data.capturedDrawing) {
+    try {
+      const imageBuffer = base64ToArrayBuffer(data.capturedDrawing);
+      children.push(new Table({
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        rows: [
+          new TableRow({
+            children: [
+              new TableCell({
+                children: [
+                  new Paragraph({
+                    alignment: AlignmentType.CENTER,
+                    children: [
+                      new ImageRun({
+                        type: 'png',
+                        data: imageBuffer,
+                        transformation: { width: 500, height: 280 },
+                      }),
+                    ],
+                  }),
+                ],
+                borders: {
+                  top: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
+                  bottom: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
+                  left: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
+                  right: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
+                },
+                margins: {
+                  top: convertInchesToTwip(0.1),
+                  bottom: convertInchesToTwip(0.1),
+                  left: convertInchesToTwip(0.1),
+                  right: convertInchesToTwip(0.1),
+                },
+              }),
+            ],
+          }),
+        ],
+      }));
+    } catch {
+      // Placeholder if image fails
+      children.push(new Table({
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        rows: [
+          new TableRow({
+            children: [
+              new TableCell({
+                children: [
+                  new Paragraph({
+                    alignment: AlignmentType.CENTER,
+                    children: [
+                      new TextRun({
+                        text: 'Part sketch will be generated from Technical Drawing tab',
+                        italics: true,
+                        size: 20,
+                        color: WORD_COLORS.lightText,
+                      }),
+                    ],
+                    spacing: { before: 400, after: 100 },
+                  }),
+                  new Paragraph({
+                    alignment: AlignmentType.CENTER,
+                    children: [
+                      new TextRun({
+                        text: 'Or attach custom drawing in Setup',
+                        size: 16,
+                        color: WORD_COLORS.mutedText,
+                      }),
+                    ],
+                    spacing: { after: 400 },
+                  }),
+                ],
+                borders: {
+                  top: { style: BorderStyle.DASHED, size: 4, color: WORD_COLORS.divider },
+                  bottom: { style: BorderStyle.DASHED, size: 4, color: WORD_COLORS.divider },
+                  left: { style: BorderStyle.DASHED, size: 4, color: WORD_COLORS.divider },
+                  right: { style: BorderStyle.DASHED, size: 4, color: WORD_COLORS.divider },
+                },
+              }),
+            ],
+            height: { value: convertInchesToTwip(2.5), rule: 'atLeast' as const },
+          }),
+        ],
+      }));
+    }
+  } else {
+    // Placeholder
+    children.push(new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      rows: [
+        new TableRow({
+          children: [
+            new TableCell({
+              children: [
+                new Paragraph({
+                  alignment: AlignmentType.CENTER,
+                  children: [
+                    new TextRun({
+                      text: 'Part sketch will be generated from Technical Drawing tab',
+                      italics: true,
+                      size: 20,
+                      color: WORD_COLORS.lightText,
+                    }),
+                  ],
+                  spacing: { before: 400, after: 100 },
+                }),
+                new Paragraph({
+                  alignment: AlignmentType.CENTER,
+                  children: [
+                    new TextRun({
+                      text: 'Or attach custom drawing in Setup',
+                      size: 16,
+                      color: WORD_COLORS.mutedText,
+                    }),
+                  ],
+                  spacing: { after: 400 },
+                }),
+              ],
+              borders: {
+                top: { style: BorderStyle.DASHED, size: 4, color: WORD_COLORS.divider },
+                bottom: { style: BorderStyle.DASHED, size: 4, color: WORD_COLORS.divider },
+                left: { style: BorderStyle.DASHED, size: 4, color: WORD_COLORS.divider },
+                right: { style: BorderStyle.DASHED, size: 4, color: WORD_COLORS.divider },
+              },
+            }),
+          ],
+          height: { value: convertInchesToTwip(2.5), rule: 'atLeast' as const },
+        }),
+      ],
     }));
   }
 
-  // Document info line
-  const docNum = documentation.procedureNumber || `TS-${inspectionSetup.partNumber || 'XXX'}`;
-  children.push(new Paragraph({
-    children: [
-      new TextRun({ text: `Document: ${docNum}`, size: 20 }),
-      new TextRun({ text: `  |  Rev: ${documentation.revision || 'A'}`, size: 20 }),
-      new TextRun({ text: `  |  Date: ${formatDate(documentation.inspectionDate)}`, size: 20 }),
-    ],
-    alignment: AlignmentType.CENTER,
-    spacing: { after: 300 },
-  }));
+  children.push(new Paragraph({ children: [], spacing: { after: 100 } }));
 
-  // ========== DOCUMENT SUMMARY TABLE (FRISA Style) ==========
-  children.push(new Paragraph({
-    children: [new TextRun({ text: 'DOCUMENT SUMMARY', bold: true, size: 24, color: '005293' })],
-    spacing: { before: 200, after: 150 },
-  }));
+  // Key Dimensions line
+  const keyDimsLine = createKeyDimensionsLine(inspectionSetup);
+  if (keyDimsLine) {
+    children.push(keyDimsLine);
+  }
 
-  // Summary table with key info
-  const summaryTable = new Table({
-    width: { size: 100, type: WidthType.PERCENTAGE },
-    borders: {
-      top: { style: BorderStyle.SINGLE, size: 8, color: '005293' },
-      bottom: { style: BorderStyle.SINGLE, size: 8, color: '005293' },
-      left: { style: BorderStyle.SINGLE, size: 8, color: '005293' },
-      right: { style: BorderStyle.SINGLE, size: 8, color: '005293' },
-      insideHorizontal: { style: BorderStyle.SINGLE, size: 4, color: 'C8D2DC' },
-      insideVertical: { style: BorderStyle.SINGLE, size: 4, color: 'C8D2DC' },
-    },
-    rows: [
-      // Row 1
-      new TableRow({
-        children: [
-          new TableCell({
-            children: [new Paragraph({ children: [new TextRun({ text: 'Customer', bold: true, size: 18, color: '666666' })] })],
-            shading: { fill: 'E6EBF0', type: ShadingType.SOLID },
-            width: { size: 18, type: WidthType.PERCENTAGE },
-          }),
-          new TableCell({
-            children: [new Paragraph({ children: [new TextRun({ text: formatValue(documentation.customerName), size: 20 })] })],
-            width: { size: 32, type: WidthType.PERCENTAGE },
-          }),
-          new TableCell({
-            children: [new Paragraph({ children: [new TextRun({ text: 'Purchase Order', bold: true, size: 18, color: '666666' })] })],
-            shading: { fill: 'E6EBF0', type: ShadingType.SOLID },
-            width: { size: 18, type: WidthType.PERCENTAGE },
-          }),
-          new TableCell({
-            children: [new Paragraph({ children: [new TextRun({ text: formatValue(documentation.purchaseOrder), size: 20 })] })],
-            width: { size: 32, type: WidthType.PERCENTAGE },
-          }),
-        ],
-      }),
-      // Row 2
-      new TableRow({
-        children: [
-          new TableCell({
-            children: [new Paragraph({ children: [new TextRun({ text: 'Part Number', bold: true, size: 18, color: '666666' })] })],
-            shading: { fill: 'E6EBF0', type: ShadingType.SOLID },
-          }),
-          new TableCell({
-            children: [new Paragraph({ children: [new TextRun({ text: formatValue(inspectionSetup.partNumber), bold: true, size: 20 })] })],
-          }),
-          new TableCell({
-            children: [new Paragraph({ children: [new TextRun({ text: 'Part Name', bold: true, size: 18, color: '666666' })] })],
-            shading: { fill: 'E6EBF0', type: ShadingType.SOLID },
-          }),
-          new TableCell({
-            children: [new Paragraph({ children: [new TextRun({ text: formatValue(inspectionSetup.partName), size: 20 })] })],
-          }),
-        ],
-      }),
-      // Row 3
-      new TableRow({
-        children: [
-          new TableCell({
-            children: [new Paragraph({ children: [new TextRun({ text: 'Material', bold: true, size: 18, color: '666666' })] })],
-            shading: { fill: 'E6EBF0', type: ShadingType.SOLID },
-          }),
-          new TableCell({
-            children: [new Paragraph({ children: [new TextRun({ text: formatMaterial(inspectionSetup.material, inspectionSetup.customMaterialName), size: 20 })] })],
-          }),
-          new TableCell({
-            children: [new Paragraph({ children: [new TextRun({ text: 'Material Spec', bold: true, size: 18, color: '666666' })] })],
-            shading: { fill: 'E6EBF0', type: ShadingType.SOLID },
-          }),
-          new TableCell({
-            children: [new Paragraph({ children: [new TextRun({ text: formatValue(inspectionSetup.materialSpec), size: 20 })] })],
-          }),
-        ],
-      }),
-      // Row 4
-      new TableRow({
-        children: [
-          new TableCell({
-            children: [new Paragraph({ children: [new TextRun({ text: 'Part Type', bold: true, size: 18, color: '666666' })] })],
-            shading: { fill: 'E6EBF0', type: ShadingType.SOLID },
-          }),
-          new TableCell({
-            children: [new Paragraph({ children: [new TextRun({ text: formatPartType(inspectionSetup.partType), size: 20 })] })],
-          }),
-          new TableCell({
-            children: [new Paragraph({ children: [new TextRun({ text: 'Drawing No', bold: true, size: 18, color: '666666' })] })],
-            shading: { fill: 'E6EBF0', type: ShadingType.SOLID },
-          }),
-          new TableCell({
-            children: [new Paragraph({ children: [new TextRun({ text: formatValue(inspectionSetup.drawingNumber), size: 20 })] })],
-          }),
-        ],
-      }),
-      // Row 5
-      new TableRow({
-        children: [
-          new TableCell({
-            children: [new Paragraph({ children: [new TextRun({ text: 'Process Spec', bold: true, size: 18, color: '666666' })] })],
-            shading: { fill: 'E6EBF0', type: ShadingType.SOLID },
-          }),
-          new TableCell({
-            children: [new Paragraph({ children: [new TextRun({ text: formatValue(data.standard), size: 20 })] })],
-          }),
-          new TableCell({
-            children: [new Paragraph({ children: [new TextRun({ text: 'Acceptance Class', bold: true, size: 18, color: '666666' })] })],
-            shading: { fill: 'E6EBF0', type: ShadingType.SOLID },
-          }),
-          new TableCell({
-            children: [new Paragraph({ children: [new TextRun({ text: formatAcceptanceClass(acceptanceCriteria.acceptanceClass).class, bold: true, size: 22, color: '005293' })] })],
-          }),
-        ],
-      }),
-    ],
-  });
-  children.push(summaryTable);
+  // Page break after cover
+  children.push(new Paragraph({ children: [new PageBreak()] }));
 
-  children.push(new Paragraph({ children: [], spacing: { after: 300 } }));
+  // ========== TABLE OF CONTENTS ==========
+  children.push(...buildTableOfContents(
+    !!data.capturedDrawing,
+    !!scanDetails?.scanDetails?.some(d => d.enabled),
+    !!data.angleBeamDiagram
+  ));
 
-  // Table of Contents
-  children.push(...buildTableOfContents());
+  // ========== 1. PART INFORMATION ==========
+  children.push(createSectionTitle('1. PART INFORMATION'));
+  children.push(new Paragraph({ children: [], spacing: { after: 200 } }));
 
-  // Part Information (matching PDF structure)
-  children.push(...createSection('1. PART INFORMATION', [
+  children.push(createKeyValueTable([
     ['Part Number', formatValue(inspectionSetup.partNumber)],
     ['Part Name', formatValue(inspectionSetup.partName)],
     ['Material', formatMaterial(inspectionSetup.material, inspectionSetup.customMaterialName)],
@@ -617,15 +1339,20 @@ export async function exportTechniqueSheetWord(
     ['Part Type / Geometry', formatPartType(inspectionSetup.partType)],
     ['Drawing Number', formatValue(inspectionSetup.drawingNumber)],
     ['Heat Treatment', formatValue(inspectionSetup.heatTreatment)],
-  ]));
+  ], 'Part Info'));
 
-  // Dimensions subsection (matching PDF)
+  children.push(new Paragraph({ children: [], spacing: { after: 200 } }));
+
+  // Dimensions subsection
   const dimensionRows = getPartDimensionRows(inspectionSetup);
   if (dimensionRows.length > 0) {
-    children.push(...createSubsection('Dimensions', dimensionRows.map(row => [row[0], row[1]] as [string, string])));
+    children.push(createSubsectionTitle('Dimensions'));
+    children.push(new Paragraph({ children: [], spacing: { after: 100 } }));
+    children.push(createKeyValueTable(dimensionRows.map(row => [row[0], row[1]] as [string, string]), undefined, WORD_COLORS.secondary));
+    children.push(new Paragraph({ children: [], spacing: { after: 200 } }));
   }
 
-  // Material Properties subsection (matching PDF)
+  // Material Properties subsection
   if (inspectionSetup.acousticVelocity || inspectionSetup.materialDensity) {
     const matProps: [string, string][] = [];
     if (inspectionSetup.acousticVelocity) {
@@ -635,42 +1362,63 @@ export async function exportTechniqueSheetWord(
       matProps.push(['Material Density', formatNumber(inspectionSetup.materialDensity, 0, 'kg/m³')]);
     }
     if (matProps.length > 0) {
-      children.push(...createSubsection('Material Properties', matProps));
+      children.push(createSubsectionTitle('Material Properties'));
+      children.push(new Paragraph({ children: [], spacing: { after: 100 } }));
+      children.push(createKeyValueTable(matProps));
+      children.push(new Paragraph({ children: [], spacing: { after: 200 } }));
     }
   }
 
-  // Material Warning (matching PDF)
+  // Material Warning
   const materialWarning = getMaterialWarning(inspectionSetup.material);
   if (materialWarning) {
-    children.push(createWarningParagraph(materialWarning));
+    children.push(createWarningBox(materialWarning));
+    children.push(new Paragraph({ children: [], spacing: { after: 200 } }));
   }
 
-  // Equipment (matching PDF structure)
-  children.push(...createSection('2. EQUIPMENT', [
+  children.push(new Paragraph({ children: [new PageBreak()] }));
+
+  // ========== 2. EQUIPMENT ==========
+  children.push(createSectionTitle('2. EQUIPMENT'));
+  children.push(new Paragraph({ children: [], spacing: { after: 200 } }));
+
+  children.push(createKeyValueTable([
     ['Manufacturer', formatValue(equipment.manufacturer)],
     ['Model', formatValue(equipment.model)],
     ['Serial Number', formatValue(equipment.serialNumber)],
     ['Software Version', formatValue(equipment.softwareVersion)],
-  ]));
+  ], 'Equipment'));
 
-  // Transducer subsection (matching PDF)
-  children.push(...createSubsection('Transducer', [
+  children.push(new Paragraph({ children: [], spacing: { after: 200 } }));
+
+  // Transducer subsection
+  children.push(createSubsectionTitle('Transducer'));
+  children.push(new Paragraph({ children: [], spacing: { after: 100 } }));
+
+  children.push(createKeyValueTable([
     ['Probe Model', formatValue(equipment.probeModel)],
     ['Frequency', equipment.frequency ? `${equipment.frequency} MHz` : '-'],
     ['Type', formatTransducerType(equipment.transducerType)],
     ['Element Diameter', equipment.transducerDiameter ? formatNumber(equipment.transducerDiameter, 3, 'inches') : '-'],
     ['Couplant', formatValue(equipment.couplant)],
-  ]));
+  ], undefined, WORD_COLORS.secondary));
 
-  // Performance Parameters subsection (matching PDF)
-  children.push(...createSubsection('Performance Parameters', [
+  children.push(new Paragraph({ children: [], spacing: { after: 200 } }));
+
+  // Performance Parameters
+  children.push(createSubsectionTitle('Performance Parameters'));
+  children.push(new Paragraph({ children: [], spacing: { after: 100 } }));
+
+  children.push(createKeyValueTable([
     ['Vertical Linearity', equipment.verticalLinearity ? `${equipment.verticalLinearity}%` : '-'],
     ['Horizontal Linearity', equipment.horizontalLinearity ? `${equipment.horizontalLinearity}%` : '-'],
     ['Entry Surface Resolution', equipment.entrySurfaceResolution ? formatNumber(equipment.entrySurfaceResolution, 3, 'inches') : '-'],
     ['Back Surface Resolution', equipment.backSurfaceResolution ? formatNumber(equipment.backSurfaceResolution, 3, 'inches') : '-'],
   ]));
 
-  // Phased Array Configuration (if applicable - matching PDF)
+  children.push(new Paragraph({ children: [], spacing: { after: 200 } }));
+
+  // Phased Array Configuration (if applicable)
   if (equipment.numberOfElements || equipment.elementPitch || equipment.wedgeModel || equipment.wedgeType) {
     const paConfig: [string, string][] = [];
     if (equipment.numberOfElements) paConfig.push(['Number of Elements', String(equipment.numberOfElements)]);
@@ -678,36 +1426,57 @@ export async function exportTechniqueSheetWord(
     if (equipment.wedgeModel) paConfig.push(['Wedge Model', formatValue(equipment.wedgeModel)]);
     if (equipment.wedgeType) paConfig.push(['Wedge Type', formatValue(equipment.wedgeType)]);
     if (equipment.delayLine) paConfig.push(['Delay Line', formatValue(equipment.delayLine)]);
+
     if (paConfig.length > 0) {
-      children.push(...createSubsection('Phased Array Configuration', paConfig));
+      children.push(createSubsectionTitle('Phased Array Configuration'));
+      children.push(new Paragraph({ children: [], spacing: { after: 100 } }));
+      children.push(createKeyValueTable(paConfig, undefined, '800080')); // Purple for PA
+      children.push(new Paragraph({ children: [], spacing: { after: 200 } }));
     }
   }
 
-  // Scan Parameters (matching PDF structure - moved before Calibration to match PDF order)
-  children.push(...createSection('3. SCAN PARAMETERS', [
+  children.push(new Paragraph({ children: [new PageBreak()] }));
+
+  // ========== 3. SCAN PARAMETERS ==========
+  children.push(createSectionTitle('3. SCAN PARAMETERS'));
+  children.push(new Paragraph({ children: [], spacing: { after: 200 } }));
+
+  children.push(createKeyValueTable([
     ['Scan Method', formatScanMethod(scanParameters.scanMethod)],
     ['Technique', formatTechnique(scanParameters.technique)],
     ['Scan Type', formatValue(scanParameters.scanType)],
     ['Scan Pattern', formatValue(scanParameters.scanPattern)],
     ['Coupling Method', formatValue(scanParameters.couplingMethod)],
-  ]));
+  ], 'Scan Parameters'));
 
-  // Speed & Coverage subsection (matching PDF)
-  children.push(...createSubsection('Speed & Coverage', [
+  children.push(new Paragraph({ children: [], spacing: { after: 200 } }));
+
+  // Speed & Coverage
+  children.push(createSubsectionTitle('Speed & Coverage'));
+  children.push(new Paragraph({ children: [], spacing: { after: 100 } }));
+
+  children.push(createKeyValueTable([
     ['Scan Speed', scanParameters.scanSpeed ? formatNumber(scanParameters.scanSpeed, 0, 'mm/s') : '-'],
     ['Scan Index', scanParameters.scanIndex ? formatNumber(scanParameters.scanIndex, 0, '%') : '-'],
     ['Coverage', scanParameters.coverage ? `${scanParameters.coverage}%` : '-'],
     ['Water Path', scanParameters.waterPath ? formatNumber(scanParameters.waterPath, 1, 'mm') : '-'],
   ]));
 
-  // Instrument Settings subsection (matching PDF)
-  children.push(...createSubsection('Instrument Settings', [
+  children.push(new Paragraph({ children: [], spacing: { after: 200 } }));
+
+  // Instrument Settings
+  children.push(createSubsectionTitle('Instrument Settings'));
+  children.push(new Paragraph({ children: [], spacing: { after: 100 } }));
+
+  children.push(createKeyValueTable([
     ['Pulse Repetition Rate (PRF)', scanParameters.pulseRepetitionRate ? `${scanParameters.pulseRepetitionRate} Hz` : '-'],
     ['Gain Settings', formatValue(scanParameters.gainSettings)],
     ['Alarm Gate Settings', formatValue(scanParameters.alarmGateSettings)],
   ]));
 
-  // Phased Array Settings (if applicable - matching PDF)
+  children.push(new Paragraph({ children: [], spacing: { after: 200 } }));
+
+  // Phased Array Settings (if applicable)
   if (scanParameters.couplingMethod === 'phased_array' && scanParameters.phasedArray) {
     const pa = scanParameters.phasedArray;
     const paSettings: [string, string][] = [];
@@ -715,91 +1484,90 @@ export async function exportTechniqueSheetWord(
     if (pa.refractedAngleEnd) paSettings.push(['Refracted Angle End', `${pa.refractedAngleEnd}°`]);
     if (pa.aperture) paSettings.push(['Aperture', String(pa.aperture)]);
     if (pa.focusLaws) paSettings.push(['Focus Laws', formatValue(pa.focusLaws)]);
+
     if (paSettings.length > 0) {
-      children.push(...createSubsection('Phased Array Settings', paSettings));
+      children.push(createSubsectionTitle('Phased Array Settings'));
+      children.push(new Paragraph({ children: [], spacing: { after: 100 } }));
+      children.push(createKeyValueTable(paSettings, undefined, '800080')); // Purple
+      children.push(new Paragraph({ children: [], spacing: { after: 200 } }));
     }
   }
 
-  // Acceptance Criteria (matching PDF structure)
-  const classInfo = formatAcceptanceClass(acceptanceCriteria.acceptanceClass);
+  children.push(new Paragraph({ children: [new PageBreak()] }));
 
-  // Add Acceptance Class badge/highlight
+  // ========== 4. ACCEPTANCE CRITERIA ==========
+  children.push(createSectionTitle('4. ACCEPTANCE CRITERIA'));
+  children.push(new Paragraph({ children: [], spacing: { after: 200 } }));
+
+  const classInfo = formatAcceptanceClass(acceptanceCriteria.acceptanceClass);
   if (classInfo.class !== '-') {
     children.push(new Paragraph({
       children: [
-        new TextRun({ text: '4. ACCEPTANCE CRITERIA', bold: true, size: 26, color: '005293' }),
-      ],
-      heading: HeadingLevel.HEADING_2,
-      spacing: { before: 400, after: 200 },
-    }));
-
-    children.push(new Paragraph({
-      children: [
         new TextRun({ text: 'ACCEPTANCE CLASS: ', bold: true, size: 24 }),
-        new TextRun({ text: classInfo.class, bold: true, size: 28, color: '1e3a5f' }),
-        new TextRun({ text: ` (${classInfo.description})`, size: 20, color: '6b7280' }),
+        new TextRun({ text: classInfo.class, bold: true, size: 28, color: WORD_COLORS.primaryDark }),
+        new TextRun({ text: ` (${classInfo.description})`, size: 18, color: WORD_COLORS.lightText }),
       ],
       spacing: { before: 100, after: 200 },
     }));
-  } else {
-    children.push(...createSection('4. ACCEPTANCE CRITERIA', []));
   }
 
-  // Criteria Table (matching PDF)
-  children.push(new Table({
-    width: { size: 100, type: WidthType.PERCENTAGE },
-    rows: [
-      ['Single Discontinuity', formatValue(acceptanceCriteria.singleDiscontinuity)],
-      ['Multiple Discontinuities', formatValue(acceptanceCriteria.multipleDiscontinuities)],
-      ['Linear Discontinuity', formatValue(acceptanceCriteria.linearDiscontinuity)],
-      ['Back Reflection Loss', acceptanceCriteria.backReflectionLoss ? `${acceptanceCriteria.backReflectionLoss}%` : '-'],
-      ['Noise Level', formatValue(acceptanceCriteria.noiseLevel)],
-    ].map(([label, value]) => createTableRow([label, value])),
-  }));
+  children.push(createKeyValueTable([
+    ['Single Discontinuity', formatValue(acceptanceCriteria.singleDiscontinuity)],
+    ['Multiple Discontinuities', formatValue(acceptanceCriteria.multipleDiscontinuities)],
+    ['Linear Discontinuity', formatValue(acceptanceCriteria.linearDiscontinuity)],
+    ['Back Reflection Loss', acceptanceCriteria.backReflectionLoss ? `${acceptanceCriteria.backReflectionLoss}%` : '-'],
+    ['Noise Level', formatValue(acceptanceCriteria.noiseLevel)],
+  ]));
 
-  // Special Requirements (matching PDF)
+  children.push(new Paragraph({ children: [], spacing: { after: 200 } }));
+
+  // Special Requirements
   if (acceptanceCriteria.specialRequirements) {
+    children.push(createSubsectionTitle('Special Requirements'));
+    children.push(new Paragraph({ children: [], spacing: { after: 100 } }));
     children.push(new Paragraph({
-      children: [new TextRun({ text: 'Special Requirements', bold: true, size: 22, color: '4080B2' })],
-      heading: HeadingLevel.HEADING_3,
-      spacing: { before: 200, after: 100 },
-    }));
-    children.push(new Paragraph({
-      children: [new TextRun({ text: acceptanceCriteria.specialRequirements, size: 20 })],
-      spacing: { before: 100, after: 200 },
+      children: [new TextRun({ text: acceptanceCriteria.specialRequirements, size: 18 })],
+      spacing: { after: 200 },
     }));
   }
 
-  // Material Warning in Acceptance section (matching PDF)
+  // Material Warning in Acceptance section
   if (materialWarning) {
-    children.push(createWarningParagraph(`MATERIAL WARNING: ${materialWarning}`));
+    children.push(createWarningBox(`MATERIAL WARNING: ${materialWarning}`));
+    children.push(new Paragraph({ children: [], spacing: { after: 200 } }));
   }
 
-  // Scan Details (if available - matching PDF structure with multiple tables)
+  children.push(new Paragraph({ children: [new PageBreak()] }));
+
+  // ========== 5. SCAN DETAILS (if available) ==========
   if (scanDetails?.scanDetails && scanDetails.scanDetails.some(d => d.enabled)) {
-    children.push(new Paragraph({
-      children: [new TextRun({ text: '5. SCAN DETAILS & DIRECTIONS', bold: true, size: 26, color: '005293' })],
-      heading: HeadingLevel.HEADING_2,
-      spacing: { before: 400, after: 200 },
-    }));
+    children.push(createSectionTitle('5. SCAN DETAILS & DIRECTIONS'));
+    children.push(new Paragraph({ children: [], spacing: { after: 200 } }));
 
     const enabledDetails = scanDetails.scanDetails.filter(d => d.enabled);
 
-    // Table 1: Scan Directions Overview (matching PDF)
-    children.push(new Paragraph({
-      children: [new TextRun({ text: 'Scan Directions Overview', bold: true, size: 22, color: '4080B2' })],
-      heading: HeadingLevel.HEADING_3,
-      spacing: { before: 200, after: 100 },
-    }));
+    // Scan Directions Overview
+    children.push(createSubsectionTitle('Scan Directions Overview'));
+    children.push(new Paragraph({ children: [], spacing: { after: 100 } }));
 
+    const overviewHeaders = ['Dir.', 'Wave Mode', 'Angle', 'Freq.', 'Make', 'Probe/Size', 'Remarks'];
     const overviewHeaderRow = new TableRow({
-      children: ['Dir.', 'Wave Mode', 'Angle', 'Freq.', 'Make', 'Probe/Size', 'Remarks'].map(text => new TableCell({
-        children: [new Paragraph({ children: [new TextRun({ text, bold: true, size: 16, color: 'FFFFFF' })] })],
-        shading: { fill: '1e3a5f', type: ShadingType.SOLID, color: 'FFFFFF' },
+      children: overviewHeaders.map(text => new TableCell({
+        children: [new Paragraph({
+          children: [new TextRun({ text, bold: true, size: 14, color: 'FFFFFF' })],
+          alignment: AlignmentType.CENTER,
+        })],
+        shading: { fill: WORD_COLORS.primaryDark, type: ShadingType.CLEAR },
+        margins: {
+          top: convertInchesToTwip(0.03),
+          bottom: convertInchesToTwip(0.03),
+          left: convertInchesToTwip(0.03),
+          right: convertInchesToTwip(0.03),
+        },
       })),
     });
 
-    const overviewDataRows = enabledDetails.map(detail => new TableRow({
+    const overviewDataRows = enabledDetails.map((detail, idx) => new TableRow({
       children: [
         detail.scanningDirection,
         detail.waveMode || '-',
@@ -809,7 +1577,16 @@ export async function exportTechniqueSheetWord(
         detail.probe || '-',
         detail.remarkDetails || '-',
       ].map(text => new TableCell({
-        children: [new Paragraph({ children: [new TextRun({ text, size: 16 })] })],
+        children: [new Paragraph({
+          children: [new TextRun({ text, size: 14 })],
+        })],
+        shading: idx % 2 === 1 ? { fill: WORD_COLORS.rowAlt, type: ShadingType.CLEAR } : undefined,
+        margins: {
+          top: convertInchesToTwip(0.03),
+          bottom: convertInchesToTwip(0.03),
+          left: convertInchesToTwip(0.03),
+          right: convertInchesToTwip(0.03),
+        },
       })),
     }));
 
@@ -818,21 +1595,30 @@ export async function exportTechniqueSheetWord(
       rows: [overviewHeaderRow, ...overviewDataRows],
     }));
 
-    // Table 2: Probe Details (matching PDF)
-    children.push(new Paragraph({
-      children: [new TextRun({ text: 'Probe Details', bold: true, size: 22, color: '4080B2' })],
-      heading: HeadingLevel.HEADING_3,
-      spacing: { before: 300, after: 100 },
-    }));
+    children.push(new Paragraph({ children: [], spacing: { after: 200 } }));
 
+    // Probe Details
+    children.push(createSubsectionTitle('Probe Details'));
+    children.push(new Paragraph({ children: [], spacing: { after: 100 } }));
+
+    const probeHeaders = ['Dir.', 'Part Number', 'Serial Number', 'Range', 'Attenuation', 'BWE', 'SSS'];
     const probeHeaderRow = new TableRow({
-      children: ['Dir.', 'Part Number', 'Serial Number', 'Range', 'Attenuation', 'BWE', 'SSS'].map(text => new TableCell({
-        children: [new Paragraph({ children: [new TextRun({ text, bold: true, size: 16, color: 'FFFFFF' })] })],
-        shading: { fill: '2563eb', type: ShadingType.SOLID, color: 'FFFFFF' },
+      children: probeHeaders.map(text => new TableCell({
+        children: [new Paragraph({
+          children: [new TextRun({ text, bold: true, size: 14, color: 'FFFFFF' })],
+          alignment: AlignmentType.CENTER,
+        })],
+        shading: { fill: '2563EB', type: ShadingType.CLEAR },
+        margins: {
+          top: convertInchesToTwip(0.03),
+          bottom: convertInchesToTwip(0.03),
+          left: convertInchesToTwip(0.03),
+          right: convertInchesToTwip(0.03),
+        },
       })),
     });
 
-    const probeDataRows = enabledDetails.map(detail => new TableRow({
+    const probeDataRows = enabledDetails.map((detail, idx) => new TableRow({
       children: [
         detail.scanningDirection,
         detail.partNumber || '-',
@@ -842,7 +1628,16 @@ export async function exportTechniqueSheetWord(
         detail.backWallEcho !== undefined ? `${detail.backWallEcho}%` : '-',
         detail.sss || '-',
       ].map(text => new TableCell({
-        children: [new Paragraph({ children: [new TextRun({ text, size: 16 })] })],
+        children: [new Paragraph({
+          children: [new TextRun({ text, size: 14 })],
+        })],
+        shading: idx % 2 === 1 ? { fill: WORD_COLORS.rowAlt, type: ShadingType.CLEAR } : undefined,
+        margins: {
+          top: convertInchesToTwip(0.03),
+          bottom: convertInchesToTwip(0.03),
+          left: convertInchesToTwip(0.03),
+          right: convertInchesToTwip(0.03),
+        },
       })),
     }));
 
@@ -851,111 +1646,31 @@ export async function exportTechniqueSheetWord(
       rows: [probeHeaderRow, ...probeDataRows],
     }));
 
-    // Table 3: Gate Settings (matching PDF)
-    children.push(new Paragraph({
-      children: [new TextRun({ text: 'Gate Settings', bold: true, size: 22, color: '4080B2' })],
-      heading: HeadingLevel.HEADING_3,
-      spacing: { before: 300, after: 100 },
-    }));
-
-    const formatGate = (gate?: { start: number; length: number; level: number }): string => {
-      if (!gate) return '-';
-      return `${gate.start}-${gate.length}-${gate.level}%`;
-    };
-
-    const gateHeaderRow = new TableRow({
-      children: ['Dir.', 'Gate 1 (Start-Length-Level)', 'Gate 2 (Start-Length-Level)'].map(text => new TableCell({
-        children: [new Paragraph({ children: [new TextRun({ text, bold: true, size: 16, color: 'FFFFFF' })] })],
-        shading: { fill: '10b981', type: ShadingType.SOLID, color: 'FFFFFF' },
-      })),
-    });
-
-    const gateDataRows = enabledDetails.map(detail => {
-      const extDetail = detail as typeof detail & {
-        gate1?: { start: number; length: number; level: number };
-        gate2?: { start: number; length: number; level: number };
-      };
-      return new TableRow({
-        children: [
-          detail.scanningDirection,
-          formatGate(extDetail.gate1),
-          formatGate(extDetail.gate2),
-        ].map(text => new TableCell({
-          children: [new Paragraph({ children: [new TextRun({ text, size: 16 })] })],
-        })),
-      });
-    });
-
-    children.push(new Table({
-      width: { size: 100, type: WidthType.PERCENTAGE },
-      rows: [gateHeaderRow, ...gateDataRows],
-    }));
-
-    // Table 4: Pulsar Parameters (matching PDF)
-    children.push(new Paragraph({
-      children: [new TextRun({ text: 'Pulsar Parameters', bold: true, size: 22, color: '4080B2' })],
-      heading: HeadingLevel.HEADING_3,
-      spacing: { before: 300, after: 100 },
-    }));
-
-    const pulsarHeaderRow = new TableRow({
-      children: ['Dir.', 'Scan File', 'Pulsar Params', 'PRF', 'Index', 'DB', 'Filter', 'Reject', 'TCG'].map(text => new TableCell({
-        children: [new Paragraph({ children: [new TextRun({ text, bold: true, size: 14, color: 'FFFFFF' })] })],
-        shading: { fill: '8b5cf6', type: ShadingType.SOLID, color: 'FFFFFF' },
-      })),
-    });
-
-    const pulsarDataRows = enabledDetails.map(detail => {
-      const extDetail = detail as typeof detail & {
-        scanningFile?: string;
-        pulsarParams?: string;
-        prf?: number;
-        indexMode?: string;
-        db?: number;
-        filter?: string;
-        reject?: string;
-        tcgMode?: boolean;
-      };
-      return new TableRow({
-        children: [
-          detail.scanningDirection,
-          extDetail.scanningFile || '-',
-          extDetail.pulsarParams || '-',
-          extDetail.prf !== undefined ? `${extDetail.prf} Hz` : '-',
-          extDetail.indexMode || '-',
-          extDetail.db !== undefined ? `${extDetail.db} dB` : '-',
-          extDetail.filter || '-',
-          extDetail.reject || '-',
-          extDetail.tcgMode !== undefined ? (extDetail.tcgMode ? 'ON' : 'OFF') : '-',
-        ].map(text => new TableCell({
-          children: [new Paragraph({ children: [new TextRun({ text, size: 14 })] })],
-        })),
-      });
-    });
-
-    children.push(new Table({
-      width: { size: 100, type: WidthType.PERCENTAGE },
-      rows: [pulsarHeaderRow, ...pulsarDataRows],
-    }));
+    children.push(new Paragraph({ children: [new PageBreak()] }));
   }
 
-  // Documentation (matching PDF structure)
-  children.push(new Paragraph({
-    children: [new TextRun({ text: '6. DOCUMENTATION', bold: true, size: 26, color: '005293' })],
-    heading: HeadingLevel.HEADING_2,
-    spacing: { before: 400, after: 200 },
-  }));
+  // ========== 6. DOCUMENTATION ==========
+  children.push(createSectionTitle('6. DOCUMENTATION'));
+  children.push(new Paragraph({ children: [], spacing: { after: 200 } }));
 
-  // Inspector subsection (matching PDF)
-  children.push(...createSubsection('Inspector', [
+  // Inspector subsection
+  children.push(createSubsectionTitle('Inspector'));
+  children.push(new Paragraph({ children: [], spacing: { after: 100 } }));
+
+  children.push(createKeyValueTable([
     ['Inspector Name', formatValue(documentation.inspectorName)],
     ['Certification Number', formatValue(documentation.inspectorCertification)],
     ['Level', formatValue(documentation.inspectorLevel)],
     ['Certifying Organization', formatValue(documentation.certifyingOrganization)],
   ]));
 
-  // Customer & Document subsection (matching PDF)
-  children.push(...createSubsection('Customer & Document', [
+  children.push(new Paragraph({ children: [], spacing: { after: 200 } }));
+
+  // Customer & Document subsection
+  children.push(createSubsectionTitle('Customer & Document'));
+  children.push(new Paragraph({ children: [], spacing: { after: 100 } }));
+
+  children.push(createKeyValueTable([
     ['Customer Name', formatValue(documentation.customerName)],
     ['Purchase Order', formatValue(documentation.purchaseOrder)],
     ['Part Serial Number', formatValue(documentation.serialNumber)],
@@ -965,45 +1680,54 @@ export async function exportTechniqueSheetWord(
     ['Revision', formatValue(documentation.revision)],
   ]));
 
-  // Additional Notes (matching PDF)
+  children.push(new Paragraph({ children: [], spacing: { after: 200 } }));
+
+  // Additional Notes
   if (documentation.additionalNotes) {
+    children.push(createSubsectionTitle('Additional Notes'));
+    children.push(new Paragraph({ children: [], spacing: { after: 100 } }));
     children.push(new Paragraph({
-      children: [new TextRun({ text: 'Additional Notes', bold: true, size: 22, color: '4080B2' })],
-      heading: HeadingLevel.HEADING_3,
-      spacing: { before: 200, after: 100 },
-    }));
-    children.push(new Paragraph({
-      children: [new TextRun({ text: documentation.additionalNotes, size: 20 })],
-      spacing: { before: 100, after: 200 },
+      children: [new TextRun({ text: documentation.additionalNotes, size: 18 })],
+      spacing: { after: 200 },
     }));
   }
 
-  // ========== 7. CALIBRATION (matching PDF order - after Documentation) ==========
-  children.push(...createSection('7. CALIBRATION / REFERENCE STANDARD', [
+  children.push(new Paragraph({ children: [new PageBreak()] }));
+
+  // ========== 7. CALIBRATION / REFERENCE STANDARD ==========
+  children.push(createSectionTitle('7. CALIBRATION / REFERENCE STANDARD'));
+  children.push(new Paragraph({ children: [], spacing: { after: 200 } }));
+
+  children.push(createKeyValueTable([
     ['Standard/Block Type', formatBlockType(calibration.standardType)],
     ['Reference Material', formatValue(calibration.referenceMaterial)],
     ['Block Dimensions', formatValue(calibration.blockDimensions)],
     ['Block Serial Number', formatValue(calibration.blockSerialNumber)],
     ['Last Calibration Date', formatDate(calibration.lastCalibrationDate)],
     ['Metal Travel Distance', calibration.metalTravelDistance ? formatNumber(calibration.metalTravelDistance, 1, 'mm') : '-'],
-  ]));
+  ], 'Calibration'));
 
-  // FBH Table (matching PDF - if fbhHoles array exists)
+  children.push(new Paragraph({ children: [], spacing: { after: 200 } }));
+
+  // FBH Table
   if (calibration.fbhHoles && calibration.fbhHoles.length > 0) {
-    children.push(new Paragraph({
-      children: [new TextRun({ text: 'Flat Bottom Holes (FBH)', bold: true, size: 22, color: '4080B2' })],
-      heading: HeadingLevel.HEADING_3,
-      spacing: { before: 200, after: 100 },
-    }));
+    children.push(createSubsectionTitle('Flat Bottom Holes (FBH)'));
+    children.push(new Paragraph({ children: [], spacing: { after: 100 } }));
 
-    // FBH table header
+    const fbhHeaders = ['P/N', 'Δ Type', 'Ø FBH (inch)', 'Ø FBH (mm)', 'E (mm)', 'H (mm)'];
     const fbhHeaderRow = new TableRow({
-      children: ['P/N', 'Δ Type', 'Ø FBH (inch)', 'Ø FBH (mm)', 'E (mm)', 'H (mm)'].map(text => new TableCell({
+      children: fbhHeaders.map(text => new TableCell({
         children: [new Paragraph({
-          children: [new TextRun({ text, bold: true, size: 18, color: 'FFFFFF' })],
+          children: [new TextRun({ text, bold: true, size: 16, color: 'FFFFFF' })],
           alignment: AlignmentType.CENTER,
         })],
-        shading: { fill: '005293', type: ShadingType.SOLID },
+        shading: { fill: WORD_COLORS.primary, type: ShadingType.CLEAR },
+        margins: {
+          top: convertInchesToTwip(0.04),
+          bottom: convertInchesToTwip(0.04),
+          left: convertInchesToTwip(0.04),
+          right: convertInchesToTwip(0.04),
+        },
       })),
     });
 
@@ -1016,64 +1740,40 @@ export async function exportTechniqueSheetWord(
         formatNumber(hole.blockHeightE, 1, 'mm'),
         formatNumber(hole.metalTravelH, 1, 'mm'),
       ].map(text => new TableCell({
-        children: [new Paragraph({ children: [new TextRun({ text, size: 18 })] })],
-        shading: idx % 2 === 1 ? { fill: 'F8FAFC', type: ShadingType.SOLID } : undefined,
+        children: [new Paragraph({
+          children: [new TextRun({ text, size: 16 })],
+          alignment: AlignmentType.CENTER,
+        })],
+        shading: idx % 2 === 1 ? { fill: WORD_COLORS.rowAlt, type: ShadingType.CLEAR } : undefined,
+        margins: {
+          top: convertInchesToTwip(0.04),
+          bottom: convertInchesToTwip(0.04),
+          left: convertInchesToTwip(0.04),
+          right: convertInchesToTwip(0.04),
+        },
       })),
     }));
 
     children.push(new Table({
       width: { size: 100, type: WidthType.PERCENTAGE },
-      borders: {
-        top: { style: BorderStyle.SINGLE, size: 4, color: 'C8D2DC' },
-        bottom: { style: BorderStyle.SINGLE, size: 4, color: 'C8D2DC' },
-        left: { style: BorderStyle.SINGLE, size: 4, color: 'C8D2DC' },
-        right: { style: BorderStyle.SINGLE, size: 4, color: 'C8D2DC' },
-        insideHorizontal: { style: BorderStyle.SINGLE, size: 4, color: 'C8D2DC' },
-        insideVertical: { style: BorderStyle.SINGLE, size: 4, color: 'C8D2DC' },
-      },
       rows: [fbhHeaderRow, ...fbhDataRows],
     }));
+
+    children.push(new Paragraph({ children: [], spacing: { after: 200 } }));
   } else if (calibration.fbhSizes) {
-    // Legacy FBH sizes string
-    children.push(...createSubsection('FBH Sizes', [['FBH Sizes', formatValue(calibration.fbhSizes)]]));
-  }
-
-  // Technical Drawing (if available - matching PDF)
-  if (data.capturedDrawing) {
-    children.push(new Paragraph({ children: [new PageBreak()] }));
+    children.push(createSubsectionTitle('FBH Sizes'));
+    children.push(new Paragraph({ children: [], spacing: { after: 100 } }));
     children.push(new Paragraph({
-      children: [new TextRun({ text: 'TECHNICAL DRAWING', bold: true, size: 26 })],
-      heading: HeadingLevel.HEADING_2,
-      spacing: { before: 200, after: 200 },
+      children: [new TextRun({ text: formatValue(calibration.fbhSizes), size: 18 })],
+      spacing: { after: 200 },
     }));
-
-    try {
-      const imageBuffer = base64ToArrayBuffer(data.capturedDrawing);
-      children.push(new Paragraph({
-        alignment: AlignmentType.CENTER,
-        children: [
-          new ImageRun({
-            type: 'png',
-            data: imageBuffer,
-            transformation: { width: 500, height: 350 },
-          }),
-        ],
-      }));
-    } catch (e) {
-      children.push(new Paragraph({
-        children: [new TextRun({ text: 'Technical drawing could not be loaded.', italics: true, color: '6b7280' })],
-      }));
-    }
   }
 
-  // Calibration Block Diagram (if available - matching PDF)
+  // Calibration Block Diagram
   if (data.calibrationBlockDiagram) {
     children.push(new Paragraph({ children: [new PageBreak()] }));
-    children.push(new Paragraph({
-      children: [new TextRun({ text: 'CALIBRATION BLOCK DIAGRAM', bold: true, size: 26 })],
-      heading: HeadingLevel.HEADING_2,
-      spacing: { before: 200, after: 200 },
-    }));
+    children.push(createSubsectionTitle('Calibration Block Diagram'));
+    children.push(new Paragraph({ children: [], spacing: { after: 100 } }));
 
     try {
       const imageBuffer = base64ToArrayBuffer(data.calibrationBlockDiagram);
@@ -1087,23 +1787,21 @@ export async function exportTechniqueSheetWord(
           }),
         ],
       }));
-    } catch (e) {
+    } catch {
       children.push(new Paragraph({
-        children: [new TextRun({ text: 'Calibration block diagram could not be loaded.', italics: true, color: '6b7280' })],
+        children: [new TextRun({ text: 'Calibration block diagram could not be loaded.', italics: true, color: WORD_COLORS.lightText })],
       }));
     }
+
+    children.push(new Paragraph({ children: [], spacing: { after: 200 } }));
   }
 
-  // Angle Beam Diagram (if available - matching PDF for circular parts)
+  // Angle Beam Diagram
   if (data.angleBeamDiagram) {
     children.push(new Paragraph({ children: [new PageBreak()] }));
+    children.push(createSubsectionTitle('Angle Beam Calibration Block'));
     children.push(new Paragraph({
-      children: [new TextRun({ text: 'ANGLE BEAM CALIBRATION BLOCK', bold: true, size: 26 })],
-      heading: HeadingLevel.HEADING_2,
-      spacing: { before: 200, after: 100 },
-    }));
-    children.push(new Paragraph({
-      children: [new TextRun({ text: 'Shear Wave / Circumferential Inspection Reference Block', size: 18, color: '6b7280' })],
+      children: [new TextRun({ text: 'Shear Wave / Circumferential Inspection Reference Block', size: 16, color: WORD_COLORS.lightText })],
       spacing: { after: 200 },
     }));
 
@@ -1119,26 +1817,51 @@ export async function exportTechniqueSheetWord(
           }),
         ],
       }));
-    } catch (e) {
+    } catch {
       children.push(new Paragraph({
-        children: [new TextRun({ text: 'Angle beam calibration block diagram could not be loaded.', italics: true, color: '6b7280' })],
+        children: [new TextRun({ text: 'Angle beam calibration block diagram could not be loaded.', italics: true, color: WORD_COLORS.lightText })],
       }));
     }
+
+    children.push(new Paragraph({ children: [], spacing: { after: 200 } }));
   }
 
-  // E2375 Scan Directions Diagram (if available - matching PDF)
+  // Technical Drawing (full page)
+  if (data.capturedDrawing) {
+    children.push(new Paragraph({ children: [new PageBreak()] }));
+    children.push(createSectionTitle('TECHNICAL DRAWING'));
+    children.push(new Paragraph({ children: [], spacing: { after: 200 } }));
+
+    try {
+      const imageBuffer = base64ToArrayBuffer(data.capturedDrawing);
+      children.push(new Paragraph({
+        alignment: AlignmentType.CENTER,
+        children: [
+          new ImageRun({
+            type: 'png',
+            data: imageBuffer,
+            transformation: { width: 550, height: 400 },
+          }),
+        ],
+      }));
+    } catch {
+      children.push(new Paragraph({
+        children: [new TextRun({ text: 'Technical drawing could not be loaded.', italics: true, color: WORD_COLORS.lightText })],
+      }));
+    }
+
+    children.push(new Paragraph({ children: [], spacing: { after: 200 } }));
+  }
+
+  // E2375 Diagram
   if (data.e2375Diagram) {
     children.push(new Paragraph({ children: [new PageBreak()] }));
-    children.push(new Paragraph({
-      children: [new TextRun({ text: 'ASTM E2375 SCAN DIRECTIONS DIAGRAM', bold: true, size: 26 })],
-      heading: HeadingLevel.HEADING_2,
-      spacing: { before: 200, after: 100 },
-    }));
+    children.push(createSectionTitle('ASTM E2375 SCAN DIRECTIONS DIAGRAM'));
     children.push(new Paragraph({
       children: [new TextRun({
         text: `Standard Practice for Ultrasonic Testing of Wrought Products - ${formatPartType(inspectionSetup.partType)}`,
-        size: 18,
-        color: '6b7280'
+        size: 16,
+        color: WORD_COLORS.lightText,
       })],
       spacing: { after: 200 },
     }));
@@ -1151,34 +1874,33 @@ export async function exportTechniqueSheetWord(
           new ImageRun({
             type: 'png',
             data: imageBuffer,
-            transformation: { width: 500, height: 350 },
+            transformation: { width: 550, height: 400 },
           }),
         ],
       }));
       children.push(new Paragraph({
         children: [new TextRun({
           text: 'Reference: ASTM E2375-16 "Standard Practice for Ultrasonic Testing of Wrought Products"',
-          size: 16,
-          color: '6b7280',
-          italics: true
+          size: 14,
+          color: WORD_COLORS.lightText,
+          italics: true,
         })],
         spacing: { before: 100 },
       }));
-    } catch (e) {
+    } catch {
       children.push(new Paragraph({
-        children: [new TextRun({ text: 'E2375 scan directions diagram could not be loaded.', italics: true, color: '6b7280' })],
+        children: [new TextRun({ text: 'E2375 scan directions diagram could not be loaded.', italics: true, color: WORD_COLORS.lightText })],
       }));
     }
+
+    children.push(new Paragraph({ children: [], spacing: { after: 200 } }));
   }
 
-  // Scan Directions Drawing (if available - matching PDF)
+  // Scan Directions Drawing
   if (data.scanDirectionsDrawing) {
     children.push(new Paragraph({ children: [new PageBreak()] }));
-    children.push(new Paragraph({
-      children: [new TextRun({ text: 'SCAN DIRECTIONS - INSPECTION PLAN', bold: true, size: 26 })],
-      heading: HeadingLevel.HEADING_2,
-      spacing: { before: 200, after: 200 },
-    }));
+    children.push(createSectionTitle('SCAN DIRECTIONS - INSPECTION PLAN'));
+    children.push(new Paragraph({ children: [], spacing: { after: 200 } }));
 
     try {
       const imageBuffer = base64ToArrayBuffer(data.scanDirectionsDrawing);
@@ -1188,7 +1910,7 @@ export async function exportTechniqueSheetWord(
           new ImageRun({
             type: 'png',
             data: imageBuffer,
-            transformation: { width: 500, height: 350 },
+            transformation: { width: 550, height: 400 },
           }),
         ],
       }));
@@ -1196,69 +1918,36 @@ export async function exportTechniqueSheetWord(
         alignment: AlignmentType.CENTER,
         children: [new TextRun({
           text: 'Figure: Inspection plan showing selected scanning directions with entry surfaces and beam paths.',
-          size: 18,
-          color: '6b7280',
-          italics: true
+          size: 16,
+          color: WORD_COLORS.lightText,
+          italics: true,
         })],
         spacing: { before: 100 },
       }));
-    } catch (e) {
+    } catch {
       children.push(new Paragraph({
-        children: [new TextRun({ text: 'Scan directions drawing could not be loaded.', italics: true, color: '6b7280' })],
+        children: [new TextRun({ text: 'Scan directions drawing could not be loaded.', italics: true, color: WORD_COLORS.lightText })],
       }));
     }
+
+    children.push(new Paragraph({ children: [], spacing: { after: 200 } }));
   }
 
-  // Approvals & Signatures
+  // ========== 8. APPROVALS & SIGNATURES ==========
+  children.push(new Paragraph({ children: [new PageBreak()] }));
   children.push(...buildApprovalsSection(documentation as ExtendedDocumentationData, documentation.approvalRequired));
 
-  // Document header content
-  const headerDocNum = documentation.procedureNumber || `TS-${inspectionSetup.partNumber || 'XXX'}`;
-
-  // Create document with professional styling
+  // ========== CREATE DOCUMENT ==========
   const doc = new Document({
     styles: {
       default: {
         document: {
           run: {
             font: 'Arial',
-            size: 20, // 10pt
+            size: 20,
           },
           paragraph: {
-            spacing: { line: 276 }, // 1.15 line spacing
-          },
-        },
-        heading1: {
-          run: {
-            font: 'Arial',
-            size: 32, // 16pt
-            bold: true,
-            color: '005293',
-          },
-          paragraph: {
-            spacing: { before: 400, after: 200 },
-          },
-        },
-        heading2: {
-          run: {
-            font: 'Arial',
-            size: 26, // 13pt
-            bold: true,
-            color: '005293', // Match PDF primary color
-          },
-          paragraph: {
-            spacing: { before: 300, after: 150 },
-          },
-        },
-        heading3: {
-          run: {
-            font: 'Arial',
-            size: 22, // 11pt
-            bold: true,
-            color: '4080B2', // Match PDF secondary color
-          },
-          paragraph: {
-            spacing: { before: 200, after: 100 },
+            spacing: { line: 276 },
           },
         },
       },
@@ -1267,14 +1956,14 @@ export async function exportTechniqueSheetWord(
       properties: {
         page: {
           margin: {
-            top: convertInchesToTwip(0.75),
-            bottom: convertInchesToTwip(0.75),
-            left: convertInchesToTwip(0.75),
-            right: convertInchesToTwip(0.75),
+            top: convertInchesToTwip(0.6),
+            bottom: convertInchesToTwip(0.6),
+            left: convertInchesToTwip(0.6),
+            right: convertInchesToTwip(0.6),
           },
           size: {
-            width: convertInchesToTwip(8.27), // A4 width
-            height: convertInchesToTwip(11.69), // A4 height
+            width: convertInchesToTwip(8.27),
+            height: convertInchesToTwip(11.69),
           },
         },
       },
@@ -1285,7 +1974,7 @@ export async function exportTechniqueSheetWord(
               width: { size: 100, type: WidthType.PERCENTAGE },
               borders: {
                 top: { style: BorderStyle.NONE },
-                bottom: { style: BorderStyle.SINGLE, size: 12, color: '005293' },
+                bottom: { style: BorderStyle.SINGLE, size: 12, color: WORD_COLORS.primary },
                 left: { style: BorderStyle.NONE },
                 right: { style: BorderStyle.NONE },
                 insideHorizontal: { style: BorderStyle.NONE },
@@ -1303,7 +1992,7 @@ export async function exportTechniqueSheetWord(
                       },
                       children: [new Paragraph({
                         children: [
-                          new TextRun({ text: 'UT TECHNIQUE SHEET', bold: true, size: 20, color: '005293' }),
+                          new TextRun({ text: 'UT TECHNIQUE SHEET', bold: true, size: 18, color: WORD_COLORS.primary }),
                         ],
                       })],
                       width: { size: 50, type: WidthType.PERCENTAGE },
@@ -1318,8 +2007,8 @@ export async function exportTechniqueSheetWord(
                       children: [new Paragraph({
                         alignment: AlignmentType.RIGHT,
                         children: [
-                          new TextRun({ text: `Doc: ${headerDocNum}`, size: 18, color: '666666' }),
-                          new TextRun({ text: `  |  Rev: ${documentation.revision || 'A'}`, size: 18, color: '666666' }),
+                          new TextRun({ text: `Doc: ${docNum}`, size: 16, color: WORD_COLORS.lightText }),
+                          new TextRun({ text: `  |  Rev: ${revision}`, size: 16, color: WORD_COLORS.lightText }),
                         ],
                       })],
                       width: { size: 50, type: WidthType.PERCENTAGE },
@@ -1337,7 +2026,7 @@ export async function exportTechniqueSheetWord(
             new Table({
               width: { size: 100, type: WidthType.PERCENTAGE },
               borders: {
-                top: { style: BorderStyle.SINGLE, size: 6, color: 'D4AF37' },
+                top: { style: BorderStyle.SINGLE, size: 6, color: WORD_COLORS.accentGold },
                 bottom: { style: BorderStyle.NONE },
                 left: { style: BorderStyle.NONE },
                 right: { style: BorderStyle.NONE },
@@ -1356,7 +2045,7 @@ export async function exportTechniqueSheetWord(
                       },
                       children: [new Paragraph({
                         children: [
-                          new TextRun({ text: `P/N: ${inspectionSetup.partNumber || '-'}`, size: 16, color: '666666' }),
+                          new TextRun({ text: `P/N: ${inspectionSetup.partNumber || '-'}`, size: 14, color: WORD_COLORS.lightText }),
                         ],
                       })],
                       width: { size: 33, type: WidthType.PERCENTAGE },
@@ -1371,7 +2060,7 @@ export async function exportTechniqueSheetWord(
                       children: [new Paragraph({
                         alignment: AlignmentType.CENTER,
                         children: [
-                          new TextRun({ text: 'CONFIDENTIAL', size: 14, color: '999999' }),
+                          new TextRun({ text: 'CONFIDENTIAL', size: 12, color: WORD_COLORS.mutedText }),
                         ],
                       })],
                       width: { size: 34, type: WidthType.PERCENTAGE },
@@ -1386,18 +2075,18 @@ export async function exportTechniqueSheetWord(
                       children: [new Paragraph({
                         alignment: AlignmentType.RIGHT,
                         children: [
-                          new TextRun({ text: 'Page ', size: 16, color: '666666' }),
+                          new TextRun({ text: 'Page ', size: 14, color: WORD_COLORS.lightText }),
                           new TextRun({
                             children: [PageNumber.CURRENT],
-                            size: 16,
-                            color: '005293',
+                            size: 14,
+                            color: WORD_COLORS.primary,
                             bold: true,
                           }),
-                          new TextRun({ text: ' of ', size: 16, color: '666666' }),
+                          new TextRun({ text: ' of ', size: 14, color: WORD_COLORS.lightText }),
                           new TextRun({
                             children: [PageNumber.TOTAL_PAGES],
-                            size: 16,
-                            color: '005293',
+                            size: 14,
+                            color: WORD_COLORS.primary,
                             bold: true,
                           }),
                         ],

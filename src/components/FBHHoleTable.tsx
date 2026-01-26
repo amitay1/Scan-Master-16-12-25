@@ -18,6 +18,7 @@ import { Plus, Trash2 } from "lucide-react";
 import {
   FBH_DIAMETER_OPTIONS,
   BLOCK_HEIGHT_E_OPTIONS,
+  METAL_TRAVEL_OPTIONS,
   DELTA_TYPE_OPTIONS,
   inchFractionToMm,
   type FBHHoleRowData,
@@ -32,6 +33,7 @@ interface FBHHoleTableProps {
   minHoles?: number;
   showPartNumber?: boolean;
   showDeltaType?: boolean;
+  showSoundPath?: boolean;  // Show Sound Path column (for Angle Beam only)
   standard?: string;
 }
 
@@ -42,6 +44,7 @@ export function FBHHoleTable({
   minHoles = 1,
   showPartNumber = true,
   showDeltaType = true,
+  showSoundPath = false,  // Default: hidden (only show for Angle Beam)
   standard = "All",
 }: FBHHoleTableProps) {
   const [customInputs, setCustomInputs] = useState<Record<number, Record<string, boolean>>>({});
@@ -73,10 +76,7 @@ export function FBHHoleTable({
         }
       }
 
-      // Auto-update H (metal travel) when E (block height) changes - H equals E for standard FBH blocks
-      if (field === "blockHeightE") {
-        updatedHole.metalTravelH = value;
-      }
+      // E and H are now independent - no auto-update
 
       return updatedHole;
     });
@@ -127,10 +127,13 @@ export function FBHHoleTable({
               {showDeltaType && (
                 <th className="border px-3 py-2 text-center font-semibold text-sm w-20">Δ</th>
               )}
-              <th className="border px-3 py-2 text-center font-semibold text-sm w-28">ØFBH inch</th>
-              <th className="border px-3 py-2 text-center font-semibold text-sm w-24">ØFBH mm</th>
-              <th className="border px-3 py-2 text-center font-semibold text-sm w-32">E (mm)</th>
-              <th className="border px-3 py-2 text-center font-semibold text-sm w-24">H (mm)</th>
+              <th className="border px-3 py-2 text-center font-semibold text-sm w-28 text-blue-600">ØFBH inch</th>
+              <th className="border px-3 py-2 text-center font-semibold text-sm w-24 text-blue-600">ØFBH mm</th>
+              <th className="border px-3 py-2 text-center font-semibold text-sm w-32 text-orange-600">E (mm)</th>
+              <th className="border px-3 py-2 text-center font-semibold text-sm w-24 text-green-600">H (mm)</th>
+              {showSoundPath && (
+                <th className="border px-3 py-2 text-center font-semibold text-sm w-28 text-purple-600">Sound Path</th>
+              )}
               <th className="border px-3 py-2 text-center font-semibold text-sm w-12"></th>
             </tr>
           </thead>
@@ -213,7 +216,7 @@ export function FBHHoleTable({
                       <SelectContent>
                         {filteredDiameters.map(opt => (
                           <SelectItem key={opt.id} value={opt.inch}>
-                            {opt.inch} {opt.inch !== '-' && `(${opt.mm}mm)`}
+                            {opt.inch}
                           </SelectItem>
                         ))}
                         <SelectItem value="Custom" className="text-blue-600 font-medium">
@@ -303,15 +306,65 @@ export function FBHHoleTable({
                   )}
                 </td>
 
-                {/* H (metal travel) - fixed/read-only, equals E */}
+                {/* H (metal travel) - NOW EDITABLE with dropdown */}
                 <td className="border px-2 py-1">
-                  <div
-                    className="h-8 flex items-center justify-center text-sm bg-muted/30 rounded font-medium"
-                    title="גובה החור קבוע - שווה לגובה הבלוק (E)"
-                  >
-                    {hole.metalTravelH.toFixed(2)}
-                  </div>
+                  {customInputs[hole.id]?.metalTravelH ? (
+                    <div className="flex gap-1">
+                      <Input
+                        type="number"
+                        value={hole.metalTravelH}
+                        onChange={(e) => updateHole(hole.id, "metalTravelH", parseFloat(e.target.value) || 0)}
+                        step="0.1"
+                        className="h-8 text-sm flex-1"
+                      />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0"
+                        onClick={() => toggleCustomInput(hole.id, "metalTravelH")}
+                      >
+                        ✓
+                      </Button>
+                    </div>
+                  ) : (
+                    <Select
+                      value={String(hole.metalTravelH)}
+                      onValueChange={(v) => {
+                        if (v === "Custom") {
+                          toggleCustomInput(hole.id, "metalTravelH");
+                        } else {
+                          updateHole(hole.id, "metalTravelH", parseFloat(v));
+                        }
+                      }}
+                    >
+                      <SelectTrigger className="h-8 text-sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {METAL_TRAVEL_OPTIONS.map(opt => (
+                          <SelectItem key={opt.id} value={String(opt.depthMm)}>
+                            {opt.depthMm} mm
+                          </SelectItem>
+                        ))}
+                        <SelectItem value="Custom" className="text-blue-600 font-medium">
+                          Custom...
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
                 </td>
+
+                {/* Sound Path (for Angle Beam only) */}
+                {showSoundPath && (
+                  <td className="border px-2 py-1">
+                    <Input
+                      value={hole.soundPath || ''}
+                      onChange={(e) => updateHole(hole.id, "soundPath", e.target.value)}
+                      placeholder=""
+                      className="h-8 text-sm text-center"
+                    />
+                  </td>
+                )}
 
                 {/* Delete button */}
                 <td className="border px-2 py-1 text-center">

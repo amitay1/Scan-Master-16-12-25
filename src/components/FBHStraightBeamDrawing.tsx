@@ -20,8 +20,8 @@ interface FBHStraightBeamDrawingProps {
 export function FBHStraightBeamDrawing({
   partNumber = "7075 5-0150",
   serialNumber = "000",
-  width = 600,
-  height = 450,
+  width = 800,
+  height = 550,
   showDimensions = true,
   title = "FIG. 1 Standard Set Block Dimensions",
 }: FBHStraightBeamDrawingProps) {
@@ -38,17 +38,17 @@ export function FBHStraightBeamDrawing({
   // ============================================
   const sideViewCenterX = width * 0.50;
 
-  // Block dimensions - STRAIGHT RECTANGLE (no taper!)
-  const blockWidth = 100;
-  const blockHeight = 160;
+  // Block dimensions - STRAIGHT RECTANGLE (no taper!) - ENLARGED FOR CLARITY
+  const blockWidth = 180;
+  const blockHeight = 280;
   const blockTop = commonCenterY - blockHeight / 2;
   const blockLeft = sideViewCenterX - blockWidth / 2;
   const blockRight = sideViewCenterX + blockWidth / 2;
   const blockBottom = commonCenterY + blockHeight / 2;
 
-  // FBH hole INSIDE the block (drilled from bottom going UP)
-  const fbhHoleWidth = 18;
-  const fbhHoleDepth = 45; // H dimension - depth into block from bottom
+  // FBH hole INSIDE the block (drilled from bottom going UP) - ENLARGED FOR CLARITY
+  const fbhHoleWidth = 32;
+  const fbhHoleDepth = 80; // H dimension - depth into block from bottom
   const fbhCenterX = sideViewCenterX;
   const fbhTop = blockBottom - fbhHoleDepth; // top of hole (flat bottom)
 
@@ -181,7 +181,7 @@ export function FBHStraightBeamDrawing({
         {/* Dimension labels - Matching FBH Table columns (ØFBH, B, H) */}
         {showDimensions && (
           <>
-            {/* ØFBH - FBH Diameter (left side of hole) - BLUE */}
+            {/* ØFBH - FBH Diameter (left side of hole) - BLUE - STRENGTHENED */}
             <g>
               {/* Horizontal line showing hole width */}
               <line
@@ -190,62 +190,55 @@ export function FBHStraightBeamDrawing({
                 x2={fbhCenterX + fbhHoleWidth/2}
                 y2={fbhTop + 20}
                 stroke="#2563eb"
-                strokeWidth={1.5}
+                strokeWidth={2}
               />
               {/* End ticks */}
-              <line x1={fbhCenterX - fbhHoleWidth/2} y1={fbhTop + 15} x2={fbhCenterX - fbhHoleWidth/2} y2={fbhTop + 25} stroke="#2563eb" strokeWidth={1.5} />
-              <line x1={fbhCenterX + fbhHoleWidth/2} y1={fbhTop + 15} x2={fbhCenterX + fbhHoleWidth/2} y2={fbhTop + 25} stroke="#2563eb" strokeWidth={1.5} />
+              <line x1={fbhCenterX - fbhHoleWidth/2} y1={fbhTop + 15} x2={fbhCenterX - fbhHoleWidth/2} y2={fbhTop + 25} stroke="#2563eb" strokeWidth={2} />
+              <line x1={fbhCenterX + fbhHoleWidth/2} y1={fbhTop + 15} x2={fbhCenterX + fbhHoleWidth/2} y2={fbhTop + 25} stroke="#2563eb" strokeWidth={2} />
               {/* Label with arrow */}
-              <line x1={fbhCenterX - fbhHoleWidth/2 - 5} y1={fbhTop + 20} x2={fbhCenterX - fbhHoleWidth/2 - 25} y2={fbhTop + 5} stroke="#2563eb" strokeWidth={1} />
-              <text x={fbhCenterX - fbhHoleWidth/2 - 28} y={fbhTop} textAnchor="end" fill="#2563eb" style={{ fontSize: 11, fontWeight: 600 }}>ØFBH</text>
+              <line x1={fbhCenterX - fbhHoleWidth/2 - 5} y1={fbhTop + 20} x2={fbhCenterX - fbhHoleWidth/2 - 45} y2={fbhTop - 10} stroke="#2563eb" strokeWidth={2.5} />
+              <text x={fbhCenterX - fbhHoleWidth/2 - 50} y={fbhTop - 12} textAnchor="end" fill="#2563eb" style={{ fontSize: 26, fontWeight: 700 }}>ØFBH</text>
             </g>
 
-            {/* H - Metal Travel Distance (right side) - GREEN */}
+            {/* H - Metal Travel Distance (right side) - GREEN - STRENGTHENED */}
             <g>
               <line
-                x1={fbhCenterX + fbhHoleWidth/2 + 18}
+                x1={fbhCenterX + fbhHoleWidth/2 + 25}
                 y1={fbhTop}
-                x2={fbhCenterX + fbhHoleWidth/2 + 18}
+                x2={fbhCenterX + fbhHoleWidth/2 + 25}
                 y2={blockBottom}
                 stroke="#16a34a"
-                strokeWidth={1.5}
+                strokeWidth={2.5}
               />
-              <line x1={fbhCenterX + fbhHoleWidth/2 + 12} y1={fbhTop} x2={fbhCenterX + fbhHoleWidth/2 + 24} y2={fbhTop} stroke="#16a34a" strokeWidth={1.5} />
-              <line x1={fbhCenterX + fbhHoleWidth/2 + 12} y1={blockBottom} x2={fbhCenterX + fbhHoleWidth/2 + 24} y2={blockBottom} stroke="#16a34a" strokeWidth={1.5} />
+              <line x1={fbhCenterX + fbhHoleWidth/2 + 18} y1={fbhTop} x2={fbhCenterX + fbhHoleWidth/2 + 32} y2={fbhTop} stroke="#16a34a" strokeWidth={2.5} />
+              <line x1={fbhCenterX + fbhHoleWidth/2 + 18} y1={blockBottom} x2={fbhCenterX + fbhHoleWidth/2 + 32} y2={blockBottom} stroke="#16a34a" strokeWidth={2.5} />
               {/* Arrow and label */}
-              <line x1={fbhCenterX + fbhHoleWidth/2 + 24} y1={fbhTop + fbhHoleDepth/2} x2={fbhCenterX + fbhHoleWidth/2 + 40} y2={fbhTop + fbhHoleDepth/2} stroke="#16a34a" strokeWidth={1} />
-              <text x={fbhCenterX + fbhHoleWidth/2 + 45} y={fbhTop + fbhHoleDepth/2 + 4} fill="#16a34a" style={{ fontSize: 12, fontWeight: 600 }}>H</text>
+              <line x1={fbhCenterX + fbhHoleWidth/2 + 32} y1={fbhTop + fbhHoleDepth/2} x2={fbhCenterX + fbhHoleWidth/2 + 60} y2={fbhTop + fbhHoleDepth/2} stroke="#16a34a" strokeWidth={2.5} />
+              <text x={fbhCenterX + fbhHoleWidth/2 + 68} y={fbhTop + fbhHoleDepth/2 + 10} fill="#16a34a" style={{ fontSize: 30, fontWeight: 700 }}>H</text>
             </g>
 
-            {/* B - Distance from bottom (B=0 for standard FBH) - RED */}
+            {/* Block dimensions */}
+            {/* E - Block height - ORANGE */}
             <g>
-              {/* B indicator at bottom of block - shows B=0 */}
-              <line x1={blockLeft - 20} y1={blockBottom} x2={blockLeft - 10} y2={blockBottom} stroke="#dc2626" strokeWidth={1.5} />
-              <text x={blockLeft - 25} y={blockBottom + 4} textAnchor="end" fill="#dc2626" style={{ fontSize: 11, fontWeight: 600 }}>B=0</text>
-            </g>
-
-            {/* Block dimensions (secondary - lighter gray) */}
-            {/* E - Block height */}
-            <g opacity={0.4}>
-              <line x1={blockRight + 35} y1={blockTop} x2={blockRight + 35} y2={blockBottom} stroke="#666" strokeWidth={0.5} />
-              <line x1={blockRight + 31} y1={blockTop} x2={blockRight + 39} y2={blockTop} stroke="#666" strokeWidth={0.5} />
-              <line x1={blockRight + 31} y1={blockBottom} x2={blockRight + 39} y2={blockBottom} stroke="#666" strokeWidth={0.5} />
-              <text x={blockRight + 45} y={(blockTop + blockBottom) / 2 + 4} fill="#888" style={{ fontSize: 10 }}>E</text>
+              <line x1={blockRight + 50} y1={blockTop} x2={blockRight + 50} y2={blockBottom} stroke="#ea580c" strokeWidth={2.5} />
+              <line x1={blockRight + 42} y1={blockTop} x2={blockRight + 58} y2={blockTop} stroke="#ea580c" strokeWidth={2.5} />
+              <line x1={blockRight + 42} y1={blockBottom} x2={blockRight + 58} y2={blockBottom} stroke="#ea580c" strokeWidth={2.5} />
+              <text x={blockRight + 70} y={(blockTop + blockBottom) / 2 + 10} fill="#ea580c" style={{ fontSize: 28, fontWeight: 700 }}>E</text>
             </g>
 
             {/* F - Block width */}
-            <g opacity={0.4}>
-              <line x1={blockLeft} y1={blockBottom + 28} x2={blockRight} y2={blockBottom + 28} stroke="#666" strokeWidth={0.5} />
-              <line x1={blockLeft} y1={blockBottom + 24} x2={blockLeft} y2={blockBottom + 32} stroke="#666" strokeWidth={0.5} />
-              <line x1={blockRight} y1={blockBottom + 24} x2={blockRight} y2={blockBottom + 32} stroke="#666" strokeWidth={0.5} />
-              <text x={fbhCenterX} y={blockBottom + 42} textAnchor="middle" fill="#888" style={{ fontSize: 10 }}>F</text>
+            <g opacity={0.7}>
+              <line x1={blockLeft} y1={blockBottom + 45} x2={blockRight} y2={blockBottom + 45} stroke="#666" strokeWidth={2} />
+              <line x1={blockLeft} y1={blockBottom + 38} x2={blockLeft} y2={blockBottom + 52} stroke="#666" strokeWidth={2} />
+              <line x1={blockRight} y1={blockBottom + 38} x2={blockRight} y2={blockBottom + 52} stroke="#666" strokeWidth={2} />
+              <text x={fbhCenterX} y={blockBottom + 70} textAnchor="middle" fill="#555" style={{ fontSize: 22, fontWeight: 600 }}>F</text>
             </g>
           </>
         )}
 
 
         {/* Title at bottom */}
-        <text x={width / 2} y={height - 12} textAnchor="middle" fill="#333" style={{ fontSize: 12, fontWeight: 600 }}>
+        <text x={width / 2} y={height - 12} textAnchor="middle" fill="#333" style={{ fontSize: 18, fontWeight: 700 }}>
           {title}
         </text>
       </svg>

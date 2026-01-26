@@ -59,7 +59,8 @@ import type {
   PartDimensionsOverride,
 } from '@/types/ringSegmentBlock.types';
 
-import { RingSegmentHoleTable } from './RingSegmentHoleTable';
+import { AngleBeamCalibrationTable } from '../AngleBeamCalibrationTable';
+import { DEFAULT_ANGLE_BEAM_CALIBRATION_ROWS, type AngleBeamCalibrationRow } from '@/data/fbhStandardsData';
 
 // ============================================================================
 // COMPONENT PROPS
@@ -114,6 +115,8 @@ export function RingSegmentBlockDrawing({
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [isDrawing, setIsDrawing] = useState(false);
   const [autoSelectReasoning, setAutoSelectReasoning] = useState<string | null>(null);
+  // Angle beam calibration rows (professional UT calibration table)
+  const [angleBeamRows, setAngleBeamRows] = useState<AngleBeamCalibrationRow[]>(DEFAULT_ANGLE_BEAM_CALIBRATION_ROWS);
 
   // Refs
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -614,12 +617,16 @@ export function RingSegmentBlockDrawing({
         </div>
       )}
 
-      {/* Hole table */}
-      {showTable && resolvedBlock && (
-        <div className="mt-4">
-          <RingSegmentHoleTable
-            holes={resolvedBlock.holes}
-            showAdjustedIndicator={true}
+      {/* Angle Beam Calibration Table - Professional UT format */}
+      {showTable && (
+        <div className="mt-4 border rounded-lg p-4 bg-card">
+          <h4 className="font-semibold mb-4">Angle Beam Calibration Specifications</h4>
+          <AngleBeamCalibrationTable
+            rows={angleBeamRows}
+            onChange={setAngleBeamRows}
+            maxRows={5}
+            minRows={1}
+            beamAngleDegrees={45}
           />
         </div>
       )}

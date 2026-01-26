@@ -12,8 +12,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { BlockTypeSelection, getBlockTypeOptions } from "@/types/calibrationBlocks";
-// New components for FBH table with dropdowns
-import { FBHHoleTable } from "../FBHHoleTable";
+// New components for FBH table with dropdowns and previews
+import { FBHHoleTableWithPreviews } from "../FBHHoleTableWithPreviews";
 import { FBHStraightBeamDrawing } from "../FBHStraightBeamDrawing";
 import { AngleBeamCalibrationBlockDrawing } from "../AngleBeamCalibrationBlockDrawing";
 import {
@@ -389,7 +389,7 @@ export const CalibrationTab = ({
             </TooltipProvider>
           )}
         </div>
-        <FBHHoleTable
+        <FBHHoleTableWithPreviews
           holes={fbhHoles}
           onChange={handleFbhHolesChange}
           maxHoles={5}
@@ -397,6 +397,8 @@ export const CalibrationTab = ({
           showPartNumber={true}
           showDeltaType={true}
           standard="All"
+          previewWidth={350}
+          previewHeight={450}
         />
       </div>
     </>
