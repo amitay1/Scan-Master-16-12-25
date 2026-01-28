@@ -22,6 +22,7 @@ import {
   calculateSizeDbCorrection,
   calculateSoundPath,
   calculateTotalDb,
+  convertToFBHEquivalent,
   type AngleBeamCalibrationRow,
   type ReflectorType,
 } from "@/data/fbhStandardsData";
@@ -151,6 +152,7 @@ export function AngleBeamCalibrationTable({
               <th className="border px-2 py-2 text-center font-semibold text-xs w-24">Reflector<br/>Type</th>
               <th className="border px-2 py-2 text-center font-semibold text-xs w-20 text-blue-600">Reflector<br/>Size (mm)</th>
               <th className="border px-2 py-2 text-center font-semibold text-xs w-24 text-blue-600">Acceptance<br/>Size</th>
+              <th className="border px-2 py-2 text-center font-semibold text-xs w-28 text-amber-600">FBH Equiv.<br/>(2154)</th>
               <th className="border px-2 py-2 text-center font-semibold text-xs w-20 text-orange-600">Size<br/>ΔdB</th>
               <th className="border px-2 py-2 text-center font-semibold text-xs w-20 text-orange-600">Transfer<br/>ΔdB</th>
               <th className="border px-2 py-2 text-center font-semibold text-xs w-20 text-green-600">Total<br/>dB</th>
@@ -215,6 +217,19 @@ export function AngleBeamCalibrationTable({
                       ))}
                     </SelectContent>
                   </Select>
+                </td>
+
+                {/* FBH Equivalent (auto-calculated per AMS-STD-2154) */}
+                <td className="border px-1 py-1 text-center bg-amber-50">
+                  {(() => {
+                    const equiv = convertToFBHEquivalent(row.reflectorType, row.reflectorSizeMm);
+                    if (!equiv) return <span className="text-xs text-muted-foreground">-</span>;
+                    return (
+                      <span className="text-xs font-mono text-amber-800 font-semibold" title={equiv.description}>
+                        {row.reflectorType === 'FBH' ? equiv.fbhInch + '"' : equiv.description}
+                      </span>
+                    );
+                  })()}
                 </td>
 
                 {/* Size ΔdB (auto-calculated, readonly) */}
@@ -324,6 +339,7 @@ export function AngleBeamCalibrationTable({
       {/* Legend */}
       <div className="text-xs text-muted-foreground border rounded p-2 bg-muted/30">
         <div className="flex flex-wrap gap-4">
+          <span><span className="bg-amber-50 text-amber-800 px-1 rounded font-medium">FBH Equiv.</span> = AMS-STD-2154 reflector conversion</span>
           <span><span className="bg-orange-100 text-orange-800 px-1 rounded font-medium">Size ΔdB</span> = Auto-calculated (6dB per doubling rule)</span>
           <span><span className="bg-green-100 text-green-800 px-1 rounded font-medium">Total dB</span> = Size ΔdB + Transfer ΔdB</span>
           <span><span className="bg-purple-100 text-purple-800 px-1 rounded font-medium">Sound Path</span> = Auto-calculated from Depth & Angle</span>

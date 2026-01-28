@@ -370,6 +370,98 @@ export function calculateSoundPath(
   return Number((depthMm / Math.cos(angleRadians)).toFixed(1));
 }
 
+// ============================================================================
+// AMS-STD-2154 REFLECTOR EQUIVALENCY CONVERSIONS
+// FBH ↔ SDH ↔ Notch approximate equivalencies
+// Based on AMS-STD-2154E and general UT practice (area-amplitude relationships)
+// ============================================================================
+
+/**
+ * Reflector equivalency table per AMS-STD-2154
+ * Each entry maps an FBH size to approximate SDH and Notch equivalents.
+ * SDH equivalency: based on cylindrical vs disc reflector response ratio
+ * Notch equivalency: depth × length format, based on corner reflector response
+ */
+export interface ReflectorEquivalency {
+  fbhInch: string;
+  fbhMm: number;
+  sdhMm: number;          // Equivalent SDH diameter (mm)
+  notchDepthMm: number;   // Equivalent notch depth (mm)
+  notchLengthMm: number;  // Equivalent notch length (mm)
+}
+
+export const REFLECTOR_EQUIVALENCY_TABLE: ReflectorEquivalency[] = [
+  { fbhInch: '1/64', fbhMm: 0.40, sdhMm: 0.5,  notchDepthMm: 0.25, notchLengthMm: 5 },
+  { fbhInch: '2/64', fbhMm: 0.79, sdhMm: 1.0,  notchDepthMm: 0.5,  notchLengthMm: 5 },
+  { fbhInch: '3/64', fbhMm: 1.19, sdhMm: 1.5,  notchDepthMm: 0.75, notchLengthMm: 10 },
+  { fbhInch: '4/64', fbhMm: 1.59, sdhMm: 2.0,  notchDepthMm: 1.0,  notchLengthMm: 10 },
+  { fbhInch: '5/64', fbhMm: 1.98, sdhMm: 2.4,  notchDepthMm: 1.25, notchLengthMm: 10 },
+  { fbhInch: '6/64', fbhMm: 2.38, sdhMm: 2.8,  notchDepthMm: 1.5,  notchLengthMm: 10 },
+  { fbhInch: '7/64', fbhMm: 2.78, sdhMm: 3.0,  notchDepthMm: 1.75, notchLengthMm: 10 },
+  { fbhInch: '8/64', fbhMm: 3.18, sdhMm: 3.5,  notchDepthMm: 2.0,  notchLengthMm: 10 },
+];
+
+/**
+ * Convert any reflector type/size to its FBH equivalent (inch string + mm)
+ * Uses interpolation between known equivalency points.
+ * Returns the closest FBH equivalent for display purposes.
+ */
+export function convertToFBHEquivalent(
+  reflectorType: ReflectorType,
+  sizeMm: number
+): { fbhInch: string; fbhMm: number; description: string } | null {
+  if (sizeMm <= 0) return null;
+
+  // FBH → itself
+  if (reflectorType === 'FBH') {
+    const match = REFLECTOR_EQUIVALENCY_TABLE.find(e => Math.abs(e.fbhMm - sizeMm) < 0.15);
+    if (match) return { fbhInch: match.fbhInch, fbhMm: match.fbhMm, description: `FBH ${match.fbhInch}"` };
+    return { fbhInch: '-', fbhMm: sizeMm, description: `FBH ${sizeMm.toFixed(2)}mm` };
+  }
+
+  // SDH → FBH
+  if (reflectorType === 'SDH') {
+    // Find closest SDH match in equivalency table
+    let best = REFLECTOR_EQUIVALENCY_TABLE[0];
+    let bestDiff = Math.abs(best.sdhMm - sizeMm);
+    for (const entry of REFLECTOR_EQUIVALENCY_TABLE) {
+      const diff = Math.abs(entry.sdhMm - sizeMm);
+      if (diff < bestDiff) { best = entry; bestDiff = diff; }
+    }
+    // If close match found (within 0.3mm)
+    if (bestDiff <= 0.3) {
+      return { fbhInch: best.fbhInch, fbhMm: best.fbhMm, description: `≈ FBH ${best.fbhInch}" (${best.fbhMm}mm)` };
+    }
+    // Interpolate: SDH/FBH ratio is roughly 1.26 based on table
+    const estimatedFbhMm = sizeMm / 1.26;
+    const closest = FBH_DIAMETER_OPTIONS.reduce((prev, curr) =>
+      Math.abs(curr.mm - estimatedFbhMm) < Math.abs(prev.mm - estimatedFbhMm) ? curr : prev
+    );
+    return { fbhInch: closest.inch, fbhMm: closest.mm, description: `≈ FBH ${closest.inch !== '-' ? closest.inch + '"' : closest.mm + 'mm'} (${closest.mm}mm)` };
+  }
+
+  // Notch → FBH (based on notch depth)
+  if (reflectorType === 'Notch_EDM' || reflectorType === 'Notch_Saw') {
+    let best = REFLECTOR_EQUIVALENCY_TABLE[0];
+    let bestDiff = Math.abs(best.notchDepthMm - sizeMm);
+    for (const entry of REFLECTOR_EQUIVALENCY_TABLE) {
+      const diff = Math.abs(entry.notchDepthMm - sizeMm);
+      if (diff < bestDiff) { best = entry; bestDiff = diff; }
+    }
+    if (bestDiff <= 0.3) {
+      return { fbhInch: best.fbhInch, fbhMm: best.fbhMm, description: `≈ FBH ${best.fbhInch}" (${best.fbhMm}mm)` };
+    }
+    // Rough estimate: notch depth ≈ FBH/1.6
+    const estimatedFbhMm = sizeMm * 1.6;
+    const closest = FBH_DIAMETER_OPTIONS.reduce((prev, curr) =>
+      Math.abs(curr.mm - estimatedFbhMm) < Math.abs(prev.mm - estimatedFbhMm) ? curr : prev
+    );
+    return { fbhInch: closest.inch, fbhMm: closest.mm, description: `≈ FBH ${closest.inch !== '-' ? closest.inch + '"' : closest.mm + 'mm'} (${closest.mm}mm)` };
+  }
+
+  return null;
+}
+
 /**
  * Calculate total dB correction
  */
