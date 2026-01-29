@@ -3,6 +3,11 @@
  * Full-size calibration block visualization that updates in real-time
  * Based on ØFBH, E (block height), and H (hole depth) values
  * Styled to match FBHStraightBeamDrawing.tsx
+ *
+ * Dimension lines are positioned outside the block to avoid overlapping:
+ * - ØFBH (blue): Left side with arrow pointing to hole
+ * - H (green): Right side, closer to block
+ * - E (orange): Right side, further out from H
  */
 
 import { useMemo } from 'react';
@@ -16,9 +21,9 @@ interface FBHBlockPreviewProps {
   blockHeightE: number;
   /** Metal travel / hole depth H in mm */
   metalTravelH: number;
-  /** Preview width - default 350 for large display */
+  /** Preview width - default 420 for large display */
   width?: number;
-  /** Preview height - default 450 for large display */
+  /** Preview height - default 520 for large display */
   height?: number;
 }
 
@@ -27,25 +32,26 @@ export function FBHBlockPreview({
   diameterMm,
   blockHeightE,
   metalTravelH,
-  width = 350,
-  height = 450,
+  width = 420,
+  height = 520,
 }: FBHBlockPreviewProps) {
   // Calculate proportional dimensions similar to FBHStraightBeamDrawing
   const dimensions = useMemo(() => {
-    // Common vertical alignment
-    const commonCenterY = height * 0.45;
-    const sideViewCenterX = width * 0.50;
+    // Common vertical alignment - shift slightly up to make room for bottom label
+    const commonCenterY = height * 0.42;
+    // Shift block left to make more room for dimension lines on the right
+    const sideViewCenterX = width * 0.38;
 
     // Base block dimensions - scale based on E (block height)
     // Maximum E value expected is 350mm
     const maxE = 350;
-    const minBlockHeight = 120;
-    const maxBlockHeight = height * 0.6;
+    const minBlockHeight = 100;
+    const maxBlockHeight = height * 0.55;
 
     // Scale block height proportionally to E value
     const scaleFactor = Math.min(blockHeightE / maxE, 1);
     const blockHeight = Math.max(minBlockHeight, scaleFactor * maxBlockHeight + minBlockHeight * (1 - scaleFactor));
-    const blockWidth = blockHeight * 0.65; // Keep aspect ratio
+    const blockWidth = blockHeight * 0.55; // Slightly narrower aspect ratio
 
     const blockTop = commonCenterY - blockHeight / 2;
     const blockLeft = sideViewCenterX - blockWidth / 2;
@@ -58,11 +64,20 @@ export function FBHBlockPreview({
     const fbhHoleDepth = Math.max(blockHeight * hRatio, 20);
 
     // FBH diameter visualization - scale based on actual diameter
-    // Make it visible but proportional (min 12px, max 40px)
-    const fbhHoleWidth = Math.max(12, Math.min(40, diameterMm * 8));
+    // Make it visible but proportional (min 12px, max 35px)
+    const fbhHoleWidth = Math.max(12, Math.min(35, diameterMm * 7));
 
     const fbhCenterX = sideViewCenterX;
     const fbhTop = blockBottom - fbhHoleDepth; // Top of hole (flat bottom)
+
+    // Dimension line offsets - positioned outside the block with consistent spacing
+    const dimLineGap = 15; // Gap between block edge and first dimension line
+    const dimLineSpacing = 45; // Spacing between H and E dimension lines
+
+    // H dimension line X position (closer to block)
+    const hLineX = blockRight + dimLineGap + 20;
+    // E dimension line X position (further from block)
+    const eLineX = hLineX + dimLineSpacing;
 
     return {
       commonCenterY,
@@ -77,6 +92,8 @@ export function FBHBlockPreview({
       fbhHoleDepth,
       fbhCenterX,
       fbhTop,
+      hLineX,
+      eLineX,
     };
   }, [width, height, blockHeightE, metalTravelH, diameterMm]);
 
@@ -91,6 +108,8 @@ export function FBHBlockPreview({
     fbhHoleDepth,
     fbhCenterX,
     fbhTop,
+    hLineX,
+    eLineX,
   } = dimensions;
 
   return (
@@ -168,130 +187,149 @@ export function FBHBlockPreview({
 
         {/* ==================== DIMENSIONS ==================== */}
 
-        {/* ØFBH - FBH Diameter (left side of hole) - BLUE */}
+        {/* ØFBH - FBH Diameter (left side, above block) - BLUE */}
         <g>
-          {/* Horizontal line showing hole width */}
+          {/* Leader line from hole to label */}
           <line
-            x1={fbhCenterX - fbhHoleWidth / 2}
-            y1={fbhTop + 20}
-            x2={fbhCenterX + fbhHoleWidth / 2}
-            y2={fbhTop + 20}
+            x1={fbhCenterX}
+            y1={fbhTop + 15}
+            x2={blockLeft - 25}
+            y2={blockTop - 25}
             stroke="#2563eb"
-            strokeWidth={2.5}
+            strokeWidth={2}
           />
-          {/* End ticks */}
-          <line
-            x1={fbhCenterX - fbhHoleWidth / 2}
-            y1={fbhTop + 14}
-            x2={fbhCenterX - fbhHoleWidth / 2}
-            y2={fbhTop + 26}
-            stroke="#2563eb"
-            strokeWidth={2.5}
+          {/* Small tick at hole end */}
+          <circle
+            cx={fbhCenterX}
+            cy={fbhTop + 15}
+            r={3}
+            fill="#2563eb"
           />
-          <line
-            x1={fbhCenterX + fbhHoleWidth / 2}
-            y1={fbhTop + 14}
-            x2={fbhCenterX + fbhHoleWidth / 2}
-            y2={fbhTop + 26}
-            stroke="#2563eb"
-            strokeWidth={2.5}
-          />
-          {/* Label with arrow */}
-          <line
-            x1={fbhCenterX - fbhHoleWidth / 2 - 5}
-            y1={fbhTop + 20}
-            x2={fbhCenterX - fbhHoleWidth / 2 - 40}
-            y2={fbhTop - 15}
-            stroke="#2563eb"
-            strokeWidth={2.5}
-          />
+          {/* Label */}
           <text
-            x={blockLeft - 10}
-            y={fbhTop - 10}
+            x={blockLeft - 30}
+            y={blockTop - 30}
             textAnchor="end"
             fill="#2563eb"
-            style={{ fontSize: 22, fontWeight: 700 }}
+            style={{ fontSize: 20, fontWeight: 700 }}
           >
             Ø{diameterMm.toFixed(2)}
           </text>
         </g>
 
-        {/* H - Metal Travel Distance (right side) - GREEN */}
+        {/* H - Metal Travel Distance (right side, inner position) - GREEN */}
         <g>
+          {/* Extension lines from hole top and block bottom */}
           <line
-            x1={fbhCenterX + fbhHoleWidth / 2 + 25}
+            x1={blockRight}
             y1={fbhTop}
-            x2={fbhCenterX + fbhHoleWidth / 2 + 25}
+            x2={hLineX + 8}
+            y2={fbhTop}
+            stroke="#16a34a"
+            strokeWidth={1.5}
+            strokeDasharray="3,2"
+          />
+          <line
+            x1={blockRight}
+            y1={blockBottom}
+            x2={hLineX + 8}
+            y2={blockBottom}
+            stroke="#16a34a"
+            strokeWidth={1.5}
+            strokeDasharray="3,2"
+          />
+          {/* Vertical dimension line */}
+          <line
+            x1={hLineX}
+            y1={fbhTop}
+            x2={hLineX}
             y2={blockBottom}
             stroke="#16a34a"
             strokeWidth={2.5}
           />
+          {/* Top tick */}
           <line
-            x1={fbhCenterX + fbhHoleWidth / 2 + 18}
+            x1={hLineX - 6}
             y1={fbhTop}
-            x2={fbhCenterX + fbhHoleWidth / 2 + 32}
+            x2={hLineX + 6}
             y2={fbhTop}
             stroke="#16a34a"
             strokeWidth={2.5}
           />
+          {/* Bottom tick */}
           <line
-            x1={fbhCenterX + fbhHoleWidth / 2 + 18}
+            x1={hLineX - 6}
             y1={blockBottom}
-            x2={fbhCenterX + fbhHoleWidth / 2 + 32}
+            x2={hLineX + 6}
             y2={blockBottom}
             stroke="#16a34a"
             strokeWidth={2.5}
           />
-          {/* Arrow and label */}
-          <line
-            x1={fbhCenterX + fbhHoleWidth / 2 + 32}
-            y1={fbhTop + fbhHoleDepth / 2}
-            x2={fbhCenterX + fbhHoleWidth / 2 + 55}
-            y2={fbhTop + fbhHoleDepth / 2}
-            stroke="#16a34a"
-            strokeWidth={2.5}
-          />
+          {/* Label - positioned to the right of H line */}
           <text
-            x={fbhCenterX + fbhHoleWidth / 2 + 60}
-            y={fbhTop + fbhHoleDepth / 2 + 8}
+            x={hLineX + 12}
+            y={fbhTop + fbhHoleDepth / 2 + 6}
             fill="#16a34a"
-            style={{ fontSize: 24, fontWeight: 700 }}
+            style={{ fontSize: 20, fontWeight: 700 }}
           >
             H={metalTravelH.toFixed(1)}
           </text>
         </g>
 
-        {/* E - Block height - ORANGE */}
+        {/* E - Block height (right side, outer position) - ORANGE */}
         <g>
+          {/* Extension lines from block top and bottom */}
           <line
-            x1={blockRight + 50}
+            x1={hLineX + 35}
             y1={blockTop}
-            x2={blockRight + 50}
+            x2={eLineX + 8}
+            y2={blockTop}
+            stroke="#ea580c"
+            strokeWidth={1.5}
+            strokeDasharray="3,2"
+          />
+          <line
+            x1={hLineX + 35}
+            y1={blockBottom}
+            x2={eLineX + 8}
+            y2={blockBottom}
+            stroke="#ea580c"
+            strokeWidth={1.5}
+            strokeDasharray="3,2"
+          />
+          {/* Vertical dimension line */}
+          <line
+            x1={eLineX}
+            y1={blockTop}
+            x2={eLineX}
             y2={blockBottom}
             stroke="#ea580c"
             strokeWidth={2.5}
           />
+          {/* Top tick */}
           <line
-            x1={blockRight + 42}
+            x1={eLineX - 6}
             y1={blockTop}
-            x2={blockRight + 58}
+            x2={eLineX + 6}
             y2={blockTop}
             stroke="#ea580c"
             strokeWidth={2.5}
           />
+          {/* Bottom tick */}
           <line
-            x1={blockRight + 42}
+            x1={eLineX - 6}
             y1={blockBottom}
-            x2={blockRight + 58}
+            x2={eLineX + 6}
             y2={blockBottom}
             stroke="#ea580c"
             strokeWidth={2.5}
           />
+          {/* Label - positioned to the right of E line */}
           <text
-            x={blockRight + 65}
-            y={(blockTop + blockBottom) / 2 + 8}
+            x={eLineX + 12}
+            y={(blockTop + blockBottom) / 2 + 6}
             fill="#ea580c"
-            style={{ fontSize: 24, fontWeight: 700 }}
+            style={{ fontSize: 20, fontWeight: 700 }}
           >
             E={blockHeightE.toFixed(1)}
           </text>

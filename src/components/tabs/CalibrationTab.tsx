@@ -14,7 +14,6 @@ import { Label } from "@/components/ui/label";
 import { BlockTypeSelection, getBlockTypeOptions } from "@/types/calibrationBlocks";
 // New components for FBH table with dropdowns and previews
 import { FBHHoleTableWithPreviews } from "../FBHHoleTableWithPreviews";
-import { FBHStraightBeamDrawing } from "../FBHStraightBeamDrawing";
 import { AngleBeamCalibrationBlockDrawing } from "../AngleBeamCalibrationBlockDrawing";
 import {
   DEFAULT_FBH_HOLES,
@@ -347,18 +346,10 @@ export const CalibrationTab = ({
     updateField("standardType", modelId);
   };
 
-  // Render the Straight Beam content (FBH drawing + table)
+  // Render the Straight Beam content (FBH table with large previews)
   const renderStraightBeamContent = () => (
     <>
-      <FBHStraightBeamDrawing
-        partNumber={fbhHoles[0]?.partNumber || "7075 5-0150"}
-        serialNumber={data.blockSerialNumber || "000"}
-        width={600}
-        height={450}
-        showDimensions={true}
-        title="FIG. 1 Standard Set Block Dimensions"
-      />
-      {/* FBH Holes Table - 3 rows with dropdowns */}
+      {/* FBH Holes Table with Large Previews - 3 rows with dropdowns */}
       <div className="border rounded-lg p-4 bg-card">
         <div className="flex items-center justify-between mb-4">
           <h4 className="font-semibold">FBH Hole Specifications</h4>
@@ -397,8 +388,8 @@ export const CalibrationTab = ({
           showPartNumber={true}
           showDeltaType={true}
           standard="All"
-          previewWidth={350}
-          previewHeight={450}
+          previewWidth={420}
+          previewHeight={520}
         />
       </div>
     </>
