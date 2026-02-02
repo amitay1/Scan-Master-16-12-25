@@ -161,6 +161,9 @@ export interface EquipmentData {
   wedgeModelApplicable?: boolean;
   wedgeTypeApplicable?: boolean;
   delayLineApplicable?: boolean;
+  bandwidth?: 'low' | 'medium' | 'high';
+  focusSize?: string;
+  velocity?: number;             // Acoustic velocity (m/s)
 }
 
 // FBH Hole data structure for calibration blocks
@@ -174,6 +177,15 @@ export interface FBHHoleData {
   metalTravelH: number;      // H - hole depth (mm), equals E for standard FBH blocks
 }
 
+export interface CalibrationSensitivityRow {
+  id: number;
+  reflectorType: 'FBH' | 'SDH';
+  reflectorSizeInch: string;
+  curvatureCorrection: number;
+  gainOffset: number;
+  deltaDbTotal: number;
+}
+
 export interface CalibrationData {
   standardType: CalibrationBlockType | "";
   referenceMaterial: string;
@@ -185,6 +197,7 @@ export interface CalibrationData {
   lastCalibrationDate: string;
   autoRecommendedReason?: string; // NEW: Reason why this block was auto-selected (for tooltip)
   selectedBlockType?: 'curved' | 'flat'; // Block surface type selection for tubes (curved vs flat)
+  sensitivityTable?: CalibrationSensitivityRow[];
 }
 
 // Technique type for scan parameters

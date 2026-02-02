@@ -15,6 +15,7 @@ import { ConeScanDiagram } from "@/components/ConeScanDiagram";
 import { BoxScanDiagram } from "@/components/BoxScanDiagram";
 import { CylinderScanDiagram } from "@/components/CylinderScanDiagram";
 import { DiskScanDiagram } from "@/components/DiskScanDiagram";
+import { V2500BoreScanDiagram } from "@/components/V2500BoreScanDiagram";
 import { RingScanDiagram } from "@/components/RingScanDiagram";
 import { HexBarScanDiagram } from "@/components/HexBarScanDiagram";
 import { ImpellerScanDiagram } from "@/components/ImpellerScanDiagram";
@@ -526,7 +527,16 @@ export const ScanDetailsTab = ({ data, onChange, partType, standard = "AMS-STD-2
     } else if (isCylinderType(partType)) {
       return <CylinderScanDiagram scanDetails={scanDetails} highlightedDirection={highlightedDirection} />;
     } else if (isDiskType(partType)) {
-      return <DiskScanDiagram scanDetails={scanDetails} highlightedDirection={highlightedDirection} />;
+      return (
+        <>
+          <DiskScanDiagram scanDetails={scanDetails} highlightedDirection={highlightedDirection} />
+          {/* V2500 HPT Disk bore-specific scan plan diagrams (NDIP-1226 / NDIP-1227) */}
+          <div className="mt-4 space-y-4">
+            <V2500BoreScanDiagram stage={1} highlightedZone={highlightedDirection} />
+            <V2500BoreScanDiagram stage={2} highlightedZone={highlightedDirection} />
+          </div>
+        </>
+      );
     } else if (isImpellerType(partType)) {
       return <ImpellerScanDiagram scanDetails={scanDetails} highlightedDirection={highlightedDirection} />;
     } else if (isBliskType(partType)) {

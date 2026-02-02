@@ -13,14 +13,35 @@
 export type ScanDirection = 'positive' | 'negative';
 
 /**
- * Individual scan zone in the bore area
+ * Surface profile shape type - derived from NDIP Figure 2 cross-section
+ */
+export type ProfileShapeType = 'arc' | 'line' | 'chamfer';
+
+/**
+ * Surface profile shape definition
+ */
+export interface ProfileShape {
+  type: ProfileShapeType;
+  notes: string;
+}
+
+/**
+ * Individual scan zone (physical inspection surface) in the bore area.
+ *
+ * IMPORTANT: Each zone represents a distinct physical surface on the disk
+ * cross-section. Every surface is scanned in BOTH +45° and -45° shear wave
+ * modes (two separate circumferential scans per surface).
  */
 export interface ScanZone {
   id: string;
-  description: string;
-  refractedAngle: number; // degrees
+  surfaceName: string;           // Physical surface name per NDIP Figure 2
+  description: string;           // Detailed description
+  profileShape: ProfileShape;    // Surface geometry type from Figure 2
+  refractedAngle: number;        // degrees (always 45 for V2500 NDIP)
+  scanModes: ScanDirection[];    // Both '+45' and '-45' for each surface
+  coverageRequired: number;      // inches - radial volumetric
+  /** @deprecated Use scanModes instead. Kept for backward compatibility. */
   direction: ScanDirection;
-  coverageRequired: number; // inches - radial volumetric
 }
 
 /**
@@ -59,41 +80,57 @@ export const PW_V2500_STAGE1_SCAN_PLAN: PWScanPlan = {
   maxIndexIncrement: 0.02, // inches per revolution (Section 7.3)
   waterPath: 8.0, // inches (Section 7.5)
 
-  // From Figure 2 - labeled zones A through E
+  // From NDIP-1226 Figure 2 — each zone is a physical surface, scanned in both ±45°.
+  // Surface order in cross-section (left to right): E → A → B → C → D
   scanZones: [
     {
-      id: 'A',
-      description: 'Bore ID Surface - Positive 45° Shear',
+      id: 'E',
+      surfaceName: 'Upper Web Transition',
+      description: 'Curved fillet/arc transition from web to hub (upper left in Figure 2)',
+      profileShape: { type: 'arc', notes: 'Upper fillet, curved transition from web toward bore' },
       refractedAngle: 45,
-      direction: 'positive',
+      scanModes: ['positive', 'negative'],
+      direction: 'positive', // deprecated
+      coverageRequired: 2.6,
+    },
+    {
+      id: 'A',
+      surfaceName: 'Upper Chamfer',
+      description: 'Short straight chamfer between surface E and land B',
+      profileShape: { type: 'chamfer', notes: 'Short angled segment connecting E to B' },
+      refractedAngle: 45,
+      scanModes: ['positive', 'negative'],
+      direction: 'positive', // deprecated
       coverageRequired: 2.6,
     },
     {
       id: 'B',
-      description: 'Bore ID Surface - Negative 45° Shear',
+      surfaceName: 'Upper Land',
+      description: 'Flat horizontal land at top of hub between A and C',
+      profileShape: { type: 'line', notes: 'Horizontal flat surface at top of bore hub' },
       refractedAngle: 45,
-      direction: 'negative',
+      scanModes: ['positive', 'negative'],
+      direction: 'positive', // deprecated
       coverageRequired: 2.6,
     },
     {
       id: 'C',
-      description: 'Forward Web Transition - Positive 45° Shear',
+      surfaceName: 'Bore Entry Chamfer',
+      description: 'Short straight chamfer from land B down to bore ID surface D',
+      profileShape: { type: 'chamfer', notes: 'Short angled segment connecting B to bore ID D' },
       refractedAngle: 45,
-      direction: 'positive',
+      scanModes: ['positive', 'negative'],
+      direction: 'positive', // deprecated
       coverageRequired: 2.6,
     },
     {
       id: 'D',
-      description: 'Rear Web Transition - Negative 45° Shear',
+      surfaceName: 'Bore ID',
+      description: 'Bore inner diameter — vertical cylindrical wall (rightmost in Figure 2)',
+      profileShape: { type: 'line', notes: 'Vertical wall representing bore ID cylinder in cross-section' },
       refractedAngle: 45,
-      direction: 'negative',
-      coverageRequired: 2.6,
-    },
-    {
-      id: 'E',
-      description: 'Bore OD Corner - Dual Direction',
-      refractedAngle: 45,
-      direction: 'positive',
+      scanModes: ['positive', 'negative'],
+      direction: 'positive', // deprecated
       coverageRequired: 2.6,
     },
   ],
@@ -124,48 +161,68 @@ export const PW_V2500_STAGE2_SCAN_PLAN: PWScanPlan = {
   maxIndexIncrement: 0.02, // inches per revolution (Section 7.3)
   waterPath: 8.0, // inches (Section 7.5)
 
-  // From Figure 2 - labeled zones K through P
+  // From NDIP-1227 Figure 2 — each zone is a physical surface, scanned in both ±45°.
+  // Upper profile (left to right): M → N → O → P (bore ID)
+  // Lower profile (left to right): K → L
   scanZones: [
     {
-      id: 'K',
-      description: 'Forward Bore Face - Positive 45° Shear',
-      refractedAngle: 45,
-      direction: 'positive',
-      coverageRequired: 2.6,
-    },
-    {
-      id: 'L',
-      description: 'Forward Bore Face - Negative 45° Shear',
-      refractedAngle: 45,
-      direction: 'negative',
-      coverageRequired: 2.6,
-    },
-    {
       id: 'M',
-      description: 'Bore ID Surface - Positive 45° Shear',
+      surfaceName: 'Upper Web Transition (Large Arc)',
+      description: 'Large curved transition from web to hub — upper left in Figure 2',
+      profileShape: { type: 'arc', notes: 'Long arc/spline, major upper transition toward bore' },
       refractedAngle: 45,
-      direction: 'positive',
+      scanModes: ['positive', 'negative'],
+      direction: 'positive', // deprecated
       coverageRequired: 2.6,
     },
     {
       id: 'N',
-      description: 'Bore ID Surface - Negative 45° Shear',
+      surfaceName: 'Upper Shoulder Fillet',
+      description: 'Small arc/fillet between M and land O — shoulder area',
+      profileShape: { type: 'arc', notes: 'Short rounded fillet at shoulder before upper land' },
       refractedAngle: 45,
-      direction: 'negative',
+      scanModes: ['positive', 'negative'],
+      direction: 'positive', // deprecated
       coverageRequired: 2.6,
     },
     {
       id: 'O',
-      description: 'Rear Web Transition - Positive 45° Shear',
+      surfaceName: 'Upper Land',
+      description: 'Flat horizontal land at top of hub between N and bore ID P',
+      profileShape: { type: 'line', notes: 'Horizontal flat surface at top of bore hub' },
       refractedAngle: 45,
-      direction: 'positive',
+      scanModes: ['positive', 'negative'],
+      direction: 'positive', // deprecated
       coverageRequired: 2.6,
     },
     {
       id: 'P',
-      description: 'Rear Web Transition - Negative 45° Shear',
+      surfaceName: 'Bore ID',
+      description: 'Bore inner diameter — vertical cylindrical wall (rightmost in Figure 2)',
+      profileShape: { type: 'line', notes: 'Vertical wall representing bore ID cylinder in cross-section' },
       refractedAngle: 45,
-      direction: 'negative',
+      scanModes: ['positive', 'negative'],
+      direction: 'positive', // deprecated
+      coverageRequired: 2.6,
+    },
+    {
+      id: 'K',
+      surfaceName: 'Lower Fillet Transition',
+      description: 'Curved fillet/arc in lower bore area — transition from web to lower hub',
+      profileShape: { type: 'arc', notes: 'Lower curved fillet transition' },
+      refractedAngle: 45,
+      scanModes: ['positive', 'negative'],
+      direction: 'positive', // deprecated
+      coverageRequired: 2.6,
+    },
+    {
+      id: 'L',
+      surfaceName: 'Lower Diagonal Slope',
+      description: 'Straight diagonal surface below K — angled toward bore step/shoulder',
+      profileShape: { type: 'line', notes: 'Diagonal straight segment after lower fillet K' },
+      refractedAngle: 45,
+      scanModes: ['positive', 'negative'],
+      direction: 'positive', // deprecated
       coverageRequired: 2.6,
     },
   ],

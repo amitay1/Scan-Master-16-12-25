@@ -362,6 +362,54 @@ export const EquipmentTab = ({ data, onChange, partThickness, standard = "AMS-ST
           />
         </FieldWithHelp>
 
+        <FieldWithHelp
+          label="Bandwidth"
+          fieldKey="manufacturer"
+          help="Transducer bandwidth classification"
+        >
+          <Select
+            value={data.bandwidth || ""}
+            onValueChange={(value) => updateField("bandwidth", value)}
+          >
+            <SelectTrigger className="bg-background">
+              <SelectValue placeholder="Select bandwidth..." />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="low">Low</SelectItem>
+              <SelectItem value="medium">Medium</SelectItem>
+              <SelectItem value="high">High</SelectItem>
+            </SelectContent>
+          </Select>
+        </FieldWithHelp>
+
+        <FieldWithHelp
+          label="Focus Size"
+          fieldKey="manufacturer"
+          help="Transducer focus size (e.g., 8 inch)"
+        >
+          <Input
+            value={data.focusSize || ""}
+            onChange={(e) => updateField("focusSize", e.target.value)}
+            placeholder='e.g., 8", 6", N/A'
+            className="bg-background"
+          />
+        </FieldWithHelp>
+
+        <FieldWithHelp
+          label="Acoustic Velocity (m/s)"
+          fieldKey="manufacturer"
+          help="Longitudinal wave velocity in the test material"
+        >
+          <Input
+            type="number"
+            value={data.velocity ?? ""}
+            onChange={(e) => updateField("velocity", e.target.value ? parseFloat(e.target.value) : undefined)}
+            placeholder="e.g., 5920"
+            step={10}
+            className="bg-background"
+          />
+        </FieldWithHelp>
+
       </div>
 
       {/* Phased Array Settings Section (Collapsible) */}

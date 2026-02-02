@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { CalibrationData, InspectionSetupData, AcceptanceClass, CalibrationBlockType, StandardType } from "@/types/techniqueSheet";
-import { Target, Info, Sparkles, AlertTriangle } from "lucide-react";
+import { CalibrationData, InspectionSetupData, AcceptanceClass, CalibrationBlockType, StandardType, CalibrationSensitivityRow } from "@/types/techniqueSheet";
+import { Target, Info, Sparkles, AlertTriangle, Plus, X } from "lucide-react";
 import { CalibrationCatalog } from "../CalibrationCatalog";
 import { toast } from "sonner";
 import { FieldWithHelp } from "@/components/FieldWithHelp";
@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { BlockTypeSelection, getBlockTypeOptions } from "@/types/calibrationBlocks";
 // New components for FBH table with dropdowns and previews
@@ -175,6 +176,44 @@ export const CalibrationTab = ({
   // Track if FBH table was auto-filled from standards
   const [fbhAutoFilled, setFbhAutoFilled] = useState(false);
   const [fbhAutoFillReason, setFbhAutoFillReason] = useState<string>("");
+  // Sensitivity table state
+  const [sensitivityRows, setSensitivityRows] = useState<CalibrationSensitivityRow[]>(
+    data.sensitivityTable || [{ id: 1, reflectorType: 'FBH', reflectorSizeInch: '1/64', curvatureCorrection: 0, gainOffset: 0, deltaDbTotal: 0 }]
+  );
+
+  const addSensitivityRow = () => {
+    if (sensitivityRows.length >= 8) return;
+    const newRow: CalibrationSensitivityRow = {
+      id: Math.max(...sensitivityRows.map(r => r.id), 0) + 1,
+      reflectorType: 'FBH',
+      reflectorSizeInch: '1/64',
+      curvatureCorrection: 0,
+      gainOffset: 0,
+      deltaDbTotal: 0,
+    };
+    const updated = [...sensitivityRows, newRow];
+    setSensitivityRows(updated);
+    onChange({ ...data, sensitivityTable: updated });
+  };
+
+  const removeSensitivityRow = (index: number) => {
+    if (sensitivityRows.length <= 1) return;
+    const updated = sensitivityRows.filter((_, i) => i !== index);
+    setSensitivityRows(updated);
+    onChange({ ...data, sensitivityTable: updated });
+  };
+
+  const updateSensitivityRow = (index: number, field: keyof CalibrationSensitivityRow, value: string | number) => {
+    const updated = sensitivityRows.map((row, i) => {
+      if (i !== index) return row;
+      const newRow = { ...row, [field]: value };
+      newRow.deltaDbTotal = Number((newRow.curvatureCorrection + newRow.gainOffset).toFixed(1));
+      return newRow;
+    });
+    setSensitivityRows(updated);
+    onChange({ ...data, sensitivityTable: updated });
+  };
+
   // Ref to prevent auto-fill from triggering on initial mount
   const isInitialMount = useRef(true);
 
@@ -644,6 +683,90 @@ export const CalibrationTab = ({
             className="bg-background"
           />
         </FieldWithHelp>
+      </div>
+
+      {/* Calibration Sensitivity Table */}
+      <div className="border rounded-lg p-4 bg-card">
+        <div className="flex items-center justify-between mb-4">
+          <h4 className="font-semibold">Calibration Sensitivity Table</h4>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={addSensitivityRow}
+            disabled={sensitivityRows.length >= 8}
+          >
+            <Plus className="h-3 w-3 mr-1" /> Add Row
+          </Button>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b">
+                <th className="text-left p-2 font-medium">Reflector Type</th>
+                <th className="text-left p-2 font-medium">Size (inch)</th>
+                <th className="text-left p-2 font-medium">Curvature Corr. (dB)</th>
+                <th className="text-left p-2 font-medium">Gain Offset (dB)</th>
+                <th className="text-left p-2 font-medium">{"\u0394"}dB Total</th>
+                <th className="p-2 w-10"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {sensitivityRows.map((row, index) => (
+                <tr key={row.id} className="border-b last:border-0">
+                  <td className="p-2">
+                    <Select value={row.reflectorType} onValueChange={(v) => updateSensitivityRow(index, 'reflectorType', v)}>
+                      <SelectTrigger className="bg-background w-24"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="FBH">FBH</SelectItem>
+                        <SelectItem value="SDH">SDH</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </td>
+                  <td className="p-2">
+                    <Select value={row.reflectorSizeInch} onValueChange={(v) => updateSensitivityRow(index, 'reflectorSizeInch', v)}>
+                      <SelectTrigger className="bg-background w-24"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {["1/64", "2/64", "3/64", "4/64", "5/64", "6/64", "8/64"].map(s => (
+                          <SelectItem key={s} value={s}>{s}&quot;</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </td>
+                  <td className="p-2">
+                    <Input
+                      type="number"
+                      step="0.1"
+                      value={row.curvatureCorrection}
+                      onChange={(e) => updateSensitivityRow(index, 'curvatureCorrection', parseFloat(e.target.value) || 0)}
+                      className="bg-background w-24"
+                    />
+                  </td>
+                  <td className="p-2">
+                    <Input
+                      type="number"
+                      step="0.1"
+                      value={row.gainOffset}
+                      onChange={(e) => updateSensitivityRow(index, 'gainOffset', parseFloat(e.target.value) || 0)}
+                      className="bg-background w-24"
+                    />
+                  </td>
+                  <td className="p-2">
+                    <div className="font-mono font-semibold text-center bg-muted/50 rounded px-2 py-1.5">
+                      {row.deltaDbTotal >= 0 ? '+' : ''}{row.deltaDbTotal.toFixed(1)}
+                    </div>
+                  </td>
+                  <td className="p-2">
+                    {sensitivityRows.length > 1 && (
+                      <Button variant="ghost" size="sm" onClick={() => removeSensitivityRow(index)}>
+                        <X className="h-3 w-3 text-destructive" />
+                      </Button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
