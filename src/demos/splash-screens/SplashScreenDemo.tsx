@@ -77,7 +77,7 @@ const SplashScreenDemo: React.FC = () => {
             Splash Screen Options
           </h1>
           <p className="text-slate-400 text-lg">
-            צפה בכל אופציה ובחר את הפתיח שלך
+            Preview each option and choose your intro
           </p>
         </div>
 
@@ -95,7 +95,7 @@ const SplashScreenDemo: React.FC = () => {
               {/* Selected badge */}
               {selectedId === option.id && (
                 <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 px-3 py-1 bg-green-500 rounded-full text-xs font-bold text-white shadow-lg">
-                  נבחר לפתיח
+                  Selected
                 </div>
               )}
 
@@ -135,7 +135,7 @@ const SplashScreenDemo: React.FC = () => {
                       : 'bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/50 text-purple-400'
                   }`}
                 >
-                  {selectedId === option.id ? 'נבחר' : 'בחר כפתיח'}
+                  {selectedId === option.id ? 'Selected' : 'Set as Intro'}
                 </button>
               </div>
             </div>
