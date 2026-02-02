@@ -296,8 +296,17 @@ export function getPartDimensionRows(setup: {
 /**
  * Get material warning if applicable
  */
-export function getMaterialWarning(material: string | undefined): string | null {
+export function getMaterialWarning(material: string | undefined, standard?: string): string | null {
   if (!material) return null;
+
+  // P&W NDIP-specific warnings for nickel alloys
+  if ((standard === 'NDIP-1226' || standard === 'NDIP-1227') &&
+      (material.toLowerCase().includes('nickel') || material.toLowerCase() === 'nickel_alloy')) {
+    const stage = standard === 'NDIP-1226' ? '1st' : '2nd';
+    return `P&W V2500 ${stage} Stage HPT Disk — ONLY IAE2P16679 transducer (5 MHz) with IAE2P16678 45° mirror. ` +
+      `Calibration block IAE2P16675 (powdered nickel). 8" water path immersion. ±45° circumferential shear wave. ` +
+      `Inspector must hold PW POD qualification. Electronic data transfer to PW MPE-NDE via MFT.`;
+  }
 
   const warnings: Record<string, string> = {
     'titanium': 'CAUTION: Titanium requires special attention to grain structure and anisotropy. Additional angle beam inspection may be required.',

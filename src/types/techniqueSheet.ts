@@ -19,9 +19,17 @@ export type StandardType =
   | "AMS-2631"       // Titanium Bar, Billet, Plate
   | "AMS-2632"       // Thin Materials ≤0.5"
 
-  // OEM-Specific Standards (Pratt & Whitney)
+  // OEM-Specific Standards (Pratt & Whitney — V2500)
   | "NDIP-1226"      // PW V2500 1st Stage HPT Disk
-  | "NDIP-1227";     // PW V2500 2nd Stage HPT Disk
+  | "NDIP-1227"      // PW V2500 2nd Stage HPT Disk
+
+  // OEM-Specific Standards (Pratt & Whitney — PW1100G GTF)
+  | "NDIP-1254"      // PW1100G HPT 1st Stage Hub (AUSI)
+  | "NDIP-1257"      // PW1100G HPT 2nd Stage Hub (AUSI)
+  | "NDIP-1260"      // PW1100G HPC 8th Stage Disc IBR-8 (AUSI)
+
+  // OEM-Specific Standards (Pratt & Whitney — General)
+  | "PWA-SIM";       // PWA Sonic Inspection Method (bar, billet, forging)
 
 export type MaterialType = "aluminum" | "steel" | "stainless_steel" | "titanium" | "nickel_alloy" | "magnesium" | "custom";
 

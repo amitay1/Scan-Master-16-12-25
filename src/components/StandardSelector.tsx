@@ -116,6 +116,78 @@ const standards = [
   },
 
   // ============================================================================
+  // PW1100G GTF (Geared Turbofan) — FAA AD-mandated AUSI
+  // ============================================================================
+  {
+    value: "NDIP-1254" as StandardType,
+    label: "NDIP-1254",
+    description: "PW1100G HPT 1st Stage Hub — Angled Ultrasonic Inspection (AUSI)",
+    stringency: "OEM Specific",
+    badge: "PW GTF",
+    icon: Wrench,
+    color: "text-orange-600",
+    iconBg: "bg-orange-600",
+    bgColor: "bg-orange-50",
+    borderColor: "border-orange-300",
+    badgeBg: "#fff7ed",
+    badgeText: "#ea580c",
+    badgeBorder: "#fdba74",
+    features: ["AUSI immersion", "Powder metal inspection", "FAA AD 2023-16-07", "PW1100G-JM / PW1400G-JM"]
+  },
+  {
+    value: "NDIP-1257" as StandardType,
+    label: "NDIP-1257",
+    description: "PW1100G HPT 2nd Stage Hub — Angled Ultrasonic Inspection (AUSI)",
+    stringency: "OEM Specific",
+    badge: "PW GTF",
+    icon: Wrench,
+    color: "text-orange-600",
+    iconBg: "bg-orange-600",
+    bgColor: "bg-orange-50",
+    borderColor: "border-orange-300",
+    badgeBg: "#fff7ed",
+    badgeText: "#ea580c",
+    badgeBorder: "#fdba74",
+    features: ["AUSI immersion", "Powder metal inspection", "FAA AD 2023-16-07", "PW1100G-JM / PW1400G-JM"]
+  },
+  {
+    value: "NDIP-1260" as StandardType,
+    label: "NDIP-1260",
+    description: "PW1100G HPC 8th Stage Disc (IBR-8) — Angled Ultrasonic Inspection",
+    stringency: "OEM Specific",
+    badge: "PW GTF",
+    icon: Wrench,
+    color: "text-orange-600",
+    iconBg: "bg-orange-600",
+    bgColor: "bg-orange-50",
+    borderColor: "border-orange-300",
+    badgeBg: "#fff7ed",
+    badgeText: "#ea580c",
+    badgeBorder: "#fdba74",
+    features: ["AUSI immersion", "IBR disc inspection", "Powder metal screening", "PW1100G-JM"]
+  },
+
+  // ============================================================================
+  // PWA SIM — Sonic Inspection Method (Bar, Billet, Forging)
+  // ============================================================================
+  {
+    value: "PWA-SIM" as StandardType,
+    label: "PWA SIM (Sonic Inspection Method)",
+    description: "Pratt & Whitney Sonic Inspection of Bar, Billet & Forging Stock",
+    stringency: "OEM Specific",
+    badge: "PW Material",
+    icon: Wrench,
+    color: "text-amber-600",
+    iconBg: "bg-amber-600",
+    bgColor: "bg-amber-50",
+    borderColor: "border-amber-300",
+    badgeBg: "#fffbeb",
+    badgeText: "#d97706",
+    badgeBorder: "#fcd34d",
+    features: ["5 MHz immersion", "FBH + EDM notch", "Bar/Billet/Rod", "PWA 127 compliant"]
+  },
+
+  // ============================================================================
   // NEW STANDARDS
   // ============================================================================
 

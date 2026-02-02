@@ -98,6 +98,97 @@ export const standardRules: Record<StandardType, StandardRules> = {
     couplantRecommendations: ["Oil (mineral)", "Water with wetting agent", "Glycerin", "Commercial couplants"],
     scanCoverageDefault: 100,
     linearityRequirements: { vertical: { min: 80, max: 100 }, horizontal: { min: 0 } }
+  },
+  "NDIP-1226": {
+    defaultAcceptanceClass: "A", minThickness: 6.35,
+    typicalFrequencies: ["5.0"],
+    couplantRecommendations: ["Water (Immersion) — 8\" water path per NDIP-1226 Section 5.1.1.2"],
+    scanCoverageDefault: 100,
+    linearityRequirements: { vertical: { min: 5, max: 98 }, horizontal: { min: 90 } }
+  },
+  "NDIP-1227": {
+    defaultAcceptanceClass: "A", minThickness: 6.35,
+    typicalFrequencies: ["5.0"],
+    couplantRecommendations: ["Water (Immersion) — 8\" water path per NDIP-1227"],
+    scanCoverageDefault: 100,
+    linearityRequirements: { vertical: { min: 5, max: 98 }, horizontal: { min: 90 } }
+  },
+  "NDIP-1254": {
+    defaultAcceptanceClass: "A", minThickness: 6.35,
+    typicalFrequencies: ["5.0"],
+    couplantRecommendations: ["Water (Immersion) — AUSI per PW1100G NDIP-1254"],
+    scanCoverageDefault: 100,
+    linearityRequirements: { vertical: { min: 5, max: 98 }, horizontal: { min: 90 } }
+  },
+  "NDIP-1257": {
+    defaultAcceptanceClass: "A", minThickness: 6.35,
+    typicalFrequencies: ["5.0"],
+    couplantRecommendations: ["Water (Immersion) — AUSI per PW1100G NDIP-1257"],
+    scanCoverageDefault: 100,
+    linearityRequirements: { vertical: { min: 5, max: 98 }, horizontal: { min: 90 } }
+  },
+  "NDIP-1260": {
+    defaultAcceptanceClass: "A", minThickness: 6.35,
+    typicalFrequencies: ["5.0"],
+    couplantRecommendations: ["Water (Immersion) — AUSI per PW1100G NDIP-1260"],
+    scanCoverageDefault: 100,
+    linearityRequirements: { vertical: { min: 5, max: 98 }, horizontal: { min: 90 } }
+  },
+  "PWA-SIM": {
+    defaultAcceptanceClass: "A", minThickness: 6.35,
+    typicalFrequencies: ["5.0"],
+    couplantRecommendations: ["Water (Immersion)", "Glycerin"],
+    scanCoverageDefault: 100,
+    linearityRequirements: { vertical: { min: 5, max: 98 }, horizontal: { min: 90 } }
+  },
+  "ASTM-E2375": {
+    defaultAcceptanceClass: "A", minThickness: 6.35,
+    typicalFrequencies: ["2.25", "5.0", "10.0"],
+    couplantRecommendations: ["Water (Immersion)", "Glycerin", "Commercial Gel (Sono 600)"],
+    scanCoverageDefault: 100,
+    linearityRequirements: { vertical: { min: 5, max: 98 }, horizontal: { min: 90 } }
+  },
+  "ASTM-E127": {
+    defaultAcceptanceClass: "A", minThickness: 0,
+    typicalFrequencies: ["5.0"],
+    couplantRecommendations: ["Water (Immersion)"],
+    scanCoverageDefault: 100,
+    linearityRequirements: { vertical: { min: 5, max: 98 }, horizontal: { min: 90 } }
+  },
+  "ASTM-E164": {
+    defaultAcceptanceClass: "A", minThickness: 6.4,
+    typicalFrequencies: ["1.0", "2.25", "5.0"],
+    couplantRecommendations: ["Glycerin", "Commercial Gel", "Oil"],
+    scanCoverageDefault: 100,
+    linearityRequirements: { vertical: { min: 10, max: 95 }, horizontal: { min: 85 } }
+  },
+  "AMS-2630": {
+    defaultAcceptanceClass: "A", minThickness: 12.7,
+    typicalFrequencies: ["2.25", "5.0", "10.0"],
+    couplantRecommendations: ["Water (Immersion)", "Glycerin", "Commercial Gel"],
+    scanCoverageDefault: 100,
+    linearityRequirements: { vertical: { min: 5, max: 98 }, horizontal: { min: 90 } }
+  },
+  "AMS-2631": {
+    defaultAcceptanceClass: "A", minThickness: 6.35,
+    typicalFrequencies: ["2.25", "5.0", "10.0"],
+    couplantRecommendations: ["Water (Immersion)", "Glycerin"],
+    scanCoverageDefault: 100,
+    linearityRequirements: { vertical: { min: 5, max: 95 }, horizontal: { min: 90 } }
+  },
+  "AMS-2632": {
+    defaultAcceptanceClass: "A", minThickness: 0.5,
+    typicalFrequencies: ["5.0", "10.0", "15.0"],
+    couplantRecommendations: ["Water (Immersion)", "Glycerin"],
+    scanCoverageDefault: 100,
+    linearityRequirements: { vertical: { min: 5, max: 98 }, horizontal: { min: 90 } }
+  },
+  "EN-ISO-16810": {
+    defaultAcceptanceClass: "A", minThickness: 0,
+    typicalFrequencies: ["0.5", "1.0", "2.0", "5.0"],
+    couplantRecommendations: ["Per referencing product standard"],
+    scanCoverageDefault: 100,
+    linearityRequirements: { vertical: { min: 80, max: 100 }, horizontal: { min: 0 } }
   }
 };
 

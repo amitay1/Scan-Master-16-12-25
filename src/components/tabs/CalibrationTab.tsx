@@ -155,6 +155,10 @@ const getStandardLabel = (standard: StandardType): string => {
     "AMS-2632": "AMS 2632 (Thin Materials)",
     "NDIP-1226": "PW NDIP-1226 (V2500 HPT S1)",
     "NDIP-1227": "PW NDIP-1227 (V2500 HPT S2)",
+    "NDIP-1254": "PW NDIP-1254 (GTF HPT S1)",
+    "NDIP-1257": "PW NDIP-1257 (GTF HPT S2)",
+    "NDIP-1260": "PW NDIP-1260 (GTF IBR-8)",
+    "PWA-SIM": "PWA SIM (Bar/Billet)",
     "EN-ISO-16810": "EN ISO 16810",
   };
   return labels[standard] || standard;
@@ -327,8 +331,22 @@ export const CalibrationTab = ({
     const parsed = parseFBHSizeString(recommendedFBH);
     if (!parsed) return;
 
-    // Calculate DAC depths based on part thickness
-    const dacDepths = calculateDACDepths(thickness);
+    // PW NDIP standards use fixed hole depths per IAE2P16675 calibration block
+    // Holes L–S at specific depths (inches → mm), J&K omitted per NDIP Section 5.1.1.7.1
+    const isPWStandard = standard === "NDIP-1226" || standard === "NDIP-1227" || standard === "NDIP-1254" || standard === "NDIP-1257" || standard === "NDIP-1260";
+    const pwHoleDepthsMm = [
+      6.350,   // Hole L: 0.250"
+      9.525,   // Hole M: 0.375"
+      12.700,  // Hole N: 0.500"
+      15.875,  // Hole P: 0.625"
+      19.050,  // Hole Q: 0.750"
+      22.225,  // Hole R: 0.875"
+      25.400,  // Hole S: 1.000"
+    ];
+    const pwHoleLabels = ['L', 'M', 'N', 'P', 'Q', 'R', 'S'];
+
+    // Calculate DAC depths based on standard
+    const dacDepths = isPWStandard ? pwHoleDepthsMm : calculateDACDepths(thickness);
 
     // Check if values are already set to the same - avoid unnecessary updates
     const currentDiameter = fbhHoles[0]?.diameterInch;
@@ -344,7 +362,7 @@ export const CalibrationTab = ({
     // Build the auto-filled holes array
     const autoFilledHoles: FBHHoleRowData[] = dacDepths.map((depth, index) => ({
       id: index + 1,
-      partNumber: '',
+      partNumber: isPWStandard ? 'IAE2P16675' : '',
       deltaType: 'dac', // DAC for distance-amplitude correction
       diameterInch: parsed.inch,
       diameterMm: parsed.mm,
@@ -356,10 +374,19 @@ export const CalibrationTab = ({
     // Update state
     setFbhHoles(autoFilledHoles);
     setFbhAutoFilled(true);
-    setFbhAutoFillReason(
-      `FBH ${parsed.inch}" (${parsed.mm}mm) selected per ${standard} Class ${acceptanceClass} for ${thickness}mm thickness. ` +
-      `DAC depths: ${dacDepths.map(d => `${d}mm`).join(', ')} (25%, 50%, 75% of thickness).`
-    );
+    if (isPWStandard) {
+      setFbhAutoFillReason(
+        `PW IAE2P16675 calibration block — #1 FBH (1/64") at 80% FSH. ` +
+        `7 holes (${pwHoleLabels.join(', ')}): ${pwHoleDepthsMm.map((d, i) => `${pwHoleLabels[i]}=${d}mm`).join(', ')}. ` +
+        `Per ${standard === 'NDIP-1226' ? 'NDIP-1226 Rev F' : 'NDIP-1227 Rev D'} Section 5.1.1.7.1. ` +
+        `±45° circumferential shear wave, 8\" water path immersion.`
+      );
+    } else {
+      setFbhAutoFillReason(
+        `FBH ${parsed.inch}" (${parsed.mm}mm) selected per ${standard} Class ${acceptanceClass} for ${thickness}mm thickness. ` +
+        `DAC depths: ${dacDepths.map(d => `${d}mm`).join(', ')} (25%, 50%, 75% of thickness).`
+      );
+    }
 
     // Update parent data
     const fbhSizesStr = autoFilledHoles.map(h => h.diameterInch).join(', ');

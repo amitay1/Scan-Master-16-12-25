@@ -1371,7 +1371,7 @@ export async function exportTechniqueSheetWord(
   }
 
   // Material Warning
-  const materialWarning = getMaterialWarning(inspectionSetup.material);
+  const materialWarning = getMaterialWarning(inspectionSetup.material, data.standard);
   if (materialWarning) {
     children.push(createWarningBox(materialWarning));
     children.push(new Paragraph({ children: [], spacing: { after: 200 } }));

@@ -23,12 +23,25 @@ interface AcceptanceCriteriaTabProps {
 
 // Get the standard label for reference notes
 const getStandardLabel = (standard: StandardType): string => {
-  const labels: Record<StandardType, string> = {
+  const labels: Partial<Record<StandardType, string>> = {
     "MIL-STD-2154": "MIL-STD-2154 Table VI",
     "AMS-STD-2154E": "MIL-STD-2154 / AMS-STD-2154E Table VI",
     "ASTM-A388": "ASTM A388/A388M Quality Levels",
     "BS-EN-10228-3": "BS EN 10228-3:2016 Quality Classes",
     "BS-EN-10228-4": "BS EN 10228-4:2016 Quality Classes (Austenitic)",
+    "NDIP-1226": "NDIP-1226 Rev F — PW V2500 1st Stage HPT Disk",
+    "NDIP-1227": "NDIP-1227 Rev D — PW V2500 2nd Stage HPT Disk",
+    "NDIP-1254": "NDIP-1254 — PW1100G HPT 1st Stage Hub (AUSI)",
+    "NDIP-1257": "NDIP-1257 — PW1100G HPT 2nd Stage Hub (AUSI)",
+    "NDIP-1260": "NDIP-1260 — PW1100G HPC 8th Stage IBR-8 (AUSI)",
+    "PWA-SIM": "PWA SIM — Sonic Inspection Method (Bar/Billet/Forging)",
+    "ASTM-E2375": "ASTM E2375 — UT of Wrought Products",
+    "ASTM-E127": "ASTM E127 — FBH Reference Blocks",
+    "ASTM-E164": "ASTM E164 — UT of Weldments",
+    "AMS-2630": "AMS 2630 — Products >0.5\" Thick",
+    "AMS-2631": "AMS 2631 — Titanium Bar, Billet, Plate",
+    "AMS-2632": "AMS 2632 — Thin Materials ≤0.5\"",
+    "EN-ISO-16810": "EN ISO 16810 — General UT Principles",
   };
   return labels[standard] || standard;
 };

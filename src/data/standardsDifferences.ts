@@ -60,6 +60,20 @@ const acceptanceClassesByStandardBase = {
   "NDIP-1227": [
     { id: "PW-V2500-2", label: "PW Standard", description: "V2500 2nd Stage HPT Disk - Immersion UT per NDIP-1227 Rev D", stringency: "highest" },
   ],
+  // PW1100G GTF NDIPs (FAA AD-mandated AUSI — powder metal contamination screening)
+  "NDIP-1254": [
+    { id: "PW-GTF-HPT1", label: "PW GTF Standard", description: "PW1100G HPT 1st Stage Hub — AUSI per FAA AD 2023-16-07", stringency: "highest" },
+  ],
+  "NDIP-1257": [
+    { id: "PW-GTF-HPT2", label: "PW GTF Standard", description: "PW1100G HPT 2nd Stage Hub — AUSI per FAA AD 2023-16-07", stringency: "highest" },
+  ],
+  "NDIP-1260": [
+    { id: "PW-GTF-IBR8", label: "PW GTF Standard", description: "PW1100G HPC 8th Stage Disc IBR-8 — AUSI", stringency: "highest" },
+  ],
+  // PWA SIM — Sonic Inspection Method for bar/billet/forging
+  "PWA-SIM": [
+    { id: "PWA-SIM-STD", label: "PWA SIM Standard", description: "Pratt & Whitney Sonic Inspection Method — Bar, Billet, Forging per PWA 127", stringency: "highest" },
+  ],
 
   // ============================================================================
   // NEW STANDARDS ADDED
@@ -300,6 +314,48 @@ const acceptanceCriteriaByStandardBase = {
       backReflectionLoss: "Per calibration verification (±2 dB tolerance)",
       noiseLevel: "Max 10% FSH average, 15% FSH band noise",
       specialNotes: "PW V2500 2nd Stage HPT Disk. TOF criteria: ≥15 pixels over 3+ scan lines with SNR ≥1.5:1. Circumferential shear wave ±45°. #1 FBH (1/64\") at 80% FSH. Per NDIP-1227 Rev D."
+    },
+  },
+  // PW1100G GTF NDIPs — criteria based on FAA AD 2022-19-15 / AD 2023-16-07 (powder metal screening)
+  "NDIP-1254": {
+    "PW-GTF-HPT1": {
+      singleDiscontinuity: "Per NDIP-1254 specification (proprietary — contact PW MPE-NDE)",
+      multipleDiscontinuities: "Per NDIP-1254 specification",
+      linearDiscontinuity: "Per NDIP-1254 specification",
+      backReflectionLoss: "Per calibration verification",
+      noiseLevel: "Per NDIP-1254 specification",
+      specialNotes: "PW1100G-JM / PW1400G-JM HPT 1st Stage Hub. AUSI for powder metal contamination per FAA AD 2023-16-07. Inspection required before 3,800 CSN or within 100 FC of AD effective date. Full NDIP details available through PW Supplier Portal (eSRI)."
+    },
+  },
+  "NDIP-1257": {
+    "PW-GTF-HPT2": {
+      singleDiscontinuity: "Per NDIP-1257 specification (proprietary — contact PW MPE-NDE)",
+      multipleDiscontinuities: "Per NDIP-1257 specification",
+      linearDiscontinuity: "Per NDIP-1257 specification",
+      backReflectionLoss: "Per calibration verification",
+      noiseLevel: "Per NDIP-1257 specification",
+      specialNotes: "PW1100G-JM / PW1400G-JM HPT 2nd Stage Hub. AUSI for powder metal contamination per FAA AD 2023-16-07. Also covers accelerated replacement requirements. Full NDIP details available through PW Supplier Portal (eSRI)."
+    },
+  },
+  "NDIP-1260": {
+    "PW-GTF-IBR8": {
+      singleDiscontinuity: "Per NDIP-1260 specification (proprietary — contact PW MPE-NDE)",
+      multipleDiscontinuities: "Per NDIP-1260 specification",
+      linearDiscontinuity: "Per NDIP-1260 specification",
+      backReflectionLoss: "Per calibration verification",
+      noiseLevel: "Per NDIP-1260 specification",
+      specialNotes: "PW1100G-JM HPC 8th Stage Integrally Bladed Rotor (IBR-8). AUSI for powder metal contamination. Referenced in FAA superseding AD (Dec 2023). Full NDIP details available through PW Supplier Portal (eSRI)."
+    },
+  },
+  // PWA SIM — Sonic Inspection Method
+  "PWA-SIM": {
+    "PWA-SIM-STD": {
+      singleDiscontinuity: "3/64\" (1.2mm) FBH at 50% depth — reject level",
+      multipleDiscontinuities: "Per PWA 127 specification",
+      linearDiscontinuity: "EDM notch 3% depth × 1/4\" length — axial",
+      backReflectionLoss: "Per calibration verification",
+      noiseLevel: "Per PWA 127 specification",
+      specialNotes: "PWA Sonic Inspection Method for bar, billet, rod, and forging stock. Reference block per PWA SIM 4E SIS 26B: 3/64\" FBH at 50%, 3/64\" FBH at 10%, 1/32\" FBH at 10%, plus axial EDM notch 3% × 1/4\". Contact PW Supplier Portal (eSRI) for full PWA 127 specification."
     },
   },
 
@@ -657,6 +713,44 @@ const equipmentParametersByStandardBase = {
     transducerDiameter: { min: 19.05, max: 19.05, unit: "mm" }, // 0.75" per IAE2P16679
     notes: "PW V2500 2nd Stage HPT Disk. Transducer: IAE2P16679 (5 MHz, 0.75\" element, 8\" focal). Mirror: IAE2P16678 (45°). Immersion inspection at 8\" water path."
   },
+  // PW1100G GTF NDIPs — AUSI equipment (powder metal contamination screening)
+  "NDIP-1254": {
+    frequencyRange: { min: 5, max: 5, typical: 5, unit: "MHz" },
+    verticalLinearity: { min: 5, max: 98 },
+    horizontalLinearity: { min: 90 },
+    frequencyTolerance: "±10%",
+    prfRange: "1000-5000 Hz",
+    transducerDiameter: { min: 19.05, max: 19.05, unit: "mm" }, // 0.75"
+    notes: "PW1100G HPT 1st Stage Hub. AUSI per FAA AD 2023-16-07. Transducer: 5 MHz, 0.75\" element. Immersion inspection."
+  },
+  "NDIP-1257": {
+    frequencyRange: { min: 5, max: 5, typical: 5, unit: "MHz" },
+    verticalLinearity: { min: 5, max: 98 },
+    horizontalLinearity: { min: 90 },
+    frequencyTolerance: "±10%",
+    prfRange: "1000-5000 Hz",
+    transducerDiameter: { min: 19.05, max: 19.05, unit: "mm" }, // 0.75"
+    notes: "PW1100G HPT 2nd Stage Hub. AUSI per FAA AD 2023-16-07. Transducer: 5 MHz, 0.75\" element. Immersion inspection."
+  },
+  "NDIP-1260": {
+    frequencyRange: { min: 5, max: 5, typical: 5, unit: "MHz" },
+    verticalLinearity: { min: 5, max: 98 },
+    horizontalLinearity: { min: 90 },
+    frequencyTolerance: "±10%",
+    prfRange: "1000-5000 Hz",
+    transducerDiameter: { min: 19.05, max: 19.05, unit: "mm" }, // 0.75"
+    notes: "PW1100G HPC 8th Stage IBR-8. AUSI per FAA AD. Transducer: 5 MHz, 0.75\" element. Immersion inspection."
+  },
+  // PWA SIM — Sonic Inspection Method equipment
+  "PWA-SIM": {
+    frequencyRange: { min: 2.25, max: 10, typical: 5, unit: "MHz" },
+    verticalLinearity: { min: 5, max: 98 },
+    horizontalLinearity: { min: 90 },
+    frequencyTolerance: "±10%",
+    prfRange: "100-10000 Hz",
+    transducerDiameter: { min: 12.7, max: 25.4, unit: "mm" }, // 0.5-1.0"
+    notes: "PWA Sonic Inspection Method for bar, billet, forging. 5 MHz typical. Immersion or contact per PWA 127. Transducer 0.5-1.0\" element."
+  },
 
   // ============================================================================
   // NEW STANDARDS - EQUIPMENT PARAMETERS
@@ -807,6 +901,44 @@ const scanParametersByStandardBase = {
     calibrationFrequency: "Before each disk, after setup changes, every 8 hours",
     sensitivityGain: "80% FSH on #1 FBH reference, DAC curve required",
     notes: "PW V2500 2nd Stage HPT. Max scan increment: 0.020\". Max index: 0.020\"/rev. Circumferential shear wave ±45°. 8\" water path immersion."
+  },
+  // PW1100G GTF NDIPs — AUSI scan parameters
+  "NDIP-1254": {
+    maxSpeedManual: { value: 0, unit: "mm/s" }, // Automated only — AUSI
+    maxSpeedAutomated: { value: 127, unit: "mm/s" }, // ~5 in/s
+    minOverlap: 25,
+    coverageRequired: 100,
+    calibrationFrequency: "Before each part, after setup changes, every 8 hours",
+    sensitivityGain: "80% FSH on reference, DAC curve required",
+    notes: "PW1100G HPT 1st Stage Hub. AUSI automated only. Per FAA AD 2023-16-07. Full circumferential + axial coverage."
+  },
+  "NDIP-1257": {
+    maxSpeedManual: { value: 0, unit: "mm/s" }, // Automated only — AUSI
+    maxSpeedAutomated: { value: 127, unit: "mm/s" }, // ~5 in/s
+    minOverlap: 25,
+    coverageRequired: 100,
+    calibrationFrequency: "Before each part, after setup changes, every 8 hours",
+    sensitivityGain: "80% FSH on reference, DAC curve required",
+    notes: "PW1100G HPT 2nd Stage Hub. AUSI automated only. Per FAA AD 2023-16-07. Full circumferential + axial coverage."
+  },
+  "NDIP-1260": {
+    maxSpeedManual: { value: 0, unit: "mm/s" }, // Automated only — AUSI
+    maxSpeedAutomated: { value: 127, unit: "mm/s" }, // ~5 in/s
+    minOverlap: 25,
+    coverageRequired: 100,
+    calibrationFrequency: "Before each part, after setup changes, every 8 hours",
+    sensitivityGain: "80% FSH on reference, DAC curve required",
+    notes: "PW1100G HPC 8th Stage IBR-8. AUSI automated only. Full circumferential + axial coverage."
+  },
+  // PWA SIM — Sonic Inspection Method scan parameters
+  "PWA-SIM": {
+    maxSpeedManual: { value: 150, unit: "mm/s" },
+    maxSpeedAutomated: { value: 305, unit: "mm/s" }, // 12 in/s
+    minOverlap: 15,
+    coverageRequired: 100,
+    calibrationFrequency: "Before and after inspection",
+    sensitivityGain: "80% FSH on 3/64\" FBH at 50% depth",
+    notes: "PWA Sonic Inspection Method for bar, billet, forging per PWA 127. Manual or automated scanning."
   },
 
   // ============================================================================
@@ -981,6 +1113,66 @@ const documentationByStandardBase = {
       "Transducer serial number (IAE2P16679)"
     ]
   },
+  // PW1100G GTF NDIPs — documentation requirements
+  "NDIP-1254": {
+    recordRetentionYears: "Life of component",
+    personnelCertification: "Level II UT (certified by approved training provider) + PW certification",
+    techniqueSheetRequired: true,
+    coverageMapRequired: "Required - per inspection zone",
+    additionalRequirements: [
+      "FAA AD 2023-16-07 compliance documentation",
+      "Part number and serial number",
+      "Engine serial number",
+      "Cycles Since New (CSN) and Time Since New (TSN)",
+      "Amplitude and TOF C-Scan data (electronic transfer to PW MPE-NDE)",
+      "All rejectable indication details",
+      "Calibration block serial number"
+    ]
+  },
+  "NDIP-1257": {
+    recordRetentionYears: "Life of component",
+    personnelCertification: "Level II UT (certified by approved training provider) + PW certification",
+    techniqueSheetRequired: true,
+    coverageMapRequired: "Required - per inspection zone",
+    additionalRequirements: [
+      "FAA AD 2023-16-07 compliance documentation",
+      "Part number and serial number",
+      "Engine serial number",
+      "Cycles Since New (CSN) and Time Since New (TSN)",
+      "Amplitude and TOF C-Scan data (electronic transfer to PW MPE-NDE)",
+      "All rejectable indication details",
+      "Calibration block serial number"
+    ]
+  },
+  "NDIP-1260": {
+    recordRetentionYears: "Life of component",
+    personnelCertification: "Level II UT (certified by approved training provider) + PW certification",
+    techniqueSheetRequired: true,
+    coverageMapRequired: "Required - per inspection zone",
+    additionalRequirements: [
+      "FAA AD compliance documentation",
+      "Part number and serial number",
+      "Engine serial number",
+      "Cycles Since New (CSN) and Time Since New (TSN)",
+      "Amplitude and TOF C-Scan data (electronic transfer to PW MPE-NDE)",
+      "All rejectable indication details",
+      "Calibration block serial number"
+    ]
+  },
+  // PWA SIM — documentation requirements
+  "PWA-SIM": {
+    recordRetentionYears: 7,
+    personnelCertification: "NAS 410 Level II minimum",
+    techniqueSheetRequired: true,
+    coverageMapRequired: "Required for complex geometries",
+    additionalRequirements: [
+      "Bar/billet/forging material traceability",
+      "Material specification and heat lot",
+      "Equipment settings and calibration records",
+      "All indications above recording level",
+      "Reference block serial number per PWA SIM 4E"
+    ]
+  },
 
   // ============================================================================
   // NEW STANDARDS - DOCUMENTATION REQUIREMENTS
@@ -1151,6 +1343,40 @@ const calibrationByStandardBase = {
     transferCorrection: "Curvature correction required per bore radius",
     verificationRequirements: "Post-calibration within ±2 dB of initial. Re-inspect if drift detected."
   },
+  // PW1100G GTF NDIPs — calibration requirements
+  "NDIP-1254": {
+    referenceBlockMaterial: "Titanium (Ti-6-4 or equivalent) - V2500 equivalent block",
+    calibrationInterval: "Before each part, after setup changes, every 8 hours during continuous operation",
+    dacCurvePoints: 8,
+    primarySensitivity: "80% FSH on #1 FBH (1/64\") reference, DAC required",
+    transferCorrection: "Curvature correction required per bore radius",
+    verificationRequirements: "Post-calibration within ±2 dB of initial. Re-inspect if drift detected."
+  },
+  "NDIP-1257": {
+    referenceBlockMaterial: "Titanium (Ti-6-4 or equivalent) - V2500 equivalent block",
+    calibrationInterval: "Before each part, after setup changes, every 8 hours during continuous operation",
+    dacCurvePoints: 8,
+    primarySensitivity: "80% FSH on #1 FBH (1/64\") reference, DAC required",
+    transferCorrection: "Curvature correction required per bore radius",
+    verificationRequirements: "Post-calibration within ±2 dB of initial. Re-inspect if drift detected."
+  },
+  "NDIP-1260": {
+    referenceBlockMaterial: "Titanium (Ti-6-4 or equivalent) - V2500 equivalent block",
+    calibrationInterval: "Before each part, after setup changes, every 8 hours during continuous operation",
+    dacCurvePoints: 8,
+    primarySensitivity: "80% FSH on #1 FBH (1/64\") reference, DAC required",
+    transferCorrection: "Curvature correction required per bore radius",
+    verificationRequirements: "Post-calibration within ±2 dB of initial. Re-inspect if drift detected."
+  },
+  // PWA SIM — calibration requirements
+  "PWA-SIM": {
+    referenceBlockMaterial: "Same material as test part — per PWA SIM 4E SIS 26B",
+    calibrationInterval: "Before and after inspection",
+    dacCurvePoints: 3,
+    primarySensitivity: "80% FSH on 3/64\" FBH at 50% depth",
+    transferCorrection: "Required when surface finish or geometry differs",
+    verificationRequirements: "Verify before and after inspection, recalibrate if >2 dB change"
+  },
 
   // ============================================================================
   // NEW STANDARDS - CALIBRATION REQUIREMENTS
@@ -1271,6 +1497,32 @@ export const materialWarnings: MaterialWarning[] = [
       "Consider higher sensitivity settings"
     ]
   },
+  {
+    material: "nickel",
+    standard: "NDIP-1226",
+    warning: "PW V2500 1st Stage HPT Disk — Powdered Nickel alloy requires specific P&W equipment and calibration",
+    recommendations: [
+      "ONLY use IAE2P16679 transducer (5 MHz, 0.75\" element, 8\" focal length)",
+      "ONLY use IAE2P16678 45° mirror — must be fully seated on transducer",
+      "Calibration block: IAE2P16675 (powdered nickel equivalent) — yearly recertification at PW NDE",
+      "Water path: 8.0\" per NDIP Section 5.1.1.2",
+      "Inspector must hold PW POD qualification — recertify every 6 months if inactive",
+      "Electronic data transfer to PW MPE-NDE via MFT required"
+    ]
+  },
+  {
+    material: "nickel",
+    standard: "NDIP-1227",
+    warning: "PW V2500 2nd Stage HPT Disk — Powdered Nickel alloy requires specific P&W equipment and calibration",
+    recommendations: [
+      "ONLY use IAE2P16679 transducer (5 MHz, 0.75\" element, 8\" focal length)",
+      "ONLY use IAE2P16678 45° mirror — must be fully seated on transducer",
+      "Calibration block: IAE2P16675 (powdered nickel equivalent) — yearly recertification at PW NDE",
+      "Water path: 8.0\" per NDIP Section 7.5",
+      "Inspector must hold PW POD qualification — recertify every 6 months if inactive",
+      "Electronic data transfer to PW MPE-NDE via MFT required"
+    ]
+  },
 ];
 
 // ============================================================================
@@ -1288,6 +1540,10 @@ export function getDefaultAcceptanceClass(standard: StandardType): string {
     "BS-EN-10228-4": "2", // Class 2 = Standard quality (intermediate stringency)
     "NDIP-1226": "PW-V2500-1", // PW standard - single acceptance level
     "NDIP-1227": "PW-V2500-2", // PW standard - single acceptance level
+    "NDIP-1254": "PW-GTF-HPT1", // PW1100G GTF HPT 1st Stage Hub
+    "NDIP-1257": "PW-GTF-HPT2", // PW1100G GTF HPT 2nd Stage Hub
+    "NDIP-1260": "PW-GTF-IBR8", // PW1100G GTF HPC 8th Stage IBR-8
+    "PWA-SIM": "PWA-SIM-STD", // PWA Sonic Inspection Method
     // New standards
     "ASTM-E2375": "A", // Same as AMS-STD-2154E
     "ASTM-E127": "CALIBRATION", // Calibration block standard
@@ -1335,8 +1591,14 @@ export function getFBHSizeForStandard(
   }
 
   // PW NDIP standards - fixed #1 FBH per spec
-  if (standard === "NDIP-1226" || standard === "NDIP-1227") {
+  if (standard === "NDIP-1226" || standard === "NDIP-1227" ||
+      standard === "NDIP-1254" || standard === "NDIP-1257" || standard === "NDIP-1260") {
     return "#1 FBH (1/64\" / 0.4mm) - Per PW NDIP specification";
+  }
+
+  // PWA SIM - bar/billet/forging
+  if (standard === "PWA-SIM") {
+    return "3/64\" (1.2mm) FBH at 50% depth per PWA SIM 4E";
   }
 
   // ASTM E127 - calibration block standard
@@ -1406,8 +1668,14 @@ export function getRecommendedFrequencyForStandard(
   }
 
   // PW NDIP standards - fixed 5 MHz per spec
-  if (standard === "NDIP-1226" || standard === "NDIP-1227") {
+  if (standard === "NDIP-1226" || standard === "NDIP-1227" ||
+      standard === "NDIP-1254" || standard === "NDIP-1257" || standard === "NDIP-1260") {
     return "5 MHz (per PW NDIP specification)";
+  }
+
+  // PWA SIM - bar/billet/forging
+  if (standard === "PWA-SIM") {
+    return "5 MHz (per PWA 127)";
   }
 
   // ASTM E127 - calibration standard at 5 MHz

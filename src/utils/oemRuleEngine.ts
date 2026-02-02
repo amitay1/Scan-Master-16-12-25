@@ -616,8 +616,10 @@ export function mergeWithOEMRules<T extends Record<string, unknown>>(
  * Returns 'GENERIC' for non-OEM standards
  */
 export function getVendorFromStandard(standard: string): OEMVendor {
-  // PW NDIP standards
-  if (standard === 'NDIP-1226' || standard === 'NDIP-1227') {
+  // PW NDIP standards (V2500, PW1100G GTF, PWA SIM)
+  if (standard === 'NDIP-1226' || standard === 'NDIP-1227' ||
+      standard === 'NDIP-1254' || standard === 'NDIP-1257' || standard === 'NDIP-1260' ||
+      standard === 'PWA-SIM') {
     return 'PW';
   }
 

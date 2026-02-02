@@ -241,6 +241,12 @@ class TechniqueSheetPDFBuilder {
     this.calculatePages();
   }
 
+  /** Check if current standard is a Pratt & Whitney OEM standard */
+  private isPWStandard(): boolean {
+    const s = this.data.standard;
+    return s === 'NDIP-1226' || s === 'NDIP-1227' || s === 'NDIP-1254' || s === 'NDIP-1257' || s === 'NDIP-1260' || s === 'PWA-SIM';
+  }
+
   // Safely get the final Y position after autoTable
   private getTableEndY(fallbackY: number, extraSpace = 10): number {
     const pdfWithTable = this.pdf as unknown as { lastAutoTable?: { finalY?: number } };
@@ -652,14 +658,33 @@ class TechniqueSheetPDFBuilder {
       }
     }
 
-    // Document title (center-left)
+    // Document title (center-left) - P&W gets custom header
+    const isPWCover = this.isPWStandard();
+    const coverTitle = isPWCover ? 'P&W — SONIC INSPECTION METHOD' : 'UT TECHNIQUE SHEET';
     this.pdf.setTextColor(255, 255, 255);
     this.pdf.setFontSize(14);
     this.pdf.setFont('helvetica', 'bold');
-    this.pdf.text('UT TECHNIQUE SHEET', titleStartX, 12);
+    this.pdf.text(coverTitle, titleStartX, 12);
 
-    // Company name below title
-    if (this.options.companyName) {
+    // Subtitle for P&W or company name
+    if (isPWCover) {
+      const ndipLabels: Record<string, string> = {
+        'NDIP-1226': 'NDIP-1226 Rev F — V2500 1st Stage HPT Disk',
+        'NDIP-1227': 'NDIP-1227 Rev D — V2500 2nd Stage HPT Disk',
+        'NDIP-1254': 'NDIP-1254 — PW1100G HPT 1st Stage Hub (AUSI)',
+        'NDIP-1257': 'NDIP-1257 — PW1100G HPT 2nd Stage Hub (AUSI)',
+        'NDIP-1260': 'NDIP-1260 — PW1100G HPC 8th Stage IBR-8 (AUSI)',
+        'PWA-SIM': 'PWA SIM — Sonic Inspection Method (Bar/Billet/Forging)',
+      };
+      const ndipRef = ndipLabels[this.data.standard] || this.data.standard;
+      this.pdf.setFontSize(8);
+      this.pdf.setFont('helvetica', 'normal');
+      this.pdf.setTextColor(200, 220, 240);
+      this.pdf.text(ndipRef, titleStartX, 18);
+      if (this.options.companyName) {
+        this.pdf.text(this.options.companyName, titleStartX, 24);
+      }
+    } else if (this.options.companyName) {
       this.pdf.setFontSize(9);
       this.pdf.setFont('helvetica', 'normal');
       this.pdf.setTextColor(200, 220, 240);
@@ -842,6 +867,54 @@ class TechniqueSheetPDFBuilder {
       });
 
       y += 12;
+    }
+
+    // ===== P&W NDIP OEM REQUIREMENTS BOX (when NDIP standard selected) =====
+    const isPWStandard = this.isPWStandard();
+    if (isPWStandard) {
+      const stage = this.data.standard === 'NDIP-1226' ? '1st' : '2nd';
+      const ndipRev = this.data.standard === 'NDIP-1226' ? 'NDIP-1226 Rev F' : 'NDIP-1227 Rev D';
+
+      // Section header
+      this.pdf.setFillColor(30, 41, 59); // Dark slate
+      this.pdf.rect(PAGE.marginLeft, y, PAGE.contentWidth, 8, 'F');
+      this.pdf.setFillColor(234, 179, 8); // Gold accent
+      this.pdf.rect(PAGE.marginLeft, y, 4, 8, 'F');
+      this.pdf.setFontSize(9);
+      this.pdf.setFont('helvetica', 'bold');
+      this.pdf.setTextColor(255, 255, 255);
+      this.pdf.text(`PRATT & WHITNEY — V2500 ${stage} Stage HPT Disk`, PAGE.marginLeft + 8, y + 5.5);
+      this.pdf.setFontSize(7);
+      this.pdf.setTextColor(200, 210, 225);
+      this.pdf.text(ndipRev, PAGE.marginLeft + PAGE.contentWidth - 5, y + 5.5, { align: 'right' });
+      y += 10;
+
+      // Requirements grid
+      const pwRows = [
+        ['Transducer', 'IAE2P16679 (5 MHz, 0.75" element, 8" focal)'],
+        ['Mirror', 'IAE2P16678 (45°) — must be fully seated'],
+        ['Calibration Block', 'IAE2P16675 (#1 FBH, holes L–S)'],
+        ['Water Path', '8.0" per Section 5.1.1.2'],
+        ['Scan Angles', '±45° circumferential shear wave'],
+        ['Noise Limit', 'Max 7.5% FSH average, 8.5% band'],
+        ['Post-Cal Tolerance', '±2.0 dB'],
+        ['Data Transfer', 'MFT to PW MPE-NDE'],
+      ];
+
+      autoTable(this.pdf, {
+        startY: y,
+        body: pwRows,
+        theme: 'plain',
+        styles: { fontSize: 7.5, cellPadding: { top: 1.5, bottom: 1.5, left: 3, right: 3 } },
+        columnStyles: {
+          0: { fontStyle: 'bold', cellWidth: 40, textColor: COLORS.lightText },
+          1: { cellWidth: 'auto', textColor: COLORS.text },
+        },
+        alternateRowStyles: { fillColor: [245, 247, 250] },
+        margin: { left: PAGE.marginLeft, right: PAGE.marginRight },
+      });
+
+      y = this.getTableEndY(y, 5);
     }
 
     // ===== APPROVAL SIGNATURES BOX (FRISA style) =====
@@ -1127,7 +1200,7 @@ class TechniqueSheetPDFBuilder {
     }
 
     // Material Warning
-    const warning = getMaterialWarning(setup.material);
+    const warning = getMaterialWarning(setup.material, this.data.standard);
     if (warning) {
       this.pdf.setFillColor(255, 243, 205); // Light yellow
       this.pdf.roundedRect(PAGE.marginLeft, y, PAGE.contentWidth, 15, 2, 2, 'F');
@@ -1731,6 +1804,49 @@ class TechniqueSheetPDFBuilder {
 
     y = this.getTableEndY(y);
 
+    // P&W NDIP Pixel-Based Rejection Criteria (additional detail)
+    const isPWAcceptance = this.isPWStandard();
+    if (isPWAcceptance) {
+      y = this.addSubsectionTitle('NDIP Pixel-Based Rejection Criteria', y);
+
+      const pwCriteriaRows = [
+        ['Amplitude C-Scan', ''],
+        ['  Min pixel grouping', '3 pixels (2×1 or 1×2)'],
+        ['  Adjacent pixel depth tolerance', '0.025"'],
+        ['  Calibration amplitude', '80% FSH (#1 FBH)'],
+        ['  Reject threshold', '20% FSH (25% of calibration)'],
+        ['  Evaluation threshold', '15% FSH'],
+        ['TOF C-Scan', ''],
+        ['  Min pixel grouping', '15 pixels connected'],
+        ['  Min adjacent scan lines', '3'],
+        ['  SNR threshold', '≥1.5:1'],
+        ['  Low noise threshold', '5.0% FSH'],
+        ['  Low noise rejection level', '7.5% FSH (when avg noise <5%)'],
+      ];
+
+      autoTable(this.pdf, {
+        startY: y,
+        body: pwCriteriaRows,
+        theme: 'plain',
+        styles: { fontSize: 8, cellPadding: { top: 1.5, bottom: 1.5, left: 3, right: 3 } },
+        columnStyles: {
+          0: { fontStyle: 'bold', cellWidth: 75, textColor: COLORS.lightText },
+          1: { cellWidth: 'auto', textColor: COLORS.text },
+        },
+        didParseCell: (data) => {
+          // Bold section headers (Amplitude C-Scan, TOF C-Scan)
+          if (data.row.index === 0 || data.row.index === 6) {
+            data.cell.styles.fillColor = [230, 235, 245];
+            data.cell.styles.fontStyle = 'bold';
+            data.cell.styles.textColor = COLORS.primary;
+          }
+        },
+        margin: { left: PAGE.marginLeft, right: PAGE.marginRight },
+      });
+
+      y = this.getTableEndY(y);
+    }
+
     // Special Requirements
     if (acc.specialRequirements) {
       y = this.addSubsectionTitle('Special Requirements', y);
@@ -1740,19 +1856,26 @@ class TechniqueSheetPDFBuilder {
     }
 
     // Material Warning
-    const warning = getMaterialWarning(this.data.inspectionSetup.material);
+    const warning = getMaterialWarning(this.data.inspectionSetup.material, this.data.standard);
     if (warning) {
       y += 5;
-      this.pdf.setFillColor(255, 243, 205);
-      this.pdf.roundedRect(PAGE.marginLeft, y, PAGE.contentWidth, 20, 2, 2, 'F');
-      this.pdf.setDrawColor(255, 193, 7);
-      this.pdf.roundedRect(PAGE.marginLeft, y, PAGE.contentWidth, 20, 2, 2, 'S');
+      // Use darker box for PW warnings
+      const bgColor: [number, number, number] = isPWAcceptance ? [226, 232, 240] : [255, 243, 205];
+      const borderColor: [number, number, number] = isPWAcceptance ? [30, 41, 59] : [255, 193, 7];
+      const titleColor: [number, number, number] = isPWAcceptance ? [30, 41, 59] : [133, 100, 4];
+      const warningBoxHeight = isPWAcceptance ? 28 : 20;
+
+      this.pdf.setFillColor(...bgColor);
+      this.pdf.roundedRect(PAGE.marginLeft, y, PAGE.contentWidth, warningBoxHeight, 2, 2, 'F');
+      this.pdf.setDrawColor(...borderColor);
+      this.pdf.roundedRect(PAGE.marginLeft, y, PAGE.contentWidth, warningBoxHeight, 2, 2, 'S');
 
       this.pdf.setFontSize(9);
       this.pdf.setFont('helvetica', 'bold');
-      this.pdf.setTextColor(133, 100, 4);
-      this.pdf.text('MATERIAL WARNING', PAGE.marginLeft + 5, y + 6);
+      this.pdf.setTextColor(...titleColor);
+      this.pdf.text(isPWAcceptance ? 'P&W OEM REQUIREMENTS' : 'MATERIAL WARNING', PAGE.marginLeft + 5, y + 6);
       this.pdf.setFont('helvetica', 'normal');
+      this.pdf.setFontSize(8);
       this.pdf.text(warning, PAGE.marginLeft + 5, y + 12, { maxWidth: PAGE.contentWidth - 10 });
       this.pdf.setTextColor(...COLORS.text);
     }
