@@ -68,7 +68,7 @@ export type PartGeometry =
 
 export type AcceptanceClass = "AAA" | "AA" | "A" | "B" | "C";
 
-export type CalibrationBlockType = "flat_block" | "curved_block" | "cylinder_notched" | "cylinder_fbh" | "solid_cylinder_fbh" | "angle_beam" | "iiv_block" | "step_wedge" | "iow_block" | "custom";
+export type CalibrationBlockType = "flat_block" | "curved_block" | "cylinder_notched" | "cylinder_fbh" | "solid_cylinder_fbh" | "angle_beam" | "iiw_block" | "step_wedge" | "iow_block" | "custom";
 
 // Coupling method for scan parameters
 export type CouplingMethod = "regular" | "bubbler" | "phased_array";

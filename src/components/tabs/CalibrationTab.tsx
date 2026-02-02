@@ -140,12 +140,21 @@ interface CalibrationTabProps {
 
 // Get standard label
 const getStandardLabel = (standard: StandardType): string => {
-  const labels: Record<StandardType, string> = {
+  const labels: Partial<Record<StandardType, string>> = {
     "MIL-STD-2154": "MIL-STD-2154",
     "AMS-STD-2154E": "AMS-STD-2154E",
     "ASTM-A388": "ASTM A388/A388M",
     "BS-EN-10228-3": "BS EN 10228-3:2016",
     "BS-EN-10228-4": "BS EN 10228-4:2016",
+    "ASTM-E2375": "ASTM E2375",
+    "ASTM-E127": "ASTM E127",
+    "ASTM-E164": "ASTM E164",
+    "AMS-2630": "AMS 2630",
+    "AMS-2631": "AMS 2631 (Titanium)",
+    "AMS-2632": "AMS 2632 (Thin Materials)",
+    "NDIP-1226": "PW NDIP-1226 (V2500 HPT S1)",
+    "NDIP-1227": "PW NDIP-1227 (V2500 HPT S2)",
+    "EN-ISO-16810": "EN ISO 16810",
   };
   return labels[standard] || standard;
 };

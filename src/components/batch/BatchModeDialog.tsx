@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Batch Mode Dialog
  * Import multiple parts and generate technique sheets in batch

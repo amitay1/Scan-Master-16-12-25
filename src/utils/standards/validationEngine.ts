@@ -3,7 +3,7 @@
  */
 
 import { StandardType, MaterialType, AcceptanceClass } from '@/types/techniqueSheet';
-import { standardRules, materialDatabase } from '@/utils/autoFillLogic';
+import { standardRules, materialDatabase } from '@/utils/enhancedAutoFillLogic';
 
 export interface ValidationResult {
   isValid: boolean;

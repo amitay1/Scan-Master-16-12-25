@@ -34,8 +34,8 @@ export function drawTubeTechnicalDrawing(
     innerDiameter = outerDiameter - (2 * wallThickness);
   }
 
-  // Ensure inner diameter is valid (minimum 20% of OD)
-  if (innerDiameter < outerDiameter * 0.2) {
+  // Ensure inner diameter is positive (but respect user-specified thick walls)
+  if (innerDiameter <= 0) {
     innerDiameter = outerDiameter * 0.6;
     wallThickness = (outerDiameter - innerDiameter) / 2;
   }

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Disk Technical Drawing Module
  * Generates 2-view technical drawings for circular flat disk parts

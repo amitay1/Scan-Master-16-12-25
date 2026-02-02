@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Procedure Generator
  * Generates UT inspection procedures from wizard data

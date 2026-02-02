@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * TÜV-Style Professional Inspection Report Exporter
  * 

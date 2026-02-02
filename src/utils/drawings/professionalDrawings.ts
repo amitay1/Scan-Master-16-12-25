@@ -1591,7 +1591,7 @@ export function drawProfessionalCalibrationBlock(
       });
       break;
 
-    case 'iiv_block':
+    case 'iiw_block':
       // IIV/V1 block for angle beam calibration
       drawProfessionalIIVBlock(doc, centerX, centerY, {
         radius: data?.radius || 100

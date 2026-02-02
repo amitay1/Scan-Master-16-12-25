@@ -80,7 +80,7 @@ const calibrationModels: CalibrationModel[] = [
     applications: ["Tube welds", "Pipe inspection", "Circumferential scanning"]
   },
   {
-    id: "iiv_block",
+    id: "iiw_block",
     name: "IIW Type Block",
     figure: "Figure 7",
     description: "International Institute of Welding calibration block for angle beam testing",

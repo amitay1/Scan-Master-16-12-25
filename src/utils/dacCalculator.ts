@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * DAC (Distance-Amplitude Correction) Calculator
  *

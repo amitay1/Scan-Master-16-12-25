@@ -70,7 +70,7 @@ interface CalibrationBlock3DProps {
   material?: 'steel' | 'aluminum' | 'titanium';
 
   // Block type (determines geometric shape)
-  blockType?: 'flat_block' | 'curved_block' | 'cylinder_fbh' | 'cylinder_notched' | 'angle_beam' | 'iiv_block' | 'step_wedge' | 'box';
+  blockType?: 'flat_block' | 'curved_block' | 'cylinder_fbh' | 'cylinder_notched' | 'angle_beam' | 'iiw_block' | 'step_wedge' | 'box';
 
   // Display settings
   showDimensions?: boolean;
@@ -175,7 +175,7 @@ function CalibrationBlockGeometry({
   height: number;
   length: number;
   material: 'steel' | 'aluminum' | 'titanium';
-  blockType: 'flat_block' | 'curved_block' | 'cylinder_fbh' | 'cylinder_notched' | 'angle_beam' | 'iiv_block' | 'step_wedge' | 'box';
+  blockType: 'flat_block' | 'curved_block' | 'cylinder_fbh' | 'cylinder_notched' | 'angle_beam' | 'iiw_block' | 'step_wedge' | 'box';
   fbhData: FBHData[];
   highlightedFBH?: string;
   showFBHLabels: boolean;
@@ -280,7 +280,7 @@ function CalibrationBlockGeometry({
         );
 
       case 'step_wedge':
-      case 'iiv_block':
+      case 'iiw_block':
         // Stepped block
         return (
           <group>

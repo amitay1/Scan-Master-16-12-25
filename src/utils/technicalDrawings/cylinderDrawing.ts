@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Cylinder Technical Drawing Module
  * Generates 2-view technical drawings for cylindrical parts

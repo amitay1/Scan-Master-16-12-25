@@ -322,7 +322,7 @@ function drawCalibrationBlock(
     case 'cylinder_notched':
       drawHollowCylindricalNotched(doc, centerX, centerY, blockData);
       break;
-    case 'iiv_block':
+    case 'iiw_block':
       drawIIVBlock(doc, centerX, centerY, blockData);
       break;
   }

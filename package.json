@@ -6,13 +6,15 @@
                    "email":  "amitay1@gmail.com"
                },
     "private":  true,
-    "version":  "1.0.164",
+    "version":  "1.0.165",
     "type":  "module",
     "scripts":  {
                     "dev":  "tsx watch --clear-screen=false --ignore \u0027**/*.timestamp-*.mjs\u0027 server/index.ts",
                     "build":  "vite build",
                     "start":  "NODE_ENV=production tsx server/index.ts",
                     "db:push":  "drizzle-kit push",
+                    "test":  "vitest run",
+                    "test:watch":  "vitest",
                     "lint":  "eslint .",
                     "preview":  "vite preview",
                     "electron":  "electron electron/main.cjs",
@@ -145,7 +147,8 @@
                             "tailwindcss":  "^3.4.17",
                             "typescript":  "^5.8.3",
                             "typescript-eslint":  "^8.38.0",
-                            "vite":  "^7.0.5"
+                            "vite":  "^7.0.5",
+                            "vitest":  "^4.0.18"
                         },
     "build":  {
                   "appId":  "com.scanmaster.inspection-pro",

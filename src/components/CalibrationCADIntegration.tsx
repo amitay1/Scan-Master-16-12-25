@@ -173,7 +173,7 @@ export const CalibrationCADIntegration: React.FC<CalibrationCADIntegrationProps>
       //   - cylinder_fbh: For hollow cylinders/tubes (FBH on curved surface)
       //
       // ANGLE BEAM (45°, 60°, 70°) - Uses SDH (Side Drilled Holes) or Notches:
-      //   - iiv_block / iiw_v1: IIW Type 1 block for angle beam calibration
+      //   - iiw_block / iiw_v1: IIW Type 1 block for angle beam calibration
       //   - angle_beam: Angle beam block with SDH
       //   - cylinder_notched: Hollow cylinder with notches for pipe/tube welds
       // ============================================================================
@@ -196,7 +196,7 @@ export const CalibrationCADIntegration: React.FC<CalibrationCADIntegrationProps>
             blockType = 'cylinder_notched';
           } else {
             // For flat parts, welds - use IIW block
-            blockType = 'iiv_block';
+            blockType = 'iiw_block';
           }
         } else {
           // STRAIGHT BEAM inspection
@@ -249,7 +249,7 @@ export const CalibrationCADIntegration: React.FC<CalibrationCADIntegrationProps>
           };
           break;
           
-        case 'iiv_block':
+        case 'iiw_block':
         case 'angle_beam':
           // IIW/Angle beam block - always rectangular with SDH
           shapeType = "iiw_block";

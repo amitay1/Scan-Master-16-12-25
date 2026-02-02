@@ -151,7 +151,7 @@ export const FREQUENCY_RANGES: Record<StandardType, FrequencyRange> = {
 
   // European Standards (BS EN)
   "BS-EN-10228-3": { min: 1, max: 5, recommended: [2, 4, 5] },
-  "BS-EN-10228-4": { min: 1, max: 4, recommended: [1, 2, 4] },
+  "BS-EN-10228-4": { min: 0.5, max: 4, recommended: [0.5, 1, 2] },
   "EN-ISO-16810": { min: 0.5, max: 15, recommended: [2, 4, 5] },
 
   // AMS Material-Specific Standards

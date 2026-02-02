@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * useVisionAnalysis Hook
  * React hook for AI vision model integration

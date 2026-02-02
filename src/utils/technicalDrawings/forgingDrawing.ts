@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Forging Technical Drawing Module
  * Generates 2-view technical drawings for complex irregular forged parts

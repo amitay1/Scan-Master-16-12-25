@@ -156,7 +156,7 @@ export function formatBlockType(type: string | undefined): string {
     'cylinder_fbh': 'Cylinder (FBH)',
     'solid_cylinder_fbh': 'Solid Cylinder (FBH)',
     'angle_beam': 'Angle Beam Block',
-    'iiv_block': 'IIW Block',
+    'iiw_block': 'IIW Block',
     'step_wedge': 'Step Wedge',
     'iow_block': 'IOW Block',
     'custom': 'Custom Block',

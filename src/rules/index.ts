@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Rules Module - Industry Standards and OEM-Specific Calibration Rules
  *

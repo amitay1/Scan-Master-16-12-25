@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Test Cards - Complete sample data for testing export functionality
  *

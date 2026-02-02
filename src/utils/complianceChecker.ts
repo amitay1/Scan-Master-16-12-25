@@ -509,8 +509,10 @@ const complianceRules: ComplianceRule[] = [
 
       if (scanSpeed > 0 && scanIndex > 0) {
         // Calculate required PRF for adequate coverage
-        // PRF should give at least 1 pulse per scan index at given speed
-        const requiredPrf = (scanSpeed * 1000) / (scanIndex * 60); // Convert to Hz
+        // PRF = scanSpeed / scanIndex (both in mm/s and mm respectively)
+        // scanIndex is stored as % of beam width, convert to approximate mm using typical 5MHz beam ~6mm
+        const indexMm = (scanIndex / 100) * 6; // approximate beam width 6mm
+        const requiredPrf = scanSpeed / Math.max(indexMm, 0.1); // Hz
         const passed = prf >= requiredPrf;
 
         return createResult(rule, passed, passed

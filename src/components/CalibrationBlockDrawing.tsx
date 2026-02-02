@@ -113,7 +113,7 @@ export const CalibrationBlockDrawing = ({
       partNumber: 'CAL-NOT-001',
       revision: 'B'
     },
-    'iiv_block': {
+    'iiw_block': {
       figure: 'FIGURE 7',
       title: 'IIW TYPE 1 CALIBRATION BLOCK',
       standard: 'ISO 2400 / EN 12223',
@@ -308,7 +308,7 @@ function renderEnhancedDrawing(
       return <EnhancedAngleBeamDrawing {...commonProps} fbhData={fbhDataArray} />;
     case 'cylinder_notched':
       return <EnhancedCylinderNotchedDrawing {...commonProps} notchData={notchData} />;
-    case 'iiv_block':
+    case 'iiw_block':
       return <EnhancedIIWBlockDrawing {...commonProps} />;
     case 'step_wedge':
       return <EnhancedStepWedgeDrawing {...commonProps} />;

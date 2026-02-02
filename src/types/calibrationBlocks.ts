@@ -458,9 +458,9 @@ export const STANDARD_BLOCK_TEMPLATES: Record<CalibrationBlockCategory, Partial<
     geometry: {
       type: 'iiw',
       variant: 'v2',
-      lengthMm: 127,
-      heightMm: 76.2,
-      thicknessMm: 12.7,
+      lengthMm: 75,
+      heightMm: 35,
+      thicknessMm: 12.5,
       radiusMm: 25,
       perspexInsert: false
     },
@@ -608,5 +608,5 @@ export function isThinWall(outerDiameter: number, innerDiameter: number): boolea
   const wallThickness = (outerDiameter - innerDiameter) / 2;
   const ratio = wallThickness / outerDiameter;
   // Typically thin-wall is considered when t/D < 0.1 (10%)
-  return ratio < 0.1 || wallThickness < 25; // or wall thickness < 25mm
+  return ratio < 0.1 && wallThickness < 25; // thin-wall: both ratio <10% AND wall <25mm
 }

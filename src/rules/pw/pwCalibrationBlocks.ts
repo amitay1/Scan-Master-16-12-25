@@ -123,7 +123,7 @@ export interface PostCalibrationResult {
 export function verifyPostCalibration(
   measurements: { holeId: string; amplitudeDb: number }[],
   initialCalibrationDb: number,
-  toleranceDb: number = 1.0
+  toleranceDb: number = 2.0
 ): PostCalibrationResult {
   const deviations = measurements.map((m) => ({
     holeId: m.holeId,

@@ -162,6 +162,15 @@ export const MATERIAL_VELOCITIES: Record<string, MaterialVelocity> = {
     acousticImpedance: 46.6
   },
 
+  // MAGNESIUM
+  'magnesium': {
+    name: 'Magnesium Alloy (AZ31/ZK60)',
+    longitudinal: 5770,
+    shear: 3050,
+    density: 1770,
+    acousticImpedance: 10.2
+  },
+
   // WEDGE MATERIALS
   'perspex': {
     name: 'Perspex/Acrylic (PMMA)',
@@ -202,9 +211,11 @@ export interface WedgeSpecification {
  * Standard angle beam wedge configurations
  */
 export const STANDARD_WEDGES: Record<string, WedgeSpecification> = {
+  // Wedge angles calculated via Snell's Law: sin(θ_wedge)/V_perspex = sin(θ_steel)/V_steel_shear
+  // Perspex longitudinal = 2730 m/s, Carbon steel shear = 3250 m/s
   'SW45-2': {
     name: '45° Shear Wave - 2 MHz',
-    wedgeAngle: 26.5,
+    wedgeAngle: 36.4,
     wedgeMaterial: 'perspex',
     refractedAngleSteel: 45,
     frequency: 2,
@@ -213,7 +224,7 @@ export const STANDARD_WEDGES: Record<string, WedgeSpecification> = {
   },
   'SW45-4': {
     name: '45° Shear Wave - 4 MHz',
-    wedgeAngle: 26.5,
+    wedgeAngle: 36.4,
     wedgeMaterial: 'perspex',
     refractedAngleSteel: 45,
     frequency: 4,
@@ -222,7 +233,7 @@ export const STANDARD_WEDGES: Record<string, WedgeSpecification> = {
   },
   'SW60-2': {
     name: '60° Shear Wave - 2 MHz',
-    wedgeAngle: 36.5,
+    wedgeAngle: 46.7,
     wedgeMaterial: 'perspex',
     refractedAngleSteel: 60,
     frequency: 2,
@@ -231,7 +242,7 @@ export const STANDARD_WEDGES: Record<string, WedgeSpecification> = {
   },
   'SW60-4': {
     name: '60° Shear Wave - 4 MHz',
-    wedgeAngle: 36.5,
+    wedgeAngle: 46.7,
     wedgeMaterial: 'perspex',
     refractedAngleSteel: 60,
     frequency: 4,
@@ -240,7 +251,7 @@ export const STANDARD_WEDGES: Record<string, WedgeSpecification> = {
   },
   'SW70-2': {
     name: '70° Shear Wave - 2 MHz',
-    wedgeAngle: 43.5,
+    wedgeAngle: 52.1,
     wedgeMaterial: 'perspex',
     refractedAngleSteel: 70,
     frequency: 2,
@@ -249,7 +260,7 @@ export const STANDARD_WEDGES: Record<string, WedgeSpecification> = {
   },
   'SW70-4': {
     name: '70° Shear Wave - 4 MHz',
-    wedgeAngle: 43.5,
+    wedgeAngle: 52.1,
     wedgeMaterial: 'perspex',
     refractedAngleSteel: 70,
     frequency: 4,

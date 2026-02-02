@@ -577,7 +577,7 @@ export const amsFBHTable: FBHTableRow[] = [
 export const astmA388FBHTable: FBHSizeOption[] = [
   { id: "a388_1", inch: "1/16\"", mm: 1.6, fbhNumber: "#1", thicknessRange: "Up to 1.5\" (38mm)" },
   { id: "a388_2", inch: "1/8\"", mm: 3.2, fbhNumber: "#2", thicknessRange: "1.5-6.0\" (38-152mm)" },
-  { id: "a388_3", inch: "1/4\"", mm: 6.4, fbhNumber: "#3", thicknessRange: "Over 6.0\" (>152mm)" },
+  { id: "a388_3", inch: "1/4\"", mm: 6.35, fbhNumber: "#3", thicknessRange: "Over 6.0\" (>152mm)" },
 ];
 
 // BS EN 10228-3/4 FBH Sizes (metric)
@@ -630,7 +630,7 @@ const equipmentParametersByStandardBase = {
     notes: "Frequency selection based on material grain size and thickness."
   },
   "BS-EN-10228-4": {
-    frequencyRange: { min: 0.5, max: 2, typical: 1, unit: "MHz" },
+    frequencyRange: { min: 0.5, max: 4, typical: 1, unit: "MHz" },
     verticalLinearity: { min: 80, max: 100 },
     horizontalLinearity: null,
     frequencyTolerance: null,
@@ -1331,7 +1331,7 @@ export function getFBHSizeForStandard(
     // ASTM A388 is by thickness only
     if (thicknessMm <= 38) return "1/16\" (1.6mm) - #1";
     if (thicknessMm <= 152) return "1/8\" (3.2mm) - #2";
-    return "1/4\" (6.4mm) - #3";
+    return "1/4\" (6.35mm) - #3";
   }
 
   // PW NDIP standards - fixed #1 FBH per spec

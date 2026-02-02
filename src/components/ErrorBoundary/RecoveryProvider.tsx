@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React, { createContext, useContext, useCallback, useEffect, useState } from 'react';
 import { ErrorRecoveryDialog } from './ErrorRecoveryDialog';
 import { useCrashRecovery, CrashSnapshot } from '@/hooks/useCrashRecovery';

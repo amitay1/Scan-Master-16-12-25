@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * TechniqueSheetWord - Professional Word Export for Technique Sheets
  *

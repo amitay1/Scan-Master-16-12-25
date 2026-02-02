@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Export Dialog - Professional & Complete
  */

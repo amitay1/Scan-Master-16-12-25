@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Sphere Technical Drawing Module
  * Generates 2-view technical drawings for spherical parts

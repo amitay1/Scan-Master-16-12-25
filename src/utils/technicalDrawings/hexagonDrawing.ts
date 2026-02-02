@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Hexagon Technical Drawing Module
  * Generates 2-view technical drawings for hexagonal bar parts

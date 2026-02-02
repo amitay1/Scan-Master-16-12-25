@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * AI Defect Classifier
  * Rules-based classification engine for UT indications

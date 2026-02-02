@@ -12,7 +12,7 @@ import {
   TABLE_VI_ACCEPTANCE_LIMITS,
   GEOMETRY_INSPECTION_RULES
 } from '@/utils/enhancedAutoFillLogic';
-import { materialDatabase } from '@/utils/autoFillLogic';
+import { materialDatabase } from '@/utils/enhancedAutoFillLogic';
 
 export interface FieldUpdate {
   field: string;

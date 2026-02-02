@@ -371,13 +371,13 @@ export function calculateSoundPath(
 }
 
 // ============================================================================
-// AMS-STD-2154 REFLECTOR EQUIVALENCY CONVERSIONS
+// REFLECTOR EQUIVALENCY CONVERSIONS (approximate)
 // FBH ↔ SDH ↔ Notch approximate equivalencies
-// Based on AMS-STD-2154E and general UT practice (area-amplitude relationships)
+// Based on general UT practice (area-amplitude relationships) — NOT from AMS-STD-2154
 // ============================================================================
 
 /**
- * Reflector equivalency table per AMS-STD-2154
+ * Approximate reflector equivalency table (industry practice)
  * Each entry maps an FBH size to approximate SDH and Notch equivalents.
  * SDH equivalency: based on cylindrical vs disc reflector response ratio
  * Notch equivalency: depth × length format, based on corner reflector response

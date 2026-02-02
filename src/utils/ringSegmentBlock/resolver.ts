@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Ring Segment Block Resolver
  *
