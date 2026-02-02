@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const videoOptions = [
   {
@@ -24,6 +25,7 @@ const videoOptions = [
 ];
 
 const SplashScreenDemo: React.FC = () => {
+  const navigate = useNavigate();
   const [selectedId, setSelectedId] = useState<number>(() => {
     const saved = localStorage.getItem('selectedSplashVideo');
     return saved ? parseInt(saved) : 1;
@@ -58,6 +60,17 @@ const SplashScreenDemo: React.FC = () => {
   return (
     <div className="min-h-screen bg-slate-900 text-white p-8">
       <div className="max-w-5xl mx-auto">
+        {/* Back button */}
+        <button
+          onClick={() => navigate('/')}
+          className="mb-8 flex items-center gap-2 text-slate-400 hover:text-white transition-colors group"
+        >
+          <svg className="w-5 h-5 transition-transform group-hover:-translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+          <span className="text-sm font-medium">Back to Scan Master</span>
+        </button>
+
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-blue-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent">

@@ -1112,6 +1112,7 @@ async function createWindow() {
       // On high DPI displays (scale > 1.25), use 1.0; otherwise use 1.1 for larger UI
       zoomFactor: scaleFactor > 1.25 ? 1.0 : 1.1
     },
+    autoHideMenuBar: true,
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
     title: 'Scan Master Inspection Pro',
     // Use content size to ensure proper fitting
