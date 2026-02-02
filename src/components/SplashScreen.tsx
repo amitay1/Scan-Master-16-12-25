@@ -1,15 +1,27 @@
 // @ts-nocheck
 /**
  * Video Splash Screen
- * Plays output_HD1080.mp4 as the intro splash, then calls onComplete.
+ * Plays the user-selected video intro, then calls onComplete.
  * Skip with Space key only.
  */
 
-import { useRef, useCallback, useEffect } from "react";
+import { useRef, useCallback, useEffect, useState } from "react";
+
+const videoSources: Record<number, string> = {
+  1: "/output_HD1080.mp4",
+  2: "/output_HD1080 (1).mp4",
+  3: "/output_HD1080 (2).mp4",
+};
 
 const SplashScreen = ({ onComplete }: { onComplete: () => void }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const completedRef = useRef(false);
+
+  const [videoSrc] = useState<string>(() => {
+    const saved = localStorage.getItem("selectedSplashVideo");
+    const id = saved ? parseInt(saved) : 1;
+    return videoSources[id] || videoSources[1];
+  });
 
   const finish = useCallback(() => {
     if (completedRef.current) return;
@@ -43,7 +55,7 @@ const SplashScreen = ({ onComplete }: { onComplete: () => void }) => {
     >
       <video
         ref={videoRef}
-        src="/output_HD1080.mp4"
+        src={videoSrc}
         autoPlay
         playsInline
         onEnded={finish}
