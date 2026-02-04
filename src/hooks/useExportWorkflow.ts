@@ -136,7 +136,10 @@ export function useExportWorkflow({
 
     toast.loading("Preparing drawings for export...", { id: "export-prep" });
     const originalTab = activeTab;
-    const { smartCapture } = await import("@/utils/export/captureEngine");
+    const { smartCapture, clearCaptureCache } = await import("@/utils/export/captureEngine");
+
+    // Clear capture cache to ensure fresh captures (prevents stale cached images)
+    clearCaptureCache();
     const { getBeamRequirement } = await import("@/utils/beamTypeClassification");
 
     let capturedTechnicalDrawing: string | undefined;
@@ -196,6 +199,11 @@ export function useExportWorkflow({
       }
 
       const calibrationResult = await smartCapture([
+        // Container with ALL FBH blocks (captures all 3 blocks together)
+        "#calibration-blocks-container",
+        '[data-testid="calibration-blocks-container"]',
+        ".calibration-blocks-preview",
+        // Individual SVG fallbacks
         "#calibration-block-svg", 'svg#calibration-block-svg',
         '[data-testid="calibration-block-diagram"]', 'svg[data-testid="calibration-block-diagram"]',
         ".fbh-straight-beam-drawing", "svg.fbh-straight-beam-drawing",

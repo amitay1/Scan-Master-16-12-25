@@ -120,9 +120,11 @@ export function FBHBlockPreview({
       </div>
 
       <svg
+        id={holeId === 1 ? "calibration-block-svg" : undefined}
+        data-testid={holeId === 1 ? "calibration-block-diagram" : undefined}
         width={width}
         height={height}
-        className="border-2 rounded-lg bg-slate-50 shadow-sm"
+        className="border-2 rounded-lg bg-slate-50 shadow-sm fbh-straight-beam-drawing"
       >
         <rect x="0" y="0" width={width} height={height} fill="#fafafa" />
 

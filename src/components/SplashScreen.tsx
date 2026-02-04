@@ -9,8 +9,8 @@ import { useRef, useCallback, useEffect, useState } from "react";
 
 const videoSources: Record<number, string> = {
   1: "/output_HD1080.mp4",
-  2: "/output_HD1080 (1).mp4",
-  3: "/output_HD1080 (2).mp4",
+  2: "/output_HD1080%20(1).mp4",
+  3: "/output_HD1080%20(2).mp4",
 };
 
 const SplashScreen = ({ onComplete }: { onComplete: () => void }) => {
@@ -41,6 +41,12 @@ const SplashScreen = ({ onComplete }: { onComplete: () => void }) => {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [finish]);
 
+  // Handle video errors - skip to app if video fails to load
+  const handleError = useCallback(() => {
+    console.warn("SplashScreen: Video failed to load, skipping intro");
+    finish();
+  }, [finish]);
+
   return (
     <div
       style={{
@@ -58,7 +64,9 @@ const SplashScreen = ({ onComplete }: { onComplete: () => void }) => {
         src={videoSrc}
         autoPlay
         playsInline
+        muted
         onEnded={finish}
+        onError={handleError}
         style={{
           width: "100%",
           height: "100%",

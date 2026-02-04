@@ -37,7 +37,11 @@ export function FBHHoleTableWithPreviews({
   return (
     <div className="space-y-6">
       {/* Calibration Block Previews - LARGE Dynamic based on rows */}
-      <div className="border-2 rounded-xl p-6 bg-gradient-to-b from-slate-50 to-slate-100 shadow-sm">
+      <div
+        id="calibration-blocks-container"
+        data-testid="calibration-blocks-container"
+        className="border-2 rounded-xl p-6 bg-gradient-to-b from-slate-50 to-slate-100 shadow-sm calibration-blocks-preview"
+      >
         <h5 className="text-lg font-bold mb-4 text-center text-slate-700">
           Calibration Block Previews (Real-Time Updates)
         </h5>

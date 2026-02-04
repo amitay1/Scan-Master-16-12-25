@@ -547,9 +547,40 @@ class TechniqueSheetPDFBuilder {
     maxWidth: number,
     maxHeight: number
   ): { width: number; height: number } {
+    // Fallback to 4:3 ratio
+    const fallbackRatio = 4 / 3;
+    const getFallbackDimensions = () => {
+      let imgWidth = maxWidth;
+      let imgHeight = maxWidth / fallbackRatio;
+      if (imgHeight > maxHeight) {
+        imgHeight = maxHeight;
+        imgWidth = maxHeight * fallbackRatio;
+      }
+      return { width: imgWidth, height: imgHeight };
+    };
+
     try {
+      // Validate image data
+      if (!imageData || typeof imageData !== 'string' || imageData.length < 50) {
+        console.warn('[PDF] Invalid image data, using fallback dimensions');
+        return getFallbackDimensions();
+      }
+
       const imgProps = this.pdf.getImageProperties(imageData);
+
+      // Validate dimensions - prevent division by zero
+      if (!imgProps.width || !imgProps.height || imgProps.height === 0) {
+        console.warn('[PDF] Image has invalid dimensions, using fallback');
+        return getFallbackDimensions();
+      }
+
       const aspectRatio = imgProps.width / imgProps.height;
+
+      // Validate aspect ratio - prevent Infinity/NaN
+      if (!isFinite(aspectRatio) || isNaN(aspectRatio) || aspectRatio <= 0) {
+        console.warn('[PDF] Invalid aspect ratio, using fallback');
+        return getFallbackDimensions();
+      }
 
       let imgWidth = maxWidth;
       let imgHeight = maxWidth / aspectRatio;
@@ -561,16 +592,9 @@ class TechniqueSheetPDFBuilder {
       }
 
       return { width: imgWidth, height: imgHeight };
-    } catch {
-      // Fallback to 4:3 ratio if can't read image properties
-      const fallbackRatio = 4 / 3;
-      let imgWidth = maxWidth;
-      let imgHeight = maxWidth / fallbackRatio;
-      if (imgHeight > maxHeight) {
-        imgHeight = maxHeight;
-        imgWidth = maxHeight * fallbackRatio;
-      }
-      return { width: imgWidth, height: imgHeight };
+    } catch (error) {
+      console.warn('[PDF] Failed to read image properties:', error);
+      return getFallbackDimensions();
     }
   }
 

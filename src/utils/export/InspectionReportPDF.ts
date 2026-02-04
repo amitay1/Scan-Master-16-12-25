@@ -659,13 +659,16 @@ export const exportInspectionReportPDF = (
     yPos = checkPageBreak(50);
     yPos = addSectionTitle('PROBE DETAILS', yPos);
 
-    const probeRows = data.probeDetails.map(probe => [
-      probe.probeDescription || '-',
-      probe.frequency || '-',
-      probe.make || '-',
-      probe.waveMode || '-',
-      probe.scanningDirections || '-',
-    ]);
+    // Filter out null/undefined probes and safely map their properties
+    const probeRows = data.probeDetails
+      .filter((probe): probe is NonNullable<typeof probe> => probe != null)
+      .map(probe => [
+        probe.probeDescription || '-',
+        probe.frequency || '-',
+        probe.make || '-',
+        probe.waveMode || '-',
+        probe.scanningDirections || '-',
+      ]);
 
     autoTable(doc, {
       startY: yPos,

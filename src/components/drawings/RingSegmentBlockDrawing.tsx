@@ -579,7 +579,7 @@ export function RingSegmentBlockDrawing({
             ref={canvasRef}
             width={canvasSize.width}
             height={canvasSize.height}
-            className="ring-segment-block-canvas"
+            className="ring-segment-block-canvas angle-beam-calibration-image"
             data-testid="ring-segment-canvas"
           />
         </div>

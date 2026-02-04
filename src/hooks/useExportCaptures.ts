@@ -48,6 +48,11 @@ const TECHNICAL_DRAWING_SELECTORS = [
 ];
 
 const CALIBRATION_BLOCK_SELECTORS = [
+  // Container with ALL FBH blocks (captures all 3 blocks together)
+  '#calibration-blocks-container',
+  '[data-testid="calibration-blocks-container"]',
+  '.calibration-blocks-preview',
+  // Individual SVG fallbacks
   '#calibration-block-svg',
   'svg#calibration-block-svg',
   '[data-testid="calibration-block-diagram"]',

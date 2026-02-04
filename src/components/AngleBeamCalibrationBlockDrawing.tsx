@@ -113,7 +113,8 @@ function StaticImageView({
           <img
             src={imageSrc}
             alt="Shear Wave Calibration Block - Technical Drawing with Cross Sections A-A, B-B, C-C"
-            className="max-w-full h-auto object-contain rounded-lg shadow-md"
+            className="max-w-full h-auto object-contain rounded-lg shadow-md angle-beam-calibration-image"
+            data-testid="angle-beam-image-capture"
             crossOrigin="anonymous"
             style={{
               maxHeight: isFullscreen ? '85vh' : height - 160,

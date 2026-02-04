@@ -421,39 +421,53 @@ export class CSIExporter extends BaseExporter {
 
     // FBH Table
     if (calibration.fbhHoles && calibration.fbhHoles.length > 0) {
-      xml.openElement('FBHTable');
-      for (const hole of calibration.fbhHoles) {
-        xml.element('Hole', {
-          id: hole.id,
-          diameter: hole.diameterInch,
-          diameterMm: hole.diameterMm,
-          metalTravel: hole.metalTravelH,
-          blockHeight: hole.blockHeightE,
-        });
+      // Filter out null/undefined holes
+      const validHoles = calibration.fbhHoles.filter(
+        (hole): hole is NonNullable<typeof hole> => hole != null
+      );
+
+      if (validHoles.length > 0) {
+        xml.openElement('FBHTable');
+        for (const hole of validHoles) {
+          xml.element('Hole', {
+            id: hole.id || '',
+            diameter: hole.diameterInch || 0,
+            diameterMm: hole.diameterMm || 0,
+            metalTravel: hole.metalTravelH || 0,
+            blockHeight: hole.blockHeightE || 0,
+          });
+        }
+        xml.closeElement('FBHTable');
       }
-      xml.closeElement('FBHTable');
     }
 
     // DAC Curve
     if (dacCurve) {
       xml.comment('Distance-Amplitude Correction Curve');
-      xml.openElement('DACCurve', { id: dacCurve.id });
-      xml.textElement('Name', dacCurve.name);
-      xml.textElement('Frequency', dacCurve.frequency, { unit: 'MHz' });
-      xml.textElement('Attenuation', dacCurve.attenuation, { unit: 'dB/mm' });
-      xml.textElement('RecordingLevel', dacCurve.recordingLevel, { unit: '%DAC' });
-      xml.textElement('RejectionLevel', dacCurve.rejectionLevel, { unit: '%DAC' });
+      xml.openElement('DACCurve', { id: dacCurve.id || '' });
+      xml.textElement('Name', dacCurve.name || '');
+      xml.textElement('Frequency', dacCurve.frequency || 0, { unit: 'MHz' });
+      xml.textElement('Attenuation', dacCurve.attenuation || 0, { unit: 'dB/mm' });
+      xml.textElement('RecordingLevel', dacCurve.recordingLevel || 0, { unit: '%DAC' });
+      xml.textElement('RejectionLevel', dacCurve.rejectionLevel || 0, { unit: '%DAC' });
 
-      xml.openElement('Points');
-      for (const point of dacCurve.points) {
-        xml.element('Point', {
-          depth: point.depth,
-          amplitude: point.amplitude,
-          gain: point.gain,
-          fbhSize: point.fbhSize || '',
-        });
+      if (dacCurve.points && dacCurve.points.length > 0) {
+        const validPoints = dacCurve.points.filter(
+          (point): point is NonNullable<typeof point> => point != null
+        );
+        if (validPoints.length > 0) {
+          xml.openElement('Points');
+          for (const point of validPoints) {
+            xml.element('Point', {
+              depth: point.depth || 0,
+              amplitude: point.amplitude || 0,
+              gain: point.gain || 0,
+              fbhSize: point.fbhSize || '',
+            });
+          }
+          xml.closeElement('Points');
+        }
       }
-      xml.closeElement('Points');
 
       xml.closeElement('DACCurve');
     }
@@ -461,20 +475,27 @@ export class CSIExporter extends BaseExporter {
     // TCG Curve
     if (tcgCurve) {
       xml.comment('Time-Corrected Gain Curve');
-      xml.openElement('TCGCurve', { id: tcgCurve.id });
-      xml.textElement('TargetAmplitude', tcgCurve.targetAmplitude, { unit: '%FSH' });
-      xml.textElement('GateStart', tcgCurve.gateStart, { unit: 'us' });
-      xml.textElement('GateEnd', tcgCurve.gateEnd, { unit: 'us' });
-      xml.textElement('TotalCorrection', tcgCurve.totalCorrection, { unit: 'dB' });
+      xml.openElement('TCGCurve', { id: tcgCurve.id || '' });
+      xml.textElement('TargetAmplitude', tcgCurve.targetAmplitude || 0, { unit: '%FSH' });
+      xml.textElement('GateStart', tcgCurve.gateStart || 0, { unit: 'us' });
+      xml.textElement('GateEnd', tcgCurve.gateEnd || 0, { unit: 'us' });
+      xml.textElement('TotalCorrection', tcgCurve.totalCorrection || 0, { unit: 'dB' });
 
-      xml.openElement('Points');
-      for (const point of tcgCurve.points) {
-        xml.element('Point', {
-          time: point.time,
-          gain: point.gain,
-        });
+      if (tcgCurve.points && tcgCurve.points.length > 0) {
+        const validPoints = tcgCurve.points.filter(
+          (point): point is NonNullable<typeof point> => point != null
+        );
+        if (validPoints.length > 0) {
+          xml.openElement('Points');
+          for (const point of validPoints) {
+            xml.element('Point', {
+              time: point.time || 0,
+              gain: point.gain || 0,
+            });
+          }
+          xml.closeElement('Points');
+        }
       }
-      xml.closeElement('Points');
 
       xml.closeElement('TCGCurve');
     }
@@ -526,46 +547,53 @@ export class CSIExporter extends BaseExporter {
     xml.closeElement('Parameters');
 
     // Patches
-    if (patchPlan && patchPlan.patches.length > 0) {
-      xml.comment('Generated Patch Plan');
-      xml.openElement('Patches', {
-        count: patchPlan.totalPatches,
-        totalCoverage: patchPlan.totalCoverage,
-        estimatedTime: patchPlan.estimatedTotalTime,
-      });
+    if (patchPlan && patchPlan.patches && patchPlan.patches.length > 0) {
+      // Filter out null/undefined patches
+      const validPatches = patchPlan.patches.filter(
+        (patch): patch is NonNullable<typeof patch> => patch != null && patch.geometry != null
+      );
 
-      for (const patch of patchPlan.patches) {
-        xml.openElement('Patch', {
-          id: patch.id,
-          name: patch.name,
-          sequence: patch.sequence,
+      if (validPatches.length > 0) {
+        xml.comment('Generated Patch Plan');
+        xml.openElement('Patches', {
+          count: patchPlan.totalPatches || validPatches.length,
+          totalCoverage: patchPlan.totalCoverage || 0,
+          estimatedTime: patchPlan.estimatedTotalTime || 0,
         });
 
-        xml.textElement('Strategy', patch.scanStrategy);
-        xml.textElement('Direction', patch.direction);
-        xml.textElement('WaveMode', patch.waveMode);
-        xml.textElement('Speed', patch.scanSpeed, { unit: 'mm/s' });
-        xml.textElement('Index', patch.scanIndex, { unit: 'mm' });
-        xml.textElement('Coverage', patch.coverage, { unit: '%' });
-        xml.textElement('Passes', patch.passes);
-        xml.textElement('EstimatedTime', patch.estimatedTime, { unit: 's' });
+        for (const patch of validPatches) {
+          xml.openElement('Patch', {
+            id: patch.id || '',
+            name: patch.name || '',
+            sequence: patch.sequence || 0,
+          });
 
-        // Geometry
-        xml.openElement('Geometry', { shape: patch.geometry.shape });
-        if (patch.geometry.x !== undefined) xml.textElement('X', patch.geometry.x);
-        if (patch.geometry.y !== undefined) xml.textElement('Y', patch.geometry.y);
-        if (patch.geometry.width !== undefined) xml.textElement('Width', patch.geometry.width);
-        if (patch.geometry.height !== undefined) xml.textElement('Height', patch.geometry.height);
-        if (patch.geometry.startAngle !== undefined) xml.textElement('StartAngle', patch.geometry.startAngle);
-        if (patch.geometry.endAngle !== undefined) xml.textElement('EndAngle', patch.geometry.endAngle);
-        if (patch.geometry.innerRadius !== undefined) xml.textElement('InnerRadius', patch.geometry.innerRadius);
-        if (patch.geometry.outerRadius !== undefined) xml.textElement('OuterRadius', patch.geometry.outerRadius);
-        xml.closeElement('Geometry');
+          xml.textElement('Strategy', patch.scanStrategy || '');
+          xml.textElement('Direction', patch.direction || '');
+          xml.textElement('WaveMode', patch.waveMode || '');
+          xml.textElement('Speed', patch.scanSpeed || 0, { unit: 'mm/s' });
+          xml.textElement('Index', patch.scanIndex || 0, { unit: 'mm' });
+          xml.textElement('Coverage', patch.coverage || 0, { unit: '%' });
+          xml.textElement('Passes', patch.passes || 0);
+          xml.textElement('EstimatedTime', patch.estimatedTime || 0, { unit: 's' });
 
-        xml.closeElement('Patch');
+          // Geometry
+          xml.openElement('Geometry', { shape: patch.geometry.shape || 'unknown' });
+          if (patch.geometry.x !== undefined) xml.textElement('X', patch.geometry.x);
+          if (patch.geometry.y !== undefined) xml.textElement('Y', patch.geometry.y);
+          if (patch.geometry.width !== undefined) xml.textElement('Width', patch.geometry.width);
+          if (patch.geometry.height !== undefined) xml.textElement('Height', patch.geometry.height);
+          if (patch.geometry.startAngle !== undefined) xml.textElement('StartAngle', patch.geometry.startAngle);
+          if (patch.geometry.endAngle !== undefined) xml.textElement('EndAngle', patch.geometry.endAngle);
+          if (patch.geometry.innerRadius !== undefined) xml.textElement('InnerRadius', patch.geometry.innerRadius);
+          if (patch.geometry.outerRadius !== undefined) xml.textElement('OuterRadius', patch.geometry.outerRadius);
+          xml.closeElement('Geometry');
+
+          xml.closeElement('Patch');
+        }
+
+        xml.closeElement('Patches');
       }
-
-      xml.closeElement('Patches');
     }
 
     xml.closeElement('ScanPlan');
@@ -681,24 +709,34 @@ export class CSIExporter extends BaseExporter {
     }
 
     // Fallback rules for calibration blocks
-    if (fallbackRules) {
+    if (fallbackRules && fallbackRules.alternatives) {
       xml.comment('Calibration Block Fallback Options');
       xml.openElement('FallbackRules');
-      xml.textElement('FallbackChain', fallbackRules.fallbackChain);
+      xml.textElement('FallbackChain', fallbackRules.fallbackChain || '');
 
-      for (const alt of fallbackRules.alternatives) {
+      // Filter out null/undefined alternatives
+      const validAlternatives = fallbackRules.alternatives.filter(
+        (alt): alt is NonNullable<typeof alt> => alt != null
+      );
+
+      for (const alt of validAlternatives) {
         xml.openElement('Alternative', {
-          priority: alt.priority,
-          requiresApproval: alt.requiresApproval,
+          priority: alt.priority || 0,
+          requiresApproval: alt.requiresApproval || false,
         });
-        xml.textElement('BlockType', alt.blockType);
-        xml.textElement('Reason', alt.reason);
+        xml.textElement('BlockType', alt.blockType || '');
+        xml.textElement('Reason', alt.reason || '');
         if (alt.limitations && alt.limitations.length > 0) {
-          xml.openElement('Limitations');
-          for (const lim of alt.limitations) {
-            xml.textElement('Limitation', lim);
+          const validLimitations = alt.limitations.filter(
+            (lim): lim is string => lim != null && typeof lim === 'string'
+          );
+          if (validLimitations.length > 0) {
+            xml.openElement('Limitations');
+            for (const lim of validLimitations) {
+              xml.textElement('Limitation', lim);
+            }
+            xml.closeElement('Limitations');
           }
-          xml.closeElement('Limitations');
         }
         xml.closeElement('Alternative');
       }

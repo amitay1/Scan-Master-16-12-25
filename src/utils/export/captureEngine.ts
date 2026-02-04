@@ -233,6 +233,11 @@ export async function captureSVG(
     let width = bbox.width * scale;
     let height = bbox.height * scale;
 
+    // Validate dimensions - SVG might not be rendered yet
+    if (width <= 0 || height <= 0) {
+      return { success: false, error: 'SVG has zero dimensions - not rendered or hidden' };
+    }
+
     // Apply max dimensions
     if (width > maxWidth) {
       const ratio = maxWidth / width;
@@ -277,11 +282,25 @@ export async function captureSVG(
     ctx.fillStyle = backgroundColor;
     ctx.fillRect(0, 0, width, height);
 
-    // Load and draw image
+    // Load and draw image with timeout to prevent hanging
     const img = new Image();
+    const LOAD_TIMEOUT = 5000; // 5 second timeout
 
     const result = await new Promise<CaptureResult>((resolve) => {
+      let resolved = false;
+
+      const timeoutId = setTimeout(() => {
+        if (!resolved) {
+          resolved = true;
+          URL.revokeObjectURL(svgUrl);
+          resolve({ success: false, error: 'SVG image load timeout (5s)' });
+        }
+      }, LOAD_TIMEOUT);
+
       img.onload = () => {
+        if (resolved) return;
+        resolved = true;
+        clearTimeout(timeoutId);
         ctx.drawImage(img, 0, 0, width, height);
         URL.revokeObjectURL(svgUrl);
 
@@ -295,6 +314,9 @@ export async function captureSVG(
       };
 
       img.onerror = () => {
+        if (resolved) return;
+        resolved = true;
+        clearTimeout(timeoutId);
         URL.revokeObjectURL(svgUrl);
         resolve({ success: false, error: 'Failed to load SVG as image' });
       };

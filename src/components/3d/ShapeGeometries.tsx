@@ -365,84 +365,127 @@ export const ShapeGeometries = {
   
   hex_bar: (params?: ShapeParameters) => ShapeGeometries.hexagon(params),
 
-  // IMPELLER - Complex stepped disk with hub, web, rim sections (aero engine)
+  // IMPELLER - Realistic stepped disk with hub, web, rim and smooth fillet transitions
   impeller: (params?: ShapeParameters) => {
-    // Create stepped profile using LatheGeometry for revolution
     const points: THREE.Vector2[] = [];
+    const boreRadius = 0.18;
+    const hubRadius = 0.38;
+    const hubHeight = 0.55;
+    const webThickness = 0.08;
+    const rimRadius = 0.92;
+    const rimHeight = 0.32;
 
-    // Hub (center) - small radius, tall
-    points.push(new THREE.Vector2(0.15, -0.3));  // Hub bottom inner
-    points.push(new THREE.Vector2(0.35, -0.3));  // Hub bottom outer
-    points.push(new THREE.Vector2(0.35, -0.15)); // Hub to web transition
+    // Bottom profile (inside to outside)
+    // Bore inner wall bottom
+    points.push(new THREE.Vector2(boreRadius, -hubHeight / 2));
+    // Hub bottom face
+    points.push(new THREE.Vector2(hubRadius, -hubHeight / 2));
+    // Fillet: hub bottom to web (smooth curve)
+    for (let i = 0; i <= 6; i++) {
+      const t = i / 6;
+      const angle = (Math.PI / 2) * t;
+      const r = hubRadius + 0.06 * Math.sin(angle);
+      const y = -webThickness / 2 - 0.06 * Math.cos(angle);
+      points.push(new THREE.Vector2(r, y));
+    }
+    // Web bottom surface going outward
+    points.push(new THREE.Vector2(rimRadius - 0.12, -webThickness / 2));
+    // Fillet: web to rim bottom
+    for (let i = 0; i <= 6; i++) {
+      const t = i / 6;
+      const angle = (Math.PI / 2) * t;
+      const r = rimRadius - 0.12 + 0.12 * Math.sin(angle);
+      const y = -webThickness / 2 - (rimHeight / 2 - webThickness / 2) * Math.sin(angle * 0.7);
+      points.push(new THREE.Vector2(r, y));
+    }
+    // Rim bottom
+    points.push(new THREE.Vector2(rimRadius, -rimHeight / 2));
+    // Rim outer wall
+    points.push(new THREE.Vector2(rimRadius, rimHeight / 2));
+    // Rim top to web fillet
+    for (let i = 0; i <= 6; i++) {
+      const t = i / 6;
+      const angle = (Math.PI / 2) * (1 - t);
+      const r = rimRadius - 0.12 + 0.12 * Math.sin(angle);
+      const y = webThickness / 2 + (rimHeight / 2 - webThickness / 2) * Math.sin(angle * 0.7);
+      points.push(new THREE.Vector2(r, y));
+    }
+    // Web top surface going inward
+    points.push(new THREE.Vector2(hubRadius + 0.06, webThickness / 2));
+    // Fillet: web to hub top
+    for (let i = 0; i <= 6; i++) {
+      const t = i / 6;
+      const angle = (Math.PI / 2) * (1 - t);
+      const r = hubRadius + 0.06 * Math.sin(angle);
+      const y = webThickness / 2 + 0.06 * Math.cos(angle);
+      points.push(new THREE.Vector2(r, y));
+    }
+    // Hub top face
+    points.push(new THREE.Vector2(hubRadius, hubHeight / 2));
+    // Bore inner wall top
+    points.push(new THREE.Vector2(boreRadius, hubHeight / 2));
 
-    // Web (middle thin section)
-    points.push(new THREE.Vector2(0.6, -0.1));   // Web lower
-    points.push(new THREE.Vector2(0.6, 0.1));    // Web upper
-
-    // Rim (outer thick section)
-    points.push(new THREE.Vector2(0.9, 0.15));   // Rim inner
-    points.push(new THREE.Vector2(0.9, 0.35));   // Rim top
-    points.push(new THREE.Vector2(0.7, 0.35));   // Rim outer top
-    points.push(new THREE.Vector2(0.5, 0.2));    // Back to web
-    points.push(new THREE.Vector2(0.25, 0.15));  // Hub top transition
-    points.push(new THREE.Vector2(0.15, 0.15));  // Hub top inner
-
-    const geometry = new THREE.LatheGeometry(points, 48);
+    const geometry = new THREE.LatheGeometry(points, 64);
     return perfectCenter(geometry);
   },
 
+  // BLISK - Bladed disk with actual visible blades using CSG union
   blisk: (params?: ShapeParameters) => {
-    // Bladed disk - disk with integrated blades
-    // Create disk base
-    const diskRadius = 0.9;
-    const diskHeight = 0.3;
-    const innerRadius = 0.25;
+    const diskRadius = 0.7;
+    const diskHeight = 0.22;
+    const boreRadius = 0.18;
+    const numBlades = 20;
+    const bladeHeight = 0.35;
+    const bladeThickness = 0.025;
+    const bladeChord = 0.22;
 
-    // Disk with center hole
-    const diskOuter = new THREE.CylinderGeometry(diskRadius, diskRadius, diskHeight, 48);
-    const diskInner = new THREE.CylinderGeometry(innerRadius, innerRadius, diskHeight + 0.1, 32);
-    const diskGeometry = createHollowGeometry(diskOuter, diskInner);
+    // Create disk body with bore using LatheGeometry for a slight hub profile
+    const diskPoints: THREE.Vector2[] = [];
+    diskPoints.push(new THREE.Vector2(boreRadius, -diskHeight * 0.7));
+    diskPoints.push(new THREE.Vector2(boreRadius + 0.08, -diskHeight * 0.7));
+    // Slight hub bulge
+    diskPoints.push(new THREE.Vector2(boreRadius + 0.12, -diskHeight * 0.5));
+    diskPoints.push(new THREE.Vector2(diskRadius * 0.5, -diskHeight * 0.3));
+    diskPoints.push(new THREE.Vector2(diskRadius, -diskHeight / 2));
+    diskPoints.push(new THREE.Vector2(diskRadius, diskHeight / 2));
+    diskPoints.push(new THREE.Vector2(diskRadius * 0.5, diskHeight * 0.3));
+    diskPoints.push(new THREE.Vector2(boreRadius + 0.12, diskHeight * 0.5));
+    diskPoints.push(new THREE.Vector2(boreRadius + 0.08, diskHeight * 0.7));
+    diskPoints.push(new THREE.Vector2(boreRadius, diskHeight * 0.7));
 
-    // Create blade-like protrusions around the rim (simplified representation)
-    const bladeGeometries: THREE.BufferGeometry[] = [];
-    const numBlades = 24;
-    const bladeHeight = 0.25;
-    const bladeWidth = 0.08;
-    const bladeDepth = 0.15;
+    const diskGeometry = new THREE.LatheGeometry(diskPoints, 64);
+    const diskMesh = new THREE.Mesh(diskGeometry);
+    diskMesh.updateMatrix();
 
+    // Create blades around the rim using CSG union
+    let resultMesh = diskMesh;
     for (let i = 0; i < numBlades; i++) {
       const angle = (i / numBlades) * Math.PI * 2;
-      const blade = new THREE.BoxGeometry(bladeWidth, bladeHeight, bladeDepth);
+      // Airfoil-like blade: thin box slightly curved outward
+      const bladeGeom = new THREE.BoxGeometry(bladeChord, bladeHeight, bladeThickness);
+      const bladeMesh = new THREE.Mesh(bladeGeom);
 
-      // Position blade at rim
-      const x = Math.cos(angle) * (diskRadius + bladeDepth / 2 - 0.02);
-      const z = Math.sin(angle) * (diskRadius + bladeDepth / 2 - 0.02);
+      // Position blade at the rim, extending radially outward
+      const midR = diskRadius + bladeChord / 2 - 0.03;
+      bladeMesh.position.set(
+        Math.cos(angle) * midR,
+        0,
+        Math.sin(angle) * midR
+      );
+      // Rotate blade to face radially + slight twist for realism
+      bladeMesh.rotation.y = -angle + Math.PI / 2;
+      bladeMesh.rotation.x = 0.15; // slight twist
+      bladeMesh.updateMatrix();
 
-      blade.translate(x, diskHeight / 2 + bladeHeight / 2 - 0.05, z);
-      blade.rotateY(-angle);
-
-      bladeGeometries.push(blade);
+      try {
+        resultMesh = CSG.union(resultMesh, bladeMesh);
+      } catch {
+        // If CSG fails on a blade, skip it
+      }
     }
 
-    // Merge disk with blades
-    const mergedGeometry = diskGeometry.clone();
-    for (const bladeGeom of bladeGeometries) {
-      const bladePositions = bladeGeom.attributes.position.array;
-      const diskPositions = mergedGeometry.attributes.position.array;
-
-      // Simple merge - just add blade vertices
-      const newPositions = new Float32Array(diskPositions.length + bladePositions.length);
-      newPositions.set(diskPositions, 0);
-      newPositions.set(bladePositions, diskPositions.length);
-
-      bladeGeom.dispose();
-    }
-
-    // For simplicity, return disk with visual indication of blades via thicker rim
-    const finalGeometry = new THREE.CylinderGeometry(diskRadius * 1.05, diskRadius, diskHeight * 1.2, 48);
-    const innerHole = new THREE.CylinderGeometry(innerRadius, innerRadius, diskHeight * 1.3, 32);
-
-    return perfectCenter(createHollowGeometry(finalGeometry, innerHole));
+    const finalGeometry = resultMesh.geometry.clone();
+    return perfectCenter(finalGeometry);
   },
 
   // Generic fallbacks

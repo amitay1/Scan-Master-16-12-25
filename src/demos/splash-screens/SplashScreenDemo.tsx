@@ -15,12 +15,12 @@ const videoOptions = [
   {
     id: 2,
     name: 'Intro V2',
-    src: '/output_HD1080 (1).mp4',
+    src: '/output_HD1080%20(1).mp4',
   },
   {
     id: 3,
     name: 'Intro V3',
-    src: '/output_HD1080 (2).mp4',
+    src: '/output_HD1080%20(2).mp4',
   },
 ];
 

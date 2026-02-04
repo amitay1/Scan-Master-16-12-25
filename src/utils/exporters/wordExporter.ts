@@ -445,7 +445,7 @@ export class WordExporter extends BaseExporter {
 
         const blockDrawing = new EnhancedCalibrationBlockDrawings(drawingOptions);
         const views = await blockDrawing.generateDrawings();
-        
+
         // Get the main view
         const mainView = views.get('top');
         if (mainView) {
@@ -455,27 +455,38 @@ export class WordExporter extends BaseExporter {
               heading: HeadingLevel.HEADING_3,
             })
           );
-          
+
           // Convert canvas to blob and then to buffer for Word document
           const blob = await blockDrawing.exportAsPNG();
-          const buffer = await blob.arrayBuffer();
-          
-          elements.push(
-            new Paragraph({
-              alignment: AlignmentType.CENTER,
-              children: [
-                new ImageRun({
-                  type: 'png',
-                  data: buffer,
-                  transformation: {
-                    width: 600,
-                    height: 300,
-                  },
-                }),
-              ],
-            })
-          );
-          
+
+          // Validate blob before processing
+          if (blob && blob.size > 0) {
+            const buffer = await blob.arrayBuffer();
+
+            // Validate buffer has content before creating ImageRun
+            if (buffer && buffer.byteLength > 0) {
+              elements.push(
+                new Paragraph({
+                  alignment: AlignmentType.CENTER,
+                  children: [
+                    new ImageRun({
+                      type: 'png',
+                      data: buffer,
+                      transformation: {
+                        width: 600,
+                        height: 300,
+                      },
+                    }),
+                  ],
+                })
+              );
+            } else {
+              console.warn('Calibration block image buffer is empty, skipping image');
+            }
+          } else {
+            console.warn('Calibration block blob is empty or null, skipping image');
+          }
+
           // Add section view if available
           const sectionView = views.get('section');
           if (sectionView) {
@@ -485,32 +496,42 @@ export class WordExporter extends BaseExporter {
                 heading: HeadingLevel.HEADING_3,
               })
             );
-            
+
             // Create a new drawing instance for section view export
             const sectionCanvas = sectionView.canvas;
-            const sectionBlob = await new Promise<Blob>((resolve, reject) => {
+            const sectionBlob = await new Promise<Blob | null>((resolve) => {
               sectionCanvas.toBlob((blob) => {
-                if (blob) resolve(blob);
-                else reject(new Error('Failed to create section view blob'));
+                resolve(blob);
               }, 'image/png', 1.0);
             });
-            const sectionBuffer = await sectionBlob.arrayBuffer();
-            
-            elements.push(
-              new Paragraph({
-                alignment: AlignmentType.CENTER,
-                children: [
-                  new ImageRun({
-                    type: 'png',
-                    data: sectionBuffer,
-                    transformation: {
-                      width: 600,
-                      height: 200,
-                    },
-                  }),
-                ],
-              })
-            );
+
+            // Validate section blob before processing
+            if (sectionBlob && sectionBlob.size > 0) {
+              const sectionBuffer = await sectionBlob.arrayBuffer();
+
+              // Validate buffer has content before creating ImageRun
+              if (sectionBuffer && sectionBuffer.byteLength > 0) {
+                elements.push(
+                  new Paragraph({
+                    alignment: AlignmentType.CENTER,
+                    children: [
+                      new ImageRun({
+                        type: 'png',
+                        data: sectionBuffer,
+                        transformation: {
+                          width: 600,
+                          height: 200,
+                        },
+                      }),
+                    ],
+                  })
+                );
+              } else {
+                console.warn('Section view buffer is empty, skipping image');
+              }
+            } else {
+              console.warn('Section view blob is empty or null, skipping image');
+            }
           }
         }
       } catch (error) {
