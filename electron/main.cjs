@@ -1094,6 +1094,7 @@ async function createWindow() {
   const baseMinHeight = Math.min(768, Math.floor(screenHeight * 0.6));
   
   // Create the browser window with proper scaling support
+  // Kiosk mode: fullscreen without window controls (minimize/maximize/close)
   mainWindow = new BrowserWindow({
     width: Math.min(1400, screenWidth),
     height: Math.min(900, screenHeight),
@@ -1117,22 +1118,17 @@ async function createWindow() {
     title: 'Scan Master Inspection Pro',
     // Use content size to ensure proper fitting
     useContentSize: true,
-    // Enable frame for proper window controls on Windows
-    frame: true,
+    // Kiosk mode - fullscreen without window controls
+    kiosk: true,
     // Ensure window respects DPI settings
     backgroundColor: '#14171c'
   });
 
   // Set minimum window size after creation for better control
   mainWindow.setMinimumSize(baseMinWidth, baseMinHeight);
-  
-  // Always open maximized (fullscreen) on first launch
-  mainWindow.maximize();
-  
-  // Wait for maximize animation to complete before showing
-  setTimeout(() => {
-    mainWindow.show();
-  }, 100);
+
+  // Show window (kiosk mode handles fullscreen automatically)
+  mainWindow.show();
 
   // Handle window resize to ensure proper layout
   mainWindow.on('resize', () => {

@@ -17,6 +17,7 @@ import { BlockTypeSelection, getBlockTypeOptions } from "@/types/calibrationBloc
 import { FBHHoleTableWithPreviews } from "../FBHHoleTableWithPreviews";
 import { AngleBeamCalibrationBlockDrawing } from "../AngleBeamCalibrationBlockDrawing";
 import { PWCalibrationBlockDrawing } from "../drawings/PWCalibrationBlockDrawing";
+import { PWASIMCalibrationBlockDrawing } from "../drawings/PWASIMCalibrationBlockDrawing";
 import {
   DEFAULT_FBH_HOLES,
   type FBHHoleRowData,
@@ -380,7 +381,7 @@ export const CalibrationTab = ({
         `PW IAE2P16675 calibration block — #1 FBH (1/64") at 80% FSH. ` +
         `7 holes (${pwHoleLabels.join(', ')}): ${pwHoleDepthsMm.map((d, i) => `${pwHoleLabels[i]}=${d}mm`).join(', ')}. ` +
         `Per ${standard === 'NDIP-1226' ? 'NDIP-1226 Rev F' : 'NDIP-1227 Rev D'} Section 5.1.1.7.1. ` +
-        `±45° circumferential shear wave, 8\" water path immersion.`
+        `±45° circumferential shear wave, 8" water path immersion.`
       );
     } else {
       setFbhAutoFillReason(
@@ -477,6 +478,11 @@ export const CalibrationTab = ({
     return pwStandards.includes(standard);
   }, [standard]);
 
+  // Check specific P&W standard types
+  const isPWASIM = standard === 'PWA-SIM';
+  const isV2500Standard = standard === 'NDIP-1226' || standard === 'NDIP-1227';
+  const isGTFStandard = standard === 'NDIP-1254' || standard === 'NDIP-1257' || standard === 'NDIP-1260';
+
   // Get P&W standard reference for drawing
   const pwStandardRef = useMemo(() => {
     if (standard === 'NDIP-1226') return 'NDIP-1226';
@@ -503,7 +509,66 @@ export const CalibrationTab = ({
       });
     };
 
-    // P&W Standard - Show dedicated IAE2P16675 calibration block drawing
+    // PWA-SIM - Show dedicated multi-reflector calibration block drawing
+    if (isPWASIM) {
+      return (
+        <div className="space-y-4">
+          {/* PWA-SIM specific notice */}
+          <div className="bg-gradient-to-r from-amber-600 to-orange-600 text-white rounded-xl p-4">
+            <div className="flex items-center gap-3 mb-2">
+              <span className="text-2xl font-bold">PWA-SIM</span>
+              <div>
+                <h4 className="font-bold text-lg">Sonic Inspection Method</h4>
+                <p className="text-sm opacity-90">Bar, Billet, Rod, and Forging Stock Inspection - Per PWA 127 / SIS 26B</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-3 text-xs">
+              <div className="bg-white/20 rounded px-2 py-1">
+                <span className="opacity-70">Block:</span> Per PWA 127
+              </div>
+              <div className="bg-white/20 rounded px-2 py-1">
+                <span className="opacity-70">FBH:</span> Multi (3/64&quot; + 1/32&quot;)
+              </div>
+              <div className="bg-white/20 rounded px-2 py-1">
+                <span className="opacity-70">Notch:</span> EDM 3% x 1/4&quot;
+              </div>
+              <div className="bg-white/20 rounded px-2 py-1 bg-red-500/30">
+                <span className="font-bold">SAME MATERIAL!</span>
+              </div>
+            </div>
+          </div>
+
+          {/* PWA-SIM Calibration Block Drawing */}
+          <PWASIMCalibrationBlockDrawing
+            width={950}
+            height={700}
+            showDimensions={true}
+            showTitleBlock={true}
+            partThickness={inspectionSetup.partThickness || inspectionSetup.wallThickness || 50}
+            partMaterial={inspectionSetup.material || 'Same as Test Part'}
+            title="PWA-SIM Multi-Reflector Calibration Block"
+          />
+
+          {/* PWA-SIM specific requirements */}
+          <div className="bg-red-50 border-2 border-red-200 rounded-xl p-4">
+            <h4 className="font-bold text-red-800 mb-2 flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4" />
+              PWA-SIM CRITICAL Requirements
+            </h4>
+            <ul className="text-sm text-red-700 space-y-1 list-disc list-inside">
+              <li><strong>MATERIAL:</strong> Block MUST be made from SAME MATERIAL as test part (acoustic equivalent NOT acceptable)</li>
+              <li>Multi-reflector configuration: 3/64&quot; FBH at 50% &amp; 10% depth, 1/32&quot; FBH at 10% depth</li>
+              <li>EDM Notch: 3% depth x 1/4&quot; length (axial defect simulation)</li>
+              <li>Calibrate before AND after each inspection batch</li>
+              <li>3-point DAC curve required</li>
+              <li>Contact PW Supplier Portal (eSRI) for detailed specifications</li>
+            </ul>
+          </div>
+        </div>
+      );
+    }
+
+    // P&W V2500 or GTF Standards - Show IAE2P16675 calibration block drawing
     if (isPWStandard) {
       return (
         <div className="space-y-4">
@@ -516,16 +581,15 @@ export const CalibrationTab = ({
                 <p className="text-sm opacity-90">
                   {standard === 'NDIP-1226' && 'V2500 1st Stage HPT Disk - NDIP-1226 Rev F'}
                   {standard === 'NDIP-1227' && 'V2500 2nd Stage HPT Disk - NDIP-1227 Rev D'}
-                  {standard === 'NDIP-1254' && 'PW1100G GTF HPT 1st Stage Hub - NDIP-1254'}
-                  {standard === 'NDIP-1257' && 'PW1100G GTF HPT 2nd Stage Hub - NDIP-1257'}
-                  {standard === 'NDIP-1260' && 'PW1100G GTF HPC 8th Stage IBR - NDIP-1260'}
-                  {standard === 'PWA-SIM' && 'PWA Sonic Inspection Method - Bar/Billet/Forging'}
+                  {standard === 'NDIP-1254' && 'PW1100G GTF HPT 1st Stage Hub - NDIP-1254 (AUSI)'}
+                  {standard === 'NDIP-1257' && 'PW1100G GTF HPT 2nd Stage Hub - NDIP-1257 (AUSI)'}
+                  {standard === 'NDIP-1260' && 'PW1100G GTF HPC 8th Stage IBR-8 - NDIP-1260 (AUSI)'}
                 </p>
               </div>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-3 text-xs">
               <div className="bg-white/20 rounded px-2 py-1">
-                <span className="opacity-70">Block:</span> IAE2P16675
+                <span className="opacity-70">Block:</span> {isGTFStandard ? 'PW Proprietary' : 'IAE2P16675'}
               </div>
               <div className="bg-white/20 rounded px-2 py-1">
                 <span className="opacity-70">FBH:</span> #1 (1/64&quot;)
@@ -537,6 +601,15 @@ export const CalibrationTab = ({
                 <span className="opacity-70">Mirror:</span> IAE2P16678 (45°)
               </div>
             </div>
+            {isGTFStandard && (
+              <div className="mt-3 p-2 bg-yellow-400/30 rounded-lg">
+                <p className="text-sm font-semibold flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4" />
+                  AUSI (Automated Ultrasonic Shear Inspection) - FAA AD Required
+                </p>
+                <p className="text-xs opacity-90">Powder metal contamination screening - Automated inspection only</p>
+              </div>
+            )}
           </div>
 
           {/* P&W IAE2P16675 Calibration Block Drawing */}
@@ -546,7 +619,7 @@ export const CalibrationTab = ({
             showDimensions={true}
             showTitleBlock={true}
             standardRef={pwStandardRef as 'NDIP-1226' | 'NDIP-1227'}
-            title="IAE2P16675 - 45° Angle Calibration Block"
+            title={isGTFStandard ? 'P&W GTF Calibration Block (Similar to IAE2P16675)' : 'IAE2P16675 - 45° Angle Calibration Block'}
           />
 
           {/* P&W specific requirements */}
@@ -560,7 +633,9 @@ export const CalibrationTab = ({
               <li>Water path: 8.0&quot; per NDIP specification</li>
               <li>Circumferential shear wave: ±45° inspection angles</li>
               <li>Block recertification: Yearly at PW NDE</li>
-              <li>Active holes: L through S (J &amp; K omitted per Section 5.1.1.7.1)</li>
+              {isV2500Standard && <li>Active holes: L through S (J &amp; K omitted per Section 5.1.1.7.1)</li>}
+              {isGTFStandard && <li>AUSI: Automated inspection ONLY (manual not permitted)</li>}
+              {isGTFStandard && <li>FAA Airworthiness Directive compliance required</li>}
               <li>Post-calibration tolerance: ±2 dB of initial</li>
             </ul>
           </div>
