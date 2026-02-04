@@ -16,6 +16,7 @@ import { BlockTypeSelection, getBlockTypeOptions } from "@/types/calibrationBloc
 // New components for FBH table with dropdowns and previews
 import { FBHHoleTableWithPreviews } from "../FBHHoleTableWithPreviews";
 import { AngleBeamCalibrationBlockDrawing } from "../AngleBeamCalibrationBlockDrawing";
+import { PWCalibrationBlockDrawing } from "../drawings/PWCalibrationBlockDrawing";
 import {
   DEFAULT_FBH_HOLES,
   type FBHHoleRowData,
@@ -470,6 +471,19 @@ export const CalibrationTab = ({
     </>
   );
 
+  // Check if P&W (Pratt & Whitney) standard is selected
+  const isPWStandard = useMemo(() => {
+    const pwStandards = ['NDIP-1226', 'NDIP-1227', 'NDIP-1254', 'NDIP-1257', 'NDIP-1260', 'PWA-SIM'];
+    return pwStandards.includes(standard);
+  }, [standard]);
+
+  // Get P&W standard reference for drawing
+  const pwStandardRef = useMemo(() => {
+    if (standard === 'NDIP-1226') return 'NDIP-1226';
+    if (standard === 'NDIP-1227') return 'NDIP-1227';
+    return 'NDIP-1226'; // Default for other P&W standards
+  }, [standard]);
+
   // Render the Angle Beam content (calibration block drawing)
   // Note: partDimensions is memoized at component level to prevent infinite re-renders
   const renderAngleBeamContent = () => {
@@ -489,12 +503,78 @@ export const CalibrationTab = ({
       });
     };
 
+    // P&W Standard - Show dedicated IAE2P16675 calibration block drawing
+    if (isPWStandard) {
+      return (
+        <div className="space-y-4">
+          {/* P&W specific notice */}
+          <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl p-4">
+            <div className="flex items-center gap-3 mb-2">
+              <span className="text-2xl font-bold">P&W</span>
+              <div>
+                <h4 className="font-bold text-lg">Pratt & Whitney Calibration Standard</h4>
+                <p className="text-sm opacity-90">
+                  {standard === 'NDIP-1226' && 'V2500 1st Stage HPT Disk - NDIP-1226 Rev F'}
+                  {standard === 'NDIP-1227' && 'V2500 2nd Stage HPT Disk - NDIP-1227 Rev D'}
+                  {standard === 'NDIP-1254' && 'PW1100G GTF HPT 1st Stage Hub - NDIP-1254'}
+                  {standard === 'NDIP-1257' && 'PW1100G GTF HPT 2nd Stage Hub - NDIP-1257'}
+                  {standard === 'NDIP-1260' && 'PW1100G GTF HPC 8th Stage IBR - NDIP-1260'}
+                  {standard === 'PWA-SIM' && 'PWA Sonic Inspection Method - Bar/Billet/Forging'}
+                </p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-3 text-xs">
+              <div className="bg-white/20 rounded px-2 py-1">
+                <span className="opacity-70">Block:</span> IAE2P16675
+              </div>
+              <div className="bg-white/20 rounded px-2 py-1">
+                <span className="opacity-70">FBH:</span> #1 (1/64&quot;)
+              </div>
+              <div className="bg-white/20 rounded px-2 py-1">
+                <span className="opacity-70">Transducer:</span> IAE2P16679
+              </div>
+              <div className="bg-white/20 rounded px-2 py-1">
+                <span className="opacity-70">Mirror:</span> IAE2P16678 (45°)
+              </div>
+            </div>
+          </div>
+
+          {/* P&W IAE2P16675 Calibration Block Drawing */}
+          <PWCalibrationBlockDrawing
+            width={950}
+            height={700}
+            showDimensions={true}
+            showTitleBlock={true}
+            standardRef={pwStandardRef as 'NDIP-1226' | 'NDIP-1227'}
+            title="IAE2P16675 - 45° Angle Calibration Block"
+          />
+
+          {/* P&W specific requirements */}
+          <div className="bg-amber-50 border-2 border-amber-200 rounded-xl p-4">
+            <h4 className="font-bold text-amber-800 mb-2 flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4" />
+              P&W Mandatory Requirements
+            </h4>
+            <ul className="text-sm text-amber-700 space-y-1 list-disc list-inside">
+              <li>Calibration amplitude: 80% FSH on #1 FBH reference</li>
+              <li>Water path: 8.0&quot; per NDIP specification</li>
+              <li>Circumferential shear wave: ±45° inspection angles</li>
+              <li>Block recertification: Yearly at PW NDE</li>
+              <li>Active holes: L through S (J &amp; K omitted per Section 5.1.1.7.1)</li>
+              <li>Post-calibration tolerance: ±2 dB of initial</li>
+            </ul>
+          </div>
+        </div>
+      );
+    }
+
+    // Non-P&W Standard - Show generic angle beam content
     return (
       <div className="space-y-4">
         {/* Prominent notice for shear wave calibration */}
         <div className="bg-gradient-to-r from-orange-50 to-amber-50 border-2 border-orange-200 rounded-xl p-4">
           <h4 className="font-bold text-orange-800 text-lg mb-2">
-            🔊 Shear Wave Calibration Required
+            Shear Wave Calibration Required
           </h4>
           <p className="text-orange-700 text-sm">
             This part geometry (tube, cylinder, cone, or sphere) requires shear wave inspection
@@ -505,7 +585,7 @@ export const CalibrationTab = ({
           {(inspectionSetup.diameter || inspectionSetup.innerDiameter) && (
             <div className="mt-2 p-2 bg-white/50 rounded-lg">
               <p className="text-sm text-orange-800 font-medium">
-                📐 Part Dimensions:
+                Part Dimensions:
                 {inspectionSetup.diameter && ` OD=${inspectionSetup.diameter}mm`}
                 {inspectionSetup.innerDiameter && ` ID=${inspectionSetup.innerDiameter}mm`}
                 {inspectionSetup.wallThickness && ` Wall=${inspectionSetup.wallThickness}mm`}
