@@ -9,6 +9,9 @@ import {
   FBHData,
   formatDimension,
 } from './types';
+// Note: calculateRefractedAngle is not used here because the 'angle' prop
+// is already the refracted angle in steel. Wedge angle is computed inline
+// via reverse Snell's Law: sin(incident) = (V_wedge/V_steel) * sin(refracted).
 
 interface AngleBeamDrawingProps {
   uniqueId: string;
@@ -122,6 +125,16 @@ export function EnhancedAngleBeamDrawing({
 
   return (
     <g>
+      {/* Arrow marker definitions for dimension lines */}
+      <defs>
+        <marker id={`arrow-${uniqueId}`} markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+          <path d="M0,0 L8,4 L0,8 L2,4 Z" fill="#1e293b" />
+        </marker>
+        <marker id={`arrow-rev-${uniqueId}`} markerWidth="8" markerHeight="8" refX="1" refY="4" orient="auto">
+          <path d="M8,0 L0,4 L8,8 L6,4 Z" fill="#1e293b" />
+        </marker>
+      </defs>
+
       {/* ==================== VIEW A - TOP VIEW ==================== */}
       <g transform="translate(30, 50)">
         <text x={scaledLength / 2} y="-15" textAnchor="middle" fontSize="11" fontWeight="700" fill="#1e293b" fontFamily="Arial, sans-serif">
@@ -456,9 +469,20 @@ export function EnhancedAngleBeamDrawing({
         <text x="0" y="0" fontSize="10" fontWeight="700" fill="#1e293b" fontFamily="Arial, sans-serif">
           BEAM ANGLE PARAMETERS
         </text>
-        <rect x="0" y="8" width="180" height="50" fill="white" stroke="#1e293b" strokeWidth="1"/>
-        <text x="10" y="28" fontSize="8" fill="#1e293b">Primary Angle: {angle}°</text>
-        <text x="10" y="43" fontSize="8" fill="#1e293b">Refracted Angle: {(angle * 1.5).toFixed(1)}° (steel)</text>
+        <rect x="0" y="8" width="220" height="65" fill="white" stroke="#1e293b" strokeWidth="1"/>
+        <text x="10" y="28" fontSize="8" fill="#1e293b">Refracted Angle (steel shear): {angle}{'\u00B0'}</text>
+        <text x="10" y="43" fontSize="8" fill="#1e293b">Wedge Incident Angle: {(() => {
+          // The 'angle' prop IS the refracted angle in steel (e.g. 45, 60, 70 deg).
+          // To find the incident wedge angle, use reverse Snell's Law:
+          // sin(incident) = (V_perspex / V_steel_shear) * sin(refracted)
+          // Perspex longitudinal = 2730 m/s, Carbon steel shear = 3250 m/s
+          const sinRefracted = Math.sin(angle * Math.PI / 180);
+          const sinIncident = (2730 / 3250) * sinRefracted;
+          if (Math.abs(sinIncident) > 1) return 'N/A';
+          const incidentAngle = Math.asin(sinIncident) * 180 / Math.PI;
+          return `${incidentAngle.toFixed(1)}\u00B0`;
+        })()} (perspex)</text>
+        <text x="10" y="58" fontSize="8" fill="#1e293b">Wedge Material: Perspex (V=2730 m/s)</text>
       </g>
     </g>
   );

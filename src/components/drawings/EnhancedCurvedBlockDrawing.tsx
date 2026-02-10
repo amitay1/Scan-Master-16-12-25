@@ -113,27 +113,44 @@ export function EnhancedCurvedBlockDrawing({
   const scaledHeight = height * scale;
   const scaledRadius = radius * scale;
 
-  // Calculate arc geometry for curved surface
-  // The arc represents the convex surface profile
+  // Calculate arc geometry for curved surface using actual radius
+  // For a convex surface with radius R, the sagitta (rise) over chord L is:
+  //   sagitta = R - sqrt(R^2 - (L/2)^2)
+  // If L/2 > R (chord exceeds diameter), clamp to semicircle.
   const arcStartY = 80; // Starting Y position for the arc
   const arcHeight = scaledHeight;
-  
-  // SVG arc path for convex surface
-  const arcPath = `M 0 ${arcStartY + arcHeight} 
-                   Q ${scaledLength / 2} ${arcStartY - arcHeight * 0.3} 
-                     ${scaledLength} ${arcStartY + arcHeight}`;
+  const halfChord = length / 2; // in mm (unscaled)
+  const clampedRadius = Math.max(radius, halfChord + 1); // ensure arc is drawable
+  const sagittaMm = clampedRadius - Math.sqrt(clampedRadius * clampedRadius - halfChord * halfChord);
+  const scaledSagitta = sagittaMm * scale;
+
+  // SVG arc path for convex surface using true circular arc
+  // The arc command: A rx ry x-rotation large-arc-flag sweep-flag x y
+  // For a convex surface viewed from the side, the arc rises above the chord
+  const arcPath = `M 0 ${arcStartY + arcHeight}
+                   A ${scaledRadius} ${scaledRadius} 0 0 1 ${scaledLength} ${arcStartY + arcHeight}`;
 
   // Calculate FBH positions along the curve
   const fbhPositions = fbhData.map((fbh, index) => {
     const t = fbhData.length > 1 ? index / (fbhData.length - 1) : 0.5;
     const x = t * scaledLength;
-    // Y position follows the curve (simplified quadratic bezier)
-    const y = arcStartY + arcHeight - (4 * arcHeight * 0.3 * t * (1 - t));
+    // Y position follows the circular arc: sagitta variation = 4*sagitta*t*(1-t)
+    const y = arcStartY + arcHeight - (4 * scaledSagitta * t * (1 - t));
     return { ...fbh, screenX: x, screenY: y };
   });
 
   return (
     <g>
+      {/* Arrow marker definitions for dimension lines */}
+      <defs>
+        <marker id={`arrow-${uniqueId}`} markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+          <path d="M0,0 L8,4 L0,8 L2,4 Z" fill="#1e293b" />
+        </marker>
+        <marker id={`arrow-rev-${uniqueId}`} markerWidth="8" markerHeight="8" refX="1" refY="4" orient="auto">
+          <path d="M8,0 L0,4 L8,8 L6,4 Z" fill="#1e293b" />
+        </marker>
+      </defs>
+
       {/* ==================== VIEW A - SIDE/PROFILE VIEW (Convex) ==================== */}
       <g transform="translate(30, 30)">
         <text x={scaledLength / 2} y="-10" textAnchor="middle" fontSize="11" fontWeight="700" fill="#1e293b" fontFamily="Arial, sans-serif">
@@ -159,20 +176,20 @@ export function EnhancedCurvedBlockDrawing({
           strokeWidth="2.5"
         />
 
-        {/* Radius indication */}
+        {/* Radius indication -- label near the apex of the arc */}
         <g>
-          <path 
-            d={`M ${scaledLength / 2} ${arcStartY - arcHeight * 0.3} 
-                L ${scaledLength / 2 + 30} ${arcStartY - arcHeight * 0.3 - 20}`}
-            fill="none" 
-            stroke="#1e293b" 
+          <path
+            d={`M ${scaledLength / 2} ${arcStartY + arcHeight - scaledSagitta}
+                L ${scaledLength / 2 + 30} ${arcStartY + arcHeight - scaledSagitta - 20}`}
+            fill="none"
+            stroke="#1e293b"
             strokeWidth="0.5"
           />
-          <text 
-            x={scaledLength / 2 + 35} 
-            y={arcStartY - arcHeight * 0.3 - 22} 
-            fontSize="8" 
-            fill="#1e293b" 
+          <text
+            x={scaledLength / 2 + 35}
+            y={arcStartY + arcHeight - scaledSagitta - 22}
+            fontSize="8"
+            fill="#1e293b"
             fontFamily="Arial, sans-serif"
           >
             R{radius.toFixed(0)}
@@ -319,11 +336,18 @@ export function EnhancedCurvedBlockDrawing({
           strokeWidth="2"
         />
 
-        {/* Curved top edge */}
-        <path 
-          d={`M 0 20 Q ${scaledWidth * 0.4} ${20 - scaledHeight * 0.2} ${scaledWidth * 0.8} 20`}
-          fill="none" 
-          stroke="#1e293b" 
+        {/* Curved top edge -- use sagitta computed from actual radius
+            For the end view, the chord is the block width.
+            End-view sagitta = R - sqrt(R^2 - (width/2)^2) */}
+        <path
+          d={(() => {
+            const endHalfChord = width / 2;
+            const endClampedR = Math.max(radius, endHalfChord + 1);
+            const endSagitta = (endClampedR - Math.sqrt(endClampedR * endClampedR - endHalfChord * endHalfChord)) * scale;
+            return `M 0 20 A ${scaledRadius} ${scaledRadius} 0 0 1 ${scaledWidth * 0.8} 20`;
+          })()}
+          fill="none"
+          stroke="#1e293b"
           strokeWidth="2"
         />
 

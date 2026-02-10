@@ -216,6 +216,11 @@ export function generateCoverageHeatmap(
     probe.frequency
   );
 
+  // Guard against zero or negative scanIndex to prevent division by zero
+  if (scanIndex <= 0) {
+    return { data: [], xSize: 0, ySize: 0 };
+  }
+
   const xSteps = Math.ceil(width / resolution.x);
   const ySteps = Math.ceil(depth / resolution.y);
 
@@ -315,7 +320,7 @@ export function calculateCoverage(input: CoverageInput): CoverageResult {
     }
   }
 
-  const overallCoverage = (coveredCells / totalCells) * 100;
+  const overallCoverage = totalCells === 0 ? 0 : (coveredCells / totalCells) * 100;
 
   // Calculate effective coverage (excluding dead zones)
   const deadZoneDepth = deadZones.reduce((sum, dz) => sum + (dz.endDepth - dz.startDepth), 0);

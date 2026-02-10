@@ -6,35 +6,35 @@
     "description": "European standard for ultrasonic testing of steel forgings"
   },
   "qualityClasses": {
-    "description": "Four quality classes with increasing stringency",
+    "description": "Four quality classes - Class 4 is most stringent, Class 1 is least stringent",
     "classes": {
       "1": {
         "name": "Quality Class 1",
-        "description": "Highest quality - most stringent",
-        "recordingLevel": "Reference DAC -12 dB",
-        "acceptanceLevel": "Reference DAC -6 dB",
-        "evaluationLevel": "Reference DAC"
+        "description": "Basic quality - least stringent",
+        "recordingLevel": "Reference DAC +6 dB",
+        "acceptanceLevel": "Reference DAC +12 dB",
+        "evaluationLevel": "Reference DAC +16 dB"
       },
       "2": {
-        "name": "Quality Class 2", 
-        "description": "High quality - stringent",
-        "recordingLevel": "Reference DAC -6 dB",
-        "acceptanceLevel": "Reference DAC",
-        "evaluationLevel": "Reference DAC +6 dB"
-      },
-      "3": {
-        "name": "Quality Class 3",
+        "name": "Quality Class 2",
         "description": "Standard quality",
         "recordingLevel": "Reference DAC",
         "acceptanceLevel": "Reference DAC +6 dB",
         "evaluationLevel": "Reference DAC +12 dB"
       },
+      "3": {
+        "name": "Quality Class 3",
+        "description": "High quality - stringent",
+        "recordingLevel": "Reference DAC -6 dB",
+        "acceptanceLevel": "Reference DAC",
+        "evaluationLevel": "Reference DAC +6 dB"
+      },
       "4": {
         "name": "Quality Class 4",
-        "description": "Basic quality - least stringent",
-        "recordingLevel": "Reference DAC +6 dB",
-        "acceptanceLevel": "Reference DAC +12 dB",
-        "evaluationLevel": "Reference DAC +16 dB"
+        "description": "Highest quality - most stringent",
+        "recordingLevel": "Reference DAC -12 dB",
+        "acceptanceLevel": "Reference DAC -6 dB",
+        "evaluationLevel": "Reference DAC"
       }
     }
   },
@@ -133,10 +133,10 @@
   },
   "acceptanceRequirements": {
     "individualIndications": {
-      "class1": "No echo > acceptance level",
-      "class2": "Max 3 echoes > acceptance level in 100cm²",
-      "class3": "Max 5 echoes > acceptance level in 100cm²",
-      "class4": "As agreed between parties"
+      "class1": "As agreed between parties",
+      "class2": "Max 5 echoes > acceptance level in 100cm²",
+      "class3": "Max 3 echoes > acceptance level in 100cm²",
+      "class4": "No echo > acceptance level"
     },
     "groupedIndications": {
       "definition": "Distance < 40 mm between indications",
@@ -146,7 +146,7 @@
     "planarIndications": {
       "detection": "Loss of back wall > 6 dB",
       "evaluation": "Additional angle beam examination",
-      "acceptance": "Generally not acceptable in Class 1 & 2"
+      "acceptance": "Generally not acceptable in Class 3 & 4"
     }
   },
   "documentation": {

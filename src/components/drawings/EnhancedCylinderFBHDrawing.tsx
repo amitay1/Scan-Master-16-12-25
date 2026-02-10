@@ -128,6 +128,16 @@ export function EnhancedCylinderFBHDrawing({
 
   return (
     <g>
+      {/* Arrow marker definitions for dimension lines */}
+      <defs>
+        <marker id={`arrow-${uniqueId}`} markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+          <path d="M0,0 L8,4 L0,8 L2,4 Z" fill="#1e293b" />
+        </marker>
+        <marker id={`arrow-rev-${uniqueId}`} markerWidth="8" markerHeight="8" refX="1" refY="4" orient="auto">
+          <path d="M8,0 L0,4 L8,8 L6,4 Z" fill="#1e293b" />
+        </marker>
+      </defs>
+
       {/* ==================== VIEW A - END VIEW (Cross-Section) ==================== */}
       <g transform="translate(30, 30)">
         <text x={centerX} y="-10" textAnchor="middle" fontSize="11" fontWeight="700" fill="#1e293b" fontFamily="Arial, sans-serif">

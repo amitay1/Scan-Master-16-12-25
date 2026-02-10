@@ -166,11 +166,11 @@ function FBHArray({
     }
   }
 
-  // Row depth indicators
+  // Row depth indicators per standard DAC points: T/4, T/2, 3T/4
   const rowDepths = [
-    fbhData.depth * 0.33,
-    fbhData.depth * 0.66,
-    fbhData.depth
+    fbhData.depth * 0.25,
+    fbhData.depth * 0.50,
+    fbhData.depth * 0.75
   ];
 
   return (
@@ -312,8 +312,8 @@ export function EnhancedIOWBlockDrawing({
           strokeWidth="2"
         />
 
-        {/* FBH depths visualization (3 rows) */}
-        {[0.33, 0.66, 1.0].map((depthRatio, i) => {
+        {/* FBH depths visualization (3 rows at T/4, T/2, 3T/4) */}
+        {[0.25, 0.50, 0.75].map((depthRatio, i) => {
           const y = depthRatio * scaledHeight - (fbhSizeToMm(fbhData.size) * scale / 2);
           const fbhR = fbhSizeToMm(fbhData.size) * scale / 2;
           
@@ -402,8 +402,8 @@ export function EnhancedIOWBlockDrawing({
         <text x="10" y="70" fontSize="8" fill="#1e293b">Max Depth (Row 3)</text>
         <text x="150" y="70" fontSize="8" fill="#1e293b">{fbhData.depth.toFixed(1)} mm</text>
         
-        <text x="10" y="85" fontSize="8" fill="#1e293b">Depth Increments</text>
-        <text x="150" y="85" fontSize="8" fill="#1e293b">{(fbhData.depth / 3).toFixed(1)} / {(fbhData.depth * 2 / 3).toFixed(1)} / {fbhData.depth.toFixed(1)} mm</text>
+        <text x="10" y="85" fontSize="8" fill="#1e293b">Depth Increments (T/4, T/2, 3T/4)</text>
+        <text x="150" y="85" fontSize="8" fill="#1e293b">{(fbhData.depth * 0.25).toFixed(1)} / {(fbhData.depth * 0.50).toFixed(1)} / {(fbhData.depth * 0.75).toFixed(1)} mm</text>
       </g>
 
       {/* ==================== CALIBRATION INFO ==================== */}

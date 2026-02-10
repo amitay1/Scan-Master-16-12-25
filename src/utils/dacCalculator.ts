@@ -48,6 +48,7 @@ const MATERIAL_VELOCITY: Record<MaterialType, number> = {
   steel: 5920,
   stainless_steel: 5740,
   titanium: 6100,
+  nickel_alloy: 5820,
   magnesium: 5770,
   custom: 5900,
 };

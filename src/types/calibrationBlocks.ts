@@ -314,17 +314,17 @@ export const GEOMETRY_GROUPS = {
 
   // Group 2: Solid rounds - Use Flat FBH Block (radial inspection)
   SOLID_ROUNDS: [
-    'round_bar', 'shaft', 'round_forging_stock', 'cylinder'
+    'round_bar', 'shaft', 'round_forging_stock', 'cylinder', 'solid_round'
   ] as PartGeometry[],
   
   // Group 4: Disks - Use Flat FBH Block (face inspection)
   DISKS: [
-    'disk', 'disk_forging', 'hub', 'impeller', 'blisk'
+    'disk', 'disk_forging', 'hub', 'impeller', 'blisk', 'hpt_disk'
   ] as PartGeometry[],
   
   // Group 5: Thin-wall tubes/rings - Use Cylinder Notched Block
   THIN_WALL_TUBULAR: [
-    'tube', 'pipe', 'ring', 'sleeve', 'bushing', 'square_tube', 'rectangular_tube'
+    'tube', 'pipe', 'hollow_cylinder', 'ring', 'sleeve', 'bushing', 'square_tube', 'rectangular_tube'
   ] as PartGeometry[],
   
   // Group 6: Thick-wall tubes/rings - Use Cylinder FBH Block

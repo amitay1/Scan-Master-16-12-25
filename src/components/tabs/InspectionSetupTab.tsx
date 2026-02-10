@@ -71,6 +71,7 @@ const partTypes: PartTypeOption[] = [
   { value: "disk", label: "Disk (Generic)", description: "Use disk_forging if applicable" },
   { value: "impeller", label: "Impeller", description: "Complex stepped disk (aero engine)" },
   { value: "blisk", label: "Blisk (Bladed Disk)", description: "Integrated blade-disk (aero engine)" },
+  { value: "hpt_disk", label: "HPT Disk", description: "Turbine disk with stepped bore profile (V2500)" },
 ];
 
 
@@ -98,6 +99,193 @@ const defaultHeatTreatments = [
   "Quenched & Tempered",
   "Stress Relieved",
 ];
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Per-shape dimension field configuration
+// Each part type defines exactly which fields are relevant to its geometry
+// ═══════════════════════════════════════════════════════════════════════════
+interface PartFieldConfig {
+  showThickness: boolean;
+  thicknessLabel: string;
+  showLength: boolean;
+  lengthLabel: string;
+  showWidth: boolean;
+  showOD: boolean;
+  odLabel: string;
+  canBeHollow: boolean;
+  alwaysHollow: boolean;
+  hollowType: 'circular' | 'rectangular' | 'none';
+  isCone: boolean;
+}
+
+function getPartFieldConfig(partType: string): PartFieldConfig {
+  switch (partType) {
+    // ── FLAT / RECTANGULAR (no hollow toggle) ──
+    case 'plate':
+    case 'sheet':
+    case 'slab':
+    case 'flat_bar':
+    case 'bar':
+    case 'forging':
+    case 'rectangular_forging_stock':
+    case 'near_net_forging':
+      return {
+        showThickness: true, thicknessLabel: 'Thickness (mm)',
+        showLength: true, lengthLabel: 'Length (mm)',
+        showWidth: true,
+        showOD: false, odLabel: '',
+        canBeHollow: false, alwaysHollow: false,
+        hollowType: 'none', isCone: false,
+      };
+
+    // ── RECTANGULAR (can be hollow with inner L/W/Wall) ──
+    case 'rectangular_bar':
+    case 'square_bar':
+    case 'box':
+    case 'billet':
+    case 'block':
+      return {
+        showThickness: true, thicknessLabel: 'Thickness (mm)',
+        showLength: true, lengthLabel: 'Length (mm)',
+        showWidth: true,
+        showOD: false, odLabel: '',
+        canBeHollow: true, alwaysHollow: false,
+        hollowType: 'rectangular', isCone: false,
+      };
+
+    // ── SOLID ROUND (OD + Length, can become hollow) ──
+    case 'cylinder':
+    case 'round_bar':
+    case 'shaft':
+    case 'round_forging_stock':
+      return {
+        showThickness: false, thicknessLabel: '',
+        showLength: true, lengthLabel: 'Length (mm)',
+        showWidth: false,
+        showOD: true, odLabel: 'OD (mm)',
+        canBeHollow: true, alwaysHollow: false,
+        hollowType: 'circular', isCone: false,
+      };
+
+    // ── DISK (OD + Height, can be hollow) ──
+    case 'disk':
+    case 'disk_forging':
+    case 'hub':
+      return {
+        showThickness: true, thicknessLabel: 'Height (mm)',
+        showLength: false, lengthLabel: '',
+        showWidth: false,
+        showOD: true, odLabel: 'OD (mm)',
+        canBeHollow: true, alwaysHollow: false,
+        hollowType: 'circular', isCone: false,
+      };
+
+    // ── AERO ENGINE DISKS (OD + Height, can/always hollow) ──
+    case 'impeller':
+    case 'blisk':
+      return {
+        showThickness: true, thicknessLabel: 'Height (mm)',
+        showLength: false, lengthLabel: '',
+        showWidth: false,
+        showOD: true, odLabel: 'OD (mm)',
+        canBeHollow: true, alwaysHollow: false,
+        hollowType: 'circular', isCone: false,
+      };
+
+    case 'hpt_disk':
+      return {
+        showThickness: true, thicknessLabel: 'Height (mm)',
+        showLength: false, lengthLabel: '',
+        showWidth: false,
+        showOD: true, odLabel: 'OD (mm)',
+        canBeHollow: false, alwaysHollow: true,
+        hollowType: 'circular', isCone: false,
+      };
+
+    // ── TUBULAR (always hollow, OD + Length) ──
+    case 'tube':
+    case 'pipe':
+      return {
+        showThickness: false, thicknessLabel: '',
+        showLength: true, lengthLabel: 'Length (mm)',
+        showWidth: false,
+        showOD: true, odLabel: 'OD (mm)',
+        canBeHollow: false, alwaysHollow: true,
+        hollowType: 'circular', isCone: false,
+      };
+
+    // ── RING / SHORT HOLLOW (always hollow, OD + Axial Length) ──
+    case 'ring':
+    case 'ring_forging':
+    case 'sleeve':
+    case 'bushing':
+      return {
+        showThickness: false, thicknessLabel: '',
+        showLength: true, lengthLabel: 'Axial Width (mm)',
+        showWidth: false,
+        showOD: true, odLabel: 'OD (mm)',
+        canBeHollow: false, alwaysHollow: true,
+        hollowType: 'circular', isCone: false,
+      };
+
+    // ── HEX BAR (Across-Flats + Length) ──
+    case 'hex_bar':
+    case 'hexagon':
+      return {
+        showThickness: false, thicknessLabel: '',
+        showLength: true, lengthLabel: 'Length (mm)',
+        showWidth: false,
+        showOD: true, odLabel: 'Across Flats (mm)',
+        canBeHollow: true, alwaysHollow: false,
+        hollowType: 'circular', isCone: false,
+      };
+
+    // ── SPHERE (Diameter only) ──
+    case 'sphere':
+      return {
+        showThickness: false, thicknessLabel: '',
+        showLength: false, lengthLabel: '',
+        showWidth: false,
+        showOD: true, odLabel: 'Diameter (mm)',
+        canBeHollow: true, alwaysHollow: false,
+        hollowType: 'circular', isCone: false,
+      };
+
+    // ── CONE (special fields, always hollow) ──
+    case 'cone':
+      return {
+        showThickness: false, thicknessLabel: '',
+        showLength: false, lengthLabel: '',
+        showWidth: false,
+        showOD: false, odLabel: '',
+        canBeHollow: false, alwaysHollow: true,
+        hollowType: 'none', isCone: true,
+      };
+
+    // ── RECTANGULAR TUBE (always hollow, Height + Length + Width) ──
+    case 'rectangular_tube':
+      return {
+        showThickness: true, thicknessLabel: 'Height (mm)',
+        showLength: true, lengthLabel: 'Length (mm)',
+        showWidth: true,
+        showOD: false, odLabel: '',
+        canBeHollow: false, alwaysHollow: true,
+        hollowType: 'rectangular', isCone: false,
+      };
+
+    // ── CUSTOM / DEFAULT (show everything) ──
+    case 'custom':
+    default:
+      return {
+        showThickness: true, thicknessLabel: 'Thickness (mm)',
+        showLength: true, lengthLabel: 'Length (mm)',
+        showWidth: true,
+        showOD: true, odLabel: 'OD (mm)',
+        canBeHollow: true, alwaysHollow: false,
+        hollowType: 'circular', isCone: false,
+      };
+  }
+}
 
 /**
  * AUTOMATIC SHAPE CLASSIFICATION - ASTM E2375-16 Standard
@@ -136,6 +324,11 @@ function classifyCircularShape(
   height: number | undefined,
   wallThickness: number | undefined
 ): PartGeometry {
+  // Never auto-reclassify complex aero engine forgings to simpler types
+  if (currentType === 'hpt_disk' || currentType === 'impeller' || currentType === 'blisk') {
+    return currentType;
+  }
+
   // Only auto-classify circular/cylindrical shapes
   const circularTypes: PartGeometry[] = [
     'tube', 'pipe', 'ring', 'ring_forging', 'sleeve', 'bushing',
@@ -426,6 +619,7 @@ export const InspectionSetupTab = ({
   // ═══════════════════════════════════════════════════════════════════════════
   // AUTO-RECOMMENDATION: Get calibration block recommendation based on part
   // NOW WITH SCAN DIRECTIONS INTEGRATION! 🔗
+  // PERFORMANCE: Debounced to prevent lag on rapid shape changes
   // ═══════════════════════════════════════════════════════════════════════════
   useEffect(() => {
     // Only run if we have all required parameters
@@ -441,6 +635,8 @@ export const InspectionSetupTab = ({
       return;
     }
 
+    // Debounce: Wait 300ms before running heavy computation
+    const timeoutId = setTimeout(() => {
     try {
       // Analyze CRITICAL scan directions that affect calibration block choice
       // Only: Circumferential (D/E) and Angle Beam (F/G/H...) matter!
@@ -490,6 +686,10 @@ export const InspectionSetupTab = ({
     } catch (error) {
       logWarn("Failed to generate calibration recommendation:", error);
     }
+    }, 300); // End of debounce setTimeout
+
+    // Cleanup: Cancel pending computation if dependencies change
+    return () => clearTimeout(timeoutId);
   }, [
     data.material,
     data.partType,
@@ -513,57 +713,35 @@ export const InspectionSetupTab = ({
     reader.readAsDataURL(file);
   };
 
-  const showDiameter = data.partType === "tube" || 
-                        data.partType === "ring" || 
-                        data.partType === "cylinder" ||
-                        data.partType === "sphere" ||
-                        data.partType === "cone" ||
-                        data.partType === "hexagon" ||
-                        data.partType === "round_bar" ||
-                        data.partType === "shaft" ||
-                        data.partType === "disk" ||
-                        data.partType === "disk_forging" ||
-                        data.partType === "ring_forging" ||
-                        data.partType === "round_forging_stock" ||
-                        data.partType === "pipe" ||
-                        data.partType === "sleeve" ||
-                        data.partType === "bushing";
-  
-  // Check if shape can be hollow
-  const canBeHollow = data.partType === "cylinder" ||
-                      data.partType === "box" ||
-                      data.partType === "rectangular_tube" ||
-                      data.partType === "hexagon" ||
-                      data.partType === "sphere" ||
-                      data.partType === "round_bar" ||
-                      data.partType === "shaft" ||
-                      data.partType === "disk" ||
-                      data.partType === "square_bar" ||
-                      data.partType === "rectangular_bar" ||
-                      data.partType === "plate" ||
-                      data.partType === "billet" ||
-                      data.partType === "block";
+  // ── Per-shape field configuration ──
+  const fieldConfig = getPartFieldConfig(data.partType || '');
+  const showDiameter = fieldConfig.showOD;
+  const canBeHollow = fieldConfig.canBeHollow;
+  const isCone = fieldConfig.isCone;
+  const isAlwaysHollow = fieldConfig.alwaysHollow;
 
-  // Check if it's a cone - needs special dimension fields (cone is always hollow like a tube)
-  const isCone = data.partType === "cone";
-  
-  // These shapes are typically hollow - show hint badge but allow toggle
-  // Cone is ALWAYS hollow (like a tapered tube)
-  const isAlwaysHollow = data.partType === "tube" ||
-                         data.partType === "pipe" ||
-                         data.partType === "ring" ||
-                         data.partType === "ring_forging" ||
-                         data.partType === "sleeve" ||
-                         data.partType === "bushing" ||
-                         data.partType === "cone";
-
-  // Auto-enable isHollow when selecting a typically hollow shape (but allow toggle off)
+  // Auto-enable isHollow when selecting an always-hollow shape
   React.useEffect(() => {
     if (isAlwaysHollow && data.isHollow === undefined) {
-      // Only auto-set if not explicitly set by user
       onChange({ ...data, isHollow: true });
     }
   }, [data.partType]); // Only run when partType changes
+
+  // Auto-sync partThickness for shapes where the thickness field is hidden
+  // (e.g., cylinder → thickness = diameter, tube → thickness = wall)
+  React.useEffect(() => {
+    if (!fieldConfig.showThickness && data.partType) {
+      let autoThickness: number | undefined;
+      if (data.isHollow && data.wallThickness && data.wallThickness > 0) {
+        autoThickness = data.wallThickness;
+      } else if (data.diameter && data.diameter > 0) {
+        autoThickness = data.diameter;
+      }
+      if (autoThickness && Math.abs((data.partThickness || 0) - autoThickness) > 0.01) {
+        updateField("partThickness", autoThickness);
+      }
+    }
+  }, [fieldConfig.showThickness, data.diameter, data.wallThickness, data.isHollow, data.partType, data.partThickness, updateField]);
 
   // Auto-calculate wall thickness if inner and outer dimensions are set
   React.useEffect(() => {
@@ -908,53 +1086,59 @@ export const InspectionSetupTab = ({
           </>
         )}
 
-        <FieldWithHelp
-          label="Thickness (mm)"
-          fieldKey="thickness"
-          required
-        >
-          <Input
-            type="number"
-            value={data.partThickness}
-            onChange={(e) => updateField("partThickness", parseFloat(e.target.value) || 0)}
-            min={6.35}
-            step={0.1}
-            className="bg-background"
-          />
-          {data.partThickness < 6.35 && data.partThickness > 0 && (
-            <p className="text-xs text-destructive mt-1">
-              Must be ≥ 6.35mm per standard scope
-            </p>
-          )}
-        </FieldWithHelp>
+        {fieldConfig.showThickness && (
+          <FieldWithHelp
+            label={fieldConfig.thicknessLabel}
+            fieldKey="thickness"
+            required
+          >
+            <Input
+              type="number"
+              value={data.partThickness}
+              onChange={(e) => updateField("partThickness", parseFloat(e.target.value) || 0)}
+              min={6.35}
+              step={0.1}
+              className="bg-background"
+            />
+            {data.partThickness < 6.35 && data.partThickness > 0 && (
+              <p className="text-xs text-destructive mt-1">
+                Must be ≥ 6.35mm per standard scope
+              </p>
+            )}
+          </FieldWithHelp>
+        )}
 
-        <FieldWithHelp
-          label="Length (mm)"
-          fieldKey="thickness"
-        >
-          <Input
-            type="number"
-            value={data.partLength}
-            onChange={(e) => updateField("partLength", parseFloat(e.target.value) || 0)}
-            min={0}
-            step={0.1}
-            className="bg-background"
-          />
-        </FieldWithHelp>
+        {fieldConfig.showLength && (
+          <FieldWithHelp
+            label={fieldConfig.lengthLabel}
+            fieldKey="thickness"
+          >
+            <Input
+              type="number"
+              value={data.partLength}
+              onChange={(e) => updateField("partLength", parseFloat(e.target.value) || 0)}
+              min={0}
+              step={0.1}
+              className="bg-background"
+            />
+          </FieldWithHelp>
+        )}
 
-        <FieldWithHelp
-          label="Width (mm)"
-          fieldKey="thickness"
-        >
-          <Input
-            type="number"
-            value={data.partWidth}
-            onChange={(e) => updateField("partWidth", parseFloat(e.target.value) || 0)}
-            min={0}
-            step={0.1}
-            className="bg-background"
-          />
-        </FieldWithHelp>
+        {fieldConfig.showWidth && (
+          <FieldWithHelp
+            label="Width (mm)"
+            fieldKey="thickness"
+          >
+            <Input
+              type="number"
+              value={data.partWidth}
+              onChange={(e) => updateField("partWidth", parseFloat(e.target.value) || 0)}
+              min={0}
+              step={0.1}
+              className="bg-background"
+            />
+          </FieldWithHelp>
+        )}
 
         <FieldWithHelp
           label="Drawing No."
@@ -996,7 +1180,7 @@ export const InspectionSetupTab = ({
 
         {showDiameter && (
           <FieldWithHelp
-            label="OD (mm)"
+            label={fieldConfig.odLabel}
             fieldKey="thickness"
             required={showDiameter}
           >
@@ -1132,8 +1316,8 @@ export const InspectionSetupTab = ({
           </>
         )}
 
-        {/* Hollow/Solid Toggle - not shown for cone (always hollow) */}
-        {(canBeHollow || isAlwaysHollow) && !isCone && (
+        {/* Hollow/Solid Toggle - only for shapes that CAN be hollow (not always-hollow or cone) */}
+        {canBeHollow && !isAlwaysHollow && !isCone && (
           <div className="flex items-center gap-2">
             <input
               type="checkbox"
@@ -1148,65 +1332,64 @@ export const InspectionSetupTab = ({
           </div>
         )}
 
-        {/* Hollow Dimensions */}
-        {data.isHollow && (
+        {/* Hollow Dimensions - Circular (ID + Wall) */}
+        {data.isHollow && fieldConfig.hollowType === 'circular' && (
           <>
-            {showDiameter && (
-              <>
-                <FieldWithHelp
-                  label="ID (mm)"
-                  fieldKey="thickness"
-                  required
-                >
-                  <Input
-                    type="number"
-                    value={data.innerDiameter ?? ''}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      if (value === '' || value === null) {
-                        updateField("innerDiameter", undefined);
-                        return;
-                      }
-                      const innerDiam = parseFloat(value);
-                      if (!isNaN(innerDiam)) {
-                        updateField("innerDiameter", innerDiam);
-                        // Auto-calculate wall thickness
-                        if (data.diameter && innerDiam > 0) {
-                          updateField("wallThickness", (data.diameter - innerDiam) / 2);
-                        }
-                      }
-                    }}
-                    min={0}
-                    max={data.diameter ? data.diameter - 0.1 : undefined}
-                    step={0.1}
-                    placeholder="Enter inner diameter"
-                    className="bg-background"
-                  />
-                  {data.innerDiameter && data.diameter && data.innerDiameter >= data.diameter && (
-                    <p className="text-xs text-destructive mt-1">
-                      Inner diameter must be less than outer diameter
-                    </p>
-                  )}
-                </FieldWithHelp>
+            <FieldWithHelp
+              label="ID (mm)"
+              fieldKey="thickness"
+              required
+            >
+              <Input
+                type="number"
+                value={data.innerDiameter ?? ''}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value === '' || value === null) {
+                    updateField("innerDiameter", undefined);
+                    return;
+                  }
+                  const innerDiam = parseFloat(value);
+                  if (!isNaN(innerDiam)) {
+                    updateField("innerDiameter", innerDiam);
+                    // Auto-calculate wall thickness
+                    if (data.diameter && innerDiam > 0) {
+                      updateField("wallThickness", (data.diameter - innerDiam) / 2);
+                    }
+                  }
+                }}
+                min={0}
+                max={data.diameter ? data.diameter - 0.1 : undefined}
+                step={0.1}
+                placeholder="Enter inner diameter"
+                className="bg-background"
+              />
+              {data.innerDiameter && data.diameter && data.innerDiameter >= data.diameter && (
+                <p className="text-xs text-destructive mt-1">
+                  Inner diameter must be less than outer diameter
+                </p>
+              )}
+            </FieldWithHelp>
 
-                <FieldWithHelp
-                  label="Wall (mm)"
-                  fieldKey="thickness"
-                >
-                  <Input
-                    type="number"
-                    value={data.wallThickness?.toFixed(2) || 0}
-                    onChange={(e) => updateField("wallThickness", parseFloat(e.target.value) || 0)}
-                    min={0}
-                    step={0.1}
-                    className="bg-background"
-                    disabled
-                  />
-                </FieldWithHelp>
-              </>
-            )}
+            <FieldWithHelp
+              label="Wall (mm)"
+              fieldKey="thickness"
+            >
+              <Input
+                type="number"
+                value={data.wallThickness?.toFixed(2) || 0}
+                onChange={(e) => updateField("wallThickness", parseFloat(e.target.value) || 0)}
+                min={0}
+                step={0.1}
+                className="bg-background"
+                disabled
+              />
+            </FieldWithHelp>
+          </>
+        )}
 
-            {!showDiameter && (data.partType === "box" || data.partType === "rectangular_tube" || data.partType === "square_bar" || data.partType === "rectangular_bar" || data.partType === "plate" || data.partType === "billet" || data.partType === "block") && (
+        {/* Hollow Dimensions - Rectangular (Inner L + Inner W + Wall) */}
+        {data.isHollow && fieldConfig.hollowType === 'rectangular' && (
               <>
                 <FieldWithHelp
                   label="Inner L (mm)"
@@ -1289,8 +1472,6 @@ export const InspectionSetupTab = ({
                 </FieldWithHelp>
               </>
             )}
-          </>
-        )}
       </div>
 
       {/* Technical Drawing with Dimensions */}
@@ -1301,6 +1482,10 @@ export const InspectionSetupTab = ({
             <RealTimeTechnicalDrawing
               partType={data.partType}
               material={data.material as MaterialType}
+              standardType={standardType}
+              partNumber={data.partNumber}
+              enabledScanDirections={scanDetails?.scanDetails?.filter(s => s.enabled).map(s => s.scanningDirection) || []}
+              directionColors={Object.fromEntries((scanDetails?.scanDetails || []).map(s => [s.scanningDirection, s.color || '#111827']))}
               dimensions={{
                 length: data.partLength || 100,
                 width: data.partWidth || 50,

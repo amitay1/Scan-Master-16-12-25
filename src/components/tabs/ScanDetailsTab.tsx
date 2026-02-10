@@ -57,7 +57,7 @@ const isCylinderType = (partType?: PartGeometry | ""): boolean => {
 };
 
 const isDiskType = (partType?: PartGeometry | ""): boolean => {
-  return !!partType && ["disk", "disk_forging", "hub"].includes(partType);
+  return !!partType && ["disk", "disk_forging", "hub", "hpt_disk"].includes(partType);
 };
 
 const isImpellerType = (partType?: PartGeometry | ""): boolean => {
@@ -176,6 +176,14 @@ export const ScanDetailsTab = ({ data, onChange, partType, standard = "AMS-STD-2
   const toggleExpand = (direction: string) => {
     setExpandedRow(expandedRow === direction ? null : direction);
   };
+
+  const enabledScanDirections = scanDetails.filter(d => d.enabled).map(d => d.scanningDirection);
+  const directionColors = Object.fromEntries(
+    scanDetails.map(d => [d.scanningDirection, d.color || "#111827"])
+  ) as Record<string, string>;
+
+  const showV2500BoreDiagram = partType === "hpt_disk" || standard === "NDIP-1226" || standard === "NDIP-1227";
+  const v2500Stage: 1 | 2 | null = standard === "NDIP-1226" ? 1 : standard === "NDIP-1227" ? 2 : null;
 
   // Custom drawing handlers
   const handleImageUpload = useCallback((imageBase64: string, width: number, height: number) => {
@@ -527,15 +535,45 @@ export const ScanDetailsTab = ({ data, onChange, partType, standard = "AMS-STD-2
     } else if (isCylinderType(partType)) {
       return <CylinderScanDiagram scanDetails={scanDetails} highlightedDirection={highlightedDirection} />;
     } else if (isDiskType(partType)) {
+      if (!showV2500BoreDiagram) {
+        return <DiskScanDiagram scanDetails={scanDetails} highlightedDirection={highlightedDirection} />;
+      }
+
       return (
-        <>
-          <DiskScanDiagram scanDetails={scanDetails} highlightedDirection={highlightedDirection} />
-          {/* V2500 HPT Disk bore-specific scan plan diagrams (NDIP-1226 / NDIP-1227) */}
-          <div className="mt-4 space-y-4">
-            <V2500BoreScanDiagram stage={1} highlightedZone={highlightedDirection} />
-            <V2500BoreScanDiagram stage={2} highlightedZone={highlightedDirection} />
-          </div>
-        </>
+        <div className="mt-2 space-y-4">
+          {v2500Stage === 1 && (
+            <V2500BoreScanDiagram
+              stage={1}
+              highlightedZone={highlightedDirection}
+              enabledDirections={enabledScanDirections}
+              directionColors={directionColors}
+            />
+          )}
+          {v2500Stage === 2 && (
+            <V2500BoreScanDiagram
+              stage={2}
+              highlightedZone={highlightedDirection}
+              enabledDirections={enabledScanDirections}
+              directionColors={directionColors}
+            />
+          )}
+          {v2500Stage === null && (
+            <>
+              <V2500BoreScanDiagram
+                stage={1}
+                highlightedZone={highlightedDirection}
+                enabledDirections={enabledScanDirections}
+                directionColors={directionColors}
+              />
+              <V2500BoreScanDiagram
+                stage={2}
+                highlightedZone={highlightedDirection}
+                enabledDirections={enabledScanDirections}
+                directionColors={directionColors}
+              />
+            </>
+          )}
+        </div>
       );
     } else if (isImpellerType(partType)) {
       return <ImpellerScanDiagram scanDetails={scanDetails} highlightedDirection={highlightedDirection} />;

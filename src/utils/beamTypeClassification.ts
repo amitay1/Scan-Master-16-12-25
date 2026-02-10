@@ -45,6 +45,17 @@ const BOTH_BEAM_GEOMETRIES: PartGeometry[] = [
 ];
 
 /**
+ * Part geometries that typically require ANGLE BEAM ONLY.
+ *
+ * This is rare in general-purpose inspections, but some OEM procedures
+ * (e.g. PW NDIP V2500 HPT bore inspection) are defined specifically as
+ * circumferential shear-wave scans of a small set of bore surfaces.
+ */
+const ANGLE_ONLY_GEOMETRIES: PartGeometry[] = [
+  "hpt_disk",
+];
+
+/**
  * Part geometries that typically need only STRAIGHT BEAM inspection.
  * These are flat or solid parts where angle beam is not typically required.
  */
@@ -121,6 +132,11 @@ export function getBeamRequirement(
   // Check if requires both beam types
   if (BOTH_BEAM_GEOMETRIES.includes(normalizedType)) {
     return "both";
+  }
+
+  // Check if requires angle beam only
+  if (ANGLE_ONLY_GEOMETRIES.includes(normalizedType)) {
+    return "angle_only";
   }
 
   // Default to straight only

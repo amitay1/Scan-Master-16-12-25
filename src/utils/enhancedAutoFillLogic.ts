@@ -19,7 +19,7 @@ export const materialDatabase: Record<MaterialType, MaterialProperties> = {
     typicalSpecs: ["7075-T6 (QQ-A200/11)", "2024 (QQ-A-200/3)", "6061-T6", "2219-T87"]
   },
   steel: {
-    velocity: 5.90, velocityShear: 3.23, acousticImpedance: 46.0, attenuation: 3.0, density: 7.8,
+    velocity: 5.92, velocityShear: 3.25, acousticImpedance: 46.5, attenuation: 3.0, density: 7.85,
     surfaceCondition: "Ground or machined, Ra ≤ 3.2 μm",
     typicalSpecs: ["4340 annealed (MIL-S-5000)", "4130", "17-4 PH", "15-5 PH"]
   },
@@ -39,7 +39,7 @@ export const materialDatabase: Record<MaterialType, MaterialProperties> = {
     typicalSpecs: ["ZK60A (QQ-M-31)", "AZ31B", "AZ80A", "ZE41A"]
   },
   nickel_alloy: {
-    velocity: 5.72, velocityShear: 3.05, acousticImpedance: 47.5, attenuation: 3.5, density: 8.3,
+    velocity: 5.82, velocityShear: 3.02, acousticImpedance: 47.8, attenuation: 3.5, density: 8.19,
     surfaceCondition: "Ground or machined, Ra ≤ 3.2 μm",
     typicalSpecs: ["Inconel 718 (AMS 5662)", "Waspaloy (AMS 5544)", "Inconel 625 (AMS 5666)", "Rene 41", "Hastelloy X"]
   },
@@ -252,6 +252,7 @@ export const geometryRecommendations: Record<PartGeometry, GeometryRecommendatio
   machined_component: { calibrationBlockType: ["flat_block"], scanPattern: "Drawing-specific", transducerType: "contact", specialConsiderations: "Follow parent form inspection method." },
   impeller: { calibrationBlockType: ["flat_block", "curved_block", "cylinder_notched"], scanPattern: "Multi-zone: Hub, Web, Rim. Bore: circumferential shear wave 45°", transducerType: "immersion", specialConsiderations: "CRITICAL: Stepped geometry requires zone-by-zone inspection. Class AAA per AMS-STD-2154." },
   blisk: { calibrationBlockType: ["flat_block", "curved_block", "cylinder_notched"], scanPattern: "Disk body: radial/axial. Blade roots: focused beam. Bore: circumferential shear wave 45°", transducerType: "immersion", specialConsiderations: "CRITICAL: Dual inspection zones - Disk body + Blade roots. Class AAA mandatory." },
+  hpt_disk: { calibrationBlockType: ["flat_block", "cylinder_notched", "angle_beam"], scanPattern: "Face: straight beam. Bore: circumferential shear wave ±45°", transducerType: "immersion", specialConsiderations: "V2500 HPT Disk per NDIP-1226/1227. Class AAA mandatory. TOF criteria: ≥15 pixels over 3+ scan lines with SNR ≥1.5:1. #1 FBH (1/64\") at 80% FSH." },
   custom: { calibrationBlockType: ["flat_block"], scanPattern: "Drawing-specific", transducerType: "contact", specialConsiderations: "Refer to engineering drawing and customer specifications." }
 };
 
@@ -286,7 +287,7 @@ export const TABLE_VI_ACCEPTANCE_LIMITS: Record<AcceptanceClass, AcceptanceLimit
     multipleDiscontinuities: "1/64\" (0.4mm) FBH (centers <1\" apart)",
     linearDiscontinuity: "1/64\" (0.4mm) FBH, 1/8\" max length",
     backReflectionLoss: 50,
-    noiseLevel: "Alarm level",
+    noiseLevel: "10% FSH maximum",
     specialNotes: "Most stringent - for rotating turbine components. Titanium: multiple discontinuity separation = 1/4\""
   },
   "AA": {
@@ -294,23 +295,23 @@ export const TABLE_VI_ACCEPTANCE_LIMITS: Record<AcceptanceClass, AcceptanceLimit
     multipleDiscontinuities: "2/64\" (0.8mm) FBH (centers <1\" apart)",
     linearDiscontinuity: "2/64\" (0.8mm) FBH, 1/2\" max length",
     backReflectionLoss: 50,
-    noiseLevel: "Alarm level",
+    noiseLevel: "15% FSH maximum",
     specialNotes: "For engine mounts, landing gear primary structure, rotor hubs"
   },
   "A": {
     singleDiscontinuity: "5/64\" (2.0mm) FBH response",
-    multipleDiscontinuities: "3/64\" (1.2mm) FBH (centers <1\" apart)",
+    multipleDiscontinuities: "2/64\" (0.8mm) FBH (centers <1\" apart)",
     linearDiscontinuity: "3/64\" (1.2mm) FBH, 1\" max length",
     backReflectionLoss: 50,
-    noiseLevel: "Alarm level",
+    noiseLevel: "20% FSH maximum",
     specialNotes: "For primary airframe structure, engine and transmission components"
   },
   "B": {
     singleDiscontinuity: "8/64\" (3.2mm) FBH response",
-    multipleDiscontinuities: "5/64\" (2.0mm) FBH (centers <1\" apart)",
+    multipleDiscontinuities: "3/64\" (1.2mm) FBH (centers <1\" apart)",
     linearDiscontinuity: "5/64\" (2.0mm) FBH, 1\" max length",
     backReflectionLoss: 50,
-    noiseLevel: "Alarm level",
+    noiseLevel: "25% FSH maximum",
     specialNotes: "For secondary structure, non-flight critical components"
   },
   "C": {
@@ -318,7 +319,7 @@ export const TABLE_VI_ACCEPTANCE_LIMITS: Record<AcceptanceClass, AcceptanceLimit
     multipleDiscontinuities: "5/64\" (2.0mm) FBH",
     linearDiscontinuity: "Not applicable",
     backReflectionLoss: 50,
-    noiseLevel: "Alarm level",
+    noiseLevel: "30% FSH maximum",
     specialNotes: "For non-structural components, tooling, ground support. No linear discontinuity limits."
   }
 };
@@ -762,6 +763,14 @@ export const GEOMETRY_INSPECTION_RULES: Record<PartGeometry, GeometryInspectionR
     conditions: ["Follow parent material inspection"],
     specialNotes: ["Refer to source material specs"],
     diagramReference: "Machined"
+  },
+  hpt_disk: {
+    displayName: "HPT Disk (High Pressure Turbine)",
+    scanDirection: ["Straight beam from flat face", "Circumferential shear wave +45°", "Circumferential shear wave -45°", "Radial from bore"],
+    waveMode: ["Longitudinal", "Shear wave"],
+    conditions: ["Full face coverage with straight beam", "Bore inspection with circumferential shear wave ±45°", "SNR ≥1.5:1 required"],
+    specialNotes: ["V2500 HPT Disk per NDIP-1226/1227", "TOF criteria: ≥15 pixels over 3+ scan lines", "#1 FBH (1/64\") at 80% FSH", "Class AAA mandatory"],
+    diagramReference: "Disk"
   },
   custom: {
     displayName: "Custom Geometry",

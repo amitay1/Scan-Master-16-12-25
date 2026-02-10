@@ -5,12 +5,14 @@ import { Upload, X, Wand2, Download } from "lucide-react";
 import { RealTimeTechnicalDrawing } from "@/components/RealTimeTechnicalDrawing";
 import { useRef, useState, useEffect } from "react";
 import { toast } from "sonner";
-import { PartGeometry } from "@/types/techniqueSheet";
+import { PartGeometry, StandardType } from "@/types/techniqueSheet";
 import { exportToDXF } from "@/utils/technicalDrawings/exportUtils";
 
 interface PartDiagramTabProps {
   partDiagramImage?: string;
   onChange: (image: string | undefined) => void;
+  standardType?: StandardType;
+  partNumber?: string;
   partType?: string;
   thickness?: string;
   diameter?: string;
@@ -21,6 +23,8 @@ interface PartDiagramTabProps {
 export const PartDiagramTab = ({ 
   partDiagramImage, 
   onChange, 
+  standardType,
+  partNumber,
   partType = "cylinder",
   thickness = "50",
   diameter = "200",
@@ -224,14 +228,10 @@ export const PartDiagramTab = ({
           {showDrawing && (
             <div className="border rounded-lg p-4 bg-background">
               <div id="technical-drawing-container">
-                <canvas 
-                  id="technical-drawing-canvas" 
-                  width={850} 
-                  height={650}
-                  style={{ display: 'none' }}
-                />
                 <RealTimeTechnicalDrawing
                   partType={mapPartTypeToGeometry(partType)}
+                  standardType={standardType}
+                  partNumber={partNumber}
                   dimensions={{
                     length: parseFloat(length) || 400,
                     width: parseFloat(width) || 100,

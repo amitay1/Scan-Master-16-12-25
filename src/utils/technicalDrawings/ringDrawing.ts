@@ -111,30 +111,20 @@ function drawFrontView(
     5
   );
 
-  // Wall thickness dimension
-  const wallThickness = (outerDiameter - innerDiameter) / 2;
-  generator.drawText(
-    centerX + (scaledInnerRadius + scaledOuterRadius) / 2,
-    centerY - 10,
-    `w=${wallThickness.toFixed(1)}mm`,
-    10,
-    '#000000'
-  );
-
   // Shape type label - PROMINENT indicator that this is HOLLOW
-  generator.drawText(
+  generator.drawTextWithBackground(
     centerX,
-    centerY - 15,
+    centerY - 10,
     'RING',
-    12,
+    11,
     '#00BFFF'  // Bright cyan for visibility
   );
-  generator.drawText(
+  generator.drawTextWithBackground(
     centerX,
-    centerY + 5,
-    '(HOLLOW, L/T<5)',
-    9,
-    '#000000'  // Gold color for emphasis
+    centerY + 8,
+    '(HOLLOW)',
+    8,
+    '#000000'
   );
 }
 
@@ -186,17 +176,17 @@ function drawSideView(
   // Dimensions
   generator.drawDimension(
     rectX,
-    rectY + scaledThickness + 30,
+    rectY + scaledThickness + 40,
     rectX + scaledOD,
-    rectY + scaledThickness + 30,
+    rectY + scaledThickness + 40,
     `OD=${outerDiameter}mm`,
     5
   );
 
   generator.drawDimension(
-    rectX + scaledOD + 30,
+    rectX + scaledOD + 40,
     rectY,
-    rectX + scaledOD + 30,
+    rectX + scaledOD + 40,
     rectY + scaledThickness,
     `H=${thickness}mm`,
     5
@@ -206,9 +196,9 @@ function drawSideView(
   const wallThickness = (outerDiameter - innerDiameter) / 2;
   generator.drawDimension(
     rectX,
-    rectY - 30,
+    rectY - 35,
     hollowX,
-    rectY - 30,
+    rectY - 35,
     `w=${wallThickness.toFixed(1)}mm`,
     5
   );

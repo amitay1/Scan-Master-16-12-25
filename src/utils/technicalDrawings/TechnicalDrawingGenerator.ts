@@ -334,41 +334,66 @@ export class TechnicalDrawingGenerator {
     this.drawLine(x, y - height * 0.6, x, y + height * 0.6, 'center');
   }
 
-  // Draw dimension line with arrows and text
+  // Draw dimension line with arrows and text (with background to prevent overlap)
   drawDimension(x1: number, y1: number, x2: number, y2: number, label: string, offset: number = 20) {
-    const lineStyle = LINE_STANDARDS.dimension;
-    
-    // Calculate angle
+    // Calculate angle and length
     const dx = x2 - x1;
     const dy = y2 - y1;
     const angle = Math.atan2(dy, dx);
     const length = Math.sqrt(dx * dx + dy * dy);
-    
+
     // Offset perpendicular to dimension line
     const offsetX = -Math.sin(angle) * offset;
     const offsetY = Math.cos(angle) * offset;
-    
+
     const startX = x1 + offsetX;
     const startY = y1 + offsetY;
     const endX = x2 + offsetX;
     const endY = y2 + offsetY;
-    
+
     // Extension lines
     this.drawLine(x1, y1, startX, startY, 'dimension');
     this.drawLine(x2, y2, endX, endY, 'dimension');
-    
+
     // Dimension line
     this.drawLine(startX, startY, endX, endY, 'dimension');
-    
-    // Arrows
-    const arrowSize = 8;
+
+    // Adaptive arrow size - smaller for short dimension lines
+    const arrowSize = Math.max(4, Math.min(8, length * 0.12));
     this.drawArrow(startX, startY, angle, arrowSize);
     this.drawArrow(endX, endY, angle + Math.PI, arrowSize);
-    
-    // Text
-    const textX = (startX + endX) / 2;
-    const textY = (startY + endY) / 2 - 10;
-    this.drawText(textX, textY, label, 12);
+
+    // Adaptive font size based on dimension line length
+    const fontSize = length < 30 ? 8 : length < 60 ? 9 : length < 100 ? 10 : 11;
+
+    // Determine if primarily vertical or horizontal
+    const isVertical = Math.abs(dy) > Math.abs(dx);
+
+    // Position text above (horizontal) or beside (vertical) the dimension line
+    const midX = (startX + endX) / 2;
+    const midY = (startY + endY) / 2;
+    const textGap = fontSize + 2; // clearance from dimension line
+
+    let textX = midX;
+    let textY = midY;
+    if (isVertical) {
+      textX = midX - textGap;
+      textY = midY;
+    } else {
+      textY = midY - textGap;
+    }
+
+    // Draw background rectangle behind text to prevent overlap
+    const estimatedWidth = label.length * fontSize * 0.52 + 6;
+    const bgHeight = fontSize + 4;
+    const bg = new this.scope.Path.Rectangle(
+      new this.scope.Point(textX - estimatedWidth / 2, textY - bgHeight / 2 - 1),
+      new this.scope.Size(estimatedWidth, bgHeight)
+    );
+    bg.fillColor = new this.scope.Color('#D4D4D4');
+    bg.strokeColor = null;
+
+    this.drawText(textX, textY + fontSize * 0.35, label, fontSize);
   }
 
   // Draw arrow
@@ -465,6 +490,23 @@ export class TechnicalDrawingGenerator {
   // Draw hatching (for sections)
   drawHatching(x: number, y: number, width: number, height: number, angle: number = 45, spacing: number = 5) {
     const group = new this.scope.Group();
+
+    // Be defensive: some drawings may pass negative or zero-sized regions
+    // (e.g. inner diameter larger than outer diameter). Paper.js boolean
+    // ops can throw or return null in those cases, which previously could
+    // blank the whole canvas.
+    if (!Number.isFinite(width) || !Number.isFinite(height)) return group;
+    if (width === 0 || height === 0) return group;
+    if (width < 0) {
+      x += width;
+      width = Math.abs(width);
+    }
+    if (height < 0) {
+      y += height;
+      height = Math.abs(height);
+    }
+    if (!Number.isFinite(spacing) || spacing <= 0) spacing = 5;
+
     const rect = new this.scope.Path.Rectangle(
       new this.scope.Point(x, y),
       new this.scope.Size(width, height)
@@ -489,7 +531,9 @@ export class TechnicalDrawingGenerator {
       line.strokeWidth = 0.25;
       
       const clipped = line.intersect(rect);
-      group.addChild(clipped);
+      if (clipped) {
+        group.addChild(clipped);
+      }
       line.remove();
     }
     
@@ -565,6 +609,19 @@ export class TechnicalDrawingGenerator {
     this.drawText(x + 145, y + 74, 'ISO 128', 8, '#000000');
   }
 
+  // Draw text with a background rectangle for readability
+  drawTextWithBackground(x: number, y: number, text: string, fontSize: number = 12, color: string = '#000000') {
+    const estimatedWidth = text.length * fontSize * 0.52 + 6;
+    const bgHeight = fontSize + 4;
+    const bg = new this.scope.Path.Rectangle(
+      new this.scope.Point(x - estimatedWidth / 2, y - bgHeight + 2),
+      new this.scope.Size(estimatedWidth, bgHeight)
+    );
+    bg.fillColor = new this.scope.Color('#D4D4D4');
+    bg.strokeColor = null;
+    return this.drawText(x, y, text, fontSize, color);
+  }
+
   // Draw dimension with tolerance
   drawDimensionWithTolerance(
     startX: number,
@@ -577,12 +634,12 @@ export class TechnicalDrawingGenerator {
     arrowSize: number = 5
   ) {
     this.drawDimension(startX, startY, endX, endY, nominal, arrowSize);
-    
-    // Add tolerance - Classic style
+
+    // Add tolerance text (the main label is already placed by drawDimension)
     const textX = (startX + endX) / 2;
-    const textY = (startY + endY) / 2 - 10;
-    this.drawText(textX, textY - 12, `${upper}`, 8, '#000000');
-    this.drawText(textX, textY + 2, `${lower}`, 8, '#000000');
+    const textY = (startY + endY) / 2 - 22;
+    this.drawTextWithBackground(textX, textY - 6, `${upper}`, 8, '#000000');
+    this.drawTextWithBackground(textX, textY + 8, `${lower}`, 8, '#000000');
   }
 
   // Draw surface finish symbol

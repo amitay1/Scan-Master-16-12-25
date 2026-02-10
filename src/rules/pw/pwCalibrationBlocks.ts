@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Pratt & Whitney Approved Calibration Blocks
  *
  * Source: NDIP-1226 Section 2.1, NDIP-1227 Section 2.1
@@ -29,10 +29,10 @@ export interface PWCalibrationHole {
 }
 
 /**
- * IAE2P16675 - 45° Angle Calibration Block
+ * IAE2P16675 - 45ֲ° Angle Calibration Block
  * Primary calibration standard for V2500 HPT disk inspection
  *
- * Contains #1 FBH at various depths incorporated into 45° angle side
+ * Contains #1 FBH at various depths incorporated into 45ֲ° angle side
  * Holes L through S are used (J & K omitted per NDIP Section 5.1.1.7.1)
  */
 export const PW_ANGLE_CALIBRATION_BLOCK: PWCalibrationBlock = {
@@ -60,9 +60,9 @@ export const PW_ANGLE_CALIBRATION_BLOCK: PWCalibrationBlock = {
 
   // Block dimensions from Figure 1
   dimensions: {
-    length: 8.0, // inches (±0.015)
-    width: 2.479, // inches (±0.015)
-    height: 1.085, // inches (±0.015)
+    length: 8.0, // inches (ֲ±0.015)
+    width: 1.665, // inches (ֲ±0.015)
+    height: 3.5, // inches (REF)
   },
 };
 
@@ -162,3 +162,6 @@ export const POST_CALIBRATION_TRIGGERS = [
   'Prior to transducer change',
   'Immediately following unexpected interruption (e.g., power outage)',
 ];
+
+
+

@@ -104,9 +104,9 @@ function drawFrontView(
     const innerY = rectY + (scaledDiameter - scaledInnerDiameter) / 2;
 
     generator.drawDimension(
-      rectX + scaledLength + 55,
+      rectX + scaledLength + 70,
       innerY,
-      rectX + scaledLength + 55,
+      rectX + scaledLength + 70,
       innerY + scaledInnerDiameter,
       `ID=${innerDiameter}mm`,
       5
@@ -157,7 +157,7 @@ function drawSideView(
     }
 
     // Wall thickness indicator
-    generator.drawText(
+    generator.drawTextWithBackground(
       centerX + (scaledInnerRadius + scaledRadius) / 2 + 10,
       centerY - 10,
       `t=${((diameter - innerDiameter) / 2).toFixed(1)}mm`,
@@ -168,9 +168,9 @@ function drawSideView(
     // Dimension - inner diameter
     generator.drawDimension(
       centerX - scaledInnerRadius,
-      centerY + scaledRadius + 25,
+      centerY + scaledRadius + 40,
       centerX + scaledInnerRadius,
-      centerY + scaledRadius + 25,
+      centerY + scaledRadius + 40,
       `ID=${innerDiameter}mm`,
       5
     );
@@ -186,19 +186,19 @@ function drawSideView(
     );
 
     // Shape type label - PROMINENT indicator that this is SOLID
-    generator.drawText(
+    generator.drawTextWithBackground(
       centerX,
       centerY - 15,
       'CYLINDER',
       12,
       '#FF6B6B'  // Coral red for visibility
     );
-    generator.drawText(
+    generator.drawTextWithBackground(
       centerX,
       centerY + 5,
       '(SOLID)',
       10,
-      '#000000'  // White for contrast
+      '#000000'
     );
   }
 
@@ -222,9 +222,9 @@ function drawSideView(
   // Dimension - outer diameter
   generator.drawDimension(
     centerX - scaledRadius,
-    centerY - scaledRadius - 25,
+    centerY - scaledRadius - 35,
     centerX + scaledRadius,
-    centerY - scaledRadius - 25,
+    centerY - scaledRadius - 35,
     `Ø${diameter}mm`,
     5
   );

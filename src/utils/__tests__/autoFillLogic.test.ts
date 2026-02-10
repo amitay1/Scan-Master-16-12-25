@@ -256,8 +256,8 @@ describe('materialDatabase', () => {
     expect(materialDatabase.aluminum.velocity).toBe(6.32);
   });
 
-  it('steel acoustic impedance is 46.0 MRayl', () => {
-    expect(materialDatabase.steel.acousticImpedance).toBe(46.0);
+  it('steel acoustic impedance is 46.5 MRayl', () => {
+    expect(materialDatabase.steel.acousticImpedance).toBe(46.5);
   });
 
   it('titanium density is 4.5 g/cm3', () => {
@@ -274,8 +274,8 @@ describe('materialDatabase', () => {
     }
   });
 
-  it('nickel_alloy velocity is 5.72 mm/us', () => {
-    expect(materialDatabase.nickel_alloy.velocity).toBe(5.72);
+  it('nickel_alloy velocity is 5.82 mm/us', () => {
+    expect(materialDatabase.nickel_alloy.velocity).toBe(5.82);
   });
 });
 
@@ -283,8 +283,11 @@ describe('materialDatabase', () => {
 // 7. standardRules -- verify key standards
 // =============================================================================
 describe('standardRules', () => {
-  it('contains 5 standards', () => {
-    expect(Object.keys(standardRules)).toHaveLength(5);
+  it('contains key standards', () => {
+    expect(Object.keys(standardRules).length).toBeGreaterThanOrEqual(5);
+    expect(standardRules).toHaveProperty('MIL-STD-2154');
+    expect(standardRules).toHaveProperty('AMS-STD-2154E');
+    expect(standardRules).toHaveProperty('ASTM-A388');
   });
 
   it('MIL-STD-2154 defaults to class A', () => {

@@ -68,6 +68,9 @@ export function calculateAngleFromArcLength(
   radiusMm: number,
   arcLengthMm: number
 ): number {
+  if (radiusMm <= 0) {
+    return 0;
+  }
   const angleRad = arcLengthMm / radiusMm;
   return radiansToDegrees(angleRad);
 }

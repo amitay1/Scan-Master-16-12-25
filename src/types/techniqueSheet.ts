@@ -71,7 +71,7 @@ export type PartGeometry =
   | "pipe" | "ring" | "ring_forging" | "sleeve" | "bushing" | "square_tube"
   | "hex_bar"
   | "forging" | "round_forging_stock" | "rectangular_forging_stock" | "near_net_forging"
-  | "impeller" | "blisk"  // Aero engine complex forgings (stepped profiles, R surfaces)
+  | "impeller" | "blisk" | "hpt_disk"  // Aero engine complex forgings (stepped profiles, R surfaces)
   | "machined_component" | "bar" | "custom";
 
 export type AcceptanceClass = "AAA" | "AA" | "A" | "B" | "C";

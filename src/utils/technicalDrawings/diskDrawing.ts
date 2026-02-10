@@ -70,9 +70,9 @@ function drawFrontView(
   // Dimensions
   generator.drawDimension(
     centerX - scaledRadius,
-    centerY + scaledRadius + 30,
+    centerY + scaledRadius + 40,
     centerX + scaledRadius,
-    centerY + scaledRadius + 30,
+    centerY + scaledRadius + 40,
     `Ø${diameter}mm`,
     5
   );
@@ -82,9 +82,9 @@ function drawFrontView(
     const scaledInnerRadius = (innerDiameter * scale) / 2;
     generator.drawDimension(
       centerX - scaledInnerRadius,
-      centerY - scaledRadius - 30,
+      centerY - scaledRadius - 40,
       centerX + scaledInnerRadius,
-      centerY - scaledRadius - 30,
+      centerY - scaledRadius - 40,
       `ID=${innerDiameter}mm`,
       5
     );
@@ -130,15 +130,15 @@ function drawSideView(
     // Hollow center
     generator.drawRectangle(hollowX, rectY, scaledID, scaledThickness, 'visible');
     // Hollow disk label
-    generator.drawText(x + width / 2, rectY + scaledThickness / 2 - 10, 'DISK', 12, '#00BFFF');
-    generator.drawText(x + width / 2, rectY + scaledThickness / 2 + 8, '(HOLLOW)', 9, '#000000');
+    generator.drawTextWithBackground(x + width / 2, rectY + scaledThickness / 2 - 5, 'DISK', 11, '#00BFFF');
+    generator.drawTextWithBackground(x + width / 2, rectY + scaledThickness / 2 + 10, '(HOLLOW)', 8, '#000000');
   } else {
     // Solid disk - full hatching
     generator.drawRectangle(rectX, rectY, scaledDiameter, scaledThickness, 'visible');
     generator.drawHatching(rectX, rectY, scaledDiameter, scaledThickness, 45, 4);
     // Solid disk label - PROMINENT indicator
-    generator.drawText(x + width / 2, rectY + scaledThickness / 2 - 10, 'DISK', 12, '#FF6B6B');
-    generator.drawText(x + width / 2, rectY + scaledThickness / 2 + 8, '(SOLID, H/D<0.5)', 9, '#000000');
+    generator.drawTextWithBackground(x + width / 2, rectY + scaledThickness / 2 - 5, 'DISK', 11, '#FF6B6B');
+    generator.drawTextWithBackground(x + width / 2, rectY + scaledThickness / 2 + 10, '(SOLID)', 8, '#000000');
   }
 
   // Centerlines
@@ -153,17 +153,17 @@ function drawSideView(
   // Dimensions
   generator.drawDimension(
     rectX,
-    rectY + scaledThickness + 30,
+    rectY + scaledThickness + 40,
     rectX + scaledDiameter,
-    rectY + scaledThickness + 30,
+    rectY + scaledThickness + 40,
     `Ø${diameter}mm`,
     5
   );
 
   generator.drawDimension(
-    rectX + scaledDiameter + 30,
+    rectX + scaledDiameter + 40,
     rectY,
-    rectX + scaledDiameter + 30,
+    rectX + scaledDiameter + 40,
     rectY + scaledThickness,
     `t=${thickness}mm`,
     5

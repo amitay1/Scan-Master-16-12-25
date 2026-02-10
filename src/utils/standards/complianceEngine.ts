@@ -615,9 +615,10 @@ export class StandardsComplianceEngine {
     // Return velocity in m/s
     const velocities: Record<MaterialType, number> = {
       aluminum: 6320,
-      steel: 5900,
+      steel: 5920,
       stainless_steel: mappedStandard === "BS-EN-10228-4" ? 5720 : 5790,
       titanium: 6100,
+      nickel_alloy: 5820,
       magnesium: 5770,
       custom: 5900
     };

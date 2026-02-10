@@ -18,6 +18,9 @@ import { FBHHoleTableWithPreviews } from "../FBHHoleTableWithPreviews";
 import { AngleBeamCalibrationBlockDrawing } from "../AngleBeamCalibrationBlockDrawing";
 import { PWCalibrationBlockDrawing } from "../drawings/PWCalibrationBlockDrawing";
 import { PWASIMCalibrationBlockDrawing } from "../drawings/PWASIMCalibrationBlockDrawing";
+import { DynamicCalibrationBlockDrawing } from "../drawings/DynamicCalibrationBlockDrawing";
+import { V2500BoreScanDiagram } from "../V2500BoreScanDiagram";
+import type { PartGeometry as CalcPartGeometry } from "@/rules/calibrationBlockDimensions";
 import {
   DEFAULT_FBH_HOLES,
   type FBHHoleRowData,
@@ -228,7 +231,7 @@ export const CalibrationTab = ({
     () => getBeamRequirement(inspectionSetup.partType, inspectionSetup.isHollow),
     [inspectionSetup.partType, inspectionSetup.isHollow]
   );
-  const needsBothBeams = beamRequirement === "both";
+  const requiresBothBeams = beamRequirement === "both";
 
   // Memoize partDimensions to prevent infinite re-renders in RingSegmentBlockDrawing
   const partDimensions = useMemo(() => ({
@@ -236,6 +239,25 @@ export const CalibrationTab = ({
     innerDiameterMm: inspectionSetup.innerDiameter || undefined,
     axialWidthMm: inspectionSetup.partLength || inspectionSetup.wallThickness || undefined,
   }), [inspectionSetup.diameter, inspectionSetup.innerDiameter, inspectionSetup.partLength, inspectionSetup.wallThickness]);
+
+  // Memoize partDimensions for DynamicCalibrationBlockDrawing to prevent
+  // re-creating the object on every render (which would defeat the useMemo
+  // inside DynamicCalibrationBlockDrawing that depends on partDimensions).
+  const partDimensionsForDrawing = useMemo(() => ({
+    thickness: inspectionSetup.partThickness || inspectionSetup.wallThickness,
+    length: inspectionSetup.partLength,
+    width: inspectionSetup.partWidth,
+    outerDiameter: inspectionSetup.diameter,
+    innerDiameter: inspectionSetup.innerDiameter,
+    wallThickness: inspectionSetup.wallThickness,
+  }), [
+    inspectionSetup.partThickness,
+    inspectionSetup.wallThickness,
+    inspectionSetup.partLength,
+    inspectionSetup.partWidth,
+    inspectionSetup.diameter,
+    inspectionSetup.innerDiameter,
+  ]);
 
   const updateField = (field: keyof CalibrationData, value: any) => {
     onChange({ ...data, [field]: value });
@@ -472,15 +494,30 @@ export const CalibrationTab = ({
     </>
   );
 
-  // Check if P&W (Pratt & Whitney) standard is selected
+  // Check if P&W (Pratt & Whitney) standard is selected or hpt_disk geometry is used
+  const isHptDisk = inspectionSetup.partType === 'hpt_disk';
   const isPWStandard = useMemo(() => {
     const pwStandards = ['NDIP-1226', 'NDIP-1227', 'NDIP-1254', 'NDIP-1257', 'NDIP-1260', 'PWA-SIM'];
-    return pwStandards.includes(standard);
-  }, [standard]);
+    return pwStandards.includes(standard) || isHptDisk;
+  }, [standard, isHptDisk]);
+
+  const showStraightBeam = beamRequirement === "both" || beamRequirement === "straight_only";
+  const showAngleBeam = beamRequirement === "both" || beamRequirement === "angle_only" || isPWStandard;
+  const showBeamTabs = showStraightBeam && showAngleBeam;
+
+  // For PW procedures, the angle-beam block is the most relevant "reference standard".
+  // Auto-switch to the Angle tab the first time we enter a PW standard.
+  const prevIsPWStandardRef = useRef<boolean | null>(null);
+  useEffect(() => {
+    if (isPWStandard && prevIsPWStandardRef.current !== true) {
+      setActiveBeamTab("angle");
+    }
+    prevIsPWStandardRef.current = isPWStandard;
+  }, [isPWStandard]);
 
   // Check specific P&W standard types
   const isPWASIM = standard === 'PWA-SIM';
-  const isV2500Standard = standard === 'NDIP-1226' || standard === 'NDIP-1227';
+  const isV2500Standard = standard === 'NDIP-1226' || standard === 'NDIP-1227' || isHptDisk;
   const isGTFStandard = standard === 'NDIP-1254' || standard === 'NDIP-1257' || standard === 'NDIP-1260';
 
   // Get P&W standard reference for drawing
@@ -489,6 +526,19 @@ export const CalibrationTab = ({
     if (standard === 'NDIP-1227') return 'NDIP-1227';
     return 'NDIP-1226'; // Default for other P&W standards
   }, [standard]);
+
+  // Local PDF copies (public/standards) for quick access to the OEM procedures.
+  // Note: Only NDIP-1226/1227 PDFs are currently bundled.
+  const pwProcedurePdf = useMemo(() => {
+    if (standard === 'NDIP-1226') return '/standards/NDIP_1226_RevF.pdf';
+    if (standard === 'NDIP-1227') return '/standards/NDIP_1227_RevD.pdf';
+    return null;
+  }, [standard]);
+
+  const openPwPdf = (hash: string = '') => {
+    if (!pwProcedurePdf) return;
+    window.open(`${pwProcedurePdf}${hash}`, '_blank', 'noreferrer');
+  };
 
   // Render the Angle Beam content (calibration block drawing)
   // Note: partDimensions is memoized at component level to prevent infinite re-renders
@@ -601,6 +651,61 @@ export const CalibrationTab = ({
                 <span className="opacity-70">Mirror:</span> IAE2P16678 (45°)
               </div>
             </div>
+
+            {/* Quick links to the OEM PDF procedure (includes figures and Appendix A forms) */}
+            {pwProcedurePdf && (
+              <div className="flex flex-wrap gap-2 mt-3">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  className="bg-white/15 text-white border border-white/20 hover:bg-white/25"
+                  onClick={() => openPwPdf()}
+                >
+                  Open NDIP Procedure (PDF)
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  className="bg-white/15 text-white border border-white/20 hover:bg-white/25"
+                  onClick={() => openPwPdf('#page=11')}
+                  title="Figure 1 - Calibration Standard"
+                >
+                  Figure 1
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  className="bg-white/15 text-white border border-white/20 hover:bg-white/25"
+                  onClick={() => openPwPdf('#page=14')}
+                  title="Figure 2 - Scan Plan"
+                >
+                  Figure 2
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  className="bg-white/15 text-white border border-white/20 hover:bg-white/25"
+                  onClick={() => openPwPdf('#page=17')}
+                  title="Figure 3 - Pixel Grouping Examples"
+                >
+                  Figure 3
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  className="bg-white/15 text-white border border-white/20 hover:bg-white/25"
+                  onClick={() => openPwPdf('#page=22')}
+                  title="Appendix A - Rejectable Indication Report"
+                >
+                  Appendix A
+                </Button>
+              </div>
+            )}
             {isGTFStandard && (
               <div className="mt-3 p-2 bg-yellow-400/30 rounded-lg">
                 <p className="text-sm font-semibold flex items-center gap-2">
@@ -621,6 +726,18 @@ export const CalibrationTab = ({
             standardRef={pwStandardRef as 'NDIP-1226' | 'NDIP-1227'}
             title={isGTFStandard ? 'P&W GTF Calibration Block (Similar to IAE2P16675)' : 'IAE2P16675 - 45° Angle Calibration Block'}
           />
+
+          {/* V2500 Bore Profile Cross-Section (per NDIP Figure 2) */}
+          {isV2500Standard && (
+            <div className="space-y-3">
+              <h4 className="font-semibold text-gray-700 flex items-center gap-2">
+                <Target className="h-4 w-4" />
+                Bore Scan Plan — NDIP Figure 2 Cross-Sections
+              </h4>
+              <V2500BoreScanDiagram stage={1} />
+              <V2500BoreScanDiagram stage={2} />
+            </div>
+          )}
 
           {/* P&W specific requirements */}
           <div className="bg-amber-50 border-2 border-amber-200 rounded-xl p-4">
@@ -716,18 +833,119 @@ export const CalibrationTab = ({
           </div>
         )}
 
-        {/* Angle Beam Calibration Block Drawing - Now with Part Dimensions! */}
-        <AngleBeamCalibrationBlockDrawing
+        {/* Dynamic Calibration Block Drawing - Calculated dimensions based on part! */}
+        <DynamicCalibrationBlockDrawing
+          partGeometry={mapPartGeometry(inspectionSetup.partType || 'plate')}
+          partDimensions={partDimensionsForDrawing}
+          standard={standard}
+          acceptanceClass={acceptanceClass || 'A'}
+          partMaterial={inspectionSetup.material || 'steel'}
           width={950}
-          height={700}
+          height={750}
           showDimensions={true}
-          title="Shear Wave Calibration Block - Reference Standard for Circular Parts"
-          partDimensions={partDimensions}
-          useParametric={true}
+          showSpecsTable={true}
+          title={`Calibration Block - ${standard} (Calculated for your part)`}
         />
+
+        {/* Legacy Angle Beam Drawing for reference */}
+        <details className="mt-4">
+          <summary className="text-sm text-muted-foreground cursor-pointer hover:text-foreground">
+            Show Alternative Reference Drawing
+          </summary>
+          <div className="mt-2">
+            <AngleBeamCalibrationBlockDrawing
+              width={900}
+              height={600}
+              showDimensions={true}
+              title="Reference: Generic Shear Wave Block"
+              partDimensions={partDimensions}
+              useParametric={true}
+            />
+          </div>
+        </details>
       </div>
     );
   };
+
+  // Helper function to map PartGeometry to CalcPartGeometry
+  function mapPartGeometry(partType: string): CalcPartGeometry {
+    const mapping: Record<string, CalcPartGeometry> = {
+      // Flat / plate geometries
+      'box': 'plate',
+      'plate': 'plate',
+      'sheet': 'sheet',
+      'slab': 'plate',
+      'flat_bar': 'bar',
+      'rectangular_bar': 'bar',
+      'square_bar': 'bar',
+      'bar': 'bar',
+      'block': 'block',
+      'billet': 'billet',
+
+      // Solid rounds
+      'cylinder': 'cylinder',
+      'round_bar': 'round_bar',
+      'shaft': 'shaft',
+      'hub': 'hub',
+
+      // Disks (solid rounds, face inspection)
+      'disk': 'disk',
+      'disk_forging': 'disk',
+      'hpt_disk': 'disk',
+      'impeller': 'impeller',
+      'blisk': 'blisk',
+
+      // Tubular geometries
+      'tube': 'tube',
+      'pipe': 'pipe',
+      'ring': 'ring',
+      'sleeve': 'sleeve',
+      'bushing': 'sleeve',
+      'rectangular_tube': 'tube',
+      'square_tube': 'tube',
+
+      // Hex shapes
+      'hexagon': 'hex_bar',
+      'hex_bar': 'hex_bar',
+
+      // Forgings
+      'forging': 'forging',
+      'ring_forging': 'ring_forging',
+      'round_forging_stock': 'cylinder',
+      'rectangular_forging_stock': 'forging',
+      'near_net_forging': 'near_net_forging',
+
+      // Complex / special shapes
+      'sphere': 'sphere',
+      'cone': 'cone',
+      'pyramid': 'pyramid',
+      'machined_component': 'custom',
+
+      // Structural profiles
+      'l_profile': 'forging',
+      't_profile': 'forging',
+      'i_profile': 'forging',
+      'u_profile': 'forging',
+      'z_profile': 'forging',
+      'z_section': 'forging',
+      'custom_profile': 'custom',
+      'irregular': 'custom',
+
+      // Extrusions (inspected as flat surfaces)
+      'extrusion_l': 'plate',
+      'extrusion_t': 'plate',
+      'extrusion_i': 'plate',
+      'extrusion_u': 'plate',
+      'extrusion_channel': 'plate',
+      'extrusion_angle': 'plate',
+
+      // Additional types
+      'solid_round': 'cylinder',
+      'hollow_cylinder': 'tube',
+      'ellipse': 'custom',
+    };
+    return mapping[partType] || 'plate';
+  }
 
   return (
     <div className="space-y-2 p-2">
@@ -736,7 +954,7 @@ export const CalibrationTab = ({
         <h3 className="text-lg font-semibold flex items-center gap-2">
           <Target className="h-5 w-5" />
           Calibration Block
-          {needsBothBeams && (
+          {requiresBothBeams && (
             <Badge variant="secondary" className="ml-2">
               Requires Both Beam Types
             </Badge>
@@ -767,7 +985,7 @@ export const CalibrationTab = ({
         </h3>
 
         {/* Show tabs when both beam types are required */}
-        {needsBothBeams ? (
+        {showBeamTabs ? (
           <Tabs
             value={activeBeamTab}
             onValueChange={(v) => setActiveBeamTab(v as "straight" | "angle")}
@@ -795,9 +1013,9 @@ export const CalibrationTab = ({
             </TabsContent>
           </Tabs>
         ) : (
-          // Only straight beam required - show without tabs
+          // Single-beam requirement - show without tabs
           <div className="space-y-4">
-            {renderStraightBeamContent()}
+            {showAngleBeam ? renderAngleBeamContent() : renderStraightBeamContent()}
           </div>
         )}
       </div>

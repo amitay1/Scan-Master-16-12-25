@@ -143,7 +143,7 @@ export const DEFAULT_DIMENSIONS: Record<CalibrationBlockType, BlockDimensions> =
   'solid_cylinder_fbh': { length: 50.8, width: 50.8, height: 100, diameter: 50.8, innerDiameter: 0, wallThickness: 25.4 },
   'angle_beam': { length: 100, width: 100, height: 50, angle: 45 },
   'cylinder_notched': { length: 120, width: 100, height: 100, diameter: 100, innerDiameter: 60, wallThickness: 20 },
-  'iiw_block': { length: 300, width: 40, height: 100 },
+  'iiw_block': { length: 300, width: 25, height: 100 },  // ISO 2400: 300 x 25 x 100mm
   'step_wedge': { length: 200, width: 60, height: 50 },
   'iow_block': { length: 300, width: 100, height: 40 },
   'custom': { length: 150, width: 75, height: 50 }

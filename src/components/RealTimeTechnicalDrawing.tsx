@@ -1,5 +1,5 @@
 import { useEffect, useRef, useMemo, useState } from 'react';
-import { PartGeometry, MaterialType } from '@/types/techniqueSheet';
+import { PartGeometry, MaterialType, StandardType } from '@/types/techniqueSheet';
 import { TechnicalDrawingGenerator, LayoutConfig, Dimensions } from '@/utils/technicalDrawings/TechnicalDrawingGenerator';
 import { drawBoxTechnicalDrawing } from '@/utils/technicalDrawings/boxDrawing';
 import { drawCylinderTechnicalDrawing } from '@/utils/technicalDrawings/cylinderDrawing';
@@ -18,6 +18,7 @@ import { drawIrregularTechnicalDrawing } from '@/utils/technicalDrawings/irregul
 import { drawRectangularTubeTechnicalDrawing } from '@/utils/technicalDrawings/rectangularTubeDrawing';
 import { drawImpellerTechnicalDrawing } from '@/utils/technicalDrawings/impellerDrawing';
 import { drawBliskTechnicalDrawing } from '@/utils/technicalDrawings/bliskDrawing';
+import { drawHptDiskTechnicalDrawing } from '@/utils/technicalDrawings/hptDiskDrawing';
 import {
   ScanType,
   calculateScanZones,
@@ -51,6 +52,10 @@ function useDebounce<T>(value: T, delay: number): T {
 interface RealTimeTechnicalDrawingProps {
   partType: PartGeometry;
   material?: MaterialType;
+  standardType?: StandardType;
+  partNumber?: string;
+  enabledScanDirections?: string[];
+  directionColors?: Record<string, string>;
   dimensions: {
     length: number;
     width: number;
@@ -73,6 +78,10 @@ export const RealTimeTechnicalDrawing = ({
   partType,
   dimensions,
   material,
+  standardType,
+  partNumber,
+  enabledScanDirections,
+  directionColors,
   showGrid = true,
   showDimensions = true,
   viewMode = 'multi',
@@ -82,8 +91,8 @@ export const RealTimeTechnicalDrawing = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const generatorRef = useRef<TechnicalDrawingGenerator | null>(null);
 
-  // Debounce to prevent flickering during rapid input changes (400ms for stability)
-  const debouncedDimensions = useDebounce(dimensions, 400);
+  // Debounce to prevent flickering during rapid input changes
+  const debouncedDimensions = useDebounce(dimensions, 150);
 
   // Standard layout configuration - 2 views only (Front and Side)
   // Heights reduced to 285 to leave room for title block at bottom (starts at y=350)
@@ -113,9 +122,6 @@ export const RealTimeTechnicalDrawing = ({
       wallThickness: debouncedDimensions.wallThickness,
       isHollow: isHollow,
     };
-    
-    // Debug log to verify dimension updates
-    console.log('📐 Drawing dimensions updated:', dims);
     
     return dims;
   }, [
@@ -167,8 +173,6 @@ export const RealTimeTechnicalDrawing = ({
     // Clear previous drawing (redundant but ensures clean canvas)
     generator.clear();
     
-    console.log('🎨 Redrawing canvas with dimensions:', drawingDimensions);
-
     // Draw grid if enabled
     if (showGrid) {
       generator.drawGrid(20, 5);
@@ -177,9 +181,9 @@ export const RealTimeTechnicalDrawing = ({
     // Draw title
     generator.drawText(400, 25, `TECHNICAL DRAWING - ${partType.toUpperCase()}`, 14, '#000000');
 
-      // Draw based on part type
-      try {
-        switch (partType) {
+    // Draw based on part type
+    try {
+      switch (partType) {
           // ============================================
           // BOX FAMILY - Solid rectangular shapes
           // ============================================
@@ -273,6 +277,17 @@ export const RealTimeTechnicalDrawing = ({
             drawImpellerTechnicalDrawing(generator, drawingDimensions, layout);
             break;
 
+          // HPT DISK - V2500 bore profile (NDIP-1226/1227)
+          // ============================================
+          case 'hpt_disk':
+            drawHptDiskTechnicalDrawing(generator, drawingDimensions, layout, {
+              standardType,
+              partNumber,
+              enabledDirections: enabledScanDirections,
+              directionColors,
+            });
+            break;
+
           // ============================================
           // BLISK - Bladed disk (integrated blades)
           // ============================================
@@ -303,7 +318,7 @@ export const RealTimeTechnicalDrawing = ({
           default:
             // Default to box for unknown types
             drawBoxTechnicalDrawing(generator, drawingDimensions, layout);
-        }
+      }
 
       // Add scan coverage visualization if enabled. We keep this focused:
       // overlay zones on the front view + a compact legend, without the
@@ -356,11 +371,14 @@ export const RealTimeTechnicalDrawing = ({
       }
 
       // Add title block with part information
-      const partNumber = partType.toUpperCase() + '-' + Date.now().toString().slice(-6);
+      const displayPartNumber =
+        typeof partNumber === 'string' && partNumber.trim().length > 0
+          ? partNumber.trim()
+          : partType.toUpperCase() + '-' + Date.now().toString().slice(-6);
       const materialName = material || 'ALUMINUM';
       generator.drawTitleBlock(
         `${partType.toUpperCase().replace('_', ' ')} PART`,
-        partNumber,
+        displayPartNumber,
         materialName,
         '1:1',
         '±0.1mm',
@@ -368,12 +386,25 @@ export const RealTimeTechnicalDrawing = ({
         new Date().toISOString().split('T')[0]
       );
 
-      // Render the drawing
-      generator.render();
     } catch (error) {
       console.error('Error generating technical drawing:', error);
+
+      // Avoid a silent blank canvas (especially in production builds).
+      try {
+        generator.drawText(400, 225, 'DRAWING ERROR', 16, '#B91C1C');
+        generator.drawText(400, 245, 'See console for details', 10, '#111827');
+      } catch {
+        // Ignore secondary failures while attempting to display the error.
+      }
+    } finally {
+      // Always update the view so partial output is visible.
+      try {
+        generator.render();
+      } catch {
+        /* ignore */
+      }
     }
-  }, [partType, drawingDimensions, layout, showGrid, material, showScanCoverage, scanType, coverageDimensions]);
+  }, [partType, drawingDimensions, layout, showGrid, material, standardType, partNumber, showScanCoverage, scanType, coverageDimensions]);
 
   return (
     <div className="w-full h-full flex items-center justify-center bg-[#D4D4D4]">

@@ -74,17 +74,17 @@ function drawFrontView(
   // Dimensions
   generator.drawDimension(
     rectX,
-    rectY + scaledThickness + 30,
+    rectY + scaledThickness + 40,
     rectX + scaledLength,
-    rectY + scaledThickness + 30,
+    rectY + scaledThickness + 40,
     `L=${length}mm`,
     5
   );
 
   generator.drawDimension(
-    rectX + scaledLength + 30,
+    rectX + scaledLength + 40,
     rectY,
-    rectX + scaledLength + 30,
+    rectX + scaledLength + 40,
     rectY + scaledThickness,
     `T=${thickness}mm`,
     5
@@ -92,7 +92,7 @@ function drawFrontView(
 
   // Wall thickness dimension if hollow
   if (isHollow && wallThickness) {
-    generator.drawText(
+    generator.drawTextWithBackground(
       rectX + scaledLength / 2,
       rectY - 15,
       `t=${wallThickness}mm`,
@@ -152,7 +152,7 @@ function drawSideView(
     generator.drawHatching(innerX + scaledInnerWidth, rectY + wall, (scaledWidth - scaledInnerWidth) / 2, scaledInnerThickness, 45, 6);
 
     // Label showing hollow
-    generator.drawText(
+    generator.drawTextWithBackground(
       x + viewWidth / 2,
       rectY + scaledThickness / 2,
       'HOLLOW',
@@ -163,7 +163,7 @@ function drawSideView(
     // Solid - add hatching for section view
     generator.drawHatching(rectX, rectY, scaledWidth, scaledThickness, 45, 6);
 
-    generator.drawText(
+    generator.drawTextWithBackground(
       x + viewWidth / 2,
       rectY + scaledThickness / 2,
       'BOX/BILLET',
@@ -183,9 +183,9 @@ function drawSideView(
   // Dimensions
   generator.drawDimension(
     rectX,
-    rectY + scaledThickness + 30,
+    rectY + scaledThickness + 40,
     rectX + scaledWidth,
-    rectY + scaledThickness + 30,
+    rectY + scaledThickness + 40,
     `W=${width}mm`,
     5
   );

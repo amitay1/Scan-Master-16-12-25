@@ -216,7 +216,8 @@ export function useExportWorkflow({
 
       // Step 2b: Angle beam if needed
       const beamRequirement = getBeamRequirement(currentData.inspectionSetup.partType, currentData.inspectionSetup.isHollow);
-      if (beamRequirement === "both") {
+      const needsAngleBeam = beamRequirement === "both" || beamRequirement === "angle_only";
+      if (needsAngleBeam) {
         const angleTabTrigger = document.querySelector('[value="angle"]') as HTMLElement;
         if (angleTabTrigger) {
           angleTabTrigger.click();
@@ -272,7 +273,7 @@ export function useExportWorkflow({
       console.log("[PDF Export] Capture Summary:");
       console.log("  - Technical Drawing:", capturedTechnicalDrawing ? "captured" : "NOT captured");
       console.log("  - FBH Calibration:", capturedFBHDiagram ? "captured" : "NOT captured");
-      console.log("  - Angle Beam:", beamRequirement === "both" ? (capturedAngleBeam ? "captured" : "NOT captured") : "not required");
+      console.log("  - Angle Beam:", needsAngleBeam ? (capturedAngleBeam ? "captured" : "NOT captured") : "not required");
       console.log("  - E2375 Diagram:", capturedE2375 ? "captured" : "NOT captured");
 
       flushSync(() => {

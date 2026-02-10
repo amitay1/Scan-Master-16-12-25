@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Standards Differences Data
  *
  * This file contains all the differences between the 4 supported UT standards:
@@ -41,10 +41,10 @@ const acceptanceClassesByStandardBase = {
   // BS EN 10228-3 Table 5: Class 4 = MOST stringent, Class 1 = least stringent
   // Recording: Class 1 >8mm, Class 2 >5mm, Class 3 >3mm, Class 4 >2mm EFBH
   "BS-EN-10228-3": [
-    { id: "1", label: "Quality Class 1", description: "Basic quality - Least stringent (Recording >8mm, Isolated ≤12mm EFBH)", stringency: "basic" },
-    { id: "2", label: "Quality Class 2", description: "Standard quality - General applications (Recording >5mm, Isolated ≤8mm EFBH)", stringency: "low" },
-    { id: "3", label: "Quality Class 3", description: "High quality - Stringent requirements (Recording >3mm, Isolated ≤5mm EFBH)", stringency: "medium" },
-    { id: "4", label: "Quality Class 4", description: "Highest quality - Most stringent (Recording >2mm, Isolated ≤3mm EFBH)", stringency: "highest" },
+    { id: "1", label: "Quality Class 1", description: "Basic quality - Least stringent (Recording >8mm, Isolated ג‰₪12mm EFBH)", stringency: "basic" },
+    { id: "2", label: "Quality Class 2", description: "Standard quality - General applications (Recording >5mm, Isolated ג‰₪8mm EFBH)", stringency: "low" },
+    { id: "3", label: "Quality Class 3", description: "High quality - Stringent requirements (Recording >3mm, Isolated ג‰₪5mm EFBH)", stringency: "medium" },
+    { id: "4", label: "Quality Class 4", description: "Highest quality - Most stringent (Recording >2mm, Isolated ג‰₪3mm EFBH)", stringency: "highest" },
   ],
   // BS EN 10228-4: Only 3 Quality Classes (NOT 4!) - Table 5
   // Class 3 = MOST stringent, Class 1 = least stringent (for austenitic materials)
@@ -60,19 +60,19 @@ const acceptanceClassesByStandardBase = {
   "NDIP-1227": [
     { id: "PW-V2500-2", label: "PW Standard", description: "V2500 2nd Stage HPT Disk - Immersion UT per NDIP-1227 Rev D", stringency: "highest" },
   ],
-  // PW1100G GTF NDIPs (FAA AD-mandated AUSI — powder metal contamination screening)
+  // PW1100G GTF NDIPs (FAA AD-mandated AUSI ג€” powder metal contamination screening)
   "NDIP-1254": [
-    { id: "PW-GTF-HPT1", label: "PW GTF Standard", description: "PW1100G HPT 1st Stage Hub — AUSI per FAA AD 2023-16-07", stringency: "highest" },
+    { id: "PW-GTF-HPT1", label: "PW GTF Standard", description: "PW1100G HPT 1st Stage Hub ג€” AUSI per FAA AD 2023-16-07", stringency: "highest" },
   ],
   "NDIP-1257": [
-    { id: "PW-GTF-HPT2", label: "PW GTF Standard", description: "PW1100G HPT 2nd Stage Hub — AUSI per FAA AD 2023-16-07", stringency: "highest" },
+    { id: "PW-GTF-HPT2", label: "PW GTF Standard", description: "PW1100G HPT 2nd Stage Hub ג€” AUSI per FAA AD 2023-16-07", stringency: "highest" },
   ],
   "NDIP-1260": [
-    { id: "PW-GTF-IBR8", label: "PW GTF Standard", description: "PW1100G HPC 8th Stage Disc IBR-8 — AUSI", stringency: "highest" },
+    { id: "PW-GTF-IBR8", label: "PW GTF Standard", description: "PW1100G HPC 8th Stage Disc IBR-8 ג€” AUSI", stringency: "highest" },
   ],
-  // PWA SIM — Sonic Inspection Method for bar/billet/forging
+  // PWA SIM ג€” Sonic Inspection Method for bar/billet/forging
   "PWA-SIM": [
-    { id: "PWA-SIM-STD", label: "PWA SIM Standard", description: "Pratt & Whitney Sonic Inspection Method — Bar, Billet, Forging per PWA 127", stringency: "highest" },
+    { id: "PWA-SIM-STD", label: "PWA SIM Standard", description: "Pratt & Whitney Sonic Inspection Method ג€” Bar, Billet, Forging per PWA 127", stringency: "highest" },
   ],
 
   // ============================================================================
@@ -120,7 +120,7 @@ const acceptanceClassesByStandardBase = {
     { id: "B", label: "Class B", description: "Commercial titanium - Non-critical", stringency: "low" },
   ],
 
-  // AMS-2632 - Thin Materials ≤0.5" (12.7mm)
+  // AMS-2632 - Thin Materials ג‰₪0.5" (12.7mm)
   "AMS-2632": [
     { id: "AA", label: "Class AA", description: "Most stringent - Thin critical materials", stringency: "highest" },
     { id: "A", label: "Class A", description: "High quality - Thin structural materials", stringency: "high" },
@@ -161,7 +161,7 @@ const acceptanceCriteriaByStandardBase = {
       multipleDiscontinuities: "1/64\" (0.4mm) FBH (centers <1\" apart)",
       linearDiscontinuity: "1/64\" (0.4mm) FBH, 1/8\" max length",
       backReflectionLoss: "Per Note 4 - with noise change indication",
-      noiseLevel: "Alarm level",
+      noiseLevel: "10% FSH maximum",
       specialNotes: "Most stringent - for rotating turbine components. Note: For titanium, multiple discontinuity separation = 1/4\"."
     },
     "AA": {
@@ -169,7 +169,7 @@ const acceptanceCriteriaByStandardBase = {
       multipleDiscontinuities: "2/64\" (0.8mm) FBH (centers <1\" apart)",
       linearDiscontinuity: "2/64\" (0.8mm) FBH, 1/2\" max length",
       backReflectionLoss: "50% maximum",
-      noiseLevel: "Alarm level",
+      noiseLevel: "15% FSH maximum",
       specialNotes: "For engine mounts, landing gear primary structure, rotor hubs"
     },
     "A": {
@@ -177,7 +177,7 @@ const acceptanceCriteriaByStandardBase = {
       multipleDiscontinuities: "2/64\" (0.8mm) FBH (centers <1\" apart)",
       linearDiscontinuity: "3/64\" (1.2mm) FBH, 1\" max length",
       backReflectionLoss: "50% maximum",
-      noiseLevel: "Alarm level",
+      noiseLevel: "20% FSH maximum",
       specialNotes: "For primary airframe structure, engine and transmission components"
     },
     "B": {
@@ -185,7 +185,7 @@ const acceptanceCriteriaByStandardBase = {
       multipleDiscontinuities: "3/64\" (1.2mm) FBH (centers <1\" apart)",
       linearDiscontinuity: "5/64\" (2.0mm) FBH, 1\" max length",
       backReflectionLoss: "50% maximum",
-      noiseLevel: "Alarm level",
+      noiseLevel: "25% FSH maximum",
       specialNotes: "For secondary structure, non-flight critical components"
     },
     "C": {
@@ -193,7 +193,7 @@ const acceptanceCriteriaByStandardBase = {
       multipleDiscontinuities: "5/64\" (2.0mm) FBH",
       linearDiscontinuity: "Not applicable",
       backReflectionLoss: "50% maximum",
-      noiseLevel: "Alarm level",
+      noiseLevel: "30% FSH maximum",
       specialNotes: "For non-structural components, tooling, ground support. No linear discontinuity limits."
     },
   },
@@ -207,24 +207,24 @@ const acceptanceCriteriaByStandardBase = {
       specialNotes: "INDUSTRY CONVENTION - not defined in standard. S1 FBH by thickness: under 1.5 inch uses 1/16 FBH, 1.5-6 inch uses 1/8 FBH, over 6 inch uses 1/4 FBH. All criteria per purchaser/manufacturer agreement."
     },
     "QL2": {
-      singleDiscontinuity: "2× reference FBH size",
+      singleDiscontinuity: "2ֳ— reference FBH size",
       multipleDiscontinuities: "Reference FBH size",
-      linearDiscontinuity: "Length ≤ 1 inch",
+      linearDiscontinuity: "Length ג‰₪ 1 inch",
       backReflectionLoss: "75% maximum",
       noiseLevel: "Per agreement",
       specialNotes: "INDUSTRY CONVENTION - not in standard. General industrial quality level - all criteria per purchaser agreement."
     },
     "QL3": {
-      singleDiscontinuity: "4× reference FBH size",
-      multipleDiscontinuities: "2× reference FBH size",
-      linearDiscontinuity: "Length ≤ 2 inches",
+      singleDiscontinuity: "4ֳ— reference FBH size",
+      multipleDiscontinuities: "2ֳ— reference FBH size",
+      linearDiscontinuity: "Length ג‰₪ 2 inches",
       backReflectionLoss: "90% maximum",
       noiseLevel: "Per agreement",
       specialNotes: "INDUSTRY CONVENTION - not in standard. Commercial quality - criteria per purchaser agreement."
     },
     "QL4": {
       singleDiscontinuity: "No specific limit",
-      multipleDiscontinuities: "4× reference FBH size",
+      multipleDiscontinuities: "4ֳ— reference FBH size",
       linearDiscontinuity: "As agreed",
       backReflectionLoss: "Complete loss acceptable",
       noiseLevel: "Per agreement",
@@ -235,36 +235,36 @@ const acceptanceCriteriaByStandardBase = {
   // Class 4 = MOST stringent, Class 1 = LEAST stringent (uses EFBH in mm)
   "BS-EN-10228-3": {
     "1": {
-      singleDiscontinuity: "Isolated: ≤12mm EFBH (Recording level: >8mm EFBH)",
-      multipleDiscontinuities: "Extended/Grouped: ≤8mm EFBH",
+      singleDiscontinuity: "Isolated: ג‰₪12mm EFBH (Recording level: >8mm EFBH)",
+      multipleDiscontinuities: "Extended/Grouped: ג‰₪8mm EFBH",
       linearDiscontinuity: "Extended indications per isolated limits",
-      backReflectionLoss: "BWE Ratio R ≤ 0.1 (10% reduction acceptable)",
+      backReflectionLoss: "BWE Ratio R ג‰₪ 0.1 (10% reduction acceptable)",
       noiseLevel: "Per EN 10228-3 requirements",
-      specialNotes: "LEAST STRINGENT - Class 1. Recording >8mm, Isolated ≤12mm, Extended ≤8mm EFBH."
+      specialNotes: "LEAST STRINGENT - Class 1. Recording >8mm, Isolated ג‰₪12mm, Extended ג‰₪8mm EFBH."
     },
     "2": {
-      singleDiscontinuity: "Isolated: ≤8mm EFBH (Recording level: >5mm EFBH)",
-      multipleDiscontinuities: "Extended/Grouped: ≤5mm EFBH",
+      singleDiscontinuity: "Isolated: ג‰₪8mm EFBH (Recording level: >5mm EFBH)",
+      multipleDiscontinuities: "Extended/Grouped: ג‰₪5mm EFBH",
       linearDiscontinuity: "Extended indications per isolated limits",
-      backReflectionLoss: "BWE Ratio R ≤ 0.3 (30% reduction acceptable)",
+      backReflectionLoss: "BWE Ratio R ג‰₪ 0.3 (30% reduction acceptable)",
       noiseLevel: "Per EN 10228-3 requirements",
-      specialNotes: "Standard quality - Class 2. Recording >5mm, Isolated ≤8mm, Extended ≤5mm EFBH."
+      specialNotes: "Standard quality - Class 2. Recording >5mm, Isolated ג‰₪8mm, Extended ג‰₪5mm EFBH."
     },
     "3": {
-      singleDiscontinuity: "Isolated: ≤5mm EFBH (Recording level: >3mm EFBH)",
-      multipleDiscontinuities: "Extended/Grouped: ≤3mm EFBH",
+      singleDiscontinuity: "Isolated: ג‰₪5mm EFBH (Recording level: >3mm EFBH)",
+      multipleDiscontinuities: "Extended/Grouped: ג‰₪3mm EFBH",
       linearDiscontinuity: "Extended indications per isolated limits",
-      backReflectionLoss: "BWE Ratio R ≤ 0.5 (50% reduction acceptable)",
+      backReflectionLoss: "BWE Ratio R ג‰₪ 0.5 (50% reduction acceptable)",
       noiseLevel: "Per EN 10228-3 requirements",
-      specialNotes: "High quality - Class 3. Recording >3mm, Isolated ≤5mm, Extended ≤3mm EFBH."
+      specialNotes: "High quality - Class 3. Recording >3mm, Isolated ג‰₪5mm, Extended ג‰₪3mm EFBH."
     },
     "4": {
-      singleDiscontinuity: "Isolated: ≤3mm EFBH (Recording level: >2mm EFBH)",
-      multipleDiscontinuities: "Extended/Grouped: ≤2mm EFBH",
+      singleDiscontinuity: "Isolated: ג‰₪3mm EFBH (Recording level: >2mm EFBH)",
+      multipleDiscontinuities: "Extended/Grouped: ג‰₪2mm EFBH",
       linearDiscontinuity: "Extended indications per isolated limits",
-      backReflectionLoss: "BWE Ratio R ≤ 0.6 (60% reduction acceptable)",
+      backReflectionLoss: "BWE Ratio R ג‰₪ 0.6 (60% reduction acceptable)",
       noiseLevel: "Per EN 10228-3 requirements",
-      specialNotes: "MOST STRINGENT - Class 4. Highest quality. Recording >2mm, Isolated ≤3mm, Extended ≤2mm EFBH."
+      specialNotes: "MOST STRINGENT - Class 4. Highest quality. Recording >2mm, Isolated ג‰₪3mm, Extended ג‰₪2mm EFBH."
     },
   },
   // BS EN 10228-4 Table 5 - Quality Classes for Austenitic/Austenitic-Ferritic Steels
@@ -298,28 +298,28 @@ const acceptanceCriteriaByStandardBase = {
   // PW NDIP Standards - OEM-specific acceptance criteria
   "NDIP-1226": {
     "PW-V2500-1": {
-      singleDiscontinuity: "≥20% FSH (with DAC applied) - Amplitude rejection",
-      multipleDiscontinuities: "≥15% FSH evaluation level for adjacent indications",
+      singleDiscontinuity: "ג‰¥20% FSH (with DAC applied) - Amplitude rejection",
+      multipleDiscontinuities: "ג‰¥15% FSH evaluation level for adjacent indications",
       linearDiscontinuity: ">2x1 or 1x2 amplitude pixels at rejection threshold",
-      backReflectionLoss: "Per calibration verification (±2 dB tolerance)",
-      noiseLevel: "Max 10% FSH average, 15% FSH band noise",
-      specialNotes: "PW V2500 1st Stage HPT Disk. TOF criteria: ≥15 pixels over 3+ scan lines with SNR ≥1.5:1. Circumferential shear wave ±45°. #1 FBH (1/64\") at 80% FSH. Per NDIP-1226 Rev F."
+      backReflectionLoss: "Per calibration verification (ֲ±2 dB tolerance)",
+      noiseLevel: "Max 7.5% FSH average, 8.5% FSH band noise",
+      specialNotes: "PW V2500 1st Stage HPT Disk. TOF criteria: ג‰¥15 pixels over 3+ scan lines with SNR ג‰¥1.5:1. Circumferential shear wave ֲ±45ֲ°. #1 FBH (1/64\") at 80% FSH. Per NDIP-1226 Rev F."
     },
   },
   "NDIP-1227": {
     "PW-V2500-2": {
-      singleDiscontinuity: "≥20% FSH (with DAC applied) - Amplitude rejection",
-      multipleDiscontinuities: "≥15% FSH evaluation level for adjacent indications",
+      singleDiscontinuity: "ג‰¥20% FSH (with DAC applied) - Amplitude rejection",
+      multipleDiscontinuities: "ג‰¥15% FSH evaluation level for adjacent indications",
       linearDiscontinuity: ">2x1 or 1x2 amplitude pixels at rejection threshold",
-      backReflectionLoss: "Per calibration verification (±2 dB tolerance)",
-      noiseLevel: "Max 10% FSH average, 15% FSH band noise",
-      specialNotes: "PW V2500 2nd Stage HPT Disk. TOF criteria: ≥15 pixels over 3+ scan lines with SNR ≥1.5:1. Circumferential shear wave ±45°. #1 FBH (1/64\") at 80% FSH. Per NDIP-1227 Rev D."
+      backReflectionLoss: "Per calibration verification (ֲ±2 dB tolerance)",
+      noiseLevel: "Max 7.5% FSH average, 8.5% FSH band noise",
+      specialNotes: "PW V2500 2nd Stage HPT Disk. TOF criteria: ג‰¥15 pixels over 3+ scan lines with SNR ג‰¥1.5:1. Circumferential shear wave ֲ±45ֲ°. #1 FBH (1/64\") at 80% FSH. Per NDIP-1227 Rev D."
     },
   },
-  // PW1100G GTF NDIPs — criteria based on FAA AD 2022-19-15 / AD 2023-16-07 (powder metal screening)
+  // PW1100G GTF NDIPs ג€” criteria based on FAA AD 2022-19-15 / AD 2023-16-07 (powder metal screening)
   "NDIP-1254": {
     "PW-GTF-HPT1": {
-      singleDiscontinuity: "Per NDIP-1254 specification (proprietary — contact PW MPE-NDE)",
+      singleDiscontinuity: "Per NDIP-1254 specification (proprietary ג€” contact PW MPE-NDE)",
       multipleDiscontinuities: "Per NDIP-1254 specification",
       linearDiscontinuity: "Per NDIP-1254 specification",
       backReflectionLoss: "Per calibration verification",
@@ -329,7 +329,7 @@ const acceptanceCriteriaByStandardBase = {
   },
   "NDIP-1257": {
     "PW-GTF-HPT2": {
-      singleDiscontinuity: "Per NDIP-1257 specification (proprietary — contact PW MPE-NDE)",
+      singleDiscontinuity: "Per NDIP-1257 specification (proprietary ג€” contact PW MPE-NDE)",
       multipleDiscontinuities: "Per NDIP-1257 specification",
       linearDiscontinuity: "Per NDIP-1257 specification",
       backReflectionLoss: "Per calibration verification",
@@ -339,7 +339,7 @@ const acceptanceCriteriaByStandardBase = {
   },
   "NDIP-1260": {
     "PW-GTF-IBR8": {
-      singleDiscontinuity: "Per NDIP-1260 specification (proprietary — contact PW MPE-NDE)",
+      singleDiscontinuity: "Per NDIP-1260 specification (proprietary ג€” contact PW MPE-NDE)",
       multipleDiscontinuities: "Per NDIP-1260 specification",
       linearDiscontinuity: "Per NDIP-1260 specification",
       backReflectionLoss: "Per calibration verification",
@@ -347,15 +347,15 @@ const acceptanceCriteriaByStandardBase = {
       specialNotes: "PW1100G-JM HPC 8th Stage Integrally Bladed Rotor (IBR-8). AUSI for powder metal contamination. Referenced in FAA superseding AD (Dec 2023). Full NDIP details available through PW Supplier Portal (eSRI)."
     },
   },
-  // PWA SIM — Sonic Inspection Method
+  // PWA SIM ג€” Sonic Inspection Method
   "PWA-SIM": {
     "PWA-SIM-STD": {
-      singleDiscontinuity: "3/64\" (1.2mm) FBH at 50% depth — reject level",
+      singleDiscontinuity: "3/64\" (1.2mm) FBH at 50% depth ג€” reject level",
       multipleDiscontinuities: "Per PWA 127 specification",
-      linearDiscontinuity: "EDM notch 3% depth × 1/4\" length — axial",
+      linearDiscontinuity: "EDM notch 3% depth ֳ— 1/4\" length ג€” axial",
       backReflectionLoss: "Per calibration verification",
       noiseLevel: "Per PWA 127 specification",
-      specialNotes: "PWA Sonic Inspection Method for bar, billet, rod, and forging stock. Reference block per PWA SIM 4E SIS 26B: 3/64\" FBH at 50%, 3/64\" FBH at 10%, 1/32\" FBH at 10%, plus axial EDM notch 3% × 1/4\". Contact PW Supplier Portal (eSRI) for full PWA 127 specification."
+      specialNotes: "PWA Sonic Inspection Method for bar, billet, rod, and forging stock. Reference block per PWA SIM 4E SIS 26B: 3/64\" FBH at 50%, 3/64\" FBH at 10%, 1/32\" FBH at 10%, plus axial EDM notch 3% ֳ— 1/4\". Contact PW Supplier Portal (eSRI) for full PWA 127 specification."
     },
   },
 
@@ -432,15 +432,15 @@ const acceptanceCriteriaByStandardBase = {
     "LEVEL-2": {
       singleDiscontinuity: "Reference standard level",
       multipleDiscontinuities: "Reference level - Limited clustering",
-      linearDiscontinuity: "≤1\" length at reference level",
+      linearDiscontinuity: "ג‰₪1\" length at reference level",
       backReflectionLoss: "75% maximum",
       noiseLevel: "Per agreement",
       specialNotes: "Standard structural weld quality. Linear indications limited to 1\" max."
     },
     "LEVEL-3": {
-      singleDiscontinuity: "2× reference standard level",
+      singleDiscontinuity: "2ֳ— reference standard level",
       multipleDiscontinuities: "Reference level",
-      linearDiscontinuity: "≤2\" length at reference level",
+      linearDiscontinuity: "ג‰₪2\" length at reference level",
       backReflectionLoss: "Complete loss may be acceptable",
       noiseLevel: "Per agreement",
       specialNotes: "Commercial weld quality. All criteria per purchaser/manufacturer agreement."
@@ -499,7 +499,7 @@ const acceptanceCriteriaByStandardBase = {
       linearDiscontinuity: "1/4\" max length - 2/64\" response",
       backReflectionLoss: "Per specification",
       noiseLevel: "Alarm level - Critical for titanium grain scatter",
-      specialNotes: "Premium titanium. Class AA for rotating engine parts. Surface texture ≤125 μin. Ti-6Al-4V or equivalent reference blocks."
+      specialNotes: "Premium titanium. Class AA for rotating engine parts. Surface texture ג‰₪125 ־¼in. Ti-6Al-4V or equivalent reference blocks."
     },
     "A": {
       singleDiscontinuity: "3/64\" (1.2mm) FBH response",
@@ -527,7 +527,7 @@ const acceptanceCriteriaByStandardBase = {
     },
   },
 
-  // AMS-2632 - Thin Materials ≤0.5" (12.7mm)
+  // AMS-2632 - Thin Materials ג‰₪0.5" (12.7mm)
   "AMS-2632": {
     "AA": {
       singleDiscontinuity: "1/64\" (0.4mm) FBH response - Most stringent for thin materials",
@@ -535,7 +535,7 @@ const acceptanceCriteriaByStandardBase = {
       linearDiscontinuity: "Not acceptable",
       backReflectionLoss: "Per specification",
       noiseLevel: "Alarm level - Surface proximity critical",
-      specialNotes: "Thin materials ≤0.5\" (12.7mm). Class AA ultra-critical. Near-surface detection critical."
+      specialNotes: "Thin materials ג‰₪0.5\" (12.7mm). Class AA ultra-critical. Near-surface detection critical."
     },
     "A": {
       singleDiscontinuity: "2/64\" (0.8mm) FBH response",
@@ -543,7 +543,7 @@ const acceptanceCriteriaByStandardBase = {
       linearDiscontinuity: "1/4\" max length",
       backReflectionLoss: "50% maximum",
       noiseLevel: "Alarm level",
-      specialNotes: "Thin materials ≤0.5\". Class A for critical applications."
+      specialNotes: "Thin materials ג‰₪0.5\". Class A for critical applications."
     },
     "B": {
       singleDiscontinuity: "3/64\" (1.2mm) FBH response",
@@ -551,7 +551,7 @@ const acceptanceCriteriaByStandardBase = {
       linearDiscontinuity: "1/2\" max length",
       backReflectionLoss: "50% maximum",
       noiseLevel: "Alarm level",
-      specialNotes: "Thin materials ≤0.5\". Class B for standard applications."
+      specialNotes: "Thin materials ג‰₪0.5\". Class B for standard applications."
     },
     "C": {
       singleDiscontinuity: "5/64\" (2.0mm) FBH response",
@@ -559,7 +559,7 @@ const acceptanceCriteriaByStandardBase = {
       linearDiscontinuity: "Per agreement",
       backReflectionLoss: "75% maximum",
       noiseLevel: "Per agreement",
-      specialNotes: "Thin materials ≤0.5\". Class C commercial quality."
+      specialNotes: "Thin materials ג‰₪0.5\". Class C commercial quality."
     },
   },
 
@@ -662,7 +662,7 @@ const equipmentParametersByStandardBase = {
     frequencyRange: { min: 2.25, max: 15, typical: 5, unit: "MHz" },
     verticalLinearity: { min: 5, max: 98 },
     horizontalLinearity: { min: 90 },
-    frequencyTolerance: "±10%",
+    frequencyTolerance: "ֲ±10%",
     prfRange: "100-10000 Hz",
     transducerDiameter: { min: 6.35, max: 25.4, unit: "mm" },
     notes: "High frequency capability for aerospace applications. Resolution requirements per Table II."
@@ -699,26 +699,26 @@ const equipmentParametersByStandardBase = {
     frequencyRange: { min: 5, max: 5, typical: 5, unit: "MHz" },
     verticalLinearity: { min: 5, max: 98 },
     horizontalLinearity: { min: 90 },
-    frequencyTolerance: "±10%",
+    frequencyTolerance: "ֲ±10%",
     prfRange: "1000-5000 Hz",
     transducerDiameter: { min: 19.05, max: 19.05, unit: "mm" }, // 0.75" per IAE2P16679
-    notes: "PW V2500 1st Stage HPT Disk. Transducer: IAE2P16679 (5 MHz, 0.75\" element, 8\" focal). Mirror: IAE2P16678 (45°). Immersion inspection at 8\" water path."
+    notes: "PW V2500 1st Stage HPT Disk. Transducer: IAE2P16679 (5 MHz, 0.75\" element, 8\" focal). Mirror: IAE2P16678 (45ֲ°). Immersion inspection at 8\" water path."
   },
   "NDIP-1227": {
     frequencyRange: { min: 5, max: 5, typical: 5, unit: "MHz" },
     verticalLinearity: { min: 5, max: 98 },
     horizontalLinearity: { min: 90 },
-    frequencyTolerance: "±10%",
+    frequencyTolerance: "ֲ±10%",
     prfRange: "1000-5000 Hz",
     transducerDiameter: { min: 19.05, max: 19.05, unit: "mm" }, // 0.75" per IAE2P16679
-    notes: "PW V2500 2nd Stage HPT Disk. Transducer: IAE2P16679 (5 MHz, 0.75\" element, 8\" focal). Mirror: IAE2P16678 (45°). Immersion inspection at 8\" water path."
+    notes: "PW V2500 2nd Stage HPT Disk. Transducer: IAE2P16679 (5 MHz, 0.75\" element, 8\" focal). Mirror: IAE2P16678 (45ֲ°). Immersion inspection at 8\" water path."
   },
-  // PW1100G GTF NDIPs — AUSI equipment (powder metal contamination screening)
+  // PW1100G GTF NDIPs ג€” AUSI equipment (powder metal contamination screening)
   "NDIP-1254": {
     frequencyRange: { min: 5, max: 5, typical: 5, unit: "MHz" },
     verticalLinearity: { min: 5, max: 98 },
     horizontalLinearity: { min: 90 },
-    frequencyTolerance: "±10%",
+    frequencyTolerance: "ֲ±10%",
     prfRange: "1000-5000 Hz",
     transducerDiameter: { min: 19.05, max: 19.05, unit: "mm" }, // 0.75"
     notes: "PW1100G HPT 1st Stage Hub. AUSI per FAA AD 2023-16-07. Transducer: 5 MHz, 0.75\" element. Immersion inspection."
@@ -727,7 +727,7 @@ const equipmentParametersByStandardBase = {
     frequencyRange: { min: 5, max: 5, typical: 5, unit: "MHz" },
     verticalLinearity: { min: 5, max: 98 },
     horizontalLinearity: { min: 90 },
-    frequencyTolerance: "±10%",
+    frequencyTolerance: "ֲ±10%",
     prfRange: "1000-5000 Hz",
     transducerDiameter: { min: 19.05, max: 19.05, unit: "mm" }, // 0.75"
     notes: "PW1100G HPT 2nd Stage Hub. AUSI per FAA AD 2023-16-07. Transducer: 5 MHz, 0.75\" element. Immersion inspection."
@@ -736,17 +736,17 @@ const equipmentParametersByStandardBase = {
     frequencyRange: { min: 5, max: 5, typical: 5, unit: "MHz" },
     verticalLinearity: { min: 5, max: 98 },
     horizontalLinearity: { min: 90 },
-    frequencyTolerance: "±10%",
+    frequencyTolerance: "ֲ±10%",
     prfRange: "1000-5000 Hz",
     transducerDiameter: { min: 19.05, max: 19.05, unit: "mm" }, // 0.75"
     notes: "PW1100G HPC 8th Stage IBR-8. AUSI per FAA AD. Transducer: 5 MHz, 0.75\" element. Immersion inspection."
   },
-  // PWA SIM — Sonic Inspection Method equipment
+  // PWA SIM ג€” Sonic Inspection Method equipment
   "PWA-SIM": {
     frequencyRange: { min: 2.25, max: 10, typical: 5, unit: "MHz" },
     verticalLinearity: { min: 5, max: 98 },
     horizontalLinearity: { min: 90 },
-    frequencyTolerance: "±10%",
+    frequencyTolerance: "ֲ±10%",
     prfRange: "100-10000 Hz",
     transducerDiameter: { min: 12.7, max: 25.4, unit: "mm" }, // 0.5-1.0"
     notes: "PWA Sonic Inspection Method for bar, billet, forging. 5 MHz typical. Immersion or contact per PWA 127. Transducer 0.5-1.0\" element."
@@ -760,7 +760,7 @@ const equipmentParametersByStandardBase = {
     frequencyRange: { min: 2.25, max: 15, typical: 5, unit: "MHz" },
     verticalLinearity: { min: 5, max: 98 },
     horizontalLinearity: { min: 90 },
-    frequencyTolerance: "±10%",
+    frequencyTolerance: "ֲ±10%",
     prfRange: "100-10000 Hz",
     transducerDiameter: { min: 6.35, max: 25.4, unit: "mm" },
     notes: "Adopted from MIL-STD-2154. Same equipment requirements as AMS-STD-2154E."
@@ -773,7 +773,7 @@ const equipmentParametersByStandardBase = {
     frequencyTolerance: null,
     prfRange: null,
     transducerDiameter: { min: 12.7, max: 19.05, unit: "mm" },
-    notes: "Calibration block standard. Standard tests at 5 MHz immersion. Block diameter 2.0\" for MTD ≤6\", 2.5\" for MTD >6\"."
+    notes: "Calibration block standard. Standard tests at 5 MHz immersion. Block diameter 2.0\" for MTD ג‰₪6\", 2.5\" for MTD >6\"."
   },
 
   "ASTM-E164": {
@@ -783,14 +783,14 @@ const equipmentParametersByStandardBase = {
     frequencyTolerance: null,
     prfRange: null,
     transducerDiameter: { min: 12.7, max: 25.4, unit: "mm" },
-    notes: "Weldment inspection. Straight beam and angle beam (45°, 60°, 70°). Thickness range 0.25\" to 8\" (6.4-203mm)."
+    notes: "Weldment inspection. Straight beam and angle beam (45ֲ°, 60ֲ°, 70ֲ°). Thickness range 0.25\" to 8\" (6.4-203mm)."
   },
 
   "AMS-2630": {
     frequencyRange: { min: 2.25, max: 15, typical: 5, unit: "MHz" },
     verticalLinearity: { min: 5, max: 98 },
     horizontalLinearity: { min: 90 },
-    frequencyTolerance: "±10%",
+    frequencyTolerance: "ֲ±10%",
     prfRange: "100-10000 Hz",
     transducerDiameter: { min: 6.35, max: 25.4, unit: "mm" },
     notes: "Products >0.5\" thick. Contact or immersion methods. Longitudinal or shear wave modes. Consistent with AMS-2631 methodology."
@@ -800,20 +800,20 @@ const equipmentParametersByStandardBase = {
     frequencyRange: { min: 2.25, max: 10, typical: 5, unit: "MHz" },
     verticalLinearity: { min: 5, max: 95 },
     horizontalLinearity: { min: 90 },
-    frequencyTolerance: "±10%",
+    frequencyTolerance: "ֲ±10%",
     prfRange: "100-10000 Hz",
     transducerDiameter: { min: 9.5, max: 25.4, unit: "mm" },
-    notes: "Titanium bar/billet/plate. Surface texture ≤250 μin (6 μm). Use Ti-6Al-4V or acoustically similar reference blocks."
+    notes: "Titanium bar/billet/plate. Surface texture ג‰₪250 ־¼in (6 ־¼m). Use Ti-6Al-4V or acoustically similar reference blocks."
   },
 
   "AMS-2632": {
     frequencyRange: { min: 5, max: 15, typical: 10, unit: "MHz" },
     verticalLinearity: { min: 5, max: 98 },
     horizontalLinearity: { min: 90 },
-    frequencyTolerance: "±10%",
+    frequencyTolerance: "ֲ±10%",
     prfRange: "100-10000 Hz",
     transducerDiameter: { min: 6.35, max: 12.7, unit: "mm" },
-    notes: "Thin materials ≤0.5\" (12.7mm). Higher frequencies for near-surface resolution. Smaller transducers for thin sections."
+    notes: "Thin materials ג‰₪0.5\" (12.7mm). Higher frequencies for near-surface resolution. Smaller transducers for thin sections."
   },
 
   "EN-ISO-16810": {
@@ -891,7 +891,7 @@ const scanParametersByStandardBase = {
     coverageRequired: 100,
     calibrationFrequency: "Before each disk, after setup changes, every 8 hours",
     sensitivityGain: "80% FSH on #1 FBH reference, DAC curve required",
-    notes: "PW V2500 1st Stage HPT. Max scan increment: 0.020\". Max index: 0.020\"/rev. Circumferential shear wave ±45°. 8\" water path immersion."
+    notes: "PW V2500 1st Stage HPT. Max scan increment: 0.020\". Max index: 0.020\"/rev. Circumferential shear wave ֲ±45ֲ°. 8\" water path immersion."
   },
   "NDIP-1227": {
     maxSpeedManual: { value: 0, unit: "mm/s" }, // Not applicable - automated only
@@ -900,11 +900,11 @@ const scanParametersByStandardBase = {
     coverageRequired: 100,
     calibrationFrequency: "Before each disk, after setup changes, every 8 hours",
     sensitivityGain: "80% FSH on #1 FBH reference, DAC curve required",
-    notes: "PW V2500 2nd Stage HPT. Max scan increment: 0.020\". Max index: 0.020\"/rev. Circumferential shear wave ±45°. 8\" water path immersion."
+    notes: "PW V2500 2nd Stage HPT. Max scan increment: 0.020\". Max index: 0.020\"/rev. Circumferential shear wave ֲ±45ֲ°. 8\" water path immersion."
   },
-  // PW1100G GTF NDIPs — AUSI scan parameters
+  // PW1100G GTF NDIPs ג€” AUSI scan parameters
   "NDIP-1254": {
-    maxSpeedManual: { value: 0, unit: "mm/s" }, // Automated only — AUSI
+    maxSpeedManual: { value: 0, unit: "mm/s" }, // Automated only ג€” AUSI
     maxSpeedAutomated: { value: 127, unit: "mm/s" }, // ~5 in/s
     minOverlap: 25,
     coverageRequired: 100,
@@ -913,7 +913,7 @@ const scanParametersByStandardBase = {
     notes: "PW1100G HPT 1st Stage Hub. AUSI automated only. Per FAA AD 2023-16-07. Full circumferential + axial coverage."
   },
   "NDIP-1257": {
-    maxSpeedManual: { value: 0, unit: "mm/s" }, // Automated only — AUSI
+    maxSpeedManual: { value: 0, unit: "mm/s" }, // Automated only ג€” AUSI
     maxSpeedAutomated: { value: 127, unit: "mm/s" }, // ~5 in/s
     minOverlap: 25,
     coverageRequired: 100,
@@ -922,7 +922,7 @@ const scanParametersByStandardBase = {
     notes: "PW1100G HPT 2nd Stage Hub. AUSI automated only. Per FAA AD 2023-16-07. Full circumferential + axial coverage."
   },
   "NDIP-1260": {
-    maxSpeedManual: { value: 0, unit: "mm/s" }, // Automated only — AUSI
+    maxSpeedManual: { value: 0, unit: "mm/s" }, // Automated only ג€” AUSI
     maxSpeedAutomated: { value: 127, unit: "mm/s" }, // ~5 in/s
     minOverlap: 25,
     coverageRequired: 100,
@@ -930,7 +930,7 @@ const scanParametersByStandardBase = {
     sensitivityGain: "80% FSH on reference, DAC curve required",
     notes: "PW1100G HPC 8th Stage IBR-8. AUSI automated only. Full circumferential + axial coverage."
   },
-  // PWA SIM — Sonic Inspection Method scan parameters
+  // PWA SIM ג€” Sonic Inspection Method scan parameters
   "PWA-SIM": {
     maxSpeedManual: { value: 150, unit: "mm/s" },
     maxSpeedAutomated: { value: 305, unit: "mm/s" }, // 12 in/s
@@ -992,7 +992,7 @@ const scanParametersByStandardBase = {
     coverageRequired: 100,
     calibrationFrequency: "Before inspection, every 4 hours, and at completion",
     sensitivityGain: "80% FSH on reference, scanning gain per Table requirements",
-    notes: "Titanium inspection. Longitudinal mode primary, shear mode when agreed. Surface texture ≤250 μin. Grain flow direction consideration."
+    notes: "Titanium inspection. Longitudinal mode primary, shear mode when agreed. Surface texture ג‰₪250 ־¼in. Grain flow direction consideration."
   },
 
   "AMS-2632": {
@@ -1002,7 +1002,7 @@ const scanParametersByStandardBase = {
     coverageRequired: 100,
     calibrationFrequency: "Before inspection, every 2 hours (thin material sensitivity)",
     sensitivityGain: "80% FSH on reference, near-surface sensitivity critical",
-    notes: "Thin materials ≤0.5\". Slower speeds for thin section sensitivity. More frequent calibration checks. Near-surface zone critical."
+    notes: "Thin materials ג‰₪0.5\". Slower speeds for thin section sensitivity. More frequent calibration checks. Near-surface zone critical."
   },
 
   "EN-ISO-16810": {
@@ -1113,7 +1113,7 @@ const documentationByStandardBase = {
       "Transducer serial number (IAE2P16679)"
     ]
   },
-  // PW1100G GTF NDIPs — documentation requirements
+  // PW1100G GTF NDIPs ג€” documentation requirements
   "NDIP-1254": {
     recordRetentionYears: "Life of component",
     personnelCertification: "Level II UT (certified by approved training provider) + PW certification",
@@ -1159,7 +1159,7 @@ const documentationByStandardBase = {
       "Calibration block serial number"
     ]
   },
-  // PWA SIM — documentation requirements
+  // PWA SIM ג€” documentation requirements
   "PWA-SIM": {
     recordRetentionYears: 7,
     personnelCertification: "NAS 410 Level II minimum",
@@ -1315,7 +1315,7 @@ const calibrationByStandardBase = {
     calibrationInterval: "Before and after inspection",
     dacCurvePoints: 3,
     primarySensitivity: "80% FSH on primary echo",
-    transferCorrection: "Required when surface roughness differs > Ra 6.3 μm (max 4 dB)",
+    transferCorrection: "Required when surface roughness differs > Ra 6.3 ־¼m (max 4 dB)",
     verificationRequirements: "Verify DAC curve at completion"
   },
   "BS-EN-10228-4": {
@@ -1324,33 +1324,33 @@ const calibrationByStandardBase = {
     dacCurvePoints: 3,
     primarySensitivity: "Adjusted for grain noise level",
     transferCorrection: "Measure on actual component due to attenuation variation",
-    verificationRequirements: "Verify every 2 hours, acceptance within ±2 dB of initial"
+    verificationRequirements: "Verify every 2 hours, acceptance within ֲ±2 dB of initial"
   },
   // PW NDIP Standards - OEM-specific calibration
   "NDIP-1226": {
     referenceBlockMaterial: "Titanium (Ti-6-4 or equivalent) - IAE2P16675 block",
     calibrationInterval: "Before each disk, after setup changes, every 8 hours during continuous operation",
-    dacCurvePoints: 8, // Holes L through S per NDIP
+    dacCurvePoints: 7, // Holes L through S (J & K omitted) per NDIP Section 5.1.1.7.1
     primarySensitivity: "80% FSH on #1 FBH (1/64\") reference",
     transferCorrection: "Curvature correction required per bore radius",
-    verificationRequirements: "Post-calibration within ±2 dB of initial. Re-inspect if drift detected."
+    verificationRequirements: "Post-calibration within ֲ±2 dB of initial. Re-inspect if drift detected."
   },
   "NDIP-1227": {
     referenceBlockMaterial: "Titanium (Ti-6-4 or equivalent) - IAE2P16675 block",
     calibrationInterval: "Before each disk, after setup changes, every 8 hours during continuous operation",
-    dacCurvePoints: 8, // Holes L through S per NDIP
+    dacCurvePoints: 7, // Holes L through S (J & K omitted) per NDIP Section 5.1.1.7.1
     primarySensitivity: "80% FSH on #1 FBH (1/64\") reference",
     transferCorrection: "Curvature correction required per bore radius",
-    verificationRequirements: "Post-calibration within ±2 dB of initial. Re-inspect if drift detected."
+    verificationRequirements: "Post-calibration within ֲ±2 dB of initial. Re-inspect if drift detected."
   },
-  // PW1100G GTF NDIPs — calibration requirements
+  // PW1100G GTF NDIPs ג€” calibration requirements
   "NDIP-1254": {
     referenceBlockMaterial: "Titanium (Ti-6-4 or equivalent) - V2500 equivalent block",
     calibrationInterval: "Before each part, after setup changes, every 8 hours during continuous operation",
     dacCurvePoints: 8,
     primarySensitivity: "80% FSH on #1 FBH (1/64\") reference, DAC required",
     transferCorrection: "Curvature correction required per bore radius",
-    verificationRequirements: "Post-calibration within ±2 dB of initial. Re-inspect if drift detected."
+    verificationRequirements: "Post-calibration within ֲ±2 dB of initial. Re-inspect if drift detected."
   },
   "NDIP-1257": {
     referenceBlockMaterial: "Titanium (Ti-6-4 or equivalent) - V2500 equivalent block",
@@ -1358,7 +1358,7 @@ const calibrationByStandardBase = {
     dacCurvePoints: 8,
     primarySensitivity: "80% FSH on #1 FBH (1/64\") reference, DAC required",
     transferCorrection: "Curvature correction required per bore radius",
-    verificationRequirements: "Post-calibration within ±2 dB of initial. Re-inspect if drift detected."
+    verificationRequirements: "Post-calibration within ֲ±2 dB of initial. Re-inspect if drift detected."
   },
   "NDIP-1260": {
     referenceBlockMaterial: "Titanium (Ti-6-4 or equivalent) - V2500 equivalent block",
@@ -1366,11 +1366,11 @@ const calibrationByStandardBase = {
     dacCurvePoints: 8,
     primarySensitivity: "80% FSH on #1 FBH (1/64\") reference, DAC required",
     transferCorrection: "Curvature correction required per bore radius",
-    verificationRequirements: "Post-calibration within ±2 dB of initial. Re-inspect if drift detected."
+    verificationRequirements: "Post-calibration within ֲ±2 dB of initial. Re-inspect if drift detected."
   },
-  // PWA SIM — calibration requirements
+  // PWA SIM ג€” calibration requirements
   "PWA-SIM": {
-    referenceBlockMaterial: "Same material as test part — per PWA SIM 4E SIS 26B",
+    referenceBlockMaterial: "Same material as test part ג€” per PWA SIM 4E SIS 26B",
     calibrationInterval: "Before and after inspection",
     dacCurvePoints: 3,
     primarySensitivity: "80% FSH on 3/64\" FBH at 50% depth",
@@ -1500,26 +1500,26 @@ export const materialWarnings: MaterialWarning[] = [
   {
     material: "nickel",
     standard: "NDIP-1226",
-    warning: "PW V2500 1st Stage HPT Disk — Powdered Nickel alloy requires specific P&W equipment and calibration",
+    warning: "PW V2500 1st Stage HPT Disk ג€” Powdered Nickel alloy requires specific P&W equipment and calibration",
     recommendations: [
       "ONLY use IAE2P16679 transducer (5 MHz, 0.75\" element, 8\" focal length)",
-      "ONLY use IAE2P16678 45° mirror — must be fully seated on transducer",
-      "Calibration block: IAE2P16675 (powdered nickel equivalent) — yearly recertification at PW NDE",
+      "ONLY use IAE2P16678 45ֲ° mirror ג€” must be fully seated on transducer",
+      "Calibration block: IAE2P16675 (powdered nickel equivalent) ג€” yearly recertification at PW NDE",
       "Water path: 8.0\" per NDIP Section 5.1.1.2",
-      "Inspector must hold PW POD qualification — recertify every 6 months if inactive",
+      "Inspector must hold PW POD qualification ג€” recertify every 6 months if inactive",
       "Electronic data transfer to PW MPE-NDE via MFT required"
     ]
   },
   {
     material: "nickel",
     standard: "NDIP-1227",
-    warning: "PW V2500 2nd Stage HPT Disk — Powdered Nickel alloy requires specific P&W equipment and calibration",
+    warning: "PW V2500 2nd Stage HPT Disk ג€” Powdered Nickel alloy requires specific P&W equipment and calibration",
     recommendations: [
       "ONLY use IAE2P16679 transducer (5 MHz, 0.75\" element, 8\" focal length)",
-      "ONLY use IAE2P16678 45° mirror — must be fully seated on transducer",
-      "Calibration block: IAE2P16675 (powdered nickel equivalent) — yearly recertification at PW NDE",
+      "ONLY use IAE2P16678 45ֲ° mirror ג€” must be fully seated on transducer",
+      "Calibration block: IAE2P16675 (powdered nickel equivalent) ג€” yearly recertification at PW NDE",
       "Water path: 8.0\" per NDIP Section 7.5",
-      "Inspector must hold PW POD qualification — recertify every 6 months if inactive",
+      "Inspector must hold PW POD qualification ג€” recertify every 6 months if inactive",
       "Electronic data transfer to PW MPE-NDE via MFT required"
     ]
   },
@@ -1805,3 +1805,4 @@ export function getChangedFieldsForStandard(standard: StandardType): string[] {
     "personnelCertification"
   ];
 }
+

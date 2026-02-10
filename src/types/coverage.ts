@@ -194,7 +194,7 @@ export const MATERIAL_ACOUSTICS: Record<string, MaterialAcoustics> = {
     scatterFactor: 0.12,
   },
   nickel_alloy: {
-    velocity: 5630,
+    velocity: 5820,
     attenuationCoeff: 0.018,
     scatterFactor: 0.14,
   },

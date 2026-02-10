@@ -61,17 +61,17 @@ function drawFrontView(
   // Dimensions
   generator.drawDimension(
     rectX,
-    rectY + scaledThickness + 30,
+    rectY + scaledThickness + 40,
     rectX + scaledLength,
-    rectY + scaledThickness + 30,
+    rectY + scaledThickness + 40,
     `L=${length}mm`,
     5
   );
 
   generator.drawDimension(
-    rectX + scaledLength + 30,
+    rectX + scaledLength + 40,
     rectY,
-    rectX + scaledLength + 30,
+    rectX + scaledLength + 40,
     rectY + scaledThickness,
     `t=${thickness}mm`,
     5
@@ -113,14 +113,14 @@ function drawSideView(
   // Dimensions
   generator.drawDimension(
     rectX,
-    rectY + scaledThickness + 30,
+    rectY + scaledThickness + 40,
     rectX + scaledWidth,
-    rectY + scaledThickness + 30,
+    rectY + scaledThickness + 40,
     `W=${width}mm`,
     5
   );
 
-  generator.drawText(
+  generator.drawTextWithBackground(
     x + viewWidth / 2,
     rectY + scaledThickness / 2,
     'PLATE (W/T>5)',

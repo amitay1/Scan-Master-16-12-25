@@ -488,6 +488,109 @@ export const ShapeGeometries = {
     return perfectCenter(finalGeometry);
   },
 
+  // HPT DISK - V2500 High Pressure Turbine Disk bore profile (NDIP-1226/1227 Figure 2)
+  // Proportions derived from real V2500 HPT disk: bore R=2.91", hub~4.5", web~0.5", rim~9"
+  // Surfaces: bore ID (D) → chamfer (C) → land (B) → chamfer (A) → fillet (E) → web → rim
+  hpt_disk: (params?: ShapeParameters) => {
+    const points: THREE.Vector2[] = [];
+
+    // Normalized proportions based on real V2500 dimensions (bore=2.91", rim≈9")
+    const boreRadius = 0.32;       // Bore ID - proportionally larger (2.91/9 ≈ 0.32)
+    const landWidth = 0.04;        // Surface B flat land width
+    const chamferSize = 0.035;     // Surfaces A & C chamfer depth
+    const hubRadius = 0.50;        // Hub outer radius where fillet E begins
+    const hubHalfHeight = 0.30;    // Hub half-height (axial, each side from center)
+    const filletRadius = 0.08;     // Fillet E radius (web-to-hub transition)
+    const webHalfThick = 0.05;     // Web half-thickness
+    const webToRimFillet = 0.06;   // Fillet radius at web-to-rim junction
+    const rimRadius = 0.95;        // Rim outer radius
+    const rimHalfHeight = 0.16;    // Rim half-height
+
+    // === BOTTOM HALF (bore outward, y negative = bottom) ===
+
+    // D: Bore inner wall (vertical, bottom)
+    points.push(new THREE.Vector2(boreRadius, -hubHalfHeight));
+
+    // C: Chamfer from bore wall to land (angled outward + upward)
+    points.push(new THREE.Vector2(boreRadius, -hubHalfHeight + 0.02));
+    points.push(new THREE.Vector2(boreRadius + chamferSize, -hubHalfHeight + chamferSize + 0.02));
+
+    // B: Flat land (horizontal face of hub)
+    points.push(new THREE.Vector2(boreRadius + chamferSize + landWidth, -hubHalfHeight + chamferSize + 0.02));
+
+    // A: Chamfer from land upward to fillet zone
+    points.push(new THREE.Vector2(boreRadius + chamferSize + landWidth + chamferSize, -hubHalfHeight + 2 * chamferSize + 0.02));
+
+    // E: Curved fillet from hub face down to web level (12-point arc for smoothness)
+    const eStartR = boreRadius + chamferSize + landWidth + chamferSize;
+    const eStartY = -hubHalfHeight + 2 * chamferSize + 0.02;
+    for (let i = 1; i <= 12; i++) {
+      const t = i / 12;
+      const angle = (Math.PI / 2) * t;
+      const r = eStartR + (hubRadius - eStartR) * (1 - Math.cos(angle));
+      const y = eStartY + ((-webHalfThick) - eStartY) * Math.sin(angle);
+      points.push(new THREE.Vector2(r, y));
+    }
+
+    // Hub to web transition
+    points.push(new THREE.Vector2(hubRadius + filletRadius, -webHalfThick));
+
+    // Web bottom surface (flat, extending outward to rim)
+    points.push(new THREE.Vector2(rimRadius - webToRimFillet * 2, -webHalfThick));
+
+    // Fillet: web to rim (8-point arc)
+    for (let i = 1; i <= 8; i++) {
+      const t = i / 8;
+      const angle = (Math.PI / 2) * t;
+      const r = rimRadius - webToRimFillet * 2 + webToRimFillet * 2 * Math.sin(angle);
+      const y = -webHalfThick - (rimHalfHeight - webHalfThick) * (1 - Math.cos(angle));
+      points.push(new THREE.Vector2(r, y));
+    }
+
+    // Rim outer wall
+    points.push(new THREE.Vector2(rimRadius, -rimHalfHeight));
+    points.push(new THREE.Vector2(rimRadius, rimHalfHeight));
+
+    // === TOP HALF (mirror of bottom, y positive = top) ===
+
+    // Fillet: rim to web (top)
+    for (let i = 1; i <= 8; i++) {
+      const t = i / 8;
+      const angle = (Math.PI / 2) * (1 - t);
+      const r = rimRadius - webToRimFillet * 2 + webToRimFillet * 2 * Math.sin(angle);
+      const y = webHalfThick + (rimHalfHeight - webHalfThick) * (1 - Math.cos(angle));
+      points.push(new THREE.Vector2(r, y));
+    }
+
+    // Web top surface
+    points.push(new THREE.Vector2(hubRadius + filletRadius, webHalfThick));
+
+    // E': Fillet from web to hub face (top, 12-point arc)
+    for (let i = 1; i <= 12; i++) {
+      const t = i / 12;
+      const angle = (Math.PI / 2) * (1 - t);
+      const r = eStartR + (hubRadius - eStartR) * (1 - Math.cos(angle));
+      const y = -(eStartY + ((-webHalfThick) - eStartY) * Math.sin(angle));
+      points.push(new THREE.Vector2(r, y));
+    }
+
+    // A': Chamfer (top)
+    points.push(new THREE.Vector2(boreRadius + chamferSize + landWidth + chamferSize, hubHalfHeight - 2 * chamferSize - 0.02));
+
+    // B': Land (top)
+    points.push(new THREE.Vector2(boreRadius + chamferSize + landWidth, hubHalfHeight - chamferSize - 0.02));
+
+    // C': Chamfer to bore (top)
+    points.push(new THREE.Vector2(boreRadius + chamferSize, hubHalfHeight - chamferSize - 0.02));
+    points.push(new THREE.Vector2(boreRadius, hubHalfHeight - 0.02));
+
+    // D': Bore inner wall (top)
+    points.push(new THREE.Vector2(boreRadius, hubHalfHeight));
+
+    const geometry = new THREE.LatheGeometry(points, 64);
+    return perfectCenter(geometry);
+  },
+
   // Generic fallbacks
   bar: (params?: ShapeParameters) => ShapeGeometries.box(params),
   forging: (params?: ShapeParameters) => ShapeGeometries.cylinder(params),
@@ -499,17 +602,56 @@ export const ShapeGeometries = {
 };
 
 /**
+ * PERFORMANCE: Global geometry cache to avoid recalculating expensive CSG operations
+ * Key: "partType-paramHash", Value: cloned BufferGeometry
+ */
+const geometryCache = new Map<string, THREE.BufferGeometry>();
+
+/**
+ * Generate a simple hash key for params
+ */
+function getParamsKey(params?: ShapeParameters): string {
+  if (!params) return 'default';
+  return JSON.stringify(params);
+}
+
+/**
  * Get geometry by part type with optional hollow parameters
+ * PERFORMANCE: Uses global cache to avoid regenerating expensive geometries
  */
 export const getGeometryByType = (
   partType: string,
   params?: ShapeParameters
 ): THREE.BufferGeometry => {
-  const geometryFunc = (ShapeGeometries as any)[partType];
-  if (geometryFunc) {
-    return geometryFunc(params);
+  const cacheKey = `${partType}-${getParamsKey(params)}`;
+
+  // Check cache first
+  const cached = geometryCache.get(cacheKey);
+  if (cached) {
+    // Return a clone to prevent shared geometry mutations
+    return cached.clone();
   }
-  // Fallback to generic box
-  const fallback = new THREE.BoxGeometry(1, 1, 1);
-  return perfectCenter(fallback);
+
+  const geometryFunc = (ShapeGeometries as any)[partType];
+  let geometry: THREE.BufferGeometry;
+
+  if (geometryFunc) {
+    geometry = geometryFunc(params);
+  } else {
+    // Fallback to generic box
+    geometry = perfectCenter(new THREE.BoxGeometry(1, 1, 1));
+  }
+
+  // Store in cache (clone to keep pristine copy)
+  geometryCache.set(cacheKey, geometry.clone());
+
+  return geometry;
+};
+
+/**
+ * Clear the geometry cache (useful for memory management)
+ */
+export const clearGeometryCache = (): void => {
+  geometryCache.forEach(geom => geom.dispose());
+  geometryCache.clear();
 };

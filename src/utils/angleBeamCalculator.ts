@@ -304,11 +304,11 @@ export const ANGLE_BEAM_BLOCKS: AngleBeamBlockSpec[] = [
     material: 'carbon_steel',
     thickness: 25,
     length: 300,
-    width: 100,
+    width: 25,   // ISO 2400: 300 x 25 x 100mm (width = 25mm, not 100mm)
     reflectorType: 'sdh',
     reflectors: [
-      { type: 'sdh', size: 1.5, depth: 25, position: 91 },  // 25mm deep SDH
-      { type: 'sdh', size: 1.5, depth: 50, position: 100 }  // 50mm radius arc
+      { type: 'sdh', size: 1.5, depth: 25, position: 91 },  // 25mm deep SDH at 91mm from edge
+      { type: 'sdh', size: 1.5, depth: 50, position: 100 }  // 50mm radius arc reference
     ],
     applicableAngles: [45, 60, 70],
     thicknessRange: [8, 100]

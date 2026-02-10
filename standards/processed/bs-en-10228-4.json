@@ -6,14 +6,14 @@
     "description": "European standard for ultrasonic testing of stainless steel forgings"
   },
   "qualityClasses": {
-    "description": "Four quality classes adapted for austenitic materials",
+    "description": "Three quality classes adapted for austenitic materials - Class 3 is most stringent, Class 1 is least stringent",
     "classes": {
       "1": {
         "name": "Quality Class 1",
-        "description": "Highest quality - adapted for coarse grain",
-        "recordingLevel": "Reference DAC -14 dB",
-        "acceptanceLevel": "Reference DAC -8 dB",
-        "evaluationLevel": "Reference DAC -2 dB"
+        "description": "Standard quality - commercial",
+        "recordingLevel": "Reference DAC -2 dB",
+        "acceptanceLevel": "Reference DAC +4 dB",
+        "evaluationLevel": "Reference DAC +10 dB"
       },
       "2": {
         "name": "Quality Class 2",
@@ -24,17 +24,10 @@
       },
       "3": {
         "name": "Quality Class 3",
-        "description": "Standard quality - commercial",
-        "recordingLevel": "Reference DAC -2 dB",
-        "acceptanceLevel": "Reference DAC +4 dB",
-        "evaluationLevel": "Reference DAC +10 dB"
-      },
-      "4": {
-        "name": "Quality Class 4",
-        "description": "Basic quality - general purpose",
-        "recordingLevel": "Reference DAC +4 dB",
-        "acceptanceLevel": "Reference DAC +10 dB",
-        "evaluationLevel": "Reference DAC +14 dB"
+        "description": "Highest quality - adapted for coarse grain",
+        "recordingLevel": "Reference DAC -14 dB",
+        "acceptanceLevel": "Reference DAC -8 dB",
+        "evaluationLevel": "Reference DAC -2 dB"
       }
     },
     "note": "Levels adjusted for higher attenuation in austenitic materials"
@@ -118,15 +111,14 @@
       "grouping": "Larger grouping distance due to beam spread"
     },
     "individualIndications": {
-      "class1": "No echo > acceptance level above noise",
+      "class1": "Max 4 echoes > acceptance level in 100cm²",
       "class2": "Max 2 echoes > acceptance level in 100cm²",
-      "class3": "Max 4 echoes > acceptance level in 100cm²",
-      "class4": "As agreed, considering noise level"
+      "class3": "No echo > acceptance level above noise"
     },
     "continuousIndications": {
       "definition": "Echo sustained over > 50 mm travel",
       "evaluation": "Investigate with multiple angles",
-      "acceptance": "Generally not acceptable in Class 1 & 2"
+      "acceptance": "Generally not acceptable in Class 2 & 3"
     }
   },
   "scanningProcedure": {

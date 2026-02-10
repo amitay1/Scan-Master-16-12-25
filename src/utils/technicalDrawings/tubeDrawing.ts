@@ -104,18 +104,18 @@ function drawFrontView(
   // Length dimension at bottom
   generator.drawDimension(
     outerX,
-    outerY + scaledOD + 40,
+    outerY + scaledOD + 50,
     outerX + scaledLength,
-    outerY + scaledOD + 40,
+    outerY + scaledOD + 50,
     `L=${length}mm`,
     5
   );
 
   // OD dimension on right side (moved from left to avoid overlap with ID)
   generator.drawDimension(
-    outerX + scaledLength + 35,
+    outerX + scaledLength + 45,
     outerY,
-    outerX + scaledLength + 35,
+    outerX + scaledLength + 45,
     outerY + scaledOD,
     `OD=${outerDiameter}mm`,
     5
@@ -123,9 +123,9 @@ function drawFrontView(
 
   // ID dimension on left side
   generator.drawDimension(
-    outerX - 40,
+    outerX - 50,
     innerY,
-    outerX - 40,
+    outerX - 50,
     innerY + scaledID,
     `ID=${innerDiameter.toFixed(1)}mm`,
     5
@@ -199,15 +199,15 @@ function drawSideView(
 
   generator.drawDimension(
     centerX - scaledInnerRadius,
-    centerY + scaledInnerRadius + 40,
+    centerY + scaledInnerRadius + 35,
     centerX + scaledInnerRadius,
-    centerY + scaledInnerRadius + 40,
+    centerY + scaledInnerRadius + 35,
     `ID=${innerDiameter.toFixed(1)}mm`,
     5
   );
 
   // Wall thickness indicator
-  generator.drawText(
+  generator.drawTextWithBackground(
     centerX + scaledOuterRadius + 25,
     centerY - scaledOuterRadius / 2,
     `t=${wallThickness.toFixed(1)}mm`,

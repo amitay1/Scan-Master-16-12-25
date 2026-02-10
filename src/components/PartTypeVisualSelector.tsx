@@ -40,14 +40,19 @@ const allPartTypes: PartTypeOption[] = [
   { value: "sphere", label: "Sphere", description: "Spherical parts", color: "#3498DB", icon: "🔵", gradient: "from-cyan-500/20 via-cyan-400/10 to-transparent" },
   { value: "impeller", label: "Impeller", description: "Complex stepped disk with R surfaces (aero engine)", color: "#E74C3C", icon: "🌀", gradient: "from-red-500/20 via-red-400/10 to-transparent" },
   { value: "blisk", label: "Blisk (Bladed Disk)", description: "Integrated blade-disk for aero engines", color: "#2980B9", icon: "🔷", gradient: "from-blue-600/20 via-blue-500/10 to-transparent" },
+  { value: "hpt_disk", label: "HPT Disk", description: "Turbine disk with stepped bore (V2500 NDIP)", color: "#D35400", icon: "🔶", gradient: "from-orange-600/20 via-orange-500/10 to-transparent" },
 ];
 
 // Mini 3D Shape Component for inline preview
-function Mini3DShape({ partType, color, isHovered }: { partType: string; color: string; isHovered: boolean }) {
+// PERFORMANCE: Only animates when visible on screen
+function Mini3DShape({ partType, color, isHovered, isVisible = true }: { partType: string; color: string; isHovered: boolean; isVisible?: boolean }) {
   const geometry = React.useMemo(() => getGeometryByType(partType), [partType]);
   const meshRef = useRef<THREE.Mesh>(null);
 
   React.useEffect(() => {
+    // PERFORMANCE: Skip animation loop entirely if not visible
+    if (!isVisible) return;
+
     let animationId: number;
     const animate = () => {
       if (meshRef.current) {
@@ -57,7 +62,7 @@ function Mini3DShape({ partType, color, isHovered }: { partType: string; color: 
     };
     animate();
     return () => cancelAnimationFrame(animationId);
-  }, [isHovered]);
+  }, [isHovered, isVisible]);
 
   return (
     <mesh ref={meshRef} geometry={geometry} scale={isHovered ? 0.85 : 0.7}>
@@ -72,22 +77,45 @@ function Mini3DShape({ partType, color, isHovered }: { partType: string; color: 
 }
 
 // Inline 3D preview component
+// PERFORMANCE: Uses IntersectionObserver to only render when visible
 function Inline3DPreview({ partType, color, isHovered }: { partType: string; color: string; isHovered: boolean }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isVisible, setIsVisible] = useState(false);
+
+  // Track visibility with IntersectionObserver
+  React.useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => setIsVisible(entry.isIntersecting),
+      { threshold: 0.1 }
+    );
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, []);
+
   return (
-    <div className="w-8 h-8 relative">
-      <Canvas
-        camera={{ position: [0, 0, 3.5], fov: 40 }}
-        style={{ background: 'transparent' }}
-        gl={{ antialias: true, alpha: true }}
-      >
-        <ambientLight intensity={0.6} />
-        <directionalLight position={[5, 5, 5]} intensity={1} />
-        <directionalLight position={[-3, 2, -3]} intensity={0.4} color="#e0e8ff" />
-        <pointLight position={[0, 0, 3]} intensity={isHovered ? 0.8 : 0.3} color={color} />
-        <Suspense fallback={null}>
-          <Mini3DShape partType={partType} color={color} isHovered={isHovered} />
-        </Suspense>
-      </Canvas>
+    <div ref={containerRef} className="w-8 h-8 relative">
+      {/* PERFORMANCE: Only render Canvas when visible */}
+      {isVisible ? (
+        <Canvas
+          camera={{ position: [0, 0, 3.5], fov: 40 }}
+          style={{ background: 'transparent' }}
+          gl={{ antialias: true, alpha: true }}
+          frameloop="demand"
+        >
+          <ambientLight intensity={0.6} />
+          <directionalLight position={[5, 5, 5]} intensity={1} />
+          <directionalLight position={[-3, 2, -3]} intensity={0.4} color="#e0e8ff" />
+          <pointLight position={[0, 0, 3]} intensity={isHovered ? 0.8 : 0.3} color={color} />
+          <Suspense fallback={null}>
+            <Mini3DShape partType={partType} color={color} isHovered={isHovered} isVisible={isVisible} />
+          </Suspense>
+        </Canvas>
+      ) : (
+        <div className="w-full h-full bg-slate-800/50 rounded animate-pulse" />
+      )}
       {/* Glow effect */}
       <div 
         className={cn(
