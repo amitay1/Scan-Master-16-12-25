@@ -150,8 +150,8 @@ export const FREQUENCY_RANGES: Record<StandardType, FrequencyRange> = {
   "ASTM-E164": { min: 1, max: 10, recommended: [2.25, 5] },
 
   // European Standards (BS EN)
-  "BS-EN-10228-3": { min: 1, max: 5, recommended: [2, 4, 5] },
-  "BS-EN-10228-4": { min: 0.5, max: 4, recommended: [0.5, 1, 2] },
+  "BS-EN-10228-3": { min: 1, max: 6, recommended: [2, 4, 5, 6] },
+  "BS-EN-10228-4": { min: 0.5, max: 6, recommended: [0.5, 1, 2, 4, 5, 6] },
   "EN-ISO-16810": { min: 0.5, max: 15, recommended: [2, 4, 5] },
 
   // AMS Material-Specific Standards
@@ -160,8 +160,12 @@ export const FREQUENCY_RANGES: Record<StandardType, FrequencyRange> = {
   "AMS-2632": { min: 5, max: 25, recommended: [10, 15, 20] },  // Thin materials, higher freq
 
   // OEM-Specific Standards (Pratt & Whitney)
-  "NDIP-1226": { min: 5, max: 15, recommended: [10] },
-  "NDIP-1227": { min: 5, max: 15, recommended: [10] },
+  "NDIP-1226": { min: 5, max: 5, recommended: [5] },
+  "NDIP-1227": { min: 5, max: 5, recommended: [5] },
+  "NDIP-1254": { min: 5, max: 5, recommended: [5] },
+  "NDIP-1257": { min: 5, max: 5, recommended: [5] },
+  "NDIP-1260": { min: 5, max: 5, recommended: [5] },
+  "PWA-SIM": { min: 2.25, max: 10, recommended: [5] },
 };
 
 // Linearity requirements per standard
@@ -194,6 +198,10 @@ export const LINEARITY_REQUIREMENTS: Record<StandardType, LinearityRequirement> 
   // OEM-Specific Standards (Pratt & Whitney)
   "NDIP-1226": { vertical: 2, horizontal: 1 },  // Stricter for critical engine components
   "NDIP-1227": { vertical: 2, horizontal: 1 },  // Stricter for critical engine components
+  "NDIP-1254": { vertical: 2, horizontal: 1 },
+  "NDIP-1257": { vertical: 2, horizontal: 1 },
+  "NDIP-1260": { vertical: 2, horizontal: 1 },
+  "PWA-SIM": { vertical: 5, horizontal: 2 },
 };
 
 // Calibration date requirements (days)

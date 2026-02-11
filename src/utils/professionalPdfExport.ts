@@ -1,6 +1,7 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { ComplianceStandard, complianceEngine } from "./standards/complianceEngine";
+import { acceptanceCriteriaByStandard } from "@/data/standardsDifferences";
 import type {
   StandardType,
   InspectionSetupData,
@@ -625,8 +626,8 @@ export class ProfessionalPDFExporter {
       body: [
         ["AMS-STD-2154E", "1-15 MHz", "150 mm/s", "30%", "Highest"],
         ["ASTM A388", "1-5 MHz", "150-300 mm/s", "10-15%", "Standard"],
-        ["BS EN 10228-3", "1-5 MHz", "150-500 mm/s", "10%", "European"],
-        ["BS EN 10228-4", "0.5-2 MHz", "100-250 mm/s", "20%", "Specialized"],
+        ["BS EN 10228-3", "1-6 MHz (nominal)", "150-500 mm/s", "10%", "European"],
+        ["BS EN 10228-4", "0.5-6 MHz (typ. 0.5-2)", "100-250 mm/s", "20%", "Specialized"],
       ],
       theme: "striped",
       headStyles: { 
@@ -1320,24 +1321,24 @@ export class ProfessionalPDFExporter {
 
   private getAcceptanceLimit(data: ProfessionalTechniqueSheetData, type: "single" | "multiple" | "linear"): string {
     const standard = data.standard;
-    const acceptanceClass = data.acceptanceCriteria.acceptanceClass || "A";
-    
-    if (standard === "MIL-STD-2154" || standard === "AMS-STD-2154E") {
-      switch (type) {
-        case "single":
-          return acceptanceClass === "AAA" ? "Reference FBH" 
-            : acceptanceClass === "A" ? "150% FBH"
-            : "200% FBH";
-        case "multiple":
-          return acceptanceClass === "AAA" ? "50% FBH, max 3"
-            : acceptanceClass === "A" ? "Reference FBH, max 10"
-            : "150% FBH";
-        case "linear":
-          return acceptanceClass === "AAA" ? "Not permitted"
-            : acceptanceClass === "A" ? "6 inches max"
-            : "No limit";
-      }
+    const acceptanceClass = data.acceptanceCriteria.acceptanceClass || "";
+    const criteriaSet = acceptanceCriteriaByStandard[standard];
+    if (!criteriaSet) return "Per standard";
+
+    const fallbackKey = Object.keys(criteriaSet)[0];
+    const selectedCriteria = criteriaSet[acceptanceClass as keyof typeof criteriaSet]
+      || criteriaSet[fallbackKey as keyof typeof criteriaSet];
+    if (!selectedCriteria) return "Per standard";
+
+    switch (type) {
+      case "single":
+        return selectedCriteria.singleDiscontinuity || "Per standard";
+      case "multiple":
+        return selectedCriteria.multipleDiscontinuities || "Per standard";
+      case "linear":
+        return selectedCriteria.linearDiscontinuity || "Per standard";
     }
+
     return "Per standard";
   }
 }

@@ -10,6 +10,15 @@ import type {
 } from "@/types/techniqueSheet";
 import { standardRules, getRecommendedFrequency, getCouplantRecommendation, calculateMetalTravel } from "@/utils/enhancedAutoFillLogic";
 import { getDefaultAcceptanceClass } from "@/data/standardsDifferences";
+import { getInspectionThickness } from "@/utils/inspectionThickness";
+
+const FIXED_FREQUENCY_STANDARDS: StandardType[] = [
+  "NDIP-1226",
+  "NDIP-1227",
+  "NDIP-1254",
+  "NDIP-1257",
+  "NDIP-1260",
+];
 
 interface UseStandardAutoFillParams {
   standard: StandardType;
@@ -80,39 +89,80 @@ export function useStandardAutoFill({
 
   // Auto-fill frequency when material changes – Part A
   useEffect(() => {
-    if (inspectionSetup.material && inspectionSetup.partThickness) {
+    if (FIXED_FREQUENCY_STANDARDS.includes(standard)) {
+      if (equipment.frequency !== "5.0") {
+        setEquipment(prev => ({ ...prev, frequency: "5.0" }));
+      }
+      return;
+    }
+
+    const inspectionThickness = getInspectionThickness(inspectionSetup, 0);
+    if (inspectionSetup.material && inspectionThickness > 0) {
       const recommendedFreq = getRecommendedFrequency(
-        inspectionSetup.partThickness,
+        inspectionThickness,
         inspectionSetup.material as MaterialType,
       );
       if (equipment.frequency === "5.0" || !equipment.frequency) {
         setEquipment(prev => ({ ...prev, frequency: recommendedFreq }));
       }
-      const metalTravel = calculateMetalTravel(inspectionSetup.partThickness);
+      const metalTravel = calculateMetalTravel(inspectionThickness);
       setCalibration(prev => ({
         ...prev,
         metalTravelDistance: prev.metalTravelDistance === 0 ? metalTravel : prev.metalTravelDistance,
       }));
     }
-  }, [inspectionSetup.material, inspectionSetup.partThickness, equipment.frequency, setEquipment, setCalibration]);
+  }, [
+    inspectionSetup.material,
+    inspectionSetup.partType,
+    inspectionSetup.partThickness,
+    inspectionSetup.wallThickness,
+    inspectionSetup.isHollow,
+    inspectionSetup.diameter,
+    inspectionSetup.innerDiameter,
+    standard,
+    equipment.frequency,
+    setEquipment,
+    setCalibration,
+  ]);
 
   // Auto-fill frequency when material changes – Part B
   useEffect(() => {
-    if (isSplitMode && inspectionSetupB.material && inspectionSetupB.partThickness) {
+    if (FIXED_FREQUENCY_STANDARDS.includes(standard)) {
+      if (isSplitMode && equipmentB.frequency !== "5.0") {
+        setEquipmentB(prev => ({ ...prev, frequency: "5.0" }));
+      }
+      return;
+    }
+
+    const inspectionThickness = getInspectionThickness(inspectionSetupB, 0);
+    if (isSplitMode && inspectionSetupB.material && inspectionThickness > 0) {
       const recommendedFreq = getRecommendedFrequency(
-        inspectionSetupB.partThickness,
+        inspectionThickness,
         inspectionSetupB.material as MaterialType,
       );
       if (equipmentB.frequency === "5.0" || !equipmentB.frequency) {
         setEquipmentB(prev => ({ ...prev, frequency: recommendedFreq }));
       }
-      const metalTravel = calculateMetalTravel(inspectionSetupB.partThickness);
+      const metalTravel = calculateMetalTravel(inspectionThickness);
       setCalibrationB(prev => ({
         ...prev,
         metalTravelDistance: prev.metalTravelDistance === 0 ? metalTravel : prev.metalTravelDistance,
       }));
     }
-  }, [isSplitMode, inspectionSetupB.material, inspectionSetupB.partThickness, equipmentB.frequency, setEquipmentB, setCalibrationB]);
+  }, [
+    isSplitMode,
+    inspectionSetupB.material,
+    inspectionSetupB.partType,
+    inspectionSetupB.partThickness,
+    inspectionSetupB.wallThickness,
+    inspectionSetupB.isHollow,
+    inspectionSetupB.diameter,
+    inspectionSetupB.innerDiameter,
+    standard,
+    equipmentB.frequency,
+    setEquipmentB,
+    setCalibrationB,
+  ]);
 
   // Auto-fill couplant – Part A
   useEffect(() => {

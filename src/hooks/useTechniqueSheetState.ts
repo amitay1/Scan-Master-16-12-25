@@ -19,11 +19,14 @@ import {
   acceptanceClassesByStandard,
   acceptanceCriteriaByStandard,
   calibrationByStandard,
+  equipmentParametersByStandard,
   getDefaultAcceptanceClass,
   getFBHSizeForStandard,
   scanParametersByStandard,
 } from "@/data/standardsDifferences";
 import { PW_ANGLE_CALIBRATION_BLOCK } from "@/rules/pw/pwCalibrationBlocks";
+import { getInspectionThickness } from "@/utils/inspectionThickness";
+import { normalizeScanDetailsForStandard } from "@/utils/pwScanDetailDefaults";
 
 // ג”€ג”€ Default initial values ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
 
@@ -45,8 +48,13 @@ const defaultEquipment: EquipmentData = {
   serialNumber: "",
   frequency: "5.0",
   transducerType: "",
+  transducerTypes: [],
+  transducerShapeAndSize: "",
   transducerDiameter: 0.5,
   couplant: "",
+  customCouplant: "",
+  includeSelectionNotesInReport: false,
+  selectionNotes: "",
   verticalLinearity: 95,
   horizontalLinearity: 85,
   entrySurfaceResolution: 0.125,
@@ -86,6 +94,8 @@ const defaultAcceptanceCriteria: AcceptanceCriteriaData = {
   backReflectionLoss: 50,
   noiseLevel: "",
   specialRequirements: "",
+  standardNotes: "",
+  includeStandardNotesInReport: false,
 };
 
 const defaultDocumentation = (): DocumentationData => ({
@@ -449,6 +459,7 @@ export function useTechniqueSheetState({
     const applyScanParameters = (prev: ScanParametersData): ScanParametersData => {
       const rules = scanParametersByStandard[nextStandard];
       if (!rules) return prev;
+      const isPwNdip = nextStandard === "NDIP-1226" || nextStandard === "NDIP-1227";
 
       const minOverlap = Number.isFinite(rules.minOverlap) ? rules.minOverlap : 0;
       const maxIndex = Math.max(0, Math.min(100, 100 - minOverlap));
@@ -460,6 +471,10 @@ export function useTechniqueSheetState({
 
       let scanType = (prev.scanType || "").trim();
       if (!scanType) scanType = "manual";
+      if (isPwNdip) {
+        // NDIP V2500 procedures are automated immersion workflows.
+        scanType = "fully_automated";
+      }
 
       // PW NDIP is automated-only (manual max speed is 0 in our rules table)
       const manualMax = rules.maxSpeedManual?.value ?? 0;
@@ -472,7 +487,6 @@ export function useTechniqueSheetState({
       let scanSpeed = Number.isFinite(prev.scanSpeed) ? prev.scanSpeed : 100;
       if (maxSpeed > 0) scanSpeed = Math.min(scanSpeed, maxSpeed);
 
-      const isPwNdip = nextStandard === "NDIP-1226" || nextStandard === "NDIP-1227";
       const waterPathMm = isPwNdip ? 8.0 * 25.4 : prev.waterPath;
 
       const scanMethods = isPwNdip ? ["immersion"] : (prev.scanMethods || []);
@@ -493,13 +507,17 @@ export function useTechniqueSheetState({
 
     const applyEquipment = (prev: EquipmentData): EquipmentData => {
       const isPwNdip = nextStandard === "NDIP-1226" || nextStandard === "NDIP-1227";
-      if (!isPwNdip) return prev;
+      const eqRules = equipmentParametersByStandard[nextStandard];
+      const typicalFrequency = eqRules?.frequencyRange?.typical;
+      const normalizedFrequency = Number.isFinite(typicalFrequency)
+        ? (Number.isInteger(typicalFrequency) ? typicalFrequency.toFixed(1) : String(typicalFrequency))
+        : prev.frequency;
 
       return {
         ...prev,
-        frequency: "5.0",
-        transducerType: prev.transducerType || "immersion",
-        couplant: prev.couplant || "Water (Immersion)",
+        frequency: normalizedFrequency,
+        transducerType: isPwNdip ? (prev.transducerType || "immersion") : prev.transducerType,
+        couplant: isPwNdip ? (prev.couplant || "Water (Immersion)") : prev.couplant,
       };
     };
 
@@ -573,14 +591,25 @@ export function useTechniqueSheetState({
 
     // Calibration uses thickness + acceptance class; derive from each part\'s current setup.
     setCalibration((prev) => {
-      const t = inspectionSetup.wallThickness || inspectionSetup.partThickness || 25;
+      const t = getInspectionThickness(inspectionSetup, 25);
       const nextClass = getValidClassForStandard(nextStandard, acceptanceCriteria.acceptanceClass as any);
       return applyCalibration(prev, t, nextClass);
     });
     setCalibrationB((prev) => {
-      const t = inspectionSetupB.wallThickness || inspectionSetupB.partThickness || 25;
+      const t = getInspectionThickness(inspectionSetupB, 25);
       const nextClass = getValidClassForStandard(nextStandard, acceptanceCriteriaB.acceptanceClass as any);
       return applyCalibration(prev, t, nextClass);
+    });
+
+    // Keep scan-direction rows aligned with the selected standard so stale
+    // directions from a previous standard do not persist.
+    setScanDetails((prev) => {
+      const normalized = normalizeScanDetailsForStandard(prev.scanDetails, nextStandard);
+      return normalized ? { ...prev, scanDetails: normalized } : prev;
+    });
+    setScanDetailsB((prev) => {
+      const normalized = normalizeScanDetailsForStandard(prev.scanDetails, nextStandard);
+      return normalized ? { ...prev, scanDetails: normalized } : prev;
     });
   }, [
     setStandard,
@@ -592,6 +621,8 @@ export function useTechniqueSheetState({
     setEquipmentB,
     setCalibration,
     setCalibrationB,
+    setScanDetails,
+    setScanDetailsB,
     inspectionSetup,
     inspectionSetupB,
     acceptanceCriteria.acceptanceClass,

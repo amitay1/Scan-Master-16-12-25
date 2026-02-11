@@ -18,6 +18,7 @@ import {
 } from "@/utils/calibrationRecommenderV2";
 import { logInfo, logWarn } from "@/lib/logger";
 import type { ScanDetailsData } from "@/types/scanDetails";
+import { getInspectionThickness } from "@/utils/inspectionThickness";
 
 // LocalStorage keys for custom items persistence
 const STORAGE_KEYS = {
@@ -622,11 +623,13 @@ export const InspectionSetupTab = ({
   // PERFORMANCE: Debounced to prevent lag on rapid shape changes
   // ═══════════════════════════════════════════════════════════════════════════
   useEffect(() => {
+    const effectiveThickness = getInspectionThickness(data, 0);
+
     // Only run if we have all required parameters
     if (
       !data.material ||
       !data.partType ||
-      !data.partThickness ||
+      effectiveThickness <= 0 ||
       !acceptanceClass ||
       !standardType ||
       data.partType === "custom" ||  // Skip custom shapes
@@ -656,7 +659,7 @@ export const InspectionSetupTab = ({
         materialSpec: data.materialSpec || "",
         partType: data.partType as PartGeometry,
         standard: standardType,
-        thickness: data.partThickness,
+        thickness: effectiveThickness,
         length: data.partLength,
         width: data.partWidth,
         outerDiameter: data.diameter,
@@ -694,6 +697,8 @@ export const InspectionSetupTab = ({
     data.material,
     data.partType,
     data.partThickness,
+    data.wallThickness,
+    data.isHollow,
     data.diameter,
     data.innerDiameter,
     acceptanceClass,

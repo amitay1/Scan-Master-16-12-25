@@ -302,22 +302,22 @@ const acceptanceCriteriaByStandardBase = {
   // PW NDIP Standards - OEM-specific acceptance criteria
   "NDIP-1226": {
     "PW-V2500-1": {
-      singleDiscontinuity: "ג‰¥20% FSH (with DAC applied) - Amplitude rejection",
-      multipleDiscontinuities: "ג‰¥15% FSH evaluation level for adjacent indications",
-      linearDiscontinuity: ">2x1 or 1x2 amplitude pixels at rejection threshold",
-      backReflectionLoss: "Per calibration verification (ֲ±1 dB tolerance)",
+      singleDiscontinuity: "Amplitude C-Scan reject: >=20% FSH (FBH#1 set to 80% FSH); evaluation at 15% FSH",
+      multipleDiscontinuities: "TOF reject: >=15 connected pixels over >=3 adjacent scan lines, SNR >=1.5:1",
+      linearDiscontinuity: "Amplitude cluster minimum: 3 adjacent pixels (depth delta <=0.025\"); TOF depth deltas: scan <=0.025\", index <=0.010\"",
+      backReflectionLoss: "Post-calibration verification within +/-1 dB of initial calibration",
       noiseLevel: "Max 7.5% FSH average, 8.5% FSH band noise",
-      specialNotes: "PW V2500 1st Stage HPT Disk. TOF criteria: ג‰¥15 pixels over 3+ scan lines with SNR ג‰¥1.5:1. Circumferential shear wave ֲ±45ֲ°. #1 FBH (1/64\") at 80% FSH. Per NDIP-1226 Rev F."
+      specialNotes: "PW V2500 1st Stage HPT Disk. Circumferential shear wave +/-45°. #1 FBH (1/64\") at 80% FSH. Rejection criteria per NDIP-1226 Rev F Section 8.0."
     },
   },
   "NDIP-1227": {
     "PW-V2500-2": {
-      singleDiscontinuity: "ג‰¥20% FSH (with DAC applied) - Amplitude rejection",
-      multipleDiscontinuities: "ג‰¥15% FSH evaluation level for adjacent indications",
-      linearDiscontinuity: ">2x1 or 1x2 amplitude pixels at rejection threshold",
-      backReflectionLoss: "Per calibration verification (ֲ±1 dB tolerance)",
+      singleDiscontinuity: "Amplitude C-Scan reject: >=20% FSH (FBH#1 set to 80% FSH); evaluation at 15% FSH",
+      multipleDiscontinuities: "TOF reject: >=15 connected pixels over >=3 adjacent scan lines, SNR >=1.5:1",
+      linearDiscontinuity: "Amplitude cluster minimum: 3 adjacent pixels (depth delta <=0.025\"); TOF depth deltas along beam axis: scan <=0.025\", index <=0.010\"",
+      backReflectionLoss: "Post-calibration verification within +/-1 dB of initial calibration",
       noiseLevel: "Max 7.5% FSH average, 8.5% FSH band noise",
-      specialNotes: "PW V2500 2nd Stage HPT Disk. TOF criteria: ג‰¥15 pixels over 3+ scan lines with SNR ג‰¥1.5:1. Circumferential shear wave ֲ±45ֲ°. #1 FBH (1/64\") at 80% FSH. Per NDIP-1227 Rev D."
+      specialNotes: "PW V2500 2nd Stage HPT Disk. Circumferential shear wave +/-45°. #1 FBH (1/64\") at 80% FSH. Rejection criteria per NDIP-1227 Rev D Section 8.0."
     },
   },
   // PW1100G GTF NDIPs ג€” criteria based on FAA AD 2022-19-15 / AD 2023-16-07 (powder metal screening)
@@ -370,12 +370,12 @@ const acceptanceCriteriaByStandardBase = {
   // ASTM E2375 - Adopted from MIL-STD-2154 (same criteria as AMS-STD-2154E)
   "ASTM-E2375": {
     "AAA": {
-      singleDiscontinuity: "1/64\" (0.4mm) FBH response",
-      multipleDiscontinuities: "1/64\" (0.4mm) FBH (centers <1\" apart)",
-      linearDiscontinuity: "1/64\" (0.4mm) FBH, 1/8\" max length",
-      backReflectionLoss: "Per Note 4 - with noise change indication",
-      noiseLevel: "Alarm level",
-      specialNotes: "ASTM E2375 adopted MIL-STD-2154 criteria. Most stringent class for rotating parts."
+      singleDiscontinuity: "1/64\" (0.4mm) OR 25% of 3/64\" response",
+      multipleDiscontinuities: "10% of 3/64\" response (centers <1\" apart)",
+      linearDiscontinuity: "10% of 3/64\" response, 1/8\" max length",
+      backReflectionLoss: "50% (see Note 4)",
+      noiseLevel: "10% of 3/64\" response (see Note 5)",
+      specialNotes: "ASTM E2375 adopted MIL-STD-2154 criteria. Most stringent class for rotating parts. Titanium adjustments per Table VI Note 6 may apply."
     },
     "AA": {
       singleDiscontinuity: "3/64\" (1.2mm) FBH response",
@@ -387,7 +387,7 @@ const acceptanceCriteriaByStandardBase = {
     },
     "A": {
       singleDiscontinuity: "5/64\" (2.0mm) FBH response",
-      multipleDiscontinuities: "2/64\" (0.8mm) FBH (centers <1\" apart)",
+      multipleDiscontinuities: "3/64\" (1.2mm) FBH (centers <1\" apart)",
       linearDiscontinuity: "3/64\" (1.2mm) FBH, 1\" max length",
       backReflectionLoss: "50% maximum",
       noiseLevel: "Alarm level",
@@ -395,7 +395,7 @@ const acceptanceCriteriaByStandardBase = {
     },
     "B": {
       singleDiscontinuity: "8/64\" (3.2mm) FBH response",
-      multipleDiscontinuities: "3/64\" (1.2mm) FBH (centers <1\" apart)",
+      multipleDiscontinuities: "5/64\" (2.0mm) FBH (centers <1\" apart)",
       linearDiscontinuity: "5/64\" (2.0mm) FBH, 1\" max length",
       backReflectionLoss: "50% maximum",
       noiseLevel: "Alarm level",
@@ -403,7 +403,7 @@ const acceptanceCriteriaByStandardBase = {
     },
     "C": {
       singleDiscontinuity: "8/64\" (3.2mm) FBH response",
-      multipleDiscontinuities: "5/64\" (2.0mm) FBH",
+      multipleDiscontinuities: "Not applicable",
       linearDiscontinuity: "Not applicable",
       backReflectionLoss: "50% maximum",
       noiseLevel: "Alarm level",
@@ -454,11 +454,11 @@ const acceptanceCriteriaByStandardBase = {
   // AMS-2630 - Products >0.5" thick
   "AMS-2630": {
     "AAA": {
-      singleDiscontinuity: "1/64\" (0.4mm) FBH response",
-      multipleDiscontinuities: "1/64\" (0.4mm) FBH (centers <1\" apart)",
-      linearDiscontinuity: "1/64\" (0.4mm) FBH, 1/8\" max length",
-      backReflectionLoss: "Per specification",
-      noiseLevel: "Alarm level",
+      singleDiscontinuity: "1/64\" (0.4mm) OR 25% of 3/64\" response",
+      multipleDiscontinuities: "10% of 3/64\" response (centers <1\" apart)",
+      linearDiscontinuity: "10% of 3/64\" response, 1/8\" max length",
+      backReflectionLoss: "50% (see Note 4)",
+      noiseLevel: "10% of 3/64\" response (see Note 5)",
       specialNotes: "Products over 0.5\" thick. Ultra-critical class. Consistent with AMS-STD-2154E methodology."
     },
     "AA": {
@@ -471,7 +471,7 @@ const acceptanceCriteriaByStandardBase = {
     },
     "A": {
       singleDiscontinuity: "5/64\" (2.0mm) FBH response",
-      multipleDiscontinuities: "2/64\" (0.8mm) FBH (centers <1\" apart)",
+      multipleDiscontinuities: "3/64\" (1.2mm) FBH (centers <1\" apart)",
       linearDiscontinuity: "3/64\" (1.2mm) FBH, 1\" max length",
       backReflectionLoss: "50% maximum",
       noiseLevel: "Alarm level",
@@ -479,7 +479,7 @@ const acceptanceCriteriaByStandardBase = {
     },
     "B": {
       singleDiscontinuity: "8/64\" (3.2mm) FBH response",
-      multipleDiscontinuities: "3/64\" (1.2mm) FBH (centers <1\" apart)",
+      multipleDiscontinuities: "5/64\" (2.0mm) FBH (centers <1\" apart)",
       linearDiscontinuity: "5/64\" (2.0mm) FBH, 1\" max length",
       backReflectionLoss: "50% maximum",
       noiseLevel: "Alarm level",
@@ -487,7 +487,7 @@ const acceptanceCriteriaByStandardBase = {
     },
     "C": {
       singleDiscontinuity: "8/64\" (3.2mm) FBH response",
-      multipleDiscontinuities: "5/64\" (2.0mm) FBH",
+      multipleDiscontinuities: "Not applicable",
       linearDiscontinuity: "Not applicable",
       backReflectionLoss: "50% maximum",
       noiseLevel: "Alarm level",
@@ -681,22 +681,22 @@ const equipmentParametersByStandardBase = {
     notes: "Lower frequencies for heavy steel forgings. Select based on grain structure."
   },
   "BS-EN-10228-3": {
-    frequencyRange: { min: 1, max: 5, typical: 2, unit: "MHz" },
+    frequencyRange: { min: 1, max: 6, typical: 2, unit: "MHz" },
     verticalLinearity: { min: 80, max: 100 },
     horizontalLinearity: null,
     frequencyTolerance: null,
     prfRange: null,
     transducerDiameter: { min: 10, max: 25, unit: "mm" },
-    notes: "Frequency selection based on material grain size and thickness."
+    notes: "Nominal probe frequency range is 1-6 MHz. Select lower frequencies for coarse grain or heavy sections."
   },
   "BS-EN-10228-4": {
-    frequencyRange: { min: 0.5, max: 4, typical: 1, unit: "MHz" },
+    frequencyRange: { min: 0.5, max: 6, typical: 1, unit: "MHz" },
     verticalLinearity: { min: 80, max: 100 },
     horizontalLinearity: null,
     frequencyTolerance: null,
     prfRange: null,
     transducerDiameter: { min: 20, max: 30, unit: "mm" },
-    notes: "Low frequency required for austenitic materials due to coarse grain and high attenuation. Consider 0.5-1 MHz for very coarse grain."
+    notes: "Nominal probe frequency range is 0.5-6 MHz. For coarse-grain austenitic materials, use the lowest practical frequency (typically 0.5-2 MHz) for penetration."
   },
   // PW NDIP Standards - OEM-specific equipment
   "NDIP-1226": {
@@ -890,19 +890,19 @@ const scanParametersByStandardBase = {
   // PW NDIP Standards - OEM-specific scan parameters
   "NDIP-1226": {
     maxSpeedManual: { value: 0, unit: "mm/s" }, // Not applicable - automated only
-    maxSpeedAutomated: { value: 127, unit: "mm/s" }, // 5 in/s max
-    minOverlap: 25, // Per PW coverage requirements
+    maxSpeedAutomated: { value: 0, unit: "mm/s" }, // Not explicitly specified in NDIP
+    minOverlap: 0, // NDIP controls scan/index by absolute increments, not overlap percent
     coverageRequired: 100,
-    calibrationFrequency: "Before each disk, after setup changes, every 8 hours",
+    calibrationFrequency: "Initial calibration per Section 5.1; post-calibration required prior to shift/PN/transducer changes and after interruptions",
     sensitivityGain: "80% FSH on #1 FBH reference, DAC curve required",
     notes: "PW V2500 1st Stage HPT. Max scan increment: 0.020\". Max index: 0.020\"/rev. Circumferential shear wave ֲ±45ֲ°. 8\" water path immersion."
   },
   "NDIP-1227": {
     maxSpeedManual: { value: 0, unit: "mm/s" }, // Not applicable - automated only
-    maxSpeedAutomated: { value: 127, unit: "mm/s" }, // 5 in/s max
-    minOverlap: 25, // Per PW coverage requirements
+    maxSpeedAutomated: { value: 0, unit: "mm/s" }, // Not explicitly specified in NDIP
+    minOverlap: 0, // NDIP controls scan/index by absolute increments, not overlap percent
     coverageRequired: 100,
-    calibrationFrequency: "Before each disk, after setup changes, every 8 hours",
+    calibrationFrequency: "Initial calibration per Section 5.1; post-calibration required prior to shift/PN/transducer changes and after interruptions",
     sensitivityGain: "80% FSH on #1 FBH reference, DAC curve required",
     notes: "PW V2500 2nd Stage HPT. Max scan increment: 0.020\". Max index: 0.020\"/rev. Circumferential shear wave ֲ±45ֲ°. 8\" water path immersion."
   },
@@ -1333,7 +1333,7 @@ const calibrationByStandardBase = {
   // PW NDIP Standards - OEM-specific calibration
   "NDIP-1226": {
     referenceBlockMaterial: "Powdered nickel equivalent - IAE2P16675 angle block",
-    calibrationInterval: "Before each disk, after setup changes, every 8 hours during continuous operation",
+    calibrationInterval: "Post-calibration required prior to shift change, part number change, transducer change, and immediately after unexpected interruption (Section 5.1.5.3)",
     dacCurvePoints: 7, // Holes L through S (J & K omitted) per NDIP Section 5.1.1.7.1
     primarySensitivity: "80% FSH on #1 FBH (1/64\") reference",
     transferCorrection: "Curvature correction required per bore radius",
@@ -1341,7 +1341,7 @@ const calibrationByStandardBase = {
   },
   "NDIP-1227": {
     referenceBlockMaterial: "Powdered nickel equivalent - IAE2P16675 angle block",
-    calibrationInterval: "Before each disk, after setup changes, every 8 hours during continuous operation",
+    calibrationInterval: "Post-calibration required prior to shift change, part number change, transducer change, and immediately after unexpected interruption (Section 5.1.5.3)",
     dacCurvePoints: 7, // Holes L through S (J & K omitted) per NDIP Section 5.1.1.7.1
     primarySensitivity: "80% FSH on #1 FBH (1/64\") reference",
     transferCorrection: "Curvature correction required per bore radius",
@@ -1483,7 +1483,7 @@ export const materialWarnings: MaterialWarning[] = [
     standard: "BS-EN-10228-4",
     warning: "Austenitic stainless steel requires BS EN 10228-4 (not 10228-3)",
     recommendations: [
-      "Use 0.5-2 MHz frequency range",
+      "Use lowest practical frequencies (typically 0.5-2 MHz) within nominal 0.5-6 MHz range",
       "Larger probe diameter (20-30mm) recommended",
       "Account for high attenuation (0.05-0.20 dB/mm)",
       "Signal-to-noise ratio minimum 3:1, prefer 6:1",
@@ -1574,17 +1574,18 @@ export function getFBHSizeForStandard(
   thicknessMm: number,
   acceptanceClass: string
 ): string {
-  // AMS-STD-2154E, MIL-STD-2154, ASTM-E2375, AMS-2630 use the same FBH table
+  // AMS-STD-2154E / MIL-STD-2154 Table VI single-discontinuity reference sizes are class-based.
+  // ASTM-E2375 and AMS-2630 follow the same class scheme in this application.
   if (standard === "AMS-STD-2154E" || standard === "MIL-STD-2154" ||
       standard === "ASTM-E2375" || standard === "AMS-2630") {
-    // Find the appropriate row in AMS table
-    let row = amsFBHTable[0];
-    if (thicknessMm > 101.6) row = amsFBHTable[4];
-    else if (thicknessMm > 50.8) row = amsFBHTable[3];
-    else if (thicknessMm > 25.4) row = amsFBHTable[2];
-    else if (thicknessMm > 12.7) row = amsFBHTable[1];
-
-    return row.sizes[acceptanceClass] || row.sizes["A"];
+    const classMap: Record<string, string> = {
+      AAA: "1/64\" (0.4mm)",
+      AA: "3/64\" (1.2mm)",
+      A: "5/64\" (2.0mm)",
+      B: "8/64\" (3.2mm)",
+      C: "8/64\" (3.2mm)",
+    };
+    return classMap[acceptanceClass] || classMap["A"];
   }
 
   if (standard === "ASTM-A388") {

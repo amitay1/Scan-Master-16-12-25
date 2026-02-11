@@ -87,14 +87,14 @@ export const standardRules: Record<StandardType, StandardRules> = {
   },
   "BS-EN-10228-3": {
     defaultAcceptanceClass: "A", minThickness: 10,
-    typicalFrequencies: ["1.0", "2.0", "4.0"],
+    typicalFrequencies: ["1.0", "2.0", "4.0", "5.0", "6.0"],
     couplantRecommendations: ["Oil (mineral)", "Water with wetting agent", "Glycerin", "Cellulose paste", "Commercial couplants"],
     scanCoverageDefault: 100,
     linearityRequirements: { vertical: { min: 80, max: 100 }, horizontal: { min: 0 } }
   },
   "BS-EN-10228-4": {
     defaultAcceptanceClass: "A", minThickness: 20,
-    typicalFrequencies: ["0.5", "1.0", "2.0"],
+    typicalFrequencies: ["0.5", "1.0", "2.0", "4.0", "5.0", "6.0"],
     couplantRecommendations: ["Oil (mineral)", "Water with wetting agent", "Glycerin", "Commercial couplants"],
     scanCoverageDefault: 100,
     linearityRequirements: { vertical: { min: 80, max: 100 }, horizontal: { min: 0 } }
@@ -252,7 +252,7 @@ export const geometryRecommendations: Record<PartGeometry, GeometryRecommendatio
   machined_component: { calibrationBlockType: ["flat_block"], scanPattern: "Drawing-specific", transducerType: "contact", specialConsiderations: "Follow parent form inspection method." },
   impeller: { calibrationBlockType: ["flat_block", "curved_block", "cylinder_notched"], scanPattern: "Multi-zone: Hub, Web, Rim. Bore: circumferential shear wave 45°", transducerType: "immersion", specialConsiderations: "CRITICAL: Stepped geometry requires zone-by-zone inspection. Class AAA per AMS-STD-2154." },
   blisk: { calibrationBlockType: ["flat_block", "curved_block", "cylinder_notched"], scanPattern: "Disk body: radial/axial. Blade roots: focused beam. Bore: circumferential shear wave 45°", transducerType: "immersion", specialConsiderations: "CRITICAL: Dual inspection zones - Disk body + Blade roots. Class AAA mandatory." },
-  hpt_disk: { calibrationBlockType: ["flat_block", "cylinder_notched", "angle_beam"], scanPattern: "Face: straight beam. Bore: circumferential shear wave ±45°", transducerType: "immersion", specialConsiderations: "V2500 HPT Disk per NDIP-1226/1227. Class AAA mandatory. TOF criteria: ≥15 pixels over 3+ scan lines with SNR ≥1.5:1. #1 FBH (1/64\") at 80% FSH." },
+  hpt_disk: { calibrationBlockType: ["flat_block", "cylinder_notched", "angle_beam"], scanPattern: "Face: straight beam. Bore: circumferential shear wave ±45°", transducerType: "immersion", specialConsiderations: "V2500 HPT Disk per NDIP-1226/1227. Apply NDIP Section 8 acceptance/rejection criteria. TOF criteria: ≥15 pixels over 3+ scan lines with SNR ≥1.5:1. #1 FBH (1/64\") at 80% FSH." },
   custom: { calibrationBlockType: ["flat_block"], scanPattern: "Drawing-specific", transducerType: "contact", specialConsiderations: "Refer to engineering drawing and customer specifications." }
 };
 
@@ -773,7 +773,7 @@ export const GEOMETRY_INSPECTION_RULES: Record<PartGeometry, GeometryInspectionR
     scanDirection: ["Straight beam from flat face", "Circumferential shear wave +45°", "Circumferential shear wave -45°", "Radial from bore"],
     waveMode: ["Longitudinal", "Shear wave"],
     conditions: ["Full face coverage with straight beam", "Bore inspection with circumferential shear wave ±45°", "SNR ≥1.5:1 required"],
-    specialNotes: ["V2500 HPT Disk per NDIP-1226/1227", "TOF criteria: ≥15 pixels over 3+ scan lines", "#1 FBH (1/64\") at 80% FSH", "Class AAA mandatory"],
+    specialNotes: ["V2500 HPT Disk per NDIP-1226/1227", "TOF criteria: ≥15 pixels over 3+ scan lines", "#1 FBH (1/64\") at 80% FSH", "Acceptance/rejection per NDIP Section 8.0"],
     diagramReference: "Disk"
   },
   custom: {
@@ -1022,7 +1022,12 @@ export function getCouplantRecommendation(
   material?: MaterialType,
   temperature?: number
 ): string {
-  if (transducerType === "immersion") {
+  const selectedTypes = (transducerType || "")
+    .split(/[,+]/)
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean);
+
+  if (selectedTypes.includes("immersion")) {
     if (temperature && temperature > 40) {
       return "Water with rust inhibitor (heated)";
     }

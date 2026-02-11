@@ -73,15 +73,17 @@ export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E", 
     }
     return scanParams.maxSpeedAutomated.value;
   }, [data.scanType, scanParams]);
+  const hasSpeedLimit = maxSpeed > 0;
+  const hasOverlapRequirement = scanParams.minOverlap > 0;
 
   // Check compliance
   const compliance = useMemo(() => {
-    const speedOk = data.scanSpeed <= maxSpeed;
-    const overlapOk = (100 - data.scanIndex) >= scanParams.minOverlap;
+    const speedOk = !hasSpeedLimit || data.scanSpeed <= maxSpeed;
+    const overlapOk = !hasOverlapRequirement || (100 - data.scanIndex) >= scanParams.minOverlap;
     const coverageOk = data.coverage >= scanParams.coverageRequired;
 
     return { speedOk, overlapOk, coverageOk };
-  }, [data.scanSpeed, data.scanIndex, data.coverage, maxSpeed, scanParams]);
+  }, [data.scanSpeed, data.scanIndex, data.coverage, hasSpeedLimit, hasOverlapRequirement, maxSpeed, scanParams]);
 
   // Get equipment parameters for current standard
   const equipmentParams = useMemo(() => {
@@ -113,6 +115,9 @@ export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E", 
   useEffect(() => {
     // Set default overlap based on standard if current value is too low
     const requiredOverlap = scanParams.minOverlap;
+    if (requiredOverlap <= 0) {
+      return;
+    }
     const currentOverlap = 100 - data.scanIndex;
 
     if (currentOverlap < requiredOverlap) {
@@ -404,13 +409,25 @@ export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E", 
             </SelectTrigger>
             <SelectContent className="bg-popover z-50">
               <SelectItem value="manual">
-                Manual (max {scanParams.maxSpeedManual.value} {scanParams.maxSpeedManual.unit})
+                Manual (
+                {scanParams.maxSpeedManual.value > 0
+                  ? `max ${scanParams.maxSpeedManual.value} ${scanParams.maxSpeedManual.unit}`
+                  : "speed not specified by standard"}
+                )
               </SelectItem>
               <SelectItem value="semi_automated">
-                Semi-Automated (max {scanParams.maxSpeedManual.value} {scanParams.maxSpeedManual.unit})
+                Semi-Automated (
+                {scanParams.maxSpeedManual.value > 0
+                  ? `max ${scanParams.maxSpeedManual.value} ${scanParams.maxSpeedManual.unit}`
+                  : "speed not specified by standard"}
+                )
               </SelectItem>
               <SelectItem value="fully_automated">
-                Fully Automated (max {scanParams.maxSpeedAutomated.value} {scanParams.maxSpeedAutomated.unit})
+                Fully Automated (
+                {scanParams.maxSpeedAutomated.value > 0
+                  ? `max ${scanParams.maxSpeedAutomated.value} ${scanParams.maxSpeedAutomated.unit}`
+                  : "speed not specified by standard"}
+                )
               </SelectItem>
             </SelectContent>
           </Select>
@@ -595,18 +612,22 @@ export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E", 
         <FieldWithHelp
           label={`Scan Speed (${scanParams.maxSpeedManual.unit})`}
           fieldKey="scanSpeed"
-          help={`Per ${standard}: Max ${maxSpeed} ${scanParams.maxSpeedManual.unit} for ${data.scanType || "manual"}`}
+          help={
+            hasSpeedLimit
+              ? `Per ${standard}: Max ${maxSpeed} ${scanParams.maxSpeedManual.unit} for ${data.scanType || "manual"}`
+              : `Per ${standard}: speed limit is not explicitly specified. Control scan quality via increment/index limits and system capability.`
+          }
           required
         >
           <Input
             type="number"
             value={data.scanSpeed}
             onChange={(e) => updateField("scanSpeed", parseFloat(e.target.value) || 0)}
-            min={1}
-            max={maxSpeed}
+            min={hasSpeedLimit ? 1 : 0}
+            max={hasSpeedLimit ? maxSpeed : undefined}
             className={`bg-background ${!compliance.speedOk ? "border-destructive" : ""}`}
           />
-          {!compliance.speedOk && (
+          {hasSpeedLimit && !compliance.speedOk && (
             <p className="text-xs text-destructive mt-1">
               Exceeds maximum of {maxSpeed} {scanParams.maxSpeedManual.unit} per {standard}
             </p>
@@ -616,7 +637,11 @@ export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E", 
         <FieldWithHelp
           label="Scan Index (% of beam width)"
           fieldKey="scanIndex"
-          help={`Per ${standard}: Minimum ${scanParams.minOverlap}% overlap required (max index ${100 - scanParams.minOverlap}%)`}
+          help={
+            hasOverlapRequirement
+              ? `Per ${standard}: Minimum ${scanParams.minOverlap}% overlap required (max index ${100 - scanParams.minOverlap}%)`
+              : `Per ${standard}: overlap percent is not explicitly specified. Use NDIP absolute limits (max scan increment 0.020", max index increment 0.020"/rev).`
+          }
           required
         >
           <Input
@@ -624,10 +649,10 @@ export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E", 
             value={data.scanIndex}
             onChange={(e) => updateField("scanIndex", parseFloat(e.target.value) || 0)}
             min={1}
-            max={100 - scanParams.minOverlap}
+            max={hasOverlapRequirement ? 100 - scanParams.minOverlap : 100}
             className={`bg-background ${!compliance.overlapOk ? "border-destructive" : ""}`}
           />
-          {!compliance.overlapOk && (
+          {hasOverlapRequirement && !compliance.overlapOk && (
             <p className="text-xs text-destructive mt-1">
               Results in {100 - data.scanIndex}% overlap. Minimum {scanParams.minOverlap}% required per {standard}
             </p>
@@ -750,36 +775,9 @@ export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E", 
         />
       </FieldWithHelp>
 
-      {/* Scan Parameters Summary - Current Standard Only */}
-      <div className="border border-border rounded-lg overflow-hidden">
-        <div className="bg-primary/10 px-4 py-2 border-b border-border">
-          <h4 className="text-sm font-semibold">Scan Parameters - {getStandardLabel(standard)}</h4>
-        </div>
-        <div className="p-4 space-y-3">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-muted/30 rounded-lg p-3">
-              <p className="text-xs text-muted-foreground">Max Speed (Manual)</p>
-              <p className="text-sm font-semibold">{scanParams.maxSpeedManual.value} {scanParams.maxSpeedManual.unit}</p>
-            </div>
-            <div className="bg-muted/30 rounded-lg p-3">
-              <p className="text-xs text-muted-foreground">Max Speed (Automated)</p>
-              <p className="text-sm font-semibold">{scanParams.maxSpeedAutomated.value} {scanParams.maxSpeedAutomated.unit}</p>
-            </div>
-            <div className="bg-muted/30 rounded-lg p-3">
-              <p className="text-xs text-muted-foreground">Min Overlap</p>
-              <p className="text-sm font-semibold">{scanParams.minOverlap}%</p>
-            </div>
-            <div className="bg-muted/30 rounded-lg p-3">
-              <p className="text-xs text-muted-foreground">Coverage Required</p>
-              <p className="text-sm font-semibold">{scanParams.coverageRequired}%</p>
-            </div>
-          </div>
-          <div className="bg-muted/30 rounded-lg p-3">
-            <p className="text-xs text-muted-foreground">Calibration Interval</p>
-            <p className="text-sm font-semibold">{calibParams.calibrationInterval}</p>
-          </div>
-        </div>
-      </div>
+      <p className="text-xs text-muted-foreground">
+        {getStandardLabel(standard)}: calibration interval {calibParams.calibrationInterval}, required coverage {scanParams.coverageRequired}%.
+      </p>
 
       {/* Calibration requirements note */}
       <div className="bg-muted/30 border border-border rounded-lg p-4">

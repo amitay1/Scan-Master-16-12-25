@@ -7,11 +7,13 @@ import { AlertTriangle, Info } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useEffect, useMemo, useRef } from "react";
 import { FieldWithHelp } from "@/components/FieldWithHelp";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   acceptanceClassesByStandard,
   acceptanceCriteriaByStandard,
   getDefaultAcceptanceClass,
   materialWarnings,
+  type AcceptanceCriteriaValues,
 } from "@/data/standardsDifferences";
 
 interface AcceptanceCriteriaTabProps {
@@ -21,7 +23,6 @@ interface AcceptanceCriteriaTabProps {
   standard?: StandardType;
 }
 
-// Get the standard label for reference notes
 const getStandardLabel = (standard: StandardType): string => {
   const labels: Partial<Record<StandardType, string>> = {
     "MIL-STD-2154": "MIL-STD-2154 Table VI",
@@ -29,37 +30,62 @@ const getStandardLabel = (standard: StandardType): string => {
     "ASTM-A388": "ASTM A388/A388M Quality Levels",
     "BS-EN-10228-3": "BS EN 10228-3:2016 Quality Classes",
     "BS-EN-10228-4": "BS EN 10228-4:2016 Quality Classes (Austenitic)",
-    "NDIP-1226": "NDIP-1226 Rev F — PW V2500 1st Stage HPT Disk",
-    "NDIP-1227": "NDIP-1227 Rev D — PW V2500 2nd Stage HPT Disk",
-    "NDIP-1254": "NDIP-1254 — PW1100G HPT 1st Stage Hub (AUSI)",
-    "NDIP-1257": "NDIP-1257 — PW1100G HPT 2nd Stage Hub (AUSI)",
-    "NDIP-1260": "NDIP-1260 — PW1100G HPC 8th Stage IBR-8 (AUSI)",
-    "PWA-SIM": "PWA SIM — Sonic Inspection Method (Bar/Billet/Forging)",
-    "ASTM-E2375": "ASTM E2375 — UT of Wrought Products",
-    "ASTM-E127": "ASTM E127 — FBH Reference Blocks",
-    "ASTM-E164": "ASTM E164 — UT of Weldments",
-    "AMS-2630": "AMS 2630 — Products >0.5\" Thick",
-    "AMS-2631": "AMS 2631 — Titanium Bar, Billet, Plate",
-    "AMS-2632": "AMS 2632 — Thin Materials ≤0.5\"",
-    "EN-ISO-16810": "EN ISO 16810 — General UT Principles",
+    "NDIP-1226": "NDIP-1226 Rev F - PW V2500 1st Stage HPT Disk",
+    "NDIP-1227": "NDIP-1227 Rev D - PW V2500 2nd Stage HPT Disk",
+    "NDIP-1254": "NDIP-1254 - PW1100G HPT 1st Stage Hub (AUSI)",
+    "NDIP-1257": "NDIP-1257 - PW1100G HPT 2nd Stage Hub (AUSI)",
+    "NDIP-1260": "NDIP-1260 - PW1100G HPC 8th Stage IBR-8 (AUSI)",
+    "PWA-SIM": "PWA SIM - Sonic Inspection Method (Bar/Billet/Forging)",
+    "ASTM-E2375": "ASTM E2375 - UT of Wrought Products",
+    "ASTM-E127": "ASTM E127 - FBH Reference Blocks",
+    "ASTM-E164": "ASTM E164 - UT of Weldments",
+    "AMS-2630": "AMS 2630 - Products >0.5\" Thick",
+    "AMS-2631": "AMS 2631 - Titanium Bar, Billet, Plate",
+    "AMS-2632": "AMS 2632 - Thin Materials <=0.5\"",
+    "EN-ISO-16810": "EN ISO 16810 - General UT Principles",
   };
   return labels[standard] || standard;
 };
 
-// Get stringency badge color
+const getQuickReferenceNote = (standard: StandardType): string => {
+  if (standard === "AMS-STD-2154E" || standard === "MIL-STD-2154") {
+    return "Table VI Note 2: Multiple discontinuities are centers <1 inch apart. Back reflection loss limit is 50% (Note 4).";
+  }
+  if (standard === "ASTM-A388") {
+    return "ASTM A388 does not define QL1-QL4 in the base text. These quality levels are common industry conventions.";
+  }
+  if (standard === "BS-EN-10228-3") {
+    return "Class 1 is least stringent and Class 4 is most stringent. Limits are expressed in EFBH sizes.";
+  }
+  if (standard === "BS-EN-10228-4") {
+    return "BS EN 10228-4 uses 3 classes (Class 1 to Class 3) with thickness-dependent limits.";
+  }
+  return "Values shown are loaded from the selected standard profile and acceptance class definitions.";
+};
+
 const getStringencyColor = (stringency: string): string => {
   switch (stringency) {
-    case "highest": return "bg-red-500/20 text-red-400 border-red-500/30";
-    case "high": return "bg-orange-500/20 text-orange-400 border-orange-500/30";
-    case "medium": return "bg-yellow-500/20 text-yellow-400 border-yellow-500/30";
-    case "low": return "bg-green-500/20 text-green-400 border-green-500/30";
-    case "basic": return "bg-blue-500/20 text-blue-400 border-blue-500/30";
-    default: return "bg-muted text-muted-foreground";
+    case "highest":
+      return "bg-red-500/20 text-red-400 border-red-500/30";
+    case "high":
+      return "bg-orange-500/20 text-orange-400 border-orange-500/30";
+    case "medium":
+      return "bg-yellow-500/20 text-yellow-400 border-yellow-500/30";
+    case "low":
+      return "bg-green-500/20 text-green-400 border-green-500/30";
+    case "basic":
+      return "bg-blue-500/20 text-blue-400 border-blue-500/30";
+    default:
+      return "bg-muted text-muted-foreground";
   }
 };
 
-export const AcceptanceCriteriaTab = ({ data, onChange, material, standard = "AMS-STD-2154E" }: AcceptanceCriteriaTabProps) => {
-  // Refs to avoid stale closures in useEffect
+export const AcceptanceCriteriaTab = ({
+  data,
+  onChange,
+  material,
+  standard = "AMS-STD-2154E",
+}: AcceptanceCriteriaTabProps) => {
   const dataRef = useRef(data);
   const onChangeRef = useRef(onChange);
   dataRef.current = data;
@@ -69,44 +95,39 @@ export const AcceptanceCriteriaTab = ({ data, onChange, material, standard = "AM
     onChange({ ...data, [field]: value });
   };
 
-  // Get acceptance classes for the current standard
   const acceptanceClasses = useMemo(() => {
     return acceptanceClassesByStandard[standard] || acceptanceClassesByStandard["AMS-STD-2154E"];
   }, [standard]);
 
-  // Get acceptance criteria for the current standard and class
   const currentCriteria = useMemo(() => {
     const standardCriteria = acceptanceCriteriaByStandard[standard];
     if (standardCriteria && data.acceptanceClass) {
-      return standardCriteria[data.acceptanceClass];
+      return standardCriteria[data.acceptanceClass] || null;
     }
     return null;
   }, [standard, data.acceptanceClass]);
 
-  // Check if the selected class is valid for the current standard
   const isClassValidForStandard = useMemo(() => {
-    return acceptanceClasses.some(cls => cls.id === data.acceptanceClass);
+    return acceptanceClasses.some((cls) => cls.id === data.acceptanceClass);
   }, [acceptanceClasses, data.acceptanceClass]);
 
-  // Auto-fill criteria when class changes or standard changes
   useEffect(() => {
     const currentData = dataRef.current;
     if (currentData.acceptanceClass && currentCriteria) {
-      const bwlParsed = parseFloat(currentCriteria.backReflectionLoss);
+      const bwlParsed = parseFloat((currentCriteria.backReflectionLoss || "").replace(/[^0-9.]/g, ""));
       onChangeRef.current({
         ...currentData,
         singleDiscontinuity: currentCriteria.singleDiscontinuity,
         multipleDiscontinuities: currentCriteria.multipleDiscontinuities,
         linearDiscontinuity: currentCriteria.linearDiscontinuity,
-        // Only override the numeric field when the standard value parses as a number.
         backReflectionLoss: Number.isFinite(bwlParsed) ? bwlParsed : currentData.backReflectionLoss,
         noiseLevel: currentCriteria.noiseLevel,
-        specialRequirements: currentData.specialRequirements || currentCriteria.specialNotes || ""
+        specialRequirements: currentData.specialRequirements || currentCriteria.specialNotes || "",
+        standardNotes: currentCriteria.specialNotes || "",
       });
     }
   }, [data.acceptanceClass, standard, currentCriteria]);
 
-  // Reset acceptance class when standard changes if current class is invalid
   useEffect(() => {
     if (!isClassValidForStandard) {
       const defaultClass = getDefaultAcceptanceClass(standard);
@@ -115,31 +136,45 @@ export const AcceptanceCriteriaTab = ({ data, onChange, material, standard = "AM
     }
   }, [standard, isClassValidForStandard]);
 
-  // Check for material warnings
   const materialWarning = useMemo(() => {
     const normalizedMaterial = material.toLowerCase();
-    return materialWarnings.find(w =>
-      normalizedMaterial.includes(w.material) && w.standard === standard
+    return materialWarnings.find(
+      (w) => normalizedMaterial.includes(w.material) && w.standard === standard
     );
   }, [material, standard]);
 
-  // Special warnings
-  const isTitanium = material.toLowerCase().includes("titanium") || material.toLowerCase().includes("ti-");
-  const isAustenitic = material.toLowerCase().includes("stainless") || material.toLowerCase().includes("austenitic");
-  const showTitaniumWarning = isTitanium && (
-    (["AAA", "AA"].includes(data.acceptanceClass) && (standard === "AMS-STD-2154E" || standard === "MIL-STD-2154")) ||
-    standard === "AMS-2631"
-  );
-  const showAusteniticWarning = isAustenitic && standard !== "BS-EN-10228-4";
+  const normalizedMaterial = material.toLowerCase();
+  const isTitanium = normalizedMaterial.includes("titanium") || normalizedMaterial.includes("ti-");
+  const showTitaniumWarning =
+    isTitanium &&
+    ((["AAA", "AA"].includes(data.acceptanceClass) &&
+      (standard === "AMS-STD-2154E" || standard === "MIL-STD-2154")) ||
+      standard === "AMS-2631");
 
-  // Get the current class info for display
   const currentClassInfo = useMemo(() => {
-    return acceptanceClasses.find(cls => cls.id === data.acceptanceClass);
+    return acceptanceClasses.find((cls) => cls.id === data.acceptanceClass);
   }, [acceptanceClasses, data.acceptanceClass]);
+
+  const quickReferenceRows = useMemo(() => {
+    const rows: { classId: string; classLabel: string; criteria: AcceptanceCriteriaValues }[] = [];
+    const criteriaByClass = acceptanceCriteriaByStandard[standard] || {};
+
+    for (const cls of acceptanceClasses) {
+      const criteria = criteriaByClass[cls.id];
+      if (criteria) {
+        rows.push({
+          classId: cls.id,
+          classLabel: cls.label,
+          criteria,
+        });
+      }
+    }
+
+    return rows;
+  }, [acceptanceClasses, standard]);
 
   return (
     <div className="space-y-2 p-2">
-      {/* Standard-specific header */}
       <div className="bg-primary/5 border border-primary/20 rounded p-2">
         <div className="flex items-center justify-between">
           <div>
@@ -152,32 +187,9 @@ export const AcceptanceCriteriaTab = ({ data, onChange, material, standard = "AM
         </div>
       </div>
 
-      {/* Austenitic material warning */}
-      {showAusteniticWarning && (
-        <div className="bg-warning/10 border border-warning/30 rounded-lg p-4">
-          <div className="flex items-start gap-3">
-            <AlertTriangle className="h-5 w-5 text-warning mt-0.5 flex-shrink-0" />
-            <div>
-              <h4 className="text-sm font-semibold text-foreground mb-2">Austenitic Material Detected</h4>
-              <p className="text-sm text-muted-foreground">
-                For austenitic stainless steel, consider using <strong>BS EN 10228-4</strong> which is specifically
-                designed for austenitic materials with adjusted levels for coarse grain and high attenuation.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2">
-        <FieldWithHelp
-          label="Acceptance Class / Quality Level"
-          fieldKey="acceptanceClass"
-          required
-        >
-          <Select
-            value={data.acceptanceClass}
-            onValueChange={(value) => updateField("acceptanceClass", value)}
-          >
+        <FieldWithHelp label="Acceptance Class / Quality Level" fieldKey="acceptanceClass" required>
+          <Select value={data.acceptanceClass} onValueChange={(value) => updateField("acceptanceClass", value)}>
             <SelectTrigger className="bg-background">
               <SelectValue placeholder="Select class..." />
             </SelectTrigger>
@@ -186,10 +198,7 @@ export const AcceptanceCriteriaTab = ({ data, onChange, material, standard = "AM
                 <SelectItem key={cls.id} value={cls.id}>
                   <div className="flex items-center gap-2">
                     <span>{cls.label}</span>
-                    <Badge
-                      variant="outline"
-                      className={`text-[10px] px-1.5 py-0 ${getStringencyColor(cls.stringency)}`}
-                    >
+                    <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${getStringencyColor(cls.stringency)}`}>
                       {cls.stringency}
                     </Badge>
                   </div>
@@ -197,11 +206,7 @@ export const AcceptanceCriteriaTab = ({ data, onChange, material, standard = "AM
               ))}
             </SelectContent>
           </Select>
-          {currentClassInfo && (
-            <p className="text-xs text-muted-foreground mt-1">
-              {currentClassInfo.description}
-            </p>
-          )}
+          {currentClassInfo && <p className="text-xs text-muted-foreground mt-1">{currentClassInfo.description}</p>}
         </FieldWithHelp>
 
         <FieldWithHelp
@@ -233,7 +238,11 @@ export const AcceptanceCriteriaTab = ({ data, onChange, material, standard = "AM
         </FieldWithHelp>
 
         <FieldWithHelp
-          label={standard.startsWith("BS-EN") ? "Multiple Indications (per 100cm²)" : "Multiple Discontinuities (centers < 1 inch apart)"}
+          label={
+            standard.startsWith("BS-EN")
+              ? "Multiple Indications (per 100 cm^2)"
+              : "Multiple Discontinuities (centers < 1 inch apart)"
+          }
           fieldKey="multipleDiscontinuities"
           required
           autoFilled={!!data.acceptanceClass}
@@ -274,13 +283,14 @@ export const AcceptanceCriteriaTab = ({ data, onChange, material, standard = "AM
         </FieldWithHelp>
       </div>
 
-      {/* Titanium Warning */}
       {showTitaniumWarning && (
         <div className="bg-warning/10 border border-warning/30 rounded-lg p-4">
           <div className="flex items-start gap-3">
             <AlertTriangle className="h-5 w-5 text-warning mt-0.5 flex-shrink-0" />
             <div>
-              <h4 className="text-sm font-semibold text-foreground mb-2">TITANIUM SPECIAL REQUIREMENTS{standard === "AMS-2631" ? " (AMS 2631)" : ""}</h4>
+              <h4 className="text-sm font-semibold text-foreground mb-2">
+                TITANIUM SPECIAL REQUIREMENTS{standard === "AMS-2631" ? " (AMS 2631)" : ""}
+              </h4>
               <ul className="text-sm text-foreground space-y-1 list-disc ml-4">
                 {data.acceptanceClass === "AAA" && (
                   <>
@@ -295,17 +305,14 @@ export const AcceptanceCriteriaTab = ({ data, onChange, material, standard = "AM
                   </>
                 )}
                 <li>Higher attenuation than metals of similar density - verify calibration sensitivity</li>
-                <li>Macrostructure variations may cause false indications - verify with rescan at 90°</li>
-                {standard === "AMS-2631" && (
-                  <li>AMS 2631 applies specifically to titanium bar, billet, and plate products</li>
-                )}
+                <li>Macrostructure variations may cause false indications - verify with rescan at 90 deg</li>
+                {standard === "AMS-2631" && <li>AMS 2631 applies specifically to titanium bar, billet, and plate products</li>}
               </ul>
             </div>
           </div>
         </div>
       )}
 
-      {/* BS EN 10228-4 Specific Notes */}
       {standard === "BS-EN-10228-4" && (
         <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
           <div className="flex items-start gap-3">
@@ -323,10 +330,13 @@ export const AcceptanceCriteriaTab = ({ data, onChange, material, standard = "AM
         </div>
       )}
 
-      <FieldWithHelp
-        label="Special Requirements"
-        fieldKey="acceptanceClass"
-      >
+      {materialWarning && (
+        <div className="bg-warning/10 border border-warning/30 rounded-lg p-3">
+          <p className="text-sm text-foreground">{materialWarning.warning}</p>
+        </div>
+      )}
+
+      <FieldWithHelp label="Special Requirements" fieldKey="acceptanceClass">
         <Textarea
           value={data.specialRequirements}
           onChange={(e) => updateField("specialRequirements", e.target.value)}
@@ -336,11 +346,10 @@ export const AcceptanceCriteriaTab = ({ data, onChange, material, standard = "AM
         />
       </FieldWithHelp>
 
-      {/* Reference Note - Dynamic based on standard */}
       <div className="bg-muted/30 border border-border rounded-lg p-4">
         <p className="text-xs text-muted-foreground">
           <strong>Reference:</strong> All acceptance criteria are based on <strong>{getStandardLabel(standard)}</strong>.
-          {standard === "AMS-STD-2154E" && " Class AAA is the most stringent, Class C is the least."}
+          {(standard === "AMS-STD-2154E" || standard === "MIL-STD-2154") && " Class AAA is the most stringent, Class C is the least."}
           {standard === "ASTM-A388" && " Quality Level 1 (QL1) is the most stringent, QL4 is the least."}
           {standard === "BS-EN-10228-3" && " Quality Class 4 is the most stringent, Class 1 is the least. Based on EFBH (Equivalent Flat Bottom Hole) sizes."}
           {standard === "BS-EN-10228-4" && " Quality Class 3 is the most stringent, Class 1 is the least. For austenitic/duplex steels only."}
@@ -348,177 +357,58 @@ export const AcceptanceCriteriaTab = ({ data, onChange, material, standard = "AM
         </p>
       </div>
 
-      {/* Standards Comparison Quick Reference */}
-      {(standard === "AMS-STD-2154E" || standard === "MIL-STD-2154") && (
+      {quickReferenceRows.length > 0 && (
         <div className="border border-border rounded-lg overflow-hidden">
           <div className="bg-muted/50 px-4 py-2 border-b border-border">
-            <h4 className="text-sm font-semibold">Quick Reference: AMS-STD-2154E / MIL-STD-2154 Table VI</h4>
+            <h4 className="text-sm font-semibold">Quick Reference: {getStandardLabel(standard)}</h4>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead className="bg-muted/30">
                 <tr>
                   <th className="px-3 py-2 text-left">Class</th>
-                  <th className="px-3 py-2 text-left">Single FBH</th>
-                  <th className="px-3 py-2 text-left">Multiple FBH</th>
-                  <th className="px-3 py-2 text-left">Linear FBH</th>
-                  <th className="px-3 py-2 text-left">Linear Max</th>
-                  <th className="px-3 py-2 text-left">BWL</th>
+                  <th className="px-3 py-2 text-left">Single Discontinuity</th>
+                  <th className="px-3 py-2 text-left">Multiple Discontinuities</th>
+                  <th className="px-3 py-2 text-left">Linear Discontinuity</th>
+                  <th className="px-3 py-2 text-left">Back Reflection Loss</th>
+                  <th className="px-3 py-2 text-left">Noise</th>
                 </tr>
               </thead>
               <tbody>
-                {["AAA", "AA", "A", "B", "C"].map((cls) => {
-                  const isSelected = data.acceptanceClass === cls;
-                  const singleFBH = ["1/64\" (0.4mm) OR 25% of 3/64\" response", "3/64\" (1.2mm)", "5/64\" (2.0mm)", "8/64\" (3.2mm)", "8/64\" (3.2mm)"];
-                  // MIL-STD-2154 Table VI: Class A=3/64, B=5/64, C=N/A (multiple discontinuities)
-                  const multipleFBH = ["10% of 3/64\" response", "2/64\" (0.8mm)", "3/64\" (1.2mm)", "5/64\" (2.0mm)", "N/A"];
-                  const linearFBH = ["10% of 3/64\" response", "2/64\" (0.8mm)", "3/64\" (1.2mm)", "5/64\" (2.0mm)", "N/A"];
-                  const linearMax = ["1/8\"", "1/2\"", "1\"", "1\"", "N/A"];
-                  const bwl = ["50%", "50%", "50%", "50%", "50%"];
-                  const idx = ["AAA", "AA", "A", "B", "C"].indexOf(cls);
+                {quickReferenceRows.map((row) => {
+                  const isSelected = data.acceptanceClass === row.classId;
                   return (
-                    <tr key={cls} className={isSelected ? "bg-primary/10" : ""}>
-                      <td className="px-3 py-2 font-medium">{cls}</td>
-                      <td className="px-3 py-2">{singleFBH[idx]}</td>
-                      <td className="px-3 py-2">{multipleFBH[idx]}</td>
-                      <td className="px-3 py-2">{linearFBH[idx]}</td>
-                      <td className="px-3 py-2">{linearMax[idx]}</td>
-                      <td className="px-3 py-2">{bwl[idx]}</td>
+                    <tr key={row.classId} className={isSelected ? "bg-primary/10" : ""}>
+                      <td className="px-3 py-2 font-medium">{row.classLabel}</td>
+                      <td className="px-3 py-2">{row.criteria.singleDiscontinuity}</td>
+                      <td className="px-3 py-2">{row.criteria.multipleDiscontinuities}</td>
+                      <td className="px-3 py-2">{row.criteria.linearDiscontinuity}</td>
+                      <td className="px-3 py-2">{row.criteria.backReflectionLoss}</td>
+                      <td className="px-3 py-2">{row.criteria.noiseLevel}</td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
           </div>
-          <p className="text-xs text-muted-foreground px-4 py-2 bg-muted/20">
-            Note: Multiple discontinuities = centers &lt;1&quot; apart (Table VI Note 2). Class AAA uses percent-of-response limits. Back reflection loss = 50% (see Note 4).
-          </p>
-        </div>
-      )}
-
-      {standard === "ASTM-A388" && (
-        <div className="border border-border rounded-lg overflow-hidden">
-          <div className="bg-muted/50 px-4 py-2 border-b border-border">
-            <h4 className="text-sm font-semibold">Quick Reference: ASTM A388 Quality Levels (Industry Convention)</h4>
+          <div className="px-4 py-3 bg-muted/20 border-t border-border space-y-3">
+            <p className="text-xs text-muted-foreground">
+              Note: {getQuickReferenceNote(standard)}
+            </p>
+            {!!data.standardNotes && (
+              <div className="bg-background/60 border border-border rounded-md p-3">
+                <p className="text-xs font-semibold text-foreground mb-1">Standard Notes</p>
+                <p className="text-xs text-muted-foreground whitespace-pre-wrap">{data.standardNotes}</p>
+              </div>
+            )}
+            <label className="flex items-center gap-2 text-xs text-foreground cursor-pointer">
+              <Checkbox
+                checked={!!data.includeStandardNotesInReport}
+                onCheckedChange={(checked) => updateField("includeStandardNotesInReport", checked === true)}
+              />
+              Include standard notes in exported report
+            </label>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs">
-              <thead className="bg-muted/30">
-                <tr>
-                  <th className="px-3 py-2 text-left">Level</th>
-                  <th className="px-3 py-2 text-left">Single</th>
-                  <th className="px-3 py-2 text-left">Multiple</th>
-                  <th className="px-3 py-2 text-left">Linear</th>
-                  <th className="px-3 py-2 text-left">BWL Max</th>
-                </tr>
-              </thead>
-              <tbody>
-                {["QL1", "QL2", "QL3", "QL4"].map((cls) => {
-                  const isSelected = data.acceptanceClass === cls;
-                  const single = ["Ref FBH", "2× Ref", "4× Ref", "No limit"];
-                  const multiple = ["50% Ref", "Ref FBH", "2× Ref", "4× Ref"];
-                  const linear = ["Not allowed", "≤1\"", "≤2\"", "As agreed"];
-                  const bwl = ["50%", "75%", "90%", "100%"];
-                  const idx = ["QL1", "QL2", "QL3", "QL4"].indexOf(cls);
-                  return (
-                    <tr key={cls} className={isSelected ? "bg-primary/10" : ""}>
-                      <td className="px-3 py-2 font-medium">{cls}</td>
-                      <td className="px-3 py-2">{single[idx]}</td>
-                      <td className="px-3 py-2">{multiple[idx]}</td>
-                      <td className="px-3 py-2">{linear[idx]}</td>
-                      <td className="px-3 py-2">{bwl[idx]}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-          <p className="text-xs text-muted-foreground px-4 py-2 bg-muted/20">
-            Note: QL1-QL4 are industry conventions, not defined in ASTM A388. Reference FBH by thickness: &lt;1.5&quot;=1/16&quot;, 1.5-6&quot;=1/8&quot;, &gt;6&quot;=1/4&quot;.
-          </p>
-        </div>
-      )}
-
-      {standard === "BS-EN-10228-3" && (
-        <div className="border border-border rounded-lg overflow-hidden">
-          <div className="bg-muted/50 px-4 py-2 border-b border-border">
-            <h4 className="text-sm font-semibold">Quick Reference: BS EN 10228-3 Quality Classes (EFBH sizes)</h4>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs">
-              <thead className="bg-muted/30">
-                <tr>
-                  <th className="px-3 py-2 text-left">Class</th>
-                  <th className="px-3 py-2 text-left">Recording Level</th>
-                  <th className="px-3 py-2 text-left">Isolated Max</th>
-                  <th className="px-3 py-2 text-left">Extended Max</th>
-                  <th className="px-3 py-2 text-left">BWE Ratio</th>
-                </tr>
-              </thead>
-              <tbody>
-                {["1", "2", "3", "4"].map((cls) => {
-                  const isSelected = data.acceptanceClass === cls;
-                  const recording = [">8mm EFBH", ">5mm EFBH", ">3mm EFBH", ">2mm EFBH"];
-                  const isolated = ["≤12mm", "≤8mm", "≤5mm", "≤3mm"];
-                  const extended = ["≤8mm", "≤5mm", "≤3mm", "≤2mm"];
-                  const bweRatio = ["R ≤ 0.1", "R ≤ 0.3", "R ≤ 0.5", "R ≤ 0.6"];
-                  const idx = parseInt(cls) - 1;
-                  return (
-                    <tr key={cls} className={isSelected ? "bg-primary/10" : ""}>
-                      <td className="px-3 py-2 font-medium">Class {cls}</td>
-                      <td className="px-3 py-2">{recording[idx]}</td>
-                      <td className="px-3 py-2">{isolated[idx]}</td>
-                      <td className="px-3 py-2">{extended[idx]}</td>
-                      <td className="px-3 py-2">{bweRatio[idx]}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-          <p className="text-xs text-muted-foreground px-4 py-2 bg-muted/20">
-            Note: Class 1 = Least stringent, Class 4 = Most stringent. EFBH = Equivalent Flat Bottom Hole.
-          </p>
-        </div>
-      )}
-
-      {standard === "BS-EN-10228-4" && (
-        <div className="border border-border rounded-lg overflow-hidden">
-          <div className="bg-muted/50 px-4 py-2 border-b border-border">
-            <h4 className="text-sm font-semibold">Quick Reference: BS EN 10228-4 Quality Classes (Austenitic)</h4>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs">
-              <thead className="bg-muted/30">
-                <tr>
-                  <th className="px-3 py-2 text-left">Class</th>
-                  <th className="px-3 py-2 text-left">Stringency</th>
-                  <th className="px-3 py-2 text-left">S/N Ratio</th>
-                  <th className="px-3 py-2 text-left">Notes</th>
-                </tr>
-              </thead>
-              <tbody>
-                {["1", "2", "3"].map((cls) => {
-                  const isSelected = data.acceptanceClass === cls;
-                  const stringency = ["Least stringent", "Intermediate", "Most stringent"];
-                  const snRatio = ["Per agreement", "Min 3:1", "Preferred 6:1"];
-                  const notes = ["Largest allowable sizes", "Intermediate sizes", "Smallest allowable sizes"];
-                  const idx = parseInt(cls) - 1;
-                  return (
-                    <tr key={cls} className={isSelected ? "bg-primary/10" : ""}>
-                      <td className="px-3 py-2 font-medium">Class {cls}</td>
-                      <td className="px-3 py-2">{stringency[idx]}</td>
-                      <td className="px-3 py-2">{snRatio[idx]}</td>
-                      <td className="px-3 py-2">{notes[idx]}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-          <p className="text-xs text-muted-foreground px-4 py-2 bg-muted/20">
-            Note: BS EN 10228-4 has only 3 Quality Classes. Limits are thickness-dependent per Table 5.
-          </p>
         </div>
       )}
     </div>

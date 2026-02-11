@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+﻿import { useState, useEffect, useMemo, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { CalibrationData, InspectionSetupData, AcceptanceClass, CalibrationBlockType, StandardType, CalibrationSensitivityRow } from "@/types/techniqueSheet";
@@ -35,6 +35,7 @@ import {
   getBeamRequirement,
   BEAM_TYPE_LABELS,
 } from "@/utils/beamTypeClassification";
+import { getInspectionThickness } from "@/utils/inspectionThickness";
 
 // ============================================================================
 // HELPER FUNCTIONS FOR FBH AUTO-FILL
@@ -43,9 +44,9 @@ import {
 /**
  * Parse FBH diameter from the string returned by getFBHSizeForStandard()
  * Examples:
- *   "1/64\" (0.4mm)" → { inch: "1/64", mm: 0.4 }
- *   "3mm (0.118\")" → { inch: "-", mm: 3 }
- *   "#1 FBH (1/64\" / 0.4mm)" → { inch: "1/64", mm: 0.4 }
+ *   "1/64\" (0.4mm)" ג†’ { inch: "1/64", mm: 0.4 }
+ *   "3mm (0.118\")" ג†’ { inch: "-", mm: 3 }
+ *   "#1 FBH (1/64\" / 0.4mm)" ג†’ { inch: "1/64", mm: 0.4 }
  */
 function parseFBHSizeString(sizeStr: string): { inch: string; mm: number } | null {
   if (!sizeStr) return null;
@@ -169,6 +170,32 @@ const getStandardLabel = (standard: StandardType): string => {
   return labels[standard] || standard;
 };
 
+const getFBHDropdownStandard = (standard: StandardType): string => {
+  if (standard === "ASTM-A388") return "ASTM A388";
+  if (standard === "BS-EN-10228-3" || standard === "BS-EN-10228-4" || standard === "EN-ISO-16810") {
+    return "EN 10228-3";
+  }
+  if (
+    standard === "AMS-STD-2154E" ||
+    standard === "MIL-STD-2154" ||
+    standard === "ASTM-E2375" ||
+    standard === "ASTM-E127" ||
+    standard === "ASTM-E164" ||
+    standard === "AMS-2630" ||
+    standard === "AMS-2631" ||
+    standard === "AMS-2632" ||
+    standard === "NDIP-1226" ||
+    standard === "NDIP-1227" ||
+    standard === "NDIP-1254" ||
+    standard === "NDIP-1257" ||
+    standard === "NDIP-1260" ||
+    standard === "PWA-SIM"
+  ) {
+    return "ASTM E127";
+  }
+  return "All";
+};
+
 export const CalibrationTab = ({
   data,
   onChange,
@@ -240,28 +267,42 @@ export const CalibrationTab = ({
     axialWidthMm: inspectionSetup.partLength || inspectionSetup.wallThickness || undefined,
   }), [inspectionSetup.diameter, inspectionSetup.innerDiameter, inspectionSetup.partLength, inspectionSetup.wallThickness]);
 
+  const effectiveInspectionThickness = useMemo(
+    () => getInspectionThickness(inspectionSetup, 0),
+    [
+      inspectionSetup.partType,
+      inspectionSetup.partThickness,
+      inspectionSetup.wallThickness,
+      inspectionSetup.isHollow,
+      inspectionSetup.diameter,
+      inspectionSetup.innerDiameter,
+    ]
+  );
+
   // Memoize partDimensions for DynamicCalibrationBlockDrawing to prevent
   // re-creating the object on every render (which would defeat the useMemo
   // inside DynamicCalibrationBlockDrawing that depends on partDimensions).
   const partDimensionsForDrawing = useMemo(() => ({
-    thickness: inspectionSetup.partThickness || inspectionSetup.wallThickness,
+    thickness: effectiveInspectionThickness || undefined,
     length: inspectionSetup.partLength,
     width: inspectionSetup.partWidth,
     outerDiameter: inspectionSetup.diameter,
     innerDiameter: inspectionSetup.innerDiameter,
     wallThickness: inspectionSetup.wallThickness,
   }), [
-    inspectionSetup.partThickness,
-    inspectionSetup.wallThickness,
+    effectiveInspectionThickness,
     inspectionSetup.partLength,
     inspectionSetup.partWidth,
     inspectionSetup.diameter,
     inspectionSetup.innerDiameter,
+    inspectionSetup.wallThickness,
   ]);
 
   const updateField = (field: keyof CalibrationData, value: any) => {
     onChange({ ...data, [field]: value });
   };
+
+  const fbhOptionStandard = useMemo(() => getFBHDropdownStandard(standard), [standard]);
 
   // Handle FBH holes changes from table (manual user changes)
   const handleFbhHolesChange = (newHoles: FBHHoleRowData[]) => {
@@ -343,8 +384,7 @@ export const CalibrationTab = ({
     // Need acceptance class and thickness to auto-fill
     if (!acceptanceClass) return;
 
-    // Get thickness - try partThickness first, then wallThickness
-    const thickness = inspectionSetup.partThickness || inspectionSetup.wallThickness || 0;
+    const thickness = effectiveInspectionThickness;
     if (thickness <= 0) return;
 
     // Get recommended FBH size from standards
@@ -356,8 +396,9 @@ export const CalibrationTab = ({
     if (!parsed) return;
 
     // PW NDIP standards use fixed hole depths per IAE2P16675 calibration block
-    // Holes L–S at specific depths (inches → mm), J&K omitted per NDIP Section 5.1.1.7.1
-    const isPWStandard = standard === "NDIP-1226" || standard === "NDIP-1227" || standard === "NDIP-1254" || standard === "NDIP-1257" || standard === "NDIP-1260";
+    // Holes Lג€“S at specific depths (inches ג†’ mm), J&K omitted per NDIP Section 5.1.1.7.1
+    const isV2500NDIP = standard === "NDIP-1226" || standard === "NDIP-1227";
+    const isOtherPWNDIP = standard === "NDIP-1254" || standard === "NDIP-1257" || standard === "NDIP-1260";
     const pwHoleDepthsMm = [
       6.350,   // Hole L: 0.250"
       9.525,   // Hole M: 0.375"
@@ -370,7 +411,7 @@ export const CalibrationTab = ({
     const pwHoleLabels = ['L', 'M', 'N', 'P', 'Q', 'R', 'S'];
 
     // Calculate DAC depths based on standard
-    const dacDepths = isPWStandard ? pwHoleDepthsMm : calculateDACDepths(thickness);
+    const dacDepths = isV2500NDIP ? pwHoleDepthsMm : calculateDACDepths(thickness);
 
     // Check if values are already set to the same - avoid unnecessary updates
     const currentDiameter = fbhHoles[0]?.diameterInch;
@@ -386,7 +427,7 @@ export const CalibrationTab = ({
     // Build the auto-filled holes array
     const autoFilledHoles: FBHHoleRowData[] = dacDepths.map((depth, index) => ({
       id: index + 1,
-      partNumber: isPWStandard ? 'IAE2P16675' : '',
+      partNumber: isV2500NDIP ? "IAE2P16675" : "",
       deltaType: 'dac', // DAC for distance-amplitude correction
       diameterInch: parsed.inch,
       diameterMm: parsed.mm,
@@ -398,12 +439,18 @@ export const CalibrationTab = ({
     // Update state
     setFbhHoles(autoFilledHoles);
     setFbhAutoFilled(true);
-    if (isPWStandard) {
+    if (isV2500NDIP) {
       setFbhAutoFillReason(
-        `PW IAE2P16675 calibration block — #1 FBH (1/64") at 80% FSH. ` +
+        `PW IAE2P16675 calibration block - #1 FBH (1/64") at 80% FSH. ` +
         `7 holes (${pwHoleLabels.join(', ')}): ${pwHoleDepthsMm.map((d, i) => `${pwHoleLabels[i]}=${d}mm`).join(', ')}. ` +
         `Per ${standard === 'NDIP-1226' ? 'NDIP-1226 Rev F' : 'NDIP-1227 Rev D'} Section 5.1.1.7.1. ` +
-        `±45° circumferential shear wave, 8" water path immersion.`
+        `+/-45 deg circumferential shear wave, 8" water path immersion.`
+      );
+    } else if (isOtherPWNDIP) {
+      setFbhAutoFillReason(
+        `#1 FBH (${parsed.inch}" / ${parsed.mm}mm) selected for ${standard}. ` +
+        `Using thickness-based 3-point DAC depths: ${dacDepths.map((d) => `${d}mm`).join(', ')}. ` +
+        `Exact OEM block geometry is proprietary and should be verified against the active NDIP release.`
       );
     } else {
       setFbhAutoFillReason(
@@ -438,7 +485,7 @@ export const CalibrationTab = ({
     }
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [acceptanceClass, standard, inspectionSetup.partThickness, inspectionSetup.wallThickness]);
+  }, [acceptanceClass, standard, effectiveInspectionThickness]);
 
   const handleSelectModel = (modelId: string) => {
     setSelectedModelId(modelId as CalibrationBlockType);
@@ -463,11 +510,11 @@ export const CalibrationTab = ({
                 </TooltipTrigger>
                 <TooltipContent className="max-w-md">
                   <div className="space-y-2">
-                    <p className="text-sm font-semibold">🎯 FBH Auto-Fill Based On:</p>
+                    <p className="text-sm font-semibold">FBH Auto-Fill Based On:</p>
                     <ul className="text-xs space-y-1 list-disc list-inside">
                       <li>Standard: {standard}</li>
                       <li>Acceptance Class: {acceptanceClass}</li>
-                      <li>Part Thickness: {inspectionSetup.partThickness || inspectionSetup.wallThickness}mm</li>
+                      <li>Inspection Thickness: {effectiveInspectionThickness}mm</li>
                     </ul>
                     <p className="text-sm border-t pt-2">{fbhAutoFillReason}</p>
                     <p className="text-xs text-muted-foreground italic">
@@ -486,7 +533,7 @@ export const CalibrationTab = ({
           minHoles={1}
           showPartNumber={true}
           showDeltaType={true}
-          standard="All"
+          standard={fbhOptionStandard}
           previewWidth={420}
           previewHeight={520}
         />
@@ -495,11 +542,10 @@ export const CalibrationTab = ({
   );
 
   // Check if P&W (Pratt & Whitney) standard is selected or hpt_disk geometry is used
-  const isHptDisk = inspectionSetup.partType === 'hpt_disk';
   const isPWStandard = useMemo(() => {
     const pwStandards = ['NDIP-1226', 'NDIP-1227', 'NDIP-1254', 'NDIP-1257', 'NDIP-1260', 'PWA-SIM'];
-    return pwStandards.includes(standard) || isHptDisk;
-  }, [standard, isHptDisk]);
+    return pwStandards.includes(standard);
+  }, [standard]);
 
   const showStraightBeam = beamRequirement === "both" || beamRequirement === "straight_only";
   const showAngleBeam = beamRequirement === "both" || beamRequirement === "angle_only" || isPWStandard;
@@ -517,7 +563,7 @@ export const CalibrationTab = ({
 
   // Check specific P&W standard types
   const isPWASIM = standard === 'PWA-SIM';
-  const isV2500Standard = standard === 'NDIP-1226' || standard === 'NDIP-1227' || isHptDisk;
+  const isV2500Standard = standard === 'NDIP-1226' || standard === 'NDIP-1227';
   const isGTFStandard = standard === 'NDIP-1254' || standard === 'NDIP-1257' || standard === 'NDIP-1260';
 
   const v2500Stage: 1 | 2 | null = useMemo(() => {
@@ -550,6 +596,21 @@ export const CalibrationTab = ({
     if (!pwProcedurePdf) return;
     window.open(`${pwProcedurePdf}${hash}`, '_blank', 'noreferrer');
   };
+
+  const pwFigurePages = useMemo(() => {
+    if (standard === "NDIP-1226" || standard === "NDIP-1227") {
+      // Verified from bundled NDIP Rev F / Rev D documents:
+      // Figure 1 = page 8, Figure 2 = page 11
+      return {
+        figure1: "#page=8",
+        figure2: "#page=11",
+      };
+    }
+    return {
+      figure1: "#page=11",
+      figure2: "#page=14",
+    };
+  }, [standard]);
 
   // Render the Angle Beam content (calibration block drawing)
   // Note: partDimensions is memoized at component level to prevent infinite re-renders
@@ -605,7 +666,7 @@ export const CalibrationTab = ({
             height={700}
             showDimensions={true}
             showTitleBlock={true}
-            partThickness={inspectionSetup.partThickness || inspectionSetup.wallThickness || 50}
+            partThickness={effectiveInspectionThickness || 50}
             partMaterial={inspectionSetup.material || 'Same as Test Part'}
             title="PWA-SIM Multi-Reflector Calibration Block"
           />
@@ -659,7 +720,7 @@ export const CalibrationTab = ({
                 <span className="opacity-70">Transducer:</span> IAE2P16679
               </div>
               <div className="bg-white/20 rounded px-2 py-1">
-                <span className="opacity-70">Mirror:</span> IAE2P16678 (45°)
+                <span className="opacity-70">Mirror:</span> IAE2P16678 (45 deg)
               </div>
             </div>
 
@@ -680,7 +741,7 @@ export const CalibrationTab = ({
                   variant="secondary"
                   size="sm"
                   className="bg-white/15 text-white border border-white/20 hover:bg-white/25"
-                  onClick={() => openPwPdf('#page=11')}
+                  onClick={() => openPwPdf(pwFigurePages.figure1)}
                   title="Figure 1 - Calibration Standard"
                 >
                   Figure 1
@@ -690,7 +751,7 @@ export const CalibrationTab = ({
                   variant="secondary"
                   size="sm"
                   className="bg-white/15 text-white border border-white/20 hover:bg-white/25"
-                  onClick={() => openPwPdf('#page=14')}
+                  onClick={() => openPwPdf(pwFigurePages.figure2)}
                   title="Figure 2 - Scan Plan"
                 >
                   Figure 2
@@ -728,22 +789,46 @@ export const CalibrationTab = ({
             )}
           </div>
 
-          {/* P&W IAE2P16675 Calibration Block Drawing */}
-          <PWCalibrationBlockDrawing
-            width={950}
-            height={700}
-            showDimensions={true}
-            showTitleBlock={true}
-            standardRef={pwStandardRef as 'NDIP-1226' | 'NDIP-1227'}
-            title={isGTFStandard ? 'P&W GTF Calibration Block (Similar to IAE2P16675)' : 'IAE2P16675 - 45° Angle Calibration Block'}
-          />
+          {/* V2500 standards have published Figure 1 geometry (IAE2P16675). */}
+          {isV2500Standard && (
+            <PWCalibrationBlockDrawing
+              width={950}
+              height={700}
+              showDimensions={true}
+              showTitleBlock={true}
+              standardRef={pwStandardRef as "NDIP-1226" | "NDIP-1227"}
+              title="IAE2P16675 - 45 deg Angle Calibration Block"
+            />
+          )}
+
+          {/* GTF NDIPs are proprietary; avoid showing V2500 geometry as exact. */}
+          {isGTFStandard && (
+            <div className="space-y-3">
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm text-yellow-800">
+                Proprietary NDIP geometry: no public Figure-1-equivalent drawing is bundled for this standard.
+                A calculated placeholder block is shown below and must be verified against active OEM data.
+              </div>
+              <DynamicCalibrationBlockDrawing
+                partGeometry={mapPartGeometry(inspectionSetup.partType || "plate")}
+                partDimensions={partDimensionsForDrawing}
+                standard={standard}
+                acceptanceClass={acceptanceClass || "A"}
+                partMaterial={inspectionSetup.material || "steel"}
+                width={950}
+                height={700}
+                showDimensions={true}
+                showSpecsTable={true}
+                title={`${standard} - Calculated Calibration Block (Placeholder)`}
+              />
+            </div>
+          )}
 
           {/* V2500 Bore Profile Cross-Section (per NDIP Figure 2) */}
            {isV2500Standard && (
              <div className="space-y-3">
                <h4 className="font-semibold text-gray-700 flex items-center gap-2">
                  <Target className="h-4 w-4" />
-                 Bore Scan Plan — NDIP Figure 2 Cross-Sections
+                 Bore Scan Plan - NDIP Figure 2 Cross-Sections
                </h4>
               {v2500Stage === 1 && <V2500BoreScanDiagram stage={1} />}
               {v2500Stage === 2 && <V2500BoreScanDiagram stage={2} />}
@@ -765,12 +850,12 @@ export const CalibrationTab = ({
             <ul className="text-sm text-amber-700 space-y-1 list-disc list-inside">
               <li>Calibration amplitude: 80% FSH on #1 FBH reference</li>
               <li>Water path: 8.0&quot; per NDIP specification</li>
-              <li>Circumferential shear wave: ±45° inspection angles</li>
+              <li>Circumferential shear wave: +/-45 deg inspection angles</li>
               <li>Block recertification: Yearly at PW NDE</li>
               {isV2500Standard && <li>Active holes: L through S (J &amp; K omitted per Section 5.1.1.7.1)</li>}
               {isGTFStandard && <li>AUSI: Automated inspection ONLY (manual not permitted)</li>}
               {isGTFStandard && <li>FAA Airworthiness Directive compliance required</li>}
-              <li>Post-calibration tolerance: ±1 dB of initial</li>
+              <li>Post-calibration tolerance: +/-1 dB of initial</li>
             </ul>
           </div>
         </div>
@@ -987,7 +1072,7 @@ export const CalibrationTab = ({
                 </TooltipTrigger>
                 <TooltipContent className="max-w-md">
                   <div className="space-y-2">
-                    <p className="text-sm font-semibold">🎯 Auto-Selected Based On:</p>
+                    <p className="text-sm font-semibold">נ¯ Auto-Selected Based On:</p>
                     <ul className="text-xs space-y-1 list-disc list-inside">
                       <li>Part Geometry & Dimensions</li>
                       <li>Critical Scan Types (Circumferential/Angle Beam)</li>
@@ -1053,13 +1138,13 @@ export const CalibrationTab = ({
         </FieldWithHelp>
 
         <FieldWithHelp
-          label="Block Dimensions (L×W×H mm)"
+          label="Block Dimensions (Lֳ—Wֳ—H mm)"
           fieldKey="calibrationBlock"
         >
           <Input
             value={data.blockDimensions}
             onChange={(e) => updateField("blockDimensions", e.target.value)}
-            placeholder="100 × 50 × 50"
+            placeholder="100 ֳ— 50 ֳ— 50"
             className="bg-background"
           />
           <div className="text-xs text-muted-foreground mt-1">
@@ -1188,3 +1273,4 @@ export const CalibrationTab = ({
     </div>
   );
 };
+

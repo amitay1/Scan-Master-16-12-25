@@ -298,8 +298,9 @@ export class StandardsComplianceEngine {
         break;
       
       case "BS-EN-10228-3":
-        if (frequency < 1 || frequency > 5) {
-          warnings.push("Frequency typically 1-5 MHz for ferritic steel");
+        if (frequency < 1 || frequency > 6) {
+          isValid = false;
+          warnings.push("Frequency must be within 1-6 MHz nominal range for BS-EN-10228-3");
         }
         if (thickness > 200 && frequency > 2) {
           recommendations.push("Use 1-2 MHz for sections > 200mm");
@@ -307,8 +308,12 @@ export class StandardsComplianceEngine {
         break;
       
       case "BS-EN-10228-4":
+        if (frequency < 0.5 || frequency > 6) {
+          isValid = false;
+          warnings.push("Frequency must be within 0.5-6 MHz nominal range for BS-EN-10228-4");
+        }
         if (frequency > 2) {
-          warnings.push("Frequency should be ≤ 2 MHz for austenitic steel");
+          warnings.push("For coarse-grain austenitic steel, prefer lower frequencies (typically 0.5-2 MHz)");
           recommendations.push("Use 1-2 MHz due to coarse grain structure");
         }
         break;
@@ -444,14 +449,14 @@ export class StandardsComplianceEngine {
           "MIL-STD-2154": "1-15 MHz (thickness dependent)",
           "AMS-STD-2154E": "1-15 MHz (thickness dependent)",
           "ASTM-A388": "1-5 MHz",
-          "BS-EN-10228-3": "1-5 MHz",
-          "BS-EN-10228-4": "0.5-2 MHz (austenitic)"
+          "BS-EN-10228-3": "1-6 MHz (nominal)",
+          "BS-EN-10228-4": "0.5-6 MHz nominal (typically 0.5-2 for coarse grain)"
         };
         comparison.mostStringent = "AMS-STD-2154E";
         comparison.differences = [
           "MIL-STD-2154 requires higher frequencies for thin materials",
-          "BS-EN-10228-4 limited to low frequencies for austenitic steel",
-          "ASTM A388 and BS-EN-10228-3 similar ranges"
+          "BS-EN-10228-4 uses low practical frequencies for coarse-grain austenitic steel",
+          "BS-EN-10228-3 allows nominal range up to 6 MHz"
         ];
         break;
       
@@ -474,8 +479,8 @@ export class StandardsComplianceEngine {
       case "fbhSize":
         if (thickness) {
           comparison.standards = {
-            "MIL-STD-2154": this.getMilStdFBHSize(thickness, "A"),
-            "AMS-STD-2154E": this.getMilStdFBHSize(thickness, "A"),
+            "MIL-STD-2154": this.getMilStdFBHSize("A"),
+            "AMS-STD-2154E": this.getMilStdFBHSize("A"),
             "ASTM-A388": this.getAstmFBHSize(thickness),
             "BS-EN-10228-3": this.getBSENFBHSize(thickness),
             "BS-EN-10228-4": this.getBSENFBHSize(thickness)
@@ -631,9 +636,9 @@ export class StandardsComplianceEngine {
       case "ASTM-A388":
         return "1-5 MHz";
       case "BS-EN-10228-3":
-        return "1-5 MHz";
+        return "1-6 MHz";
       case "BS-EN-10228-4":
-        return "0.5-2 MHz";
+        return "0.5-6 MHz (typically 0.5-2 for coarse-grain austenitic steel)";
       default:
         return "2-5 MHz";
     }
@@ -720,3 +725,4 @@ export class StandardsComplianceEngine {
 
 // Export singleton instance
 export const complianceEngine = new StandardsComplianceEngine();
+

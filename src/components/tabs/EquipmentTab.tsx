@@ -1,16 +1,19 @@
 // @ts-nocheck
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { EquipmentData, StandardType } from "@/types/techniqueSheet";
 import { FieldWithHelp } from "@/components/FieldWithHelp";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Info, AlertTriangle, ChevronDown, ChevronRight, Plus, X } from "lucide-react";
 import { useMemo, useState, useEffect } from "react";
 import {
   equipmentParametersByStandard,
   getRecommendedFrequencyForStandard,
 } from "@/data/standardsDifferences";
+import { getFrequencyOptionsForStandard } from "@/utils/frequencyUtils";
 
 // LocalStorage keys for custom items
 const STORAGE_KEYS = {
@@ -25,40 +28,34 @@ interface EquipmentTabProps {
   standard?: StandardType;
 }
 
-// Frequency options per standard
-const frequenciesByStandard: Partial<Record<StandardType, string[]>> = {
-  "MIL-STD-2154": ["1.0", "2.25", "5.0", "10.0", "15.0"],
-  "AMS-STD-2154E": ["1.0", "2.25", "5.0", "10.0", "15.0"],
-  "ASTM-A388": ["1.0", "2.25", "5.0"],
-  "ASTM-E2375": ["1.0", "2.25", "5.0", "10.0"],
-  "ASTM-E127": ["2.25", "5.0", "10.0", "15.0"],
-  "ASTM-E164": ["1.0", "2.25", "5.0"],
-  "BS-EN-10228-3": ["1.0", "2.0", "4.0", "5.0"],
-  "BS-EN-10228-4": ["0.5", "1.0", "2.0"],
-  "EN-ISO-16810": ["1.0", "2.0", "2.25", "4.0", "5.0"],
-  "AMS-2630": ["1.0", "2.25", "5.0", "10.0", "15.0"],
-  "AMS-2631": ["2.25", "5.0", "10.0"],
-  "AMS-2632": ["5.0", "10.0", "15.0"],
-  "NDIP-1226": ["5.0", "10.0"],
-  "NDIP-1227": ["5.0", "10.0"],
-};
-
 const transducerTypes = ["immersion", "contact", "dual_element"];
 
-// Resolution values based on frequency (MIL-STD-2154 Table II)
-const getResolutionValues = (frequency: string) => {
-  const resolutions: Record<string, { entry: number; back: number }> = {
-    "0.5": { entry: 1.000, back: 0.400 },   // 0.5 MHz (BS EN 10228-4)
-    "1.0": { entry: 0.500, back: 0.200 },   // 1 MHz
-    "2.0": { entry: 0.300, back: 0.120 },   // 2 MHz
-    "2.25": { entry: 0.250, back: 0.100 },  // 2.25 MHz
-    "4.0": { entry: 0.150, back: 0.060 },   // 4 MHz
-    "5.0": { entry: 0.125, back: 0.050 },   // 5 MHz
-    "10.0": { entry: 0.050, back: 0.025 },  // 10 MHz
-    "15.0": { entry: 0.035, back: 0.020 },  // 15 MHz
-  };
-  return resolutions[frequency] || { entry: 0.125, back: 0.05 };
-};
+const couplantOptions = [
+  "Water (Immersion)",
+  "Water (with wetting agent)",
+  "Glycerin",
+  "Commercial Gel (Sono 600)",
+  "SAE No. 20 Motor Oil",
+  "SAE No. 30 Motor Oil",
+  "Mineral Oil",
+  "Cellulose Paste",
+  "Custom",
+];
+
+const transducerShapeOptions = [
+  {
+    value: "active_element_diameter_3_8_to_1_inch",
+    label: "Active element diameter 3/8 inch to 1 inch",
+  },
+  {
+    value: "rectangular_flat",
+    label: "Rectangular flat",
+  },
+  {
+    value: "cylindrically_focused_transducers",
+    label: "Cylindrically focused transducers",
+  },
+];
 
 // Get standard label
 const getStandardLabel = (standard: StandardType): string => {
@@ -123,7 +120,7 @@ export const EquipmentTab = ({ data, onChange, partThickness, standard = "AMS-ST
     const updated = [...customTransducerTypes, value];
     setCustomTransducerTypes(updated);
     localStorage.setItem(STORAGE_KEYS.customTransducerTypes, JSON.stringify(updated));
-    updateField("transducerType", value);
+    applyTransducerSelection([...selectedTransducerTypes, value]);
     setAddingTransducer(false);
     setNewItemValue("");
   };
@@ -155,7 +152,7 @@ export const EquipmentTab = ({ data, onChange, partThickness, standard = "AMS-ST
 
   // Get available frequencies for current standard
   const frequencies = useMemo(() => {
-    return frequenciesByStandard[standard] || frequenciesByStandard["AMS-STD-2154E"];
+    return getFrequencyOptionsForStandard(standard);
   }, [standard]);
 
   // Get recommended frequency based on standard and thickness
@@ -172,6 +169,41 @@ export const EquipmentTab = ({ data, onChange, partThickness, standard = "AMS-ST
   const updateField = (field: keyof EquipmentData, value: any) => {
     onChange({ ...data, [field]: value });
   };
+
+  const selectedTransducerTypes = useMemo(() => {
+    if (Array.isArray(data.transducerTypes) && data.transducerTypes.length > 0) {
+      return data.transducerTypes;
+    }
+    return (data.transducerType || "")
+      .split(/[,+]/)
+      .map((value) => value.trim().toLowerCase())
+      .filter(Boolean);
+  }, [data.transducerType, data.transducerTypes]);
+
+  const applyTransducerSelection = (selected: string[]) => {
+    const normalized = Array.from(
+      new Set(selected.map((value) => value.trim().toLowerCase()).filter(Boolean))
+    );
+    onChange({
+      ...data,
+      transducerTypes: normalized,
+      transducerType: normalized.join(", "),
+    });
+  };
+
+  const toggleTransducerType = (value: string) => {
+    const current = selectedTransducerTypes;
+    const updated = current.includes(value)
+      ? current.filter((item) => item !== value)
+      : [...current, value];
+    applyTransducerSelection(updated);
+  };
+
+  const selectedCouplantValue = useMemo(() => {
+    if (data.customCouplant) return "Custom";
+    if (!data.couplant) return "";
+    return couplantOptions.includes(data.couplant) ? data.couplant : "Custom";
+  }, [data.couplant, data.customCouplant]);
 
   // Warn if frequency is invalid for standard
   const showFrequencyWarning = !isFrequencyValid && data.frequency;
@@ -202,7 +234,8 @@ export const EquipmentTab = ({ data, onChange, partThickness, standard = "AMS-ST
             <div>
               <h4 className="text-sm font-semibold text-foreground mb-2">Austenitic Material Requirements</h4>
               <ul className="text-sm text-muted-foreground space-y-1 list-disc ml-4">
-                <li>Use lower frequencies (0.5-2 MHz) due to coarse grain structure</li>
+                <li>Use lower frequencies (typically 0.5-2 MHz) due to coarse grain structure</li>
+                <li>Standard nominal range is 0.5-6 MHz (select as low as practical for penetration)</li>
                 <li>Larger probe diameter (20-30mm) preferred</li>
                 <li>Consider dual-element probes for near-surface resolution</li>
                 <li>{equipmentParams.notes}</li>
@@ -263,20 +296,9 @@ export const EquipmentTab = ({ data, onChange, partThickness, standard = "AMS-ST
           />
         </FieldWithHelp>
 
-        <FieldWithHelp
-          label="Probe Model"
-          fieldKey="manufacturer"
-        >
-          <Input
-            value={data.probeModel || ""}
-            onChange={(e) => updateField("probeModel", e.target.value)}
-            placeholder="e.g., 5L64-A32"
-            className="bg-background"
-          />
-        </FieldWithHelp>
 
         <FieldWithHelp
-          label="Transducer Type"
+          label="Transducer Type (multi-select)"
           fieldKey="transducerType"
           required
         >
@@ -289,64 +311,95 @@ export const EquipmentTab = ({ data, onChange, partThickness, standard = "AMS-ST
                 className="bg-background flex-1"
                 autoFocus
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') addCustomTransducerType(newItemValue);
-                  if (e.key === 'Escape') { setAddingTransducer(false); setNewItemValue(""); }
+                  if (e.key === "Enter") addCustomTransducerType(newItemValue);
+                  if (e.key === "Escape") {
+                    setAddingTransducer(false);
+                    setNewItemValue("");
+                  }
                 }}
               />
               <Button size="sm" onClick={() => addCustomTransducerType(newItemValue)} className="h-9">
                 <Plus className="h-3 w-3" />
               </Button>
-              <Button size="sm" variant="ghost" onClick={() => { setAddingTransducer(false); setNewItemValue(""); }} className="h-9">
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  setAddingTransducer(false);
+                  setNewItemValue("");
+                }}
+                className="h-9"
+              >
                 <X className="h-3 w-3" />
               </Button>
             </div>
           ) : (
-            <Select
-              value={data.transducerType}
-              onValueChange={(value) => {
-                if (value === "__add_new__") {
-                  setAddingTransducer(true);
-                  setNewItemValue("");
-                } else {
-                  updateField("transducerType", value);
-                }
-              }}
-            >
-              <SelectTrigger className="bg-background">
-                <SelectValue placeholder="Select type..." />
-              </SelectTrigger>
-              <SelectContent className="max-h-[300px]">
-                {allTransducerTypes.map((type) => (
-                  <SelectItem key={type} value={type}>
-                    {type.split("_").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")}
-                    {type === "dual_element" && standard === "BS-EN-10228-4" && " ⭐"}
-                  </SelectItem>
-                ))}
-                <SelectItem value="__add_new__" className="text-primary font-medium border-t mt-1 pt-1">
-                  <span className="flex items-center gap-1">
-                    <Plus className="h-3 w-3" /> Add to the list
-                  </span>
-                </SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="space-y-2">
+              <div className="flex flex-wrap gap-2">
+                {allTransducerTypes.map((type) => {
+                  const selected = selectedTransducerTypes.includes(type);
+                  return (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => toggleTransducerType(type)}
+                      className={`px-2 py-1 rounded border text-xs transition-colors ${
+                        selected
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-background border-border hover:bg-muted/50"
+                      }`}
+                    >
+                      {type.split("_").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")}
+                    </button>
+                  );
+                })}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-7 px-2 text-xs"
+                  onClick={() => {
+                    setAddingTransducer(true);
+                    setNewItemValue("");
+                  }}
+                >
+                  <Plus className="h-3 w-3 mr-1" />
+                  Add to list
+                </Button>
+              </div>
+              {selectedTransducerTypes.length === 0 && (
+                <p className="text-xs text-muted-foreground">Select one or more transducer types.</p>
+              )}
+            </div>
           )}
         </FieldWithHelp>
 
         <FieldWithHelp
-          label={`Active Element Diameter (${standard.startsWith("BS-EN") ? "mm" : "inches"})`}
+          label="Transducer Shape and Size"
           fieldKey="transducerDiameter"
-          help={`Per ${standard}: ${equipmentParams.transducerDiameter.min}-${equipmentParams.transducerDiameter.max} ${equipmentParams.transducerDiameter.unit}`}
+          help="As requested: choose one of the standard shape/size options"
           required
         >
-          <Input
-            type="number"
-            value={data.transducerDiameter}
-            onChange={(e) => updateField("transducerDiameter", parseFloat(e.target.value) || 0)}
-            min={standard.startsWith("BS-EN") ? 10 : 0.25}
-            max={standard.startsWith("BS-EN") ? 30 : 1.0}
-            step={standard.startsWith("BS-EN") ? 1 : 0.125}
-            className="bg-background"
-          />
+          <Select
+            value={data.transducerShapeAndSize || ""}
+            onValueChange={(value) => {
+              updateField("transducerShapeAndSize", value);
+              if (value === "active_element_diameter_3_8_to_1_inch" && !data.transducerDiameter) {
+                updateField("transducerDiameter", 0.5);
+              }
+            }}
+          >
+            <SelectTrigger className="bg-background">
+              <SelectValue placeholder="Select shape/size..." />
+            </SelectTrigger>
+            <SelectContent>
+              {transducerShapeOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </FieldWithHelp>
 
         <FieldWithHelp
@@ -354,45 +407,47 @@ export const EquipmentTab = ({ data, onChange, partThickness, standard = "AMS-ST
           fieldKey="couplant"
           required
         >
-          <Input
-            value={data.couplant}
-            onChange={(e) => updateField("couplant", e.target.value)}
-            placeholder="Water, Glycerin, Commercial gel"
-            className="bg-background"
-          />
-        </FieldWithHelp>
-
-        <FieldWithHelp
-          label="Bandwidth"
-          fieldKey="manufacturer"
-          help="Transducer bandwidth classification"
-        >
-          <Select
-            value={data.bandwidth || ""}
-            onValueChange={(value) => updateField("bandwidth", value)}
-          >
-            <SelectTrigger className="bg-background">
-              <SelectValue placeholder="Select bandwidth..." />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="low">Low</SelectItem>
-              <SelectItem value="medium">Medium</SelectItem>
-              <SelectItem value="high">High</SelectItem>
-            </SelectContent>
-          </Select>
-        </FieldWithHelp>
-
-        <FieldWithHelp
-          label="Focus Size"
-          fieldKey="manufacturer"
-          help="Transducer focus size (e.g., 8 inch)"
-        >
-          <Input
-            value={data.focusSize || ""}
-            onChange={(e) => updateField("focusSize", e.target.value)}
-            placeholder='e.g., 8", 6", N/A'
-            className="bg-background"
-          />
+          <div className="space-y-2">
+            <Select
+              value={selectedCouplantValue}
+              onValueChange={(value) => {
+                if (value === "Custom") {
+                  updateField("couplant", data.customCouplant || "");
+                } else {
+                  onChange({
+                    ...data,
+                    couplant: value,
+                    customCouplant: "",
+                  });
+                }
+              }}
+            >
+              <SelectTrigger className="bg-background">
+                <SelectValue placeholder="Select couplant..." />
+              </SelectTrigger>
+              <SelectContent>
+                {couplantOptions.map((option) => (
+                  <SelectItem key={option} value={option}>
+                    {option}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {selectedCouplantValue === "Custom" && (
+              <Input
+                value={data.customCouplant || data.couplant || ""}
+                onChange={(e) =>
+                  onChange({
+                    ...data,
+                    customCouplant: e.target.value,
+                    couplant: e.target.value,
+                  })
+                }
+                placeholder="Enter custom couplant..."
+                className="bg-background"
+              />
+            )}
+          </div>
         </FieldWithHelp>
 
         <FieldWithHelp
@@ -739,6 +794,24 @@ export const EquipmentTab = ({ data, onChange, partThickness, standard = "AMS-ST
           {equipmentParams.frequencyTolerance && ` Frequency tolerance: ${equipmentParams.frequencyTolerance}.`}
           {equipmentParams.prfRange && ` PRF range: ${equipmentParams.prfRange}.`}
         </p>
+        <div className="mt-3 space-y-2">
+          <label className="flex items-center gap-2 text-xs text-foreground cursor-pointer">
+            <Checkbox
+              checked={!!data.includeSelectionNotesInReport}
+              onCheckedChange={(checked) => updateField("includeSelectionNotesInReport", checked === true)}
+            />
+            Include equipment selection notes in exported report
+          </label>
+          {data.includeSelectionNotesInReport && (
+            <Textarea
+              value={data.selectionNotes || ""}
+              onChange={(e) => updateField("selectionNotes", e.target.value)}
+              placeholder="Optional notes to print with the report..."
+              rows={3}
+              className="bg-background"
+            />
+          )}
+        </div>
       </div>
     </div>
   );

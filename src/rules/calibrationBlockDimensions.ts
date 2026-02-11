@@ -601,6 +601,7 @@ export function calculateCalibrationBlockSpec(
 
   // Calculate FBH specifications
   const fbhSpecs = calculateFBHSpec(
+    partGeometry,
     partDimensions,
     standard,
     acceptanceClass
@@ -699,6 +700,35 @@ function determineBlockType(geometry: PartGeometry, dimensions: PartDimensions):
 }
 
 /**
+ * Resolve controlling thickness for block sizing/FBH depth calculations.
+ * Tubular parts must be based on wall thickness, not full section height.
+ */
+function resolveInspectionThickness(
+  geometry: PartGeometry,
+  partDimensions: PartDimensions
+): number {
+  const derivedWall =
+    partDimensions.wallThickness ||
+    (partDimensions.outerDiameter && partDimensions.innerDiameter
+      ? (partDimensions.outerDiameter - partDimensions.innerDiameter) / 2
+      : undefined);
+
+  if (isTubularGeometry(geometry) && derivedWall && derivedWall > 0) {
+    return derivedWall;
+  }
+
+  if (partDimensions.thickness && partDimensions.thickness > 0) {
+    return partDimensions.thickness;
+  }
+
+  if (derivedWall && derivedWall > 0) {
+    return derivedWall;
+  }
+
+  return 25;
+}
+
+/**
  * Calculate block physical dimensions
  */
 function calculateBlockDimensions(
@@ -710,11 +740,7 @@ function calculateBlockDimensions(
   const minDims = MIN_BLOCK_DIMENSIONS[standard] || MIN_BLOCK_DIMENSIONS['DEFAULT'];
   const surfaceReq = getSurfaceFinishFromStandard(standard);
 
-  const partThickness = partDimensions.thickness ||
-    partDimensions.wallThickness ||
-    (partDimensions.outerDiameter && partDimensions.innerDiameter
-      ? (partDimensions.outerDiameter - partDimensions.innerDiameter) / 2
-      : 25);
+  const partThickness = resolveInspectionThickness(geometry, partDimensions);
 
   let blockHeight = Math.max(
     minDims.height,
@@ -765,13 +791,12 @@ function calculateBlockDimensions(
  * Calculate FBH specification using data from JSON files
  */
 function calculateFBHSpec(
+  geometry: PartGeometry,
   partDimensions: PartDimensions,
   standard: StandardType | string,
   acceptanceClass: string
 ): FBHSpecification {
-  const thickness = partDimensions.thickness ||
-    partDimensions.wallThickness ||
-    25;
+  const thickness = resolveInspectionThickness(geometry, partDimensions);
 
   // Get FBH number from the loaded JSON tables
   const fbhNumber = getFBHNumber(standard, thickness, acceptanceClass);
@@ -878,6 +903,16 @@ function getFBHNumber(
   thickness: number,
   acceptanceClass: string
 ): number {
+  // PW NDIP procedures (1226/1227/1254/1257/1260) use fixed #1 FBH.
+  if (typeof standard === "string" && standard.startsWith("NDIP-")) {
+    return 1;
+  }
+
+  // PWA-SIM uses fixed 3/64 FBH as the primary reference.
+  if (standard === "PWA-SIM") {
+    return 3;
+  }
+
   // Get FBH table for standard
   const fbhTable = FBH_SIZES_BY_STANDARD[standard] || FBH_SIZES_BY_STANDARD['AMS-STD-2154E'];
 

@@ -32,7 +32,7 @@ const standards = [
     badgeBg: "#fef2f2",
     badgeText: "#dc2626",
     badgeBorder: "#fca5a5",
-    features: ["5 classes (AAA-C)", "#1 FBH (0.8mm)", "30% overlap", "90% linearity"]
+    features: ["5 classes (AAA-C)", "#1 FBH (0.4mm)", "30% overlap", "90% linearity"]
   },
   {
     value: "ASTM-A388" as StandardType,
@@ -64,7 +64,7 @@ const standards = [
     badgeBg: "#f0fdf4",
     badgeText: "#16a34a",
     badgeBorder: "#86efac",
-    features: ["4 quality classes", "DAC curve", "2-10 MHz", "Ferritic steel"]
+    features: ["4 quality classes", "DAC curve", "1-6 MHz", "Ferritic steel"]
   },
   {
     value: "BS-EN-10228-4" as StandardType,
@@ -80,7 +80,7 @@ const standards = [
     badgeBg: "#faf5ff",
     badgeText: "#9333ea",
     badgeBorder: "#d8b4fe",
-    features: ["Coarse grain", "0.5-2 MHz", "20% overlap", "Austenitic steel"]
+    features: ["Coarse grain", "0.5-6 MHz (typ. 0.5-2)", "20% overlap", "Austenitic steel"]
   },
   {
     value: "NDIP-1226" as StandardType,

@@ -1396,12 +1396,20 @@ export async function exportTechniqueSheetWord(
   children.push(createSubsectionTitle('Transducer'));
   children.push(new Paragraph({ children: [], spacing: { after: 100 } }));
 
+  const transducerTypeDisplay = equipment.transducerTypes?.length
+    ? equipment.transducerTypes.map((type) => formatTransducerType(type)).join(', ')
+    : formatTransducerType(equipment.transducerType);
+  const transducerShapeDisplay = equipment.transducerShapeAndSize
+    ? equipment.transducerShapeAndSize.replace(/_/g, ' ')
+    : '-';
+
   children.push(createKeyValueTable([
-    ['Probe Model', formatValue(equipment.probeModel)],
     ['Frequency', equipment.frequency ? `${equipment.frequency} MHz` : '-'],
-    ['Type', formatTransducerType(equipment.transducerType)],
+    ['Type', transducerTypeDisplay],
+    ['Transducer Shape & Size', transducerShapeDisplay],
     ['Element Diameter', equipment.transducerDiameter ? formatNumber(equipment.transducerDiameter, 3, 'inches') : '-'],
-    ['Couplant', formatValue(equipment.couplant)],
+    ['Couplant', formatValue(equipment.customCouplant || equipment.couplant)],
+    ['Selection Notes', equipment.includeSelectionNotesInReport ? formatValue(equipment.selectionNotes) : '-'],
   ], undefined, WORD_COLORS.secondary));
 
   children.push(new Paragraph({ children: [], spacing: { after: 200 } }));
@@ -1532,6 +1540,15 @@ export async function exportTechniqueSheetWord(
     }));
   }
 
+  if (acceptanceCriteria.includeStandardNotesInReport && acceptanceCriteria.standardNotes) {
+    children.push(createSubsectionTitle('Standard Notes'));
+    children.push(new Paragraph({ children: [], spacing: { after: 100 } }));
+    children.push(new Paragraph({
+      children: [new TextRun({ text: acceptanceCriteria.standardNotes, size: 18 })],
+      spacing: { after: 200 },
+    }));
+  }
+
   // Material Warning in Acceptance section
   if (materialWarning) {
     children.push(createWarningBox(`MATERIAL WARNING: ${materialWarning}`));
@@ -1598,11 +1615,22 @@ export async function exportTechniqueSheetWord(
 
     children.push(new Paragraph({ children: [], spacing: { after: 200 } }));
 
-    // Probe Details
-    children.push(createSubsectionTitle('Probe Details'));
+    const computeNearField = (detail: any): string => {
+      const d = Number(detail.activeElementDiameter);
+      const f = Number.parseFloat(detail.frequency || '');
+      const v = Number(detail.velocity || 5920);
+      if (!Number.isFinite(d) || d <= 0 || !Number.isFinite(f) || f <= 0 || !Number.isFinite(v) || v <= 0) {
+        return '-';
+      }
+      const velocityMmUs = v / 1000;
+      return `${((d * d * f) / (4 * velocityMmUs)).toFixed(2)} mm`;
+    };
+
+    // Probe Parameters
+    children.push(createSubsectionTitle('Probe Parameters'));
     children.push(new Paragraph({ children: [], spacing: { after: 100 } }));
 
-    const probeHeaders = ['Dir.', 'Part Number', 'Serial Number', 'Range', 'Attenuation', 'BWE', 'SSS'];
+    const probeHeaders = ['Dir.', 'Part Number', 'Serial Number', 'Active Element', 'Bandwidth', 'Focus Size', 'Velocity', 'Near Field'];
     const probeHeaderRow = new TableRow({
       children: probeHeaders.map(text => new TableCell({
         children: [new Paragraph({
@@ -1624,10 +1652,11 @@ export async function exportTechniqueSheetWord(
         detail.scanningDirection,
         detail.partNumber || '-',
         detail.serialNumber || '-',
-        detail.rangeMm !== undefined ? `${detail.rangeMm} mm` : '-',
-        detail.attenuation !== undefined ? `${detail.attenuation} dB` : '-',
-        detail.backWallEcho !== undefined ? `${detail.backWallEcho}%` : '-',
-        detail.sss || '-',
+        detail.activeElementDiameter !== undefined ? `${detail.activeElementDiameter} mm` : '-',
+        detail.bandwidth || '-',
+        detail.focusSize || '-',
+        detail.velocity !== undefined ? `${detail.velocity} m/s` : '-',
+        computeNearField(detail),
       ].map(text => new TableCell({
         children: [new Paragraph({
           children: [new TextRun({ text, size: 14 })],
@@ -1645,6 +1674,61 @@ export async function exportTechniqueSheetWord(
     children.push(new Table({
       width: { size: 100, type: WidthType.PERCENTAGE },
       rows: [probeHeaderRow, ...probeDataRows],
+    }));
+
+    children.push(new Paragraph({ children: [], spacing: { after: 200 } }));
+
+    // U.T Parameters
+    children.push(createSubsectionTitle('U.T Parameters'));
+    children.push(new Paragraph({ children: [], spacing: { after: 100 } }));
+
+    const formatGate = (gate?: { start: number; length: number; level: number }): string => {
+      if (!gate) return '-';
+      return `${gate.start}-${gate.length}-${gate.level}%`;
+    };
+
+    const utHeaders = ['Dir.', 'U.T Parameter', 'Range', 'Delay', 'Gate 1', 'TCG'];
+    const utHeaderRow = new TableRow({
+      children: utHeaders.map(text => new TableCell({
+        children: [new Paragraph({
+          children: [new TextRun({ text, bold: true, size: 14, color: 'FFFFFF' })],
+          alignment: AlignmentType.CENTER,
+        })],
+        shading: { fill: '4F46E5', type: ShadingType.CLEAR },
+        margins: {
+          top: convertInchesToTwip(0.03),
+          bottom: convertInchesToTwip(0.03),
+          left: convertInchesToTwip(0.03),
+          right: convertInchesToTwip(0.03),
+        },
+      })),
+    });
+
+    const utRows = enabledDetails.map((detail, idx) => new TableRow({
+      children: [
+        detail.scanningDirection,
+        detail.utParameter || detail.pulsarParams || '-',
+        detail.utRange !== undefined ? `${detail.utRange}` : '-',
+        detail.utDelay !== undefined ? `${detail.utDelay}` : '-',
+        formatGate(detail.gate1),
+        detail.tcgMode !== undefined ? (detail.tcgMode ? 'YES' : 'NO') : '-',
+      ].map(text => new TableCell({
+        children: [new Paragraph({
+          children: [new TextRun({ text, size: 14 })],
+        })],
+        shading: idx % 2 === 1 ? { fill: WORD_COLORS.rowAlt, type: ShadingType.CLEAR } : undefined,
+        margins: {
+          top: convertInchesToTwip(0.03),
+          bottom: convertInchesToTwip(0.03),
+          left: convertInchesToTwip(0.03),
+          right: convertInchesToTwip(0.03),
+        },
+      })),
+    }));
+
+    children.push(new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      rows: [utHeaderRow, ...utRows],
     }));
 
     children.push(new Paragraph({ children: [new PageBreak()] }));

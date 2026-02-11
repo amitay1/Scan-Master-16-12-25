@@ -9,7 +9,8 @@
  * - Profile: end faces 60.000° ± .500° and 45.000° ± .500°
  * - Reference height: (3.500)
  * - Bottom flat: 2.479 ± .015
- * - Active calibration holes: L through S (J & K omitted per 5.1.1.7.1)
+ * - All Figure-1 holes are displayed (J,K,L,M,N,P,Q,R,S)
+ * - DAC active calibration holes: L through S (J & K omitted per 5.1.1.7.1)
  */
 
 import React, { useId, useMemo } from "react";
@@ -100,8 +101,6 @@ export function PWCalibrationBlockDrawing({
   const stroke = "#111827";
   const dim = "#374151";
   const muted = "#6b7280";
-  const omit = "#ef4444";
-
   const dimArrow = `url(#arrow-${uniqueId})`;
   const dimArrowRev = `url(#arrow-rev-${uniqueId})`;
 
@@ -181,7 +180,7 @@ export function PWCalibrationBlockDrawing({
   return (
     <div
       data-testid="angle-beam-image-capture"
-      className="pw-calibration-block-drawing angle-beam-image-capture bg-white rounded-lg border-2 border-blue-200 shadow-lg overflow-hidden"
+      className="pw-calibration-block-drawing angle-beam-image-capture bg-white rounded-lg border-2 border-blue-200 shadow-lg overflow-x-auto"
     >
       {/* Header (kept compact; main fidelity is in the figure itself) */}
       <div className="bg-gradient-to-r from-blue-700 to-indigo-800 text-white px-4 py-3">
@@ -203,9 +202,8 @@ export function PWCalibrationBlockDrawing({
       <svg
         data-testid="angle-beam-calibration-block"
         viewBox={`0 0 ${width} ${height}`}
-        width={width}
-        height={height}
-        className="block mx-auto bg-white angle-beam-calibration-image"
+        preserveAspectRatio="xMidYMid meet"
+        className="block w-full h-auto min-w-[760px] mx-auto bg-white angle-beam-calibration-image"
       >
         <defs>
           <marker id={`arrow-${uniqueId}`} markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
@@ -379,7 +377,6 @@ export function PWCalibrationBlockDrawing({
                     const cy = front.y + faceH * pos.y;
                     const r = 6;
                     const isHighlighted = highlighted.has(h.id);
-                    const isOmitted = !h.used;
 
                     return (
                       <g key={h.id}>
@@ -387,18 +384,10 @@ export function PWCalibrationBlockDrawing({
                           cx={cx}
                           cy={cy}
                           r={r}
-                          fill={isHighlighted ? "#fef3c7" : isOmitted ? "#e5e7eb" : "#111827"}
-                          stroke={isHighlighted ? "#f59e0b" : isOmitted ? muted : stroke}
+                          fill={isHighlighted ? "#fef3c7" : "#111827"}
+                          stroke={isHighlighted ? "#f59e0b" : stroke}
                           strokeWidth={isHighlighted ? 2 : 1.5}
                         />
-
-                        {/* Omitted hole mark (J & K) */}
-                        {isOmitted && (
-                          <>
-                            <line x1={cx - 7} y1={cy - 7} x2={cx + 7} y2={cy + 7} stroke={omit} strokeWidth="2" />
-                            <line x1={cx - 7} y1={cy + 7} x2={cx + 7} y2={cy - 7} stroke={omit} strokeWidth="2" />
-                          </>
-                        )}
 
                         {/* Label */}
                         <text
@@ -406,7 +395,7 @@ export function PWCalibrationBlockDrawing({
                           y={cy - 12}
                           textAnchor="middle"
                           fontSize="12"
-                          fontWeight={h.used ? 700 : 500}
+                          fontWeight={700}
                           fontFamily="monospace"
                           fill={stroke}
                         >
@@ -432,7 +421,7 @@ export function PWCalibrationBlockDrawing({
               PART: {PW_ANGLE_CALIBRATION_BLOCK.partNumber} (Calibration Block)
             </text>
             <text x={12} y={72} fontSize="11" fontFamily="monospace" fill={stroke}>
-              ACTIVE HOLES: L, M, N, P, Q, R, S (J & K OMITTED)
+              HOLES SHOWN: J, K, L, M, N, P, Q, R, S | DAC: L-S
             </text>
           </g>
         )}

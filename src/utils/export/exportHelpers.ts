@@ -187,6 +187,15 @@ export function formatTransducerType(type: string | undefined): string {
     'contact': 'Contact',
     'dual_element': 'Dual Element',
   };
+  const tokens = type
+    .split(/[,+]/)
+    .map((token) => token.trim().toLowerCase())
+    .filter(Boolean);
+
+  if (tokens.length > 1) {
+    return tokens.map((token) => typeMap[token] || token).join(', ');
+  }
+
   return typeMap[type.toLowerCase()] || type;
 }
 

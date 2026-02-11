@@ -7,6 +7,7 @@ import { StandardType } from "@/types/techniqueSheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { toast } from "sonner";
 
 interface StandardReferenceDialogProps {
   open: boolean;
@@ -27,25 +28,27 @@ export const StandardReferenceDialog = ({
   
   if (!reference) return null;
 
-  const getPdfPathForStandard = (std: StandardType): string => {
-    switch (std) {
-      case "ASTM-A388":
-        return "/standards/ASTM_A388.pdf";
-      case "ASTM-E2375":
-        return "/standards/E2375.pdf";
-      case "NDIP-1226":
-        return "/standards/NDIP_1226_RevF.pdf";
-      case "NDIP-1227":
-        return "/standards/NDIP_1227_RevD.pdf";
-      case "MIL-STD-2154":
-      case "AMS-STD-2154E":
-      default:
-        return "/standards/MIL-STD-2154.pdf";
-    }
+  const pdfByStandard: Partial<Record<StandardType, string>> = {
+    "ASTM-A388": "/standards/ASTM_A388.pdf",
+    "ASTM-E2375": "/standards/E2375.pdf",
+    "NDIP-1226": "/standards/NDIP_1226_RevF.pdf",
+    "NDIP-1227": "/standards/NDIP_1227_RevD.pdf",
+    "MIL-STD-2154": "/standards/MIL-STD-2154.pdf",
+    // AMS-STD-2154E is handled by MIL-STD-2154 legacy document in this build.
+    "AMS-STD-2154E": "/standards/MIL-STD-2154.pdf",
   };
 
+  const getPdfPathForStandard = (std: StandardType): string | null => {
+    return pdfByStandard[std] ?? null;
+  };
+
+  const pdfPath = getPdfPathForStandard(standardType);
+
   const handleOpenPDF = () => {
-    const pdfPath = getPdfPathForStandard(standardType);
+    if (!pdfPath) {
+      toast.warning(`No bundled PDF is available for ${standardType} in this build.`);
+      return;
+    }
     window.open(pdfPath, '_blank');
   };
 
@@ -104,6 +107,7 @@ export const StandardReferenceDialog = ({
               variant="outline"
               size="sm"
               onClick={handleOpenPDF}
+              disabled={!pdfPath}
               className="gap-2 w-full"
             >
               <ExternalLink className="h-4 w-4" />
@@ -149,6 +153,7 @@ export const StandardReferenceDialog = ({
             variant="outline"
             size="sm"
             onClick={handleOpenPDF}
+            disabled={!pdfPath}
             className="gap-2"
           >
             <ExternalLink className="h-4 w-4" />

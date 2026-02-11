@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -21,21 +21,31 @@ import { HexBarScanDiagram } from "@/components/HexBarScanDiagram";
 import { ImpellerScanDiagram } from "@/components/ImpellerScanDiagram";
 import { BliskScanDiagram } from "@/components/BliskScanDiagram";
 import { getFrequencyOptionsForStandard } from "@/utils/frequencyUtils";
+import { calculateNearField } from "@/utils/coverageCalculator";
 import { CustomDrawingUpload, ArrowOverlay, GeometrySelector } from "@/components/scan-overlay";
 import { useOllamaVision } from "@/components/scan-overlay/hooks/useOllamaVision";
 import { generateArrowsForGeometry, syncArrowsWithScanDetails } from "@/utils/scanArrowPlacement";
+import { getV2500ScanDetailDefaults } from "@/utils/pwScanDetailDefaults";
 import type { ScanArrow } from "@/types/scanOverlay";
 
 // Extended ScanDetail with per-row pulsar parameters
 interface ExtendedScanDetail extends ScanDetail {
   scanningFile?: string;
   pulsarParams?: string;
+  utParameter?: string;
+  utRange?: number;
+  utDelay?: number;
   prf?: number;
   indexMode?: string;
   db?: number;
   filter?: string;
   reject?: string;
   tcgMode?: boolean;
+  activeElementDiameter?: number;
+  bandwidth?: string;
+  focusSize?: string;
+  velocity?: number;
+  nearField?: number;
 }
 
 const DEFAULT_GATE: GateSettings = { start: 0, length: 0, level: 0 };
@@ -120,6 +130,10 @@ const FIXED_SCAN_DETAILS: ExtendedScanDetail[] = [
   { scanningDirection: "L", waveMode: "Shear wave 45 CCW", frequency: "", make: "", probe: "", remarkDetails: "", enabled: false, entrySurface: "radial", angle: 0, color: "#a855f7" },
 ];
 
+const getDefaultScanDetailsForStandard = (standard: StandardType): ExtendedScanDetail[] => {
+  return (getV2500ScanDetailDefaults(standard) as ExtendedScanDetail[] | null) ?? FIXED_SCAN_DETAILS;
+};
+
 export const ScanDetailsTab = ({ data, onChange, partType, standard = "AMS-STD-2154E", dimensions }: ScanDetailsTabProps) => {
   const frequencyOptions = getFrequencyOptionsForStandard(standard);
   const [highlightedDirection, setHighlightedDirection] = useState<string | null>(null);
@@ -143,13 +157,37 @@ export const ScanDetailsTab = ({ data, onChange, partType, standard = "AMS-STD-2
     setApiKey,
   } = useOllamaVision();
 
-  useEffect(() => {
-    if (!data?.scanDetails || data.scanDetails.length === 0) {
-      onChange({ scanDetails: FIXED_SCAN_DETAILS, pulsarParameters: data.pulsarParameters });
-    }
-  }, []);
+  const defaultScanDetails = useMemo(
+    () => getDefaultScanDetailsForStandard(standard),
+    [standard]
+  );
+  const defaultDirectionKey = useMemo(
+    () => defaultScanDetails.map((detail) => detail.scanningDirection).join("|"),
+    [defaultScanDetails]
+  );
+  const currentDirectionKey = useMemo(
+    () => (data.scanDetails ?? []).map((detail) => detail.scanningDirection).join("|"),
+    [data.scanDetails]
+  );
 
-  const scanDetails = FIXED_SCAN_DETAILS.map(fixed => {
+  useEffect(() => {
+    const existingScanDetails = data.scanDetails ?? [];
+    const shouldInitialize = existingScanDetails.length === 0;
+    const shouldNormalizeToStandard = existingScanDetails.length > 0 && currentDirectionKey !== defaultDirectionKey;
+
+    if (!shouldInitialize && !shouldNormalizeToStandard) {
+      return;
+    }
+
+    const normalizedScanDetails = defaultScanDetails.map((fixed) => {
+      const existing = existingScanDetails.find((detail) => detail.scanningDirection === fixed.scanningDirection);
+      return (existing ? { ...fixed, ...existing } : fixed) as ExtendedScanDetail;
+    });
+
+    onChange({ ...data, scanDetails: normalizedScanDetails });
+  }, [currentDirectionKey, data, defaultDirectionKey, defaultScanDetails, onChange]);
+
+  const scanDetails = defaultScanDetails.map(fixed => {
     const existing = data.scanDetails?.find(d => d.scanningDirection === fixed.scanningDirection);
     return (existing || fixed) as ExtendedScanDetail;
   });
@@ -162,7 +200,17 @@ export const ScanDetailsTab = ({ data, onChange, partType, standard = "AMS-STD-2
 
   const updateScanDetail = (index: number, field: string, value: string | number | boolean | GateSettings) => {
     const newScanDetails = [...scanDetails];
-    newScanDetails[index] = { ...newScanDetails[index], [field]: value };
+    const updatedDetail: ExtendedScanDetail = { ...newScanDetails[index], [field]: value };
+
+    // Keep backward compatibility with previously saved pulsar parameter field.
+    if (field === "utParameter") {
+      updatedDetail.pulsarParams = String(value || "");
+    }
+    if (field === "pulsarParams") {
+      updatedDetail.utParameter = String(value || "");
+    }
+
+    newScanDetails[index] = updatedDetail;
     onChange({ ...data, scanDetails: newScanDetails });
   };
 
@@ -182,7 +230,7 @@ export const ScanDetailsTab = ({ data, onChange, partType, standard = "AMS-STD-2
     scanDetails.map(d => [d.scanningDirection, d.color || "#111827"])
   ) as Record<string, string>;
 
-  const showV2500BoreDiagram = partType === "hpt_disk" || standard === "NDIP-1226" || standard === "NDIP-1227";
+  const showV2500BoreDiagram = standard === "NDIP-1226" || standard === "NDIP-1227";
   const v2500Stage: 1 | 2 | null = standard === "NDIP-1226" ? 1 : standard === "NDIP-1227" ? 2 : null;
 
   // Custom drawing handlers
@@ -214,6 +262,7 @@ export const ScanDetailsTab = ({ data, onChange, partType, standard = "AMS-STD-2
         A: '#22c55e', B: '#3b82f6', C: '#f59e0b', D: '#ef4444',
         E: '#8b5cf6', F: '#ec4899', G: '#06b6d4', H: '#84cc16',
         I: '#f97316', J: '#6366f1', K: '#14b8a6', L: '#a855f7',
+        M: '#10b981', N: '#0ea5e9', O: '#f97316', P: '#dc2626',
       };
       // Convert AI suggested arrows to ScanArrow format
       arrows = aiAnalysisResult.suggestedArrows.map(sa => ({
@@ -289,6 +338,18 @@ export const ScanDetailsTab = ({ data, onChange, partType, standard = "AMS-STD-2
     }
   }, [data.customDrawingData]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const getComputedNearField = (detail: ExtendedScanDetail): number | null => {
+    const diameterMm = Number(detail.activeElementDiameter);
+    const frequencyMHz = Number.parseFloat(detail.frequency || "");
+    const velocityMs = Number(detail.velocity || 5920);
+
+    if (!Number.isFinite(diameterMm) || diameterMm <= 0) return null;
+    if (!Number.isFinite(frequencyMHz) || frequencyMHz <= 0) return null;
+    if (!Number.isFinite(velocityMs) || velocityMs <= 0) return null;
+
+    return calculateNearField(diameterMm, frequencyMHz, velocityMs);
+  };
+
   // Render expanded details panel - Dark theme design
   const renderExpandedDetails = (detail: ExtendedScanDetail, index: number) => (
     <tr className="bg-slate-900/50 border-b border-slate-700">
@@ -320,42 +381,68 @@ export const ScanDetailsTab = ({ data, onChange, partType, standard = "AMS-STD-2
                 />
               </div>
               <div>
-                <Label className="text-[10px] text-slate-400 uppercase tracking-wide">Range (mm)</Label>
+                <Label className="text-[10px] text-slate-400 uppercase tracking-wide">Active Element Diameter (mm)</Label>
                 <Input
                   type="number"
-                  value={detail.rangeMm?.toString() || ""}
-                  onChange={(e) => updateScanDetail(index, "rangeMm", parseFloat(e.target.value) || 0)}
+                  value={detail.activeElementDiameter?.toString() || ""}
+                  onChange={(e) => updateScanDetail(index, "activeElementDiameter", parseFloat(e.target.value) || 0)}
                   className="h-8 text-xs bg-slate-900/60 border-slate-600 text-slate-100 placeholder:text-slate-500"
-                  placeholder="380"
+                  placeholder="10"
                 />
               </div>
               <div>
-                <Label className="text-[10px] text-slate-400 uppercase tracking-wide">Attenuation (dB)</Label>
+                <Label className="text-[10px] text-slate-400 uppercase tracking-wide">Bandwidth</Label>
                 <Input
-                  type="number"
-                  value={detail.attenuation?.toString() || ""}
-                  onChange={(e) => updateScanDetail(index, "attenuation", parseFloat(e.target.value) || 0)}
+                  value={detail.bandwidth || ""}
+                  onChange={(e) => updateScanDetail(index, "bandwidth", e.target.value)}
                   className="h-8 text-xs bg-slate-900/60 border-slate-600 text-slate-100 placeholder:text-slate-500"
-                  placeholder="0"
+                  placeholder="e.g., 2-10 MHz"
                 />
               </div>
               <div>
-                <Label className="text-[10px] text-slate-400 uppercase tracking-wide">BWE (%)</Label>
+                <Label className="text-[10px] text-slate-400 uppercase tracking-wide">Focus Size</Label>
                 <Input
-                  type="number"
-                  value={detail.backWallEcho?.toString() || ""}
-                  onChange={(e) => updateScanDetail(index, "backWallEcho", parseFloat(e.target.value) || 0)}
+                  value={detail.focusSize || ""}
+                  onChange={(e) => updateScanDetail(index, "focusSize", e.target.value)}
                   className="h-8 text-xs bg-slate-900/60 border-slate-600 text-slate-100 placeholder:text-slate-500"
-                  placeholder="80"
+                  placeholder="e.g., 8 inch"
                 />
               </div>
               <div>
-                <Label className="text-[10px] text-slate-400 uppercase tracking-wide">SSS</Label>
+                <Label className="text-[10px] text-slate-400 uppercase tracking-wide">Frequency (MHz)</Label>
+                <Select value={detail.frequency || ""} onValueChange={(v) => updateScanDetail(index, "frequency", v)}>
+                  <SelectTrigger className="h-8 text-xs bg-slate-900/60 border-slate-600 text-slate-100">
+                    <SelectValue placeholder="Select" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-slate-800 border-slate-600">
+                    {frequencyOptions.map((f) => (
+                      <SelectItem key={f} value={f} className="text-xs text-slate-100">
+                        {f}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-[10px] text-slate-400 uppercase tracking-wide">Velocity (m/s)</Label>
                 <Input
-                  value={detail.sss || ""}
-                  onChange={(e) => updateScanDetail(index, "sss", e.target.value)}
+                  type="number"
+                  value={detail.velocity?.toString() || ""}
+                  onChange={(e) => updateScanDetail(index, "velocity", parseFloat(e.target.value) || 0)}
                   className="h-8 text-xs bg-slate-900/60 border-slate-600 text-slate-100 placeholder:text-slate-500"
-                  placeholder="OFF"
+                  placeholder="5920"
+                />
+              </div>
+              <div>
+                <Label className="text-[10px] text-slate-400 uppercase tracking-wide">Near Field (mm)</Label>
+                <Input
+                  value={(() => {
+                    const nearField = getComputedNearField(detail);
+                    return nearField !== null ? nearField.toFixed(2) : "";
+                  })()}
+                  readOnly
+                  className="h-8 text-xs bg-slate-800 border-slate-600 text-slate-100"
+                  placeholder="Auto"
                 />
               </div>
             </div>
@@ -425,11 +512,11 @@ export const ScanDetailsTab = ({ data, onChange, partType, standard = "AMS-STD-2
             </div>
           </div>
 
-          {/* Pulsar Parameters Section */}
+          {/* U.T Parameters Section */}
           <div className="bg-slate-800/80 rounded-lg p-4 border border-violet-500/30">
             <h4 className="text-sm font-semibold text-violet-400 mb-3 flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-violet-400"></span>
-              Pulsar Parameters
+              U.T Parameters
             </h4>
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -442,12 +529,32 @@ export const ScanDetailsTab = ({ data, onChange, partType, standard = "AMS-STD-2
                 />
               </div>
               <div>
-                <Label className="text-[10px] text-slate-400 uppercase tracking-wide">Pulsar Params</Label>
+                <Label className="text-[10px] text-slate-400 uppercase tracking-wide">U.T Parameter</Label>
                 <Input
-                  value={detail.pulsarParams || ""}
-                  onChange={(e) => updateScanDetail(index, "pulsarParams", e.target.value)}
+                  value={detail.utParameter || detail.pulsarParams || ""}
+                  onChange={(e) => updateScanDetail(index, "utParameter", e.target.value)}
                   className="h-8 text-xs bg-slate-900/60 border-slate-600 text-slate-100 placeholder:text-slate-500"
                   placeholder="300V,SQUARE,130NS"
+                />
+              </div>
+              <div>
+                <Label className="text-[10px] text-slate-400 uppercase tracking-wide">Range</Label>
+                <Input
+                  type="number"
+                  value={detail.utRange?.toString() || ""}
+                  onChange={(e) => updateScanDetail(index, "utRange", parseFloat(e.target.value) || 0)}
+                  className="h-8 text-xs bg-slate-900/60 border-slate-600 text-slate-100 placeholder:text-slate-500"
+                  placeholder="e.g., 380"
+                />
+              </div>
+              <div>
+                <Label className="text-[10px] text-slate-400 uppercase tracking-wide">Delay</Label>
+                <Input
+                  type="number"
+                  value={detail.utDelay?.toString() || ""}
+                  onChange={(e) => updateScanDetail(index, "utDelay", parseFloat(e.target.value) || 0)}
+                  className="h-8 text-xs bg-slate-900/60 border-slate-600 text-slate-100 placeholder:text-slate-500"
+                  placeholder="e.g., 0"
                 />
               </div>
               <div>
@@ -624,7 +731,7 @@ export const ScanDetailsTab = ({ data, onChange, partType, standard = "AMS-STD-2
               <img
                 src={customData.image}
                 alt="Uploaded drawing"
-                className="w-full h-auto max-h-[200px] object-contain rounded-lg bg-gray-100"
+                className="w-full h-auto max-h-[260px] object-contain rounded-lg bg-gray-100"
               />
               <Button
                 size="sm"
@@ -655,8 +762,8 @@ export const ScanDetailsTab = ({ data, onChange, partType, standard = "AMS-STD-2
         <div className="flex-1 relative overflow-hidden rounded-lg bg-gray-100">
           <ArrowOverlay
             image={customData.image}
-            width={400}
-            height={300}
+            width={560}
+            height={420}
             arrows={scanArrows}
             highlightedDirection={highlightedDirection}
             onArrowHover={setHighlightedDirection}
@@ -695,7 +802,7 @@ export const ScanDetailsTab = ({ data, onChange, partType, standard = "AMS-STD-2
     <div className="h-full flex flex-col overflow-hidden">
       <div className="flex-1 flex gap-2 min-h-0 p-1">
         {/* LEFT: Diagram / Custom Drawing */}
-        <div className="w-1/3 min-h-0 flex-shrink-0 flex flex-col" data-testid="e2375-diagram">
+        <div className="w-2/5 min-h-0 flex-shrink-0 flex flex-col" data-testid="e2375-diagram">
           {/* Toggle between predefined and custom drawing */}
           <div className="flex items-center justify-between mb-2 px-1">
             <div className="flex items-center gap-2">

@@ -550,7 +550,7 @@ function selectStraightBeamBlock(
           reasoning: `Cylinder Notched block for HPT disk bore inspection. ` +
                      `Circumferential shear wave (±45°) required for bore region per NDIP-1226/1227. ` +
                      `CRITICAL: Use IAE2P16675 angle calibration block for bore shear wave calibration. ` +
-                     `Class AAA mandatory for HPT components.`,
+                     `Apply NDIP acceptance/rejection and TOF criteria for this part family.`,
           alternatives: ['flat_fbh', 'curved_fbh']
         };
       }
@@ -560,7 +560,7 @@ function selectStraightBeamBlock(
         category: 'flat_fbh',
         reasoning: `Flat FBH block (Figure 4) for HPT disk face-only inspection per NDIP-1226/1227. ` +
                    `No bore scan required for this configuration. ` +
-                   `Class AAA mandatory for HPT components.`,
+                   `Apply NDIP acceptance/rejection and TOF criteria for this part family.`,
         alternatives: ['curved_fbh']
       };
     }
@@ -1303,7 +1303,7 @@ export function generateCalibrationRecommendationV2(
 
     notes.push("Calibration block IAE2P16675 required for bore shear wave angle calibration");
     notes.push("Bore zones: Forward bore, aft bore, and bore ID surface require separate scan passes");
-    notes.push("Class AAA mandatory for all HPT disk zones (AMS-STD-2154)");
+    notes.push("Use NDIP-1226/1227 acceptance and TOF criteria for all HPT disk zones");
 
     if (input.innerDiameter && input.innerDiameter > 0) {
       notes.push("Bore ID detected: Circumferential shear wave scan mandatory for bore region integrity");
@@ -1560,3 +1560,4 @@ export type {
   WedgeSpecification,
   AngleBeamBlockSpec
 } from "./angleBeamCalculator";
+

@@ -1292,12 +1292,20 @@ class TechniqueSheetPDFBuilder {
     // Transducer Settings
     y = this.addSubsectionTitle('Transducer', y);
 
+    const transducerTypeDisplay = eq.transducerTypes?.length
+      ? eq.transducerTypes.map((type) => formatTransducerType(type)).join(', ')
+      : formatTransducerType(eq.transducerType);
+    const transducerShapeDisplay = eq.transducerShapeAndSize
+      ? eq.transducerShapeAndSize.replace(/_/g, ' ')
+      : undefined;
+
     const transducerInfo = buildTableRows([
-      ['Probe Model', eq.probeModel],
       ['Frequency', eq.frequency ? `${eq.frequency} MHz` : undefined],
-      ['Type', formatTransducerType(eq.transducerType)],
+      ['Type', transducerTypeDisplay],
+      ['Transducer Shape & Size', transducerShapeDisplay],
       ['Element Diameter', eq.transducerDiameter ? formatNumber(eq.transducerDiameter, 3, 'inches') : undefined],
-      ['Couplant', eq.couplant],
+      ['Couplant', eq.customCouplant || eq.couplant],
+      ['Selection Notes', eq.includeSelectionNotesInReport ? eq.selectionNotes : undefined],
     ], { showEmpty: true });
 
     autoTable(this.pdf, {
@@ -1879,6 +1887,13 @@ class TechniqueSheetPDFBuilder {
       y += 20;
     }
 
+    if (acc.includeStandardNotesInReport && acc.standardNotes) {
+      y = this.addSubsectionTitle('Standard Notes', y);
+      this.pdf.setFontSize(8);
+      this.pdf.text(acc.standardNotes, PAGE.marginLeft, y + 5, { maxWidth: PAGE.contentWidth });
+      y += 18;
+    }
+
     // Material Warning
     const warning = getMaterialWarning(this.data.inspectionSetup.material, this.data.standard);
     if (warning) {
@@ -2071,25 +2086,71 @@ class TechniqueSheetPDFBuilder {
 
     y = this.getTableEndY(y);
 
-    // ========== CALIBRATION & SENSITIVITY TABLE ==========
-    y = this.addSubsectionTitle('Calibration & Sensitivity', y);
+    // ========== PROBE PARAMETERS TABLE ==========
+    y = this.addSubsectionTitle('Probe Parameters', y);
 
     const formatGate = (gate?: { start: number; length: number; level: number }): string => {
       if (!gate) return '-';
       return `${gate.start}-${gate.length}-${gate.level}%`;
     };
 
-    const calibRows: string[][] = enabledDetails.map((detail) => {
+    const computeNearField = (detail: any): string => {
+      const d = Number(detail.activeElementDiameter);
+      const f = Number.parseFloat(detail.frequency || '');
+      const v = Number(detail.velocity || 5920);
+      if (!Number.isFinite(d) || d <= 0 || !Number.isFinite(f) || f <= 0 || !Number.isFinite(v) || v <= 0) {
+        return '-';
+      }
+      const velocityMmUs = v / 1000;
+      const nearField = (d * d * f) / (4 * velocityMmUs);
+      return `${nearField.toFixed(2)} mm`;
+    };
+
+    const probeParamRows: string[][] = enabledDetails.map((detail) => [
+      detail.scanningDirection,
+      detail.activeElementDiameter !== undefined ? `${detail.activeElementDiameter}` : '-',
+      detail.bandwidth || '-',
+      detail.focusSize || '-',
+      detail.frequency ? `${detail.frequency}` : '-',
+      detail.velocity !== undefined ? `${detail.velocity}` : '-',
+      computeNearField(detail),
+    ]);
+
+    autoTable(this.pdf, {
+      startY: y,
+      head: [['Dir', 'Active Element (mm)', 'Bandwidth', 'Focus Size', 'Freq (MHz)', 'Velocity (m/s)', 'Near Field']],
+      body: probeParamRows,
+      theme: 'grid',
+      styles: { fontSize: 7, cellPadding: 2 },
+      headStyles: { fillColor: [16, 185, 129], textColor: [255, 255, 255], fontSize: 7 },
+      columnStyles: {
+        0: { fontStyle: 'bold', cellWidth: 12, halign: 'center' },
+        1: { cellWidth: 28, halign: 'center' },
+        2: { cellWidth: 26 },
+        3: { cellWidth: 24 },
+        4: { cellWidth: 20, halign: 'center' },
+        5: { cellWidth: 24, halign: 'center' },
+        6: { cellWidth: 'auto', halign: 'center' },
+      },
+      alternateRowStyles: { fillColor: COLORS.rowAlt },
+      margin: { left: PAGE.marginLeft, right: PAGE.marginRight, bottom: PAGE.footerHeight + 5 },
+    });
+
+    y = this.getTableEndY(y);
+
+    // ========== U.T PARAMETERS TABLE ==========
+    y = this.addSubsectionTitle('U.T Parameters', y);
+
+    const utRows: string[][] = enabledDetails.map((detail) => {
       const extDetail = detail as typeof detail & {
         gate1?: { start: number; length: number; level: number };
         tcgMode?: boolean;
       };
       return [
         detail.scanningDirection,
-        detail.sensitivity || (detail.fbhSize ? `${detail.fbhSize}" FBH` : '-'),
-        detail.rangeMm !== undefined ? `${detail.rangeMm}` : '-',
-        detail.attenuation !== undefined ? `${detail.attenuation}` : '-',
-        detail.backWallEcho !== undefined ? `${detail.backWallEcho}%` : '-',
+        detail.utParameter || detail.pulsarParams || '-',
+        detail.utRange !== undefined ? `${detail.utRange}` : '-',
+        detail.utDelay !== undefined ? `${detail.utDelay}` : '-',
         formatGate(extDetail.gate1),
         extDetail.tcgMode !== undefined ? (extDetail.tcgMode ? 'YES' : 'NO') : '-',
       ];
@@ -2097,19 +2158,18 @@ class TechniqueSheetPDFBuilder {
 
     autoTable(this.pdf, {
       startY: y,
-      head: [['Dir', 'Sensitivity', 'Range (mm)', 'Atten (dB)', 'BWE', 'Gate 1', 'TCG']],
-      body: calibRows,
+      head: [['Dir', 'U.T Parameter', 'Range', 'Delay', 'Gate 1', 'TCG']],
+      body: utRows,
       theme: 'grid',
       styles: { fontSize: 7, cellPadding: 2 },
-      headStyles: { fillColor: [16, 185, 129], textColor: [255, 255, 255], fontSize: 7 },
+      headStyles: { fillColor: [99, 102, 241], textColor: [255, 255, 255], fontSize: 7 },
       columnStyles: {
         0: { fontStyle: 'bold', cellWidth: 12, halign: 'center' },
-        1: { cellWidth: 40 },
+        1: { cellWidth: 54 },
         2: { cellWidth: 22, halign: 'center' },
-        3: { cellWidth: 22, halign: 'center' },
-        4: { cellWidth: 20, halign: 'center' },
-        5: { cellWidth: 35, halign: 'center' },
-        6: { cellWidth: 18, halign: 'center' },
+        3: { cellWidth: 20, halign: 'center' },
+        4: { cellWidth: 34, halign: 'center' },
+        5: { cellWidth: 'auto', halign: 'center' },
       },
       alternateRowStyles: { fillColor: COLORS.rowAlt },
       margin: { left: PAGE.marginLeft, right: PAGE.marginRight, bottom: PAGE.footerHeight + 5 },

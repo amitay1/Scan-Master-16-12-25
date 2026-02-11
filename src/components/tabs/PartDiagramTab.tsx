@@ -158,6 +158,11 @@ export const PartDiagramTab = ({
 
       // FORGING family aliases
       'near_net_forging': 'forging',
+
+      // Aero engine specific
+      'impeller': 'impeller',
+      'blisk': 'blisk',
+      'hpt_disk': 'hpt_disk',
     };
     return typeMap[type] || 'box';
   };

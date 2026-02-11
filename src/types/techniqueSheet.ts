@@ -148,8 +148,13 @@ export interface EquipmentData {
   probeModel?: string;             // Probe model identifier
   frequency: string;
   transducerType: string;
+  transducerTypes?: string[];      // Multi-select transducer types (immersion/contact/dual_element)
+  transducerShapeAndSize?: string; // Shape/size category per standard notes
   transducerDiameter: number;
   couplant: string;
+  customCouplant?: string;         // Used when couplant option is "custom"
+  includeSelectionNotesInReport?: boolean;
+  selectionNotes?: string;
   verticalLinearity: number;
   horizontalLinearity: number;
   entrySurfaceResolution: number;
@@ -238,6 +243,8 @@ export interface AcceptanceCriteriaData {
   backReflectionLoss: number;
   noiseLevel: string;
   specialRequirements: string;
+  standardNotes?: string;
+  includeStandardNotesInReport?: boolean;
 }
 
 export interface DocumentationData {

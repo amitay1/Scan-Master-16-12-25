@@ -75,6 +75,41 @@ export interface ScanDetail {
   gate2?: GateSettings;
   /** SSS (Surface, Start, Stop) or additional gate info */
   sss?: string;
+
+  /** Active element diameter (mm) */
+  activeElementDiameter?: number;
+  /** Probe/transducer bandwidth */
+  bandwidth?: string;
+  /** Focus size/focal distance */
+  focusSize?: string;
+  /** Material velocity used for near field calculation (m/s) */
+  velocity?: number;
+  /** Near field distance (mm) */
+  nearField?: number;
+
+  /** U.T parameter text */
+  utParameter?: string;
+  /** U.T range */
+  utRange?: number;
+  /** U.T delay */
+  utDelay?: number;
+
+  /** Legacy/compatibility pulsar parameter text */
+  pulsarParams?: string;
+  /** Scanner file reference */
+  scanningFile?: string;
+  /** Pulse repetition frequency */
+  prf?: number;
+  /** Index mode */
+  indexMode?: string;
+  /** Gain (dB) */
+  db?: number;
+  /** Filter setting */
+  filter?: string;
+  /** Reject setting */
+  reject?: string;
+  /** TCG mode flag */
+  tcgMode?: boolean;
 }
 
 // ============================================================================
