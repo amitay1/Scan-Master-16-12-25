@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Info } from "lucide-react";
 import { StandardReferenceDialog } from "./StandardReferenceDialog";
 import { getStandardReference } from "@/data/standardReferences";
+import { useActiveStandard } from "@/contexts/StandardContext";
 
 interface FieldWithHelpProps {
   label: string;
@@ -31,6 +32,7 @@ export const FieldWithHelp = ({
   compact = false
 }: FieldWithHelpProps) => {
   const [showStandardDialog, setShowStandardDialog] = useState(false);
+  const activeStandard = useActiveStandard();
   const standardReference = fieldKey ? getStandardReference(fieldKey) : undefined;
 
   const handleInfoClick = () => {
@@ -59,12 +61,13 @@ export const FieldWithHelp = ({
             <Info className="h-3 w-3" />
           </Button>
         </div>
-        <StandardReferenceDialog
-          open={showStandardDialog}
-          onOpenChange={setShowStandardDialog}
-          reference={standardReference}
-          fieldLabel={label}
-        />
+         <StandardReferenceDialog
+           open={showStandardDialog}
+           onOpenChange={setShowStandardDialog}
+           reference={standardReference}
+           fieldLabel={label}
+           standardType={activeStandard}
+         />
       </>
     );
   }
@@ -103,6 +106,7 @@ export const FieldWithHelp = ({
         onOpenChange={setShowStandardDialog}
         reference={standardReference}
         fieldLabel={label}
+        standardType={activeStandard}
       />
     </>
   );

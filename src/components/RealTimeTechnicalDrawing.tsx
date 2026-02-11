@@ -79,7 +79,7 @@ export const RealTimeTechnicalDrawing = ({
   dimensions,
   material,
   standardType,
-  partNumber,
+  partNumber: partNumberProp,
   enabledScanDirections,
   directionColors,
   showGrid = true,
@@ -282,7 +282,7 @@ export const RealTimeTechnicalDrawing = ({
           case 'hpt_disk':
             drawHptDiskTechnicalDrawing(generator, drawingDimensions, layout, {
               standardType,
-              partNumber,
+              partNumber: partNumberProp,
               enabledDirections: enabledScanDirections,
               directionColors,
             });
@@ -372,8 +372,8 @@ export const RealTimeTechnicalDrawing = ({
 
       // Add title block with part information
       const displayPartNumber =
-        typeof partNumber === 'string' && partNumber.trim().length > 0
-          ? partNumber.trim()
+        typeof partNumberProp === 'string' && partNumberProp.trim().length > 0
+          ? partNumberProp.trim()
           : partType.toUpperCase() + '-' + Date.now().toString().slice(-6);
       const materialName = material || 'ALUMINUM';
       generator.drawTitleBlock(
@@ -404,7 +404,7 @@ export const RealTimeTechnicalDrawing = ({
         /* ignore */
       }
     }
-  }, [partType, drawingDimensions, layout, showGrid, material, standardType, partNumber, showScanCoverage, scanType, coverageDimensions]);
+  }, [partType, drawingDimensions, layout, showGrid, material, standardType, partNumberProp, showScanCoverage, scanType, coverageDimensions]);
 
   return (
     <div className="w-full h-full flex items-center justify-center bg-[#D4D4D4]">

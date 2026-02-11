@@ -198,35 +198,35 @@ export const standardReferences: Record<string, StandardReference> = {
   backReflectionLoss: {
     section: "Table VI",
     title: "Back Reflection Loss",
-    text: "Back reflection loss is the reduction in back surface echo amplitude caused by intervening discontinuities. Maximum allowable loss varies by class: Class AAA: 25%, Class AA: 35%, Class A: 50%, Class B: 60%, Class C: 75%.",
+    text: "Back reflection loss is the reduction in back surface echo amplitude caused by intervening discontinuities. For AMS-STD-2154E / MIL-STD-2154 Table VI, the loss-of-back-reflection limit is 50% for Classes AAA through C (see Table VI Note 4 for applicability/interpretation).",
     table: "Table VI"
   },
   
   singleDiscontinuity: {
     section: "Table VI",
     title: "Single Discontinuity Limit",
-    text: "The maximum allowable amplitude for a single discontinuity indication varies by acceptance class, typically expressed as a percentage of the reference FBH echo. Class AAA: reject any indication ≥10% FSH. Class A: reject ≥50% FSH.",
+    text: "For AMS-STD-2154E / MIL-STD-2154 Table VI, single-discontinuity limits are expressed as responses relative to reference reflectors (FBH / equivalent notch) at the estimated depth. Examples: AA = 3/64 response, A = 5/64 response, B = 8/64 response. Class AAA uses the special percent-of-response criteria shown in Table VI.",
     table: "Table VI"
   },
   
   multipleDiscontinuities: {
     section: "Table VI",
     title: "Multiple Discontinuities",
-    text: "When multiple discontinuity indications are present, more stringent evaluation criteria apply. The number, amplitude, and spacing of indications are considered. Clustered indications may indicate unacceptable material conditions.",
+    text: "For AMS-STD-2154E / MIL-STD-2154 Table VI, multiple-discontinuity criteria apply when the centers of two discontinuities are less than 1 inch apart (see Table VI Note 2). Class AAA uses percent-of-response (10% of 3/64 response). Class A multiple-discontinuity response is 3/64 (not 2/64). Class C is not applicable for multiple-discontinuity criteria per the table notes.",
     table: "Table VI"
   },
   
   linearDiscontinuity: {
     section: "Table VI",
     title: "Linear Discontinuity",
-    text: "Linear discontinuities (cracks, seams, laps) are typically rejectable regardless of amplitude for critical applications. The length and orientation of linear indications must be evaluated against acceptance criteria.",
+    text: "For AMS-STD-2154E / MIL-STD-2154 Table VI, linear discontinuities are evaluated by BOTH length and response (e.g., AA: 1/2 inch at 2/64 response; A: 1 inch at 3/64 response; B: 1 inch at 5/64 response). Class AAA uses percent-of-response criteria; Class C linear criteria are not applicable per the table notes.",
     table: "Table VI"
   },
   
   noiseLevel: {
-    section: "5.3.2",
+    section: "Table VI / 5.2.3",
     title: "Noise Level",
-    text: "The background noise level (grass) shall not exceed 20% of full screen height when properly calibrated. Excessive noise may mask small discontinuities and indicates material grain structure, surface roughness, or equipment issues."
+    text: "For AMS-STD-2154E / MIL-STD-2154 Table VI, Class AAA uses percent-of-response noise criteria (10% of 3/64 response). For Classes AA through C, noise is evaluated against the alarm level (see the applicable alarm level setting section, e.g., 5.2.3)."
   },
   
   // Documentation

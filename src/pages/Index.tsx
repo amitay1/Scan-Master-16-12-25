@@ -53,6 +53,7 @@ import { requiresAngleBeam } from "@/utils/beamTypeClassification";
 import { exportInspectionReportPDF } from "@/utils/export/InspectionReportPDF";
 import { FloatingDesignerButton } from "@/components/ui/FloatingDesignerButton";
 import { FloatingSplashDemoButton } from "@/components/ui/FloatingSplashDemoButton";
+import { StandardProvider } from "@/contexts/StandardContext";
 
 // Custom hooks
 import { useTechniqueSheetState } from "@/hooks/useTechniqueSheetState";
@@ -112,6 +113,7 @@ const Index = () => {
     loadDraftFromLocalStorage,
     applyTestCard,
     applySampleCard,
+    applyStandardChange,
   } = sheetState;
 
   // ── Hook 4: Standard auto-fill ─────────────────────────────────────────
@@ -307,7 +309,8 @@ const Index = () => {
   }
 
   return (
-    <div className="h-screen w-screen flex flex-col overflow-hidden bg-background fixed inset-0">
+    <StandardProvider standard={standard}>
+      <div className="h-screen w-screen flex flex-col overflow-hidden bg-background fixed inset-0">
       {/* Profile Selection Dialog */}
       <ProfileSelectionDialog
         open={needsProfileSelection && !profileLoading}
@@ -360,7 +363,7 @@ const Index = () => {
           <div className="flex flex-col gap-4">
             <div className="flex-1">
               <h3 className="font-semibold text-xs mb-2">Standard</h3>
-              <StandardSelector value={standard} onChange={setStandard} />
+              <StandardSelector value={standard} onChange={applyStandardChange} />
             </div>
             {reportMode === "Technique" && (
               <div className="border-t border-border pt-3">
@@ -386,7 +389,7 @@ const Index = () => {
           onToggle={() => setSidebarOpen(!sidebarOpen)}
           title="Standard & Class"
         >
-          <StandardSelector value={standard} onChange={setStandard} />
+          <StandardSelector value={standard} onChange={applyStandardChange} />
           {reportMode === "Technique" && (
             <div className="mt-6 pt-4 border-t border-border">
               <AcceptanceClassSelector
@@ -883,7 +886,8 @@ const Index = () => {
 
       {/* TEMPORARY: Floating Button for Splash Demo */}
       <FloatingSplashDemoButton />
-    </div>
+      </div>
+    </StandardProvider>
   );
 };
 

@@ -523,43 +523,47 @@ export const FBH_SIZE_TABLE: FBHSizeByThickness[] = [
     thicknessRangeInch: { min: 0.25, max: 0.50 },
     thicknessRangeMm: { min: 6.35, max: 12.7 },
     fbhSizes: {
+      // Table VI (Single discontinuity response reference)
       'AAA': ['1/64'],
-      'AA': ['1/64'],
-      'A': ['2/64'],
-      'B': ['3/64'],
-      'C': ['4/64']
+      'AA': ['3/64'],
+      'A': ['5/64'],
+      'B': ['8/64'],
+      'C': ['8/64']
     }
   },
   {
     thicknessRangeInch: { min: 0.50, max: 1.00 },
     thicknessRangeMm: { min: 12.7, max: 25.4 },
     fbhSizes: {
+      // Table VI (Single discontinuity response reference)
       'AAA': ['1/64'],
-      'AA': ['2/64'],
-      'A': ['3/64'],
-      'B': ['4/64'],
-      'C': ['5/64']
+      'AA': ['3/64'],
+      'A': ['5/64'],
+      'B': ['8/64'],
+      'C': ['8/64']
     }
   },
   {
     thicknessRangeInch: { min: 1.00, max: 2.00 },
     thicknessRangeMm: { min: 25.4, max: 50.8 },
     fbhSizes: {
-      'AAA': ['2/64'],
+      // Table VI (Single discontinuity response reference)
+      'AAA': ['1/64'],
       'AA': ['3/64'],
-      'A': ['3/64'],
-      'B': ['5/64'],
-      'C': ['5/64']
+      'A': ['5/64'],
+      'B': ['8/64'],
+      'C': ['8/64']
     }
   },
   {
     thicknessRangeInch: { min: 2.00, max: 4.00 },
     thicknessRangeMm: { min: 50.8, max: 101.6 },
     fbhSizes: {
-      'AAA': ['3/64'],
+      // Table VI (Single discontinuity response reference)
+      'AAA': ['1/64'],
       'AA': ['3/64'],
       'A': ['5/64'],
-      'B': ['5/64'],
+      'B': ['8/64'],
       'C': ['8/64']
     }
   },
@@ -567,8 +571,9 @@ export const FBH_SIZE_TABLE: FBHSizeByThickness[] = [
     thicknessRangeInch: { min: 4.00, max: Infinity },
     thicknessRangeMm: { min: 101.6, max: Infinity },
     fbhSizes: {
-      'AAA': ['3/64'],
-      'AA': ['5/64'],
+      // Table VI (Single discontinuity response reference)
+      'AAA': ['1/64'],
+      'AA': ['3/64'],
       'A': ['5/64'],
       'B': ['8/64'],
       'C': ['8/64']

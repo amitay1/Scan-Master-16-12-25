@@ -154,46 +154,50 @@ export interface AcceptanceCriteriaValues {
 }
 
 const acceptanceCriteriaByStandardBase = {
-  // AMS-STD-2154E Table 6 - Ultrasonic Classes (verified from official document)
+  // AMS-STD-2154E / MIL-STD-2154 Table VI - Ultrasonic Classes (verified from MIL-STD-2154 PDF in this repo)
   "AMS-STD-2154E": {
     "AAA": {
-      singleDiscontinuity: "1/64\" (0.4mm) FBH response",
-      multipleDiscontinuities: "1/64\" (0.4mm) FBH (centers <1\" apart)",
-      linearDiscontinuity: "1/64\" (0.4mm) FBH, 1/8\" max length",
-      backReflectionLoss: "Per Note 4 - with noise change indication",
-      noiseLevel: "10% FSH maximum",
-      specialNotes: "Most stringent - for rotating turbine components. Note: For titanium, multiple discontinuity separation = 1/4\"."
+      // Table VI: AAA uses percent-of-response criteria for multiple/linear/noise.
+      singleDiscontinuity: "1/64\" (0.4mm) OR 25% of 3/64\" response",
+      multipleDiscontinuities: "10% of 3/64\" response (centers <1\" apart)",
+      linearDiscontinuity: "10% of 3/64\" response, 1/8\" max length",
+      backReflectionLoss: "50% (see Note 4)",
+      noiseLevel: "10% of 3/64\" response (see Note 5)",
+      specialNotes: "Most stringent - for rotating turbine components. Titanium (Table VI Note 6): AAA multiple discontinuity limit = 1/8\" max length at 2/64 response; noise criteria N/A. Titanium AA: multiple discontinuity limit = 1/4\" max length at 2/64 response (or greater); linear criteria N/A."
     },
     "AA": {
       singleDiscontinuity: "3/64\" (1.2mm) FBH response",
       multipleDiscontinuities: "2/64\" (0.8mm) FBH (centers <1\" apart)",
       linearDiscontinuity: "2/64\" (0.8mm) FBH, 1/2\" max length",
-      backReflectionLoss: "50% maximum",
-      noiseLevel: "15% FSH maximum",
+      backReflectionLoss: "50% (see Note 4)",
+      noiseLevel: "Alarm level (see 5.2.3)",
       specialNotes: "For engine mounts, landing gear primary structure, rotor hubs"
     },
     "A": {
       singleDiscontinuity: "5/64\" (2.0mm) FBH response",
-      multipleDiscontinuities: "2/64\" (0.8mm) FBH (centers <1\" apart)",
+      // MIL-STD-2154 Table VI: Class A multiple discontinuities = 3/64 response
+      multipleDiscontinuities: "3/64\" (1.2mm) FBH (centers <1\" apart)",
       linearDiscontinuity: "3/64\" (1.2mm) FBH, 1\" max length",
-      backReflectionLoss: "50% maximum",
-      noiseLevel: "20% FSH maximum",
+      backReflectionLoss: "50% (see Note 4)",
+      noiseLevel: "Alarm level (see 5.2.3)",
       specialNotes: "For primary airframe structure, engine and transmission components"
     },
     "B": {
       singleDiscontinuity: "8/64\" (3.2mm) FBH response",
-      multipleDiscontinuities: "3/64\" (1.2mm) FBH (centers <1\" apart)",
+      // MIL-STD-2154 Table VI: Class B multiple discontinuities = 5/64 response
+      multipleDiscontinuities: "5/64\" (2.0mm) FBH (centers <1\" apart)",
       linearDiscontinuity: "5/64\" (2.0mm) FBH, 1\" max length",
-      backReflectionLoss: "50% maximum",
-      noiseLevel: "25% FSH maximum",
+      backReflectionLoss: "50% (see Note 4)",
+      noiseLevel: "Alarm level (see 5.2.3)",
       specialNotes: "For secondary structure, non-flight critical components"
     },
     "C": {
       singleDiscontinuity: "8/64\" (3.2mm) FBH response",
-      multipleDiscontinuities: "5/64\" (2.0mm) FBH",
+      // MIL-STD-2154 Table VI Note 2: multiple discontinuities criteria not applicable to Class C
+      multipleDiscontinuities: "Not applicable",
       linearDiscontinuity: "Not applicable",
-      backReflectionLoss: "50% maximum",
-      noiseLevel: "30% FSH maximum",
+      backReflectionLoss: "50% (see Note 4)",
+      noiseLevel: "Alarm level (see 5.2.3)",
       specialNotes: "For non-structural components, tooling, ground support. No linear discontinuity limits."
     },
   },
@@ -301,7 +305,7 @@ const acceptanceCriteriaByStandardBase = {
       singleDiscontinuity: "ג‰¥20% FSH (with DAC applied) - Amplitude rejection",
       multipleDiscontinuities: "ג‰¥15% FSH evaluation level for adjacent indications",
       linearDiscontinuity: ">2x1 or 1x2 amplitude pixels at rejection threshold",
-      backReflectionLoss: "Per calibration verification (ֲ±2 dB tolerance)",
+      backReflectionLoss: "Per calibration verification (ֲ±1 dB tolerance)",
       noiseLevel: "Max 7.5% FSH average, 8.5% FSH band noise",
       specialNotes: "PW V2500 1st Stage HPT Disk. TOF criteria: ג‰¥15 pixels over 3+ scan lines with SNR ג‰¥1.5:1. Circumferential shear wave ֲ±45ֲ°. #1 FBH (1/64\") at 80% FSH. Per NDIP-1226 Rev F."
     },
@@ -311,7 +315,7 @@ const acceptanceCriteriaByStandardBase = {
       singleDiscontinuity: "ג‰¥20% FSH (with DAC applied) - Amplitude rejection",
       multipleDiscontinuities: "ג‰¥15% FSH evaluation level for adjacent indications",
       linearDiscontinuity: ">2x1 or 1x2 amplitude pixels at rejection threshold",
-      backReflectionLoss: "Per calibration verification (ֲ±2 dB tolerance)",
+      backReflectionLoss: "Per calibration verification (ֲ±1 dB tolerance)",
       noiseLevel: "Max 7.5% FSH average, 8.5% FSH band noise",
       specialNotes: "PW V2500 2nd Stage HPT Disk. TOF criteria: ג‰¥15 pixels over 3+ scan lines with SNR ג‰¥1.5:1. Circumferential shear wave ֲ±45ֲ°. #1 FBH (1/64\") at 80% FSH. Per NDIP-1227 Rev D."
     },
@@ -1328,20 +1332,20 @@ const calibrationByStandardBase = {
   },
   // PW NDIP Standards - OEM-specific calibration
   "NDIP-1226": {
-    referenceBlockMaterial: "Titanium (Ti-6-4 or equivalent) - IAE2P16675 block",
+    referenceBlockMaterial: "Powdered nickel equivalent - IAE2P16675 angle block",
     calibrationInterval: "Before each disk, after setup changes, every 8 hours during continuous operation",
     dacCurvePoints: 7, // Holes L through S (J & K omitted) per NDIP Section 5.1.1.7.1
     primarySensitivity: "80% FSH on #1 FBH (1/64\") reference",
     transferCorrection: "Curvature correction required per bore radius",
-    verificationRequirements: "Post-calibration within ֲ±2 dB of initial. Re-inspect if drift detected."
+    verificationRequirements: "Post-calibration within ֲ±1 dB of initial. Re-inspect if drift detected."
   },
   "NDIP-1227": {
-    referenceBlockMaterial: "Titanium (Ti-6-4 or equivalent) - IAE2P16675 block",
+    referenceBlockMaterial: "Powdered nickel equivalent - IAE2P16675 angle block",
     calibrationInterval: "Before each disk, after setup changes, every 8 hours during continuous operation",
     dacCurvePoints: 7, // Holes L through S (J & K omitted) per NDIP Section 5.1.1.7.1
     primarySensitivity: "80% FSH on #1 FBH (1/64\") reference",
     transferCorrection: "Curvature correction required per bore radius",
-    verificationRequirements: "Post-calibration within ֲ±2 dB of initial. Re-inspect if drift detected."
+    verificationRequirements: "Post-calibration within ֲ±1 dB of initial. Re-inspect if drift detected."
   },
   // PW1100G GTF NDIPs ג€” calibration requirements
   "NDIP-1254": {
@@ -1805,4 +1809,5 @@ export function getChangedFieldsForStandard(standard: StandardType): string[] {
     "personnelCertification"
   ];
 }
+
 

@@ -566,13 +566,20 @@ export const ProceduresStandardsTab = ({
                   variant="outline"
                   onClick={() => {
                     // Generate standard procedures based on part type and standard
+                    const stdUpper = (standard ?? "").toUpperCase();
+                    const isPwNdip =
+                      stdUpper.includes("NDIP-1226") ||
+                      stdUpper.includes("NDIP 1226") ||
+                      stdUpper.includes("NDIP-1227") ||
+                      stdUpper.includes("NDIP 1227");
+                    const postCalTol = isPwNdip ? "±1dB" : "±2dB";
                     const standardProcedures: ProcedureStep[] = [
                       {
                         stepNumber: 1,
                         description: "Equipment Setup and Calibration",
                         equipment: ["UT Equipment", "Probes", "Calibration Block"],
                         parameters: { "Frequency": "5 MHz", "Gain": "As per calibration" },
-                        acceptanceCriteria: "Calibration verified within ±2dB",
+                        acceptanceCriteria: `Calibration verified within ${postCalTol}`,
                         notes: "Document calibration details in report"
                       },
                       {

@@ -283,43 +283,47 @@ export interface AcceptanceLimitsEnhanced {
 
 export const TABLE_VI_ACCEPTANCE_LIMITS: Record<AcceptanceClass, AcceptanceLimitsEnhanced> = {
   "AAA": {
-    singleDiscontinuity: "1/64\" (0.4mm) FBH response",
-    multipleDiscontinuities: "1/64\" (0.4mm) FBH (centers <1\" apart)",
-    linearDiscontinuity: "1/64\" (0.4mm) FBH, 1/8\" max length",
+    // Table VI: AAA uses percent-of-response criteria for multiple/linear/noise.
+    singleDiscontinuity: "1/64\" (0.4mm) OR 25% of 3/64\" response",
+    multipleDiscontinuities: "10% of 3/64\" response (centers <1\" apart)",
+    linearDiscontinuity: "10% of 3/64\" response, 1/8\" max length",
     backReflectionLoss: 50,
-    noiseLevel: "10% FSH maximum",
-    specialNotes: "Most stringent - for rotating turbine components. Titanium: multiple discontinuity separation = 1/4\""
+    noiseLevel: "10% of 3/64\" response (see Note 5)",
+    specialNotes: "Most stringent - for rotating turbine components. Titanium (Table VI Note 6): AAA multiple discontinuity = 1/8\" max length at 2/64 response; noise N/A. Titanium AA: multiple discontinuity = 1/4\" max length at 2/64 response (or greater); linear criteria N/A."
   },
   "AA": {
     singleDiscontinuity: "3/64\" (1.2mm) FBH response",
     multipleDiscontinuities: "2/64\" (0.8mm) FBH (centers <1\" apart)",
     linearDiscontinuity: "2/64\" (0.8mm) FBH, 1/2\" max length",
     backReflectionLoss: 50,
-    noiseLevel: "15% FSH maximum",
+    noiseLevel: "Alarm level (see 5.2.3)",
     specialNotes: "For engine mounts, landing gear primary structure, rotor hubs"
   },
   "A": {
     singleDiscontinuity: "5/64\" (2.0mm) FBH response",
-    multipleDiscontinuities: "2/64\" (0.8mm) FBH (centers <1\" apart)",
+    // MIL-STD-2154 Table VI: Class A multiple discontinuities = 3/64 response
+    multipleDiscontinuities: "3/64\" (1.2mm) FBH (centers <1\" apart)",
     linearDiscontinuity: "3/64\" (1.2mm) FBH, 1\" max length",
     backReflectionLoss: 50,
-    noiseLevel: "20% FSH maximum",
+    noiseLevel: "Alarm level (see 5.2.3)",
     specialNotes: "For primary airframe structure, engine and transmission components"
   },
   "B": {
     singleDiscontinuity: "8/64\" (3.2mm) FBH response",
-    multipleDiscontinuities: "3/64\" (1.2mm) FBH (centers <1\" apart)",
+    // MIL-STD-2154 Table VI: Class B multiple discontinuities = 5/64 response
+    multipleDiscontinuities: "5/64\" (2.0mm) FBH (centers <1\" apart)",
     linearDiscontinuity: "5/64\" (2.0mm) FBH, 1\" max length",
     backReflectionLoss: 50,
-    noiseLevel: "25% FSH maximum",
+    noiseLevel: "Alarm level (see 5.2.3)",
     specialNotes: "For secondary structure, non-flight critical components"
   },
   "C": {
     singleDiscontinuity: "8/64\" (3.2mm) FBH response",
-    multipleDiscontinuities: "5/64\" (2.0mm) FBH",
+    // MIL-STD-2154 Table VI Note 2: multiple discontinuities criteria not applicable to Class C
+    multipleDiscontinuities: "Not applicable",
     linearDiscontinuity: "Not applicable",
     backReflectionLoss: 50,
-    noiseLevel: "30% FSH maximum",
+    noiseLevel: "Alarm level (see 5.2.3)",
     specialNotes: "For non-structural components, tooling, ground support. No linear discontinuity limits."
   }
 };

@@ -129,7 +129,7 @@ export class FieldDependencyEngine {
 
       // Set FBH size based on acceptance class
       const fbhSize = this.getFBHSize(acceptanceClass);
-      this.addUpdate('fbhSize', fbhSize, 'Standard reference size', 'Table II');
+      this.addUpdate('fbhSize', fbhSize, 'Standard reference size', 'Table VI');
     }
 
     return this.getUpdates();
@@ -174,15 +174,15 @@ export class FieldDependencyEngine {
   }
 
   private getFBHSize(acceptanceClass: AcceptanceClass): string {
-    // Table II FBH sizes
+    // MIL-STD-2154 / AMS-STD-2154 Table VI (Single discontinuity response reference)
     const fbhMap = {
       'AAA': '#1 (1/64")',
-      'AA': '#2 (2/64")',
-      'A': '#3 (3/64")',
-      'B': '#5 (5/64")',
+      'AA': '#3 (3/64")',
+      'A': '#5 (5/64")',
+      'B': '#8 (8/64")',
       'C': '#8 (8/64")'
     };
-    return fbhMap[acceptanceClass] || '#3 (3/64")';
+    return fbhMap[acceptanceClass] || '#5 (5/64")';
   }
 
   private addUpdate(field: string, value: any, reason: string, reference: string) {

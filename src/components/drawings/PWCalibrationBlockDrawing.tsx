@@ -5,7 +5,7 @@
  * closely, while keeping highlighting flexible (active vs omitted holes).
  *
  * Notes (Figure 1):
- * - Top view: 8.000 ± .015 by 1.665 ± .015
+ * - Top view: 8.000 ± .015 by 1.605 ± .015
  * - Profile: end faces 60.000° ± .500° and 45.000° ± .500°
  * - Reference height: (3.500)
  * - Bottom flat: 2.479 ± .015
@@ -40,7 +40,7 @@ type HoleSpec = {
 
 const FIG1 = {
   topLengthIn: 8.0,
-  topDepthIn: 1.665,
+  topDepthIn: 1.605,
   heightRefIn: 3.5,
   bottomFlatIn: 2.479,
   leftFaceDeg: 60,
@@ -232,7 +232,7 @@ export function PWCalibrationBlockDrawing({
           {showDimensions && (
             <>
               {drawDimH(0, topLenPx, topDepthPx + 28, '8.000 ± .015', -4, topDepthPx + 10)}
-              {drawDimV(-28, 0, topDepthPx, '1.665 ± .015', -8, 8)}
+              {drawDimV(-28, 0, topDepthPx, '1.605 ± .015', -8, 8)}
             </>
           )}
         </g>

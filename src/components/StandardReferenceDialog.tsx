@@ -27,10 +27,25 @@ export const StandardReferenceDialog = ({
   
   if (!reference) return null;
 
+  const getPdfPathForStandard = (std: StandardType): string => {
+    switch (std) {
+      case "ASTM-A388":
+        return "/standards/ASTM_A388.pdf";
+      case "ASTM-E2375":
+        return "/standards/E2375.pdf";
+      case "NDIP-1226":
+        return "/standards/NDIP_1226_RevF.pdf";
+      case "NDIP-1227":
+        return "/standards/NDIP_1227_RevD.pdf";
+      case "MIL-STD-2154":
+      case "AMS-STD-2154E":
+      default:
+        return "/standards/MIL-STD-2154.pdf";
+    }
+  };
+
   const handleOpenPDF = () => {
-    const pdfPath = standardType === "ASTM-A388" 
-      ? '/standards/ASTM_A388.pdf' 
-      : '/standards/MIL-STD-2154.pdf';
+    const pdfPath = getPdfPathForStandard(standardType);
     window.open(pdfPath, '_blank');
   };
 
@@ -70,7 +85,7 @@ export const StandardReferenceDialog = ({
             </div>
             <DrawerDescription className="flex items-center gap-2">
               <Badge variant="outline" className="text-xs">
-                MIL-STD-2154 {reference.section}
+                {standardType} {reference.section}
               </Badge>
               {reference.table && (
                 <Badge variant="outline" className="text-xs bg-accent/10">
@@ -115,7 +130,7 @@ export const StandardReferenceDialog = ({
           </div>
           <DialogDescription className="flex items-center gap-2 mt-2">
             <Badge variant="outline" className="text-xs">
-              MIL-STD-2154 {reference.section}
+              {standardType} {reference.section}
             </Badge>
             {reference.table && (
               <Badge variant="outline" className="text-xs bg-accent/10">

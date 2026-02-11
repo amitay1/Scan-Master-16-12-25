@@ -58,10 +58,10 @@ export const PW_ANGLE_CALIBRATION_BLOCK: PWCalibrationBlock = {
     { id: 'S', depth: 1.000, diameter: 0.015625, used: true },
   ],
 
-  // Block dimensions from Figure 1
+ // Block dimensions from Figure 1
   dimensions: {
     length: 8.0, // inches (ֲ±0.015)
-    width: 1.665, // inches (ֲ±0.015)
+    width: 1.605, // inches (ֲ±0.015)
     height: 3.5, // inches (REF)
   },
 };
@@ -123,7 +123,8 @@ export interface PostCalibrationResult {
 export function verifyPostCalibration(
   measurements: { holeId: string; amplitudeDb: number }[],
   initialCalibrationDb: number,
-  toleranceDb: number = 2.0
+  // NDIP-1226/1227 Figure 1 / Section 5.1.5: acceptable amplitude variance is within +/- 1 dB
+  toleranceDb: number = 1.0
 ): PostCalibrationResult {
   const deviations = measurements.map((m) => ({
     holeId: m.holeId,
@@ -151,6 +152,12 @@ export function verifyPostCalibration(
     action,
   };
 }
+
+/**
+ * NDIP-1226/1227 calibration tolerance (post-calibration)
+ * Figure 1 / Section 5.1.5: acceptable amplitude variance is within +/- 1 dB of initial calibration.
+ */
+export const PW_POST_CAL_TOLERANCE_DB = 1.0;
 
 /**
  * Post-calibration triggers

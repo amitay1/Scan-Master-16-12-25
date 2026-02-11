@@ -696,9 +696,9 @@ const complianceRules: ComplianceRule[] = [
 
       // Check if special notes mention titanium requirements
       return createResult(rule, true,
-        "Titanium AAA: Multiple discontinuity separation = 1/4\" (vs 1\" for other materials)", {
-        standardRef: "AMS-STD-2154E Table 6 Note",
-        suggestion: "Ensure FBH reference is 2/64\" and separation criteria is 1/4\"",
+        "Titanium AAA (Table VI Note 6): Multiple discontinuity limit = 1/8\" max length at 2/64\" response; noise criteria N/A.", {
+        standardRef: "MIL-STD-2154 Table VI Note 6",
+        suggestion: "Ensure multiple discontinuity evaluation uses 2/64\" response threshold and 1/8\" max length (Table VI Note 6).",
       });
     },
   },

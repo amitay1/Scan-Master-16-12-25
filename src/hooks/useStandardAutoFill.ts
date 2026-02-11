@@ -9,6 +9,7 @@ import type {
   MaterialType,
 } from "@/types/techniqueSheet";
 import { standardRules, getRecommendedFrequency, getCouplantRecommendation, calculateMetalTravel } from "@/utils/enhancedAutoFillLogic";
+import { getDefaultAcceptanceClass } from "@/data/standardsDifferences";
 
 interface UseStandardAutoFillParams {
   standard: StandardType;
@@ -54,10 +55,11 @@ export function useStandardAutoFill({
   useEffect(() => {
     if (standard && standardRules[standard]) {
       const rules = standardRules[standard];
+      const defaultClass = getDefaultAcceptanceClass(standard);
       if (!isSplitMode || activePart === "A") {
         setAcceptanceCriteria(prev => ({
           ...prev,
-          acceptanceClass: prev.acceptanceClass || rules.defaultAcceptanceClass,
+          acceptanceClass: prev.acceptanceClass || (defaultClass as any),
         }));
         setScanParameters(prev => ({
           ...prev,
@@ -66,7 +68,7 @@ export function useStandardAutoFill({
       } else {
         setAcceptanceCriteriaB(prev => ({
           ...prev,
-          acceptanceClass: prev.acceptanceClass || rules.defaultAcceptanceClass,
+          acceptanceClass: prev.acceptanceClass || (defaultClass as any),
         }));
         setScanParametersB(prev => ({
           ...prev,

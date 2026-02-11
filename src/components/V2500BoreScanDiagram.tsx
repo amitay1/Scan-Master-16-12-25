@@ -159,7 +159,7 @@ export const V2500BoreScanDiagram: React.FC<V2500BoreScanDiagramProps> = ({
         <g transform="translate(70, 80)">
           {stage === 1
             ? renderStage1Section(uid, plan, zoneOpacity, setHoveredZone, onZoneClick, activeZone, { showPos, showNeg, posColor, negColor })
-            : renderStage2Section(uid, zoneOpacity, setHoveredZone, onZoneClick, activeZone, { showPos, showNeg, posColor, negColor })}
+            : renderStage2Section(uid, plan, zoneOpacity, setHoveredZone, onZoneClick, activeZone, { showPos, showNeg, posColor, negColor })}
         </g>
 
         {/* Legend bar */}
@@ -439,7 +439,7 @@ function renderStage1Section(
           stroke="#111827" strokeWidth="2" />
 
         {/* ===== BEAM PATH VISUALIZATION ===== */}
-        {renderBeamPaths(uid, A_end, B_end, C_end, D_top, D_bot, cy, beam)}
+        {renderBeamPaths(uid, A_end, B_end, C_end, D_top, D_bot, cy, plan.waterPath, beam)}
 
         {/* ===== DIMENSION ANNOTATIONS ===== */}
         {renderDimensions(uid, plan, E_start, D_top, D_bot, A_end, B_end, cy, hubTop, hubBot, hubRight, webLeft)}
@@ -466,6 +466,7 @@ function renderStage1Section(
 // =====================================================================
 function renderStage2Section(
   uid: string,
+  plan: PWScanPlan,
   zoneOpacity: (id: string) => number,
   setHover: (id: string | null) => void,
   onClick?: (id: string) => void,
@@ -684,10 +685,10 @@ function renderStage2Section(
           stroke={ZONE_COLORS.P} strokeWidth="3" strokeDasharray="6,3" />
 
         {/* ===== BEAM PATHS ===== */}
-        {renderBeamPathsStage2(uid, N_end, O_end, P_top, P_bot, cy, beam)}
+        {renderBeamPathsStage2(uid, N_end, O_end, P_top, P_bot, cy, plan.waterPath, beam)}
 
         {/* ===== DIMENSIONS ===== */}
-        {renderDimensionsStage2(uid, cy, hubTop, hubBot, hubRight, webLeft, M_start, P_top, P_bot, N_end)}
+        {renderDimensionsStage2(uid, plan, cy, hubTop, hubBot, hubRight, webLeft, M_start, P_top, P_bot, N_end)}
 
         {/* Material label */}
         <text x={130} y={hubTop + 22} fill="#6b7280" fontSize="8" fontFamily="monospace">POWDERED NICKEL ALLOY</text>
@@ -708,6 +709,7 @@ function renderBeamPaths(
   D_top: {x: number; y: number},
   D_bot: {x: number; y: number},
   cy: number,
+  waterPathInches: number,
   beam?: { showPos: boolean; showNeg: boolean; posColor: string; negColor: string },
 ) {
   // Show ±45° shear wave beam paths entering through the bore surface
@@ -761,7 +763,7 @@ function renderBeamPaths(
       </text>
       <text x={D_top.x + 55} y={(D_top.y + cy) / 2 + 10} fill="#0ea5e9" fontSize="7"
         fontFamily="monospace" textAnchor="start" opacity={showPos || showNeg ? 1 : 0}>
-        8.0″
+        {waterPathInches.toFixed(1)}″
       </text>
     </g>
   );
@@ -777,6 +779,7 @@ function renderBeamPathsStage2(
   P_top: {x: number; y: number},
   P_bot: {x: number; y: number},
   cy: number,
+  waterPathInches: number,
   beam?: { showPos: boolean; showNeg: boolean; posColor: string; negColor: string },
 ) {
   const beamLen = 65;
@@ -818,7 +821,9 @@ function renderBeamPathsStage2(
         markerEnd={`url(#beam-neg-${uid})`}
       />
       <text x={P_top.x + 50} y={(P_top.y + cy) / 2 - 2} fill="#0ea5e9" fontSize="7" fontFamily="monospace" opacity={showPos || showNeg ? 1 : 0}>WATER</text>
-      <text x={P_top.x + 50} y={(P_top.y + cy) / 2 + 10} fill="#0ea5e9" fontSize="7" fontFamily="monospace" opacity={showPos || showNeg ? 1 : 0}>8.0″</text>
+      <text x={P_top.x + 50} y={(P_top.y + cy) / 2 + 10} fill="#0ea5e9" fontSize="7" fontFamily="monospace" opacity={showPos || showNeg ? 1 : 0}>
+        {waterPathInches.toFixed(1)}″
+      </text>
     </g>
   );
 }
@@ -870,7 +875,7 @@ function renderDimensions(
         <line x1={D_top.x} y1={hubTop} x2={D_top.x} y2={hubTop - dimOffset - 5} stroke="#059669" strokeWidth="0.5" strokeDasharray="3,2" />
         <text x={(E_start.x + D_top.x) / 2} y={hubTop - dimOffset - 6}
           textAnchor="middle" fill="#059669" fontSize="10" fontWeight="bold" fontFamily="monospace">
-          2.6″ COVERAGE
+          {plan.minRadialCoverage}″ COVERAGE
         </text>
       </g>
 
@@ -893,10 +898,10 @@ function renderDimensions(
 
       {/* Scan increment note */}
       <text x={webLeft + 10} y={hubBot + 20} fill="#6b7280" fontSize="8" fontFamily="monospace">
-        MAX SCAN: 0.020″
+        MAX SCAN: {plan.maxScanIncrement.toFixed(3)}″
       </text>
       <text x={webLeft + 10} y={hubBot + 32} fill="#6b7280" fontSize="8" fontFamily="monospace">
-        MAX INDEX: 0.020″/REV
+        MAX INDEX: {plan.maxIndexIncrement.toFixed(3)}″/REV
       </text>
     </g>
   );
@@ -907,6 +912,7 @@ function renderDimensions(
 // =====================================================================
 function renderDimensionsStage2(
   uid: string,
+  plan: PWScanPlan,
   cy: number,
   hubTop: number,
   hubBot: number,
@@ -931,7 +937,7 @@ function renderDimensionsStage2(
         <line x1={hubRight + 10} y1={cy} x2={hubRight + 10} y2={hubBot + dimOffset + 5} stroke="#374151" strokeWidth="0.5" strokeDasharray="3,2" />
         <text x={(P_top.x + hubRight + 10) / 2} y={hubBot + dimOffset - 5}
           textAnchor="middle" fill="#374151" fontSize="10" fontWeight="bold" fontFamily="monospace">
-          R 2.773″
+          R {plan.boreRadius}″
         </text>
       </g>
 
@@ -946,7 +952,7 @@ function renderDimensionsStage2(
         <line x1={P_top.x} y1={hubTop} x2={P_top.x} y2={hubTop - dimOffset - 5} stroke="#059669" strokeWidth="0.5" strokeDasharray="3,2" />
         <text x={(M_start.x + P_top.x) / 2} y={hubTop - dimOffset - 6}
           textAnchor="middle" fill="#059669" fontSize="10" fontWeight="bold" fontFamily="monospace">
-          2.6″ COVERAGE
+          {plan.minRadialCoverage}″ COVERAGE
         </text>
       </g>
 
@@ -959,16 +965,16 @@ function renderDimensionsStage2(
         />
         <line x1={hubRight + 5} y1={cy} x2={hubRight + 35} y2={cy} stroke="#6b7280" strokeWidth="0.4" strokeDasharray="3,2" />
         <line x1={hubRight + 5} y1={N_end.y} x2={hubRight + 35} y2={N_end.y} stroke="#6b7280" strokeWidth="0.4" strokeDasharray="3,2" />
-        <text x={hubRight + 45} y={(cy + N_end.y) / 2 + 4} fill="#6b7280" fontSize="9" fontFamily="monospace">0.898″</text>
+        <text x={hubRight + 45} y={(cy + N_end.y) / 2 + 4} fill="#6b7280" fontSize="9" fontFamily="monospace">{plan.boreOffset}″</text>
         <text x={hubRight + 45} y={(cy + N_end.y) / 2 + 16} fill="#6b7280" fontSize="7" fontFamily="monospace">OFFSET</text>
       </g>
 
       {/* Scan params */}
       <text x={webLeft + 10} y={hubBot + 20} fill="#6b7280" fontSize="8" fontFamily="monospace">
-        MAX SCAN: 0.020″
+        MAX SCAN: {plan.maxScanIncrement.toFixed(3)}″
       </text>
       <text x={webLeft + 10} y={hubBot + 32} fill="#6b7280" fontSize="8" fontFamily="monospace">
-        MAX INDEX: 0.020″/REV
+        MAX INDEX: {plan.maxIndexIncrement.toFixed(3)}″/REV
       </text>
     </g>
   );

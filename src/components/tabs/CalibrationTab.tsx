@@ -520,6 +520,17 @@ export const CalibrationTab = ({
   const isV2500Standard = standard === 'NDIP-1226' || standard === 'NDIP-1227' || isHptDisk;
   const isGTFStandard = standard === 'NDIP-1254' || standard === 'NDIP-1257' || standard === 'NDIP-1260';
 
+  const v2500Stage: 1 | 2 | null = useMemo(() => {
+    if (standard === 'NDIP-1226') return 1;
+    if (standard === 'NDIP-1227') return 2;
+
+    const pn = (inspectionSetup.partNumber || '').toUpperCase().replace(/\s+/g, '');
+    if (pn.includes('2A5001')) return 1;
+    if (pn.includes('2A4802')) return 2;
+
+    return null;
+  }, [standard, inspectionSetup.partNumber]);
+
   // Get P&W standard reference for drawing
   const pwStandardRef = useMemo(() => {
     if (standard === 'NDIP-1226') return 'NDIP-1226';
@@ -728,16 +739,22 @@ export const CalibrationTab = ({
           />
 
           {/* V2500 Bore Profile Cross-Section (per NDIP Figure 2) */}
-          {isV2500Standard && (
-            <div className="space-y-3">
-              <h4 className="font-semibold text-gray-700 flex items-center gap-2">
-                <Target className="h-4 w-4" />
-                Bore Scan Plan — NDIP Figure 2 Cross-Sections
-              </h4>
-              <V2500BoreScanDiagram stage={1} />
-              <V2500BoreScanDiagram stage={2} />
-            </div>
-          )}
+           {isV2500Standard && (
+             <div className="space-y-3">
+               <h4 className="font-semibold text-gray-700 flex items-center gap-2">
+                 <Target className="h-4 w-4" />
+                 Bore Scan Plan — NDIP Figure 2 Cross-Sections
+               </h4>
+              {v2500Stage === 1 && <V2500BoreScanDiagram stage={1} />}
+              {v2500Stage === 2 && <V2500BoreScanDiagram stage={2} />}
+              {v2500Stage === null && (
+                <>
+                  <V2500BoreScanDiagram stage={1} />
+                  <V2500BoreScanDiagram stage={2} />
+                </>
+              )}
+             </div>
+           )}
 
           {/* P&W specific requirements */}
           <div className="bg-amber-50 border-2 border-amber-200 rounded-xl p-4">
@@ -753,7 +770,7 @@ export const CalibrationTab = ({
               {isV2500Standard && <li>Active holes: L through S (J &amp; K omitted per Section 5.1.1.7.1)</li>}
               {isGTFStandard && <li>AUSI: Automated inspection ONLY (manual not permitted)</li>}
               {isGTFStandard && <li>FAA Airworthiness Directive compliance required</li>}
-              <li>Post-calibration tolerance: ±2 dB of initial</li>
+              <li>Post-calibration tolerance: ±1 dB of initial</li>
             </ul>
           </div>
         </div>

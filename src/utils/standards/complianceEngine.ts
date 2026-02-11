@@ -204,22 +204,22 @@ export class StandardsComplianceEngine {
 
     switch (mappedStandard) {
       case "MIL-STD-2154":
-        value = this.getMilStdFBHSize(thickness, acceptanceClass);
-        formula = "Per Table I of MIL-STD-2154";
-        explanation = `For ${thickness}" thickness, Class ${acceptanceClass}: FBH = ${value}`;
+        value = this.getMilStdFBHSize(acceptanceClass);
+        formula = "Per MIL-STD-2154 Table VI (Single discontinuity response reference)";
+        explanation = `For Class ${acceptanceClass}: Reference FBH = ${value}`;
         break;
       
       case "ASTM-A388":
         value = this.getAstmFBHSize(thickness);
         formula = "Per ASTM A388 requirements";
-        explanation = `For ${thickness}" thickness: FBH = ${value}`;
+        explanation = `For ${thickness}mm thickness (${(thickness / 25.4).toFixed(2)}in): FBH = ${value}`;
         break;
       
       case "BS-EN-10228-3":
       case "BS-EN-10228-4":
         value = this.getBSENFBHSize(thickness);
         formula = `Per ${standard}`;
-        explanation = `For ${thickness}" thickness: FBH = ${value}`;
+        explanation = `For ${thickness}mm thickness: FBH = ${value}`;
         break;
       
       default:
@@ -236,28 +236,24 @@ export class StandardsComplianceEngine {
     };
   }
 
-  private getMilStdFBHSize(thickness: number, acceptanceClass: string): string {
-    const classMap: Record<string, Record<string, string>> = {
-      "0.25-0.50": { AAA: "1/64", AA: "1/64", A: "2/64", B: "3/64", C: "4/64" },
-      "0.50-1.00": { AAA: "1/64", AA: "2/64", A: "3/64", B: "4/64", C: "5/64" },
-      "1.00-2.00": { AAA: "2/64", AA: "3/64", A: "3/64", B: "5/64", C: "5/64" },
-      "2.00-4.00": { AAA: "3/64", AA: "3/64", A: "5/64", B: "5/64", C: "8/64" },
-      ">4.00": { AAA: "3/64", AA: "5/64", A: "5/64", B: "8/64", C: "8/64" }
+  private getMilStdFBHSize(acceptanceClass: string): string {
+    // MIL-STD-2154 / AMS-STD-2154 Table VI uses class-based reference responses (not thickness-dependent).
+    // This returns the reference FBH size from the "Single discontinuity response" column.
+    const classMap: Record<string, string> = {
+      AAA: '1/64 (or 25% of 3/64 response)',
+      AA: '3/64',
+      A: '5/64',
+      B: '8/64',
+      C: '8/64',
     };
 
-    let range: string;
-    if (thickness <= 0.5) range = "0.25-0.50";
-    else if (thickness <= 1.0) range = "0.50-1.00";
-    else if (thickness <= 2.0) range = "1.00-2.00";
-    else if (thickness <= 4.0) range = "2.00-4.00";
-    else range = ">4.00";
-
-    return classMap[range][acceptanceClass] + " inch" || "3/64 inch";
+    return (classMap[acceptanceClass] || '3/64') + ' inch';
   }
 
-  private getAstmFBHSize(thickness: number): string {
-    if (thickness < 1.5) return "1/16 inch (#1)";
-    else if (thickness <= 6.0) return "1/8 inch (#2)";
+  private getAstmFBHSize(thicknessMm: number): string {
+    const thicknessIn = thicknessMm / 25.4;
+    if (thicknessIn < 1.5) return "1/16 inch (#1)";
+    else if (thicknessIn <= 6.0) return "1/8 inch (#2)";
     else return "1/4 inch (#3)";
   }
 

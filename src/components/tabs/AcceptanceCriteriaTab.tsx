@@ -92,12 +92,14 @@ export const AcceptanceCriteriaTab = ({ data, onChange, material, standard = "AM
   useEffect(() => {
     const currentData = dataRef.current;
     if (currentData.acceptanceClass && currentCriteria) {
+      const bwlParsed = parseFloat(currentCriteria.backReflectionLoss);
       onChangeRef.current({
         ...currentData,
         singleDiscontinuity: currentCriteria.singleDiscontinuity,
         multipleDiscontinuities: currentCriteria.multipleDiscontinuities,
         linearDiscontinuity: currentCriteria.linearDiscontinuity,
-        backReflectionLoss: parseFloat(currentCriteria.backReflectionLoss) || 0,
+        // Only override the numeric field when the standard value parses as a number.
+        backReflectionLoss: Number.isFinite(bwlParsed) ? bwlParsed : currentData.backReflectionLoss,
         noiseLevel: currentCriteria.noiseLevel,
         specialRequirements: currentData.specialRequirements || currentCriteria.specialNotes || ""
       });
@@ -282,12 +284,15 @@ export const AcceptanceCriteriaTab = ({ data, onChange, material, standard = "AM
               <ul className="text-sm text-foreground space-y-1 list-disc ml-4">
                 {data.acceptanceClass === "AAA" && (
                   <>
-                    <li>Class AAA: Multiple discontinuity separation = 1/4" (not standard 1")</li>
-                    <li>Noise level: 2/64" FBH at 1/4" separation</li>
+                    <li>Table VI Note 6 (Titanium): Multiple discontinuity = 1/8" max length at 2/64" response</li>
+                    <li>Table VI Note 6 (Titanium): Noise criteria is not applicable for Class AAA</li>
                   </>
                 )}
                 {data.acceptanceClass === "AA" && (
-                  <li>Class AA: Back reflection loss limits per TABLE VI apply with additional titanium scrutiny</li>
+                  <>
+                    <li>Table VI Note 6 (Titanium): Multiple discontinuity = 1/4" max length at 2/64" response (or greater)</li>
+                    <li>Table VI Note 6 (Titanium): Linear discontinuity criteria is not applicable for Class AA</li>
+                  </>
                 )}
                 <li>Higher attenuation than metals of similar density - verify calibration sensitivity</li>
                 <li>Macrostructure variations may cause false indications - verify with rescan at 90°</li>
@@ -364,11 +369,12 @@ export const AcceptanceCriteriaTab = ({ data, onChange, material, standard = "AM
               <tbody>
                 {["AAA", "AA", "A", "B", "C"].map((cls) => {
                   const isSelected = data.acceptanceClass === cls;
-                  const singleFBH = ["1/64\" (0.4mm)", "3/64\" (1.2mm)", "5/64\" (2.0mm)", "8/64\" (3.2mm)", "8/64\" (3.2mm)"];
-                  const multipleFBH = ["1/64\" (0.4mm)", "2/64\" (0.8mm)", "2/64\" (0.8mm)", "3/64\" (1.2mm)", "5/64\" (2.0mm)"];
-                  const linearFBH = ["1/64\" (0.4mm)", "2/64\" (0.8mm)", "3/64\" (1.2mm)", "5/64\" (2.0mm)", "N/A"];
+                  const singleFBH = ["1/64\" (0.4mm) OR 25% of 3/64\" response", "3/64\" (1.2mm)", "5/64\" (2.0mm)", "8/64\" (3.2mm)", "8/64\" (3.2mm)"];
+                  // MIL-STD-2154 Table VI: Class A=3/64, B=5/64, C=N/A (multiple discontinuities)
+                  const multipleFBH = ["10% of 3/64\" response", "2/64\" (0.8mm)", "3/64\" (1.2mm)", "5/64\" (2.0mm)", "N/A"];
+                  const linearFBH = ["10% of 3/64\" response", "2/64\" (0.8mm)", "3/64\" (1.2mm)", "5/64\" (2.0mm)", "N/A"];
                   const linearMax = ["1/8\"", "1/2\"", "1\"", "1\"", "N/A"];
-                  const bwl = ["Note 4", "50%", "50%", "50%", "50%"];
+                  const bwl = ["50%", "50%", "50%", "50%", "50%"];
                   const idx = ["AAA", "AA", "A", "B", "C"].indexOf(cls);
                   return (
                     <tr key={cls} className={isSelected ? "bg-primary/10" : ""}>
@@ -385,7 +391,7 @@ export const AcceptanceCriteriaTab = ({ data, onChange, material, standard = "AM
             </table>
           </div>
           <p className="text-xs text-muted-foreground px-4 py-2 bg-muted/20">
-            Note: Multiple discontinuities = centers &lt;1&quot; apart. Class AAA = Most stringent, Class C = Least stringent.
+            Note: Multiple discontinuities = centers &lt;1&quot; apart (Table VI Note 2). Class AAA uses percent-of-response limits. Back reflection loss = 50% (see Note 4).
           </p>
         </div>
       )}

@@ -873,20 +873,21 @@ function selectFBHSizes(
     thicknessInch < r.thicknessRangeInch.max
   );
   
-  if (!range) {
-    // Use the last range for very thick parts
-    const lastRange = FBH_SIZE_TABLE[FBH_SIZE_TABLE.length - 1];
-    return {
-      sizes: lastRange.fbhSizes[acceptanceClass],
-      reasoning: `FBH size per Table VI for thickness > ${lastRange.thicknessRangeMm.min}mm ` +
-                 `and Class ${acceptanceClass}`
-    };
-  }
-  
+  // Table VI class mapping is not thickness-dependent; we keep the range selection
+  // only to preserve the table structure used elsewhere.
+  const resolvedRange = range ?? FBH_SIZE_TABLE[FBH_SIZE_TABLE.length - 1];
+  const sizes = resolvedRange.fbhSizes[acceptanceClass];
+
+  const aaaNote =
+    acceptanceClass === "AAA"
+      ? ' Note: Table VI allows 1/64" OR 25% of 3/64" response; using 1/64" reference FBH.'
+      : "";
+
   return {
-    sizes: range.fbhSizes[acceptanceClass],
-    reasoning: `FBH size per Table VI for thickness ${range.thicknessRangeMm.min}-${range.thicknessRangeMm.max}mm ` +
-               `and Class ${acceptanceClass}`
+    sizes,
+    reasoning:
+      `FBH size per MIL-STD-2154 / AMS-STD-2154 Table VI (single discontinuity reference) for Class ${acceptanceClass}.` +
+      aaaNote,
   };
 }
 

@@ -209,21 +209,28 @@ export class ValidationEngine {
       return { isValid: true, level: 'success', message: 'Valid criteria' };
     }
 
-    const expectedLimits = {
-      'AAA': { single: '2%', multi: '1%' },
-      'AA': { single: '5%', multi: '2%' },
-      'A': { single: '8%', multi: '5%' },
-      'B': { single: '15%', multi: '8%' },
-      'C': { single: '25%', multi: '15%' }
+    // AMS-STD-2154E / MIL-STD-2154 Table VI is FBH/response-based (not DAC percentages).
+    // Validate by checking the entered text contains the expected fraction/keyword.
+    const expectedFbh: Record<AcceptanceClass, { single: string; multi: string }> = {
+      // Table VI: AAA multiple discontinuities uses percent-of-response (10% of 3/64 response).
+      AAA: { single: '1/64', multi: '10%' },
+      AA: { single: '3/64', multi: '2/64' },
+      A: { single: '5/64', multi: '3/64' },
+      B: { single: '8/64', multi: '5/64' },
+      // Table VI Note 2: multiple discontinuity criteria not applicable to Class C
+      C: { single: '8/64', multi: 'Not applicable' },
     };
 
-    const expected = expectedLimits[acceptanceClass];
+    const expected = expectedFbh[acceptanceClass];
     if (!expected) {
       return { isValid: true, level: 'info', message: 'Custom acceptance class' };
     }
 
     const singleMatch = singleDisc.includes(expected.single);
-    const multiMatch = multiDisc.includes(expected.multi);
+    const multiMatch =
+      expected.multi === 'Not applicable'
+        ? (multiDisc.toLowerCase().includes('not applicable') || multiDisc.toLowerCase().includes('n/a'))
+        : multiDisc.includes(expected.multi);
 
     if (singleMatch && multiMatch) {
       return {
@@ -232,15 +239,15 @@ export class ValidationEngine {
         message: `Criteria match Class ${acceptanceClass}`,
         reference: 'Table VI'
       };
-    } else {
-      return {
-        isValid: false,
-        level: 'warning',
-        message: 'Criteria may not match acceptance class',
-        suggestion: `Class ${acceptanceClass} requires: Single ≤${expected.single}, Multiple ≤${expected.multi}`,
-        reference: 'Table VI'
-      };
     }
+
+    return {
+      isValid: false,
+      level: 'warning',
+      message: 'Criteria may not match acceptance class',
+      suggestion: `Expected (Table VI): Single ${expected.single}, Multiple ${expected.multi}`,
+      reference: 'Table VI'
+    };
   }
 
   getComplianceScore(): number {
