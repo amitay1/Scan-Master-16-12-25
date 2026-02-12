@@ -540,17 +540,25 @@ function selectStraightBeamBlock(
 
     // HPT DISK: High-Pressure Turbine Disk - bore and face inspection per NDIP-1226/1227
     if (partType === 'hpt_disk') {
-      const hasCircumferentialScan = input.scanDirections?.hasCircumferentialScan;
-      const hasBore = innerDiameter && innerDiameter > 0;
+      const hasCircumferentialScan = !!input.scanDirections?.hasCircumferentialScan;
+      const hasBore = !!(innerDiameter && innerDiameter > 0);
+      const isNdipHptStandard = ['NDIP-1226', 'NDIP-1227', 'NDIP-1254', 'NDIP-1257', 'NDIP-1260'].includes(input.standard);
 
-      // If bore inspection with circumferential shear wave is needed
-      if (hasCircumferentialScan || hasBore) {
+      // NDIP procedures are bore-driven. Generic standards require explicit circumferential bore scan.
+      const needsNotchedBlock = isNdipHptStandard
+        ? (hasCircumferentialScan || hasBore)
+        : (hasCircumferentialScan && hasBore);
+
+      if (needsNotchedBlock) {
         return {
           category: 'cylinder_notched',
-          reasoning: `Cylinder Notched block for HPT disk bore inspection. ` +
-                     `Circumferential shear wave (±45°) required for bore region per NDIP-1226/1227. ` +
-                     `CRITICAL: Use IAE2P16675 angle calibration block for bore shear wave calibration. ` +
-                     `Apply NDIP acceptance/rejection and TOF criteria for this part family.`,
+          reasoning: isNdipHptStandard
+            ? `Cylinder Notched block for HPT disk bore inspection. ` +
+              `Circumferential shear wave (±45°) required for bore region per NDIP-1226/1227. ` +
+              `CRITICAL: Use IAE2P16675 angle calibration block for bore shear wave calibration. ` +
+              `Apply NDIP acceptance/rejection and TOF criteria for this part family.`
+            : `Cylinder Notched block (Figure 5) for HPT disk bore scan. ` +
+              `Circumferential shear wave scan with bore coverage is enabled; notch reflectors are required.`,
           alternatives: ['flat_fbh', 'curved_fbh']
         };
       }
@@ -558,9 +566,12 @@ function selectStraightBeamBlock(
       // Face-only inspection (no bore scan)
       return {
         category: 'flat_fbh',
-        reasoning: `Flat FBH block (Figure 4) for HPT disk face-only inspection per NDIP-1226/1227. ` +
-                   `No bore scan required for this configuration. ` +
-                   `Apply NDIP acceptance/rejection and TOF criteria for this part family.`,
+        reasoning: isNdipHptStandard
+          ? `Flat FBH block (Figure 4) for HPT disk face-only inspection per NDIP-1226/1227. ` +
+            `No bore scan required for this configuration. ` +
+            `Apply NDIP acceptance/rejection and TOF criteria for this part family.`
+          : `Flat FBH block (Figure 4) for HPT disk face inspection. ` +
+            `No circumferential bore scan is active in this setup.`,
         alternatives: ['curved_fbh']
       };
     }
@@ -1299,15 +1310,24 @@ export function generateCalibrationRecommendationV2(
 
   // HPT Disk-specific warnings and notes (NDIP-1226/1227)
   if (input.partType === 'hpt_disk') {
-    warnings.push("HPT DISK: Bore region requires circumferential shear wave inspection (\u00B145\u00B0) per NDIP-1226/1227");
+    const isNdipHptStandard = ['NDIP-1226', 'NDIP-1227', 'NDIP-1254', 'NDIP-1257', 'NDIP-1260'].includes(input.standard);
+    const hasBore = !!(input.innerDiameter && input.innerDiameter > 0);
 
-    notes.push("Calibration block IAE2P16675 required for bore shear wave angle calibration");
-    notes.push("Bore zones: Forward bore, aft bore, and bore ID surface require separate scan passes");
-    notes.push("Use NDIP-1226/1227 acceptance and TOF criteria for all HPT disk zones");
+    if (isNdipHptStandard) {
+      warnings.push("HPT DISK: Bore region requires circumferential shear wave inspection (\u00B145\u00B0) per NDIP-1226/1227");
+      notes.push("Calibration block IAE2P16675 required for bore shear wave angle calibration");
+      notes.push("Bore zones: Forward bore, aft bore, and bore ID surface require separate scan passes");
+      notes.push("Use NDIP-1226/1227 acceptance and TOF criteria for all HPT disk zones");
 
-    if (input.innerDiameter && input.innerDiameter > 0) {
-      notes.push("Bore ID detected: Circumferential shear wave scan mandatory for bore region integrity");
-      notes.push("DAC calibration required at bore depth intervals per NDIP-1226/1227 Section 5");
+      if (hasBore) {
+        notes.push("Bore ID detected: Circumferential shear wave scan mandatory for bore region integrity");
+        notes.push("DAC calibration required at bore depth intervals per NDIP-1226/1227 Section 5");
+      }
+    } else {
+      if (hasBore) {
+        warnings.push("HPT disk with bore: verify if circumferential shear-wave bore scan is required by customer/OEM procedure");
+      }
+      notes.push("For non-NDIP standards, use flat FBH by default unless circumferential bore scan is explicitly required.");
     }
 
     notes.push("Post-inspection: Verify full bore coverage via C-scan overlay on disk cross-section");

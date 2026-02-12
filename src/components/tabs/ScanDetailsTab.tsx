@@ -230,7 +230,8 @@ export const ScanDetailsTab = ({ data, onChange, partType, standard = "AMS-STD-2
     scanDetails.map(d => [d.scanningDirection, d.color || "#111827"])
   ) as Record<string, string>;
 
-  const showV2500BoreDiagram = standard === "NDIP-1226" || standard === "NDIP-1227";
+  const isHptDiskPart = partType === "hpt_disk";
+  const showV2500BoreDiagram = isHptDiskPart || standard === "NDIP-1226" || standard === "NDIP-1227";
   const v2500Stage: 1 | 2 | null = standard === "NDIP-1226" ? 1 : standard === "NDIP-1227" ? 2 : null;
 
   // Custom drawing handlers
@@ -435,15 +436,38 @@ export const ScanDetailsTab = ({ data, onChange, partType, standard = "AMS-STD-2
               </div>
               <div>
                 <Label className="text-[10px] text-slate-400 uppercase tracking-wide">Near Field (mm)</Label>
-                <Input
-                  value={(() => {
-                    const nearField = getComputedNearField(detail);
-                    return nearField !== null ? nearField.toFixed(2) : "";
-                  })()}
-                  readOnly
-                  className="h-8 text-xs bg-slate-800 border-slate-600 text-slate-100"
-                  placeholder="Auto"
-                />
+                {(() => {
+                  const nf = getComputedNearField(detail);
+                  return (
+                    <div className="relative group">
+                      <Input
+                        value={nf !== null ? nf.toFixed(2) : ""}
+                        readOnly
+                        className={`h-8 text-xs border-slate-600 text-slate-100 ${
+                          nf !== null
+                            ? "bg-emerald-900/40 border-emerald-500/50 ring-1 ring-emerald-500/30"
+                            : "bg-slate-800"
+                        }`}
+                        placeholder="Auto (N = D²/4\u03BB)"
+                      />
+                      {nf !== null && (
+                        <span className="absolute -top-1.5 right-1 px-1 text-[8px] font-bold bg-emerald-500 text-white rounded">
+                          AUTO
+                        </span>
+                      )}
+                      <div className="absolute bottom-full left-0 mb-1 hidden group-hover:block z-50 w-48 p-2 text-[10px] bg-slate-950 border border-slate-600 rounded shadow-lg text-slate-300">
+                        <p className="font-semibold text-emerald-400 mb-1">N = D² / (4{"\u03BB"})</p>
+                        <p>{"\u03BB"} = V / f</p>
+                        {nf !== null && (
+                          <p className="mt-1 text-emerald-300">= {nf.toFixed(2)} mm</p>
+                        )}
+                        {nf === null && (
+                          <p className="mt-1 text-amber-400">Enter Diameter, Frequency & Velocity</p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           </div>

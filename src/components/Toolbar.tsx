@@ -9,7 +9,8 @@ import {
   Settings,
   RefreshCw,
   FileDown,
-  FolderOpen
+  FolderOpen,
+  X
 } from "lucide-react";
 import { SettingsDialog } from "@/components/SettingsDialog";
 import { SavedCardsDialog } from "@/components/SavedCardsDialog";
@@ -149,6 +150,33 @@ export const Toolbar = ({
           setLocalSavedCardsOpen(false);
         }}
       />
+
+      <Separator orientation="vertical" className="h-8 md:h-10 mx-1 md:mx-2" />
+
+      {/* Exit / Close Application Button */}
+      <Button
+        variant="ghost"
+        size="icon"
+        title="Exit Application"
+        className="h-10 w-10 md:h-11 md:w-11 bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white border border-red-500/40 hover:border-red-500 rounded-lg transition-all duration-200"
+        onClick={() => {
+          // Electron environment
+          if (typeof window !== 'undefined' && (window as any).electronAPI?.quit) {
+            (window as any).electronAPI.quit();
+          } else if (typeof window !== 'undefined' && (window as any).require) {
+            try {
+              const { ipcRenderer } = (window as any).require('electron');
+              ipcRenderer.send('app-quit');
+            } catch {
+              window.close();
+            }
+          } else {
+            window.close();
+          }
+        }}
+      >
+        <X className="h-5 w-5" strokeWidth={3} />
+      </Button>
     </div>
   );
 };

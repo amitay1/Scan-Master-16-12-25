@@ -25,6 +25,11 @@ interface FBHBlockPreviewProps {
   width?: number;
   /** Preview height - default 520 for large display */
   height?: number;
+  /** Optional part context for dynamic profile shape */
+  partGeometry?: string;
+  outerDiameterMm?: number;
+  innerDiameterMm?: number;
+  referenceThicknessMm?: number;
 }
 
 export function FBHBlockPreview({
@@ -34,6 +39,10 @@ export function FBHBlockPreview({
   metalTravelH,
   width = 420,
   height = 520,
+  partGeometry,
+  outerDiameterMm,
+  innerDiameterMm,
+  referenceThicknessMm,
 }: FBHBlockPreviewProps) {
   // Calculate proportional dimensions similar to FBHStraightBeamDrawing
   const dimensions = useMemo(() => {
@@ -42,16 +51,31 @@ export function FBHBlockPreview({
     // Shift block left to make more room for dimension lines on the right
     const sideViewCenterX = width * 0.38;
 
-    // Base block dimensions - scale based on E (block height)
-    // Maximum E value expected is 350mm
-    const maxE = 350;
-    const minBlockHeight = 100;
-    const maxBlockHeight = height * 0.55;
+    const roundGeometries = new Set([
+      "tube",
+      "pipe",
+      "hollow_cylinder",
+      "ring",
+      "sleeve",
+      "ring_forging",
+      "cylinder",
+      "round_bar",
+      "shaft",
+      "solid_round",
+      "disk",
+      "disk_forging",
+      "hub",
+      "hpt_disk",
+    ]);
+    const isRoundProfile = !!partGeometry && roundGeometries.has(partGeometry);
 
-    // Scale block height proportionally to E value
-    const scaleFactor = Math.min(blockHeightE / maxE, 1);
-    const blockHeight = Math.max(minBlockHeight, scaleFactor * maxBlockHeight + minBlockHeight * (1 - scaleFactor));
-    const blockWidth = blockHeight * 0.55; // Slightly narrower aspect ratio
+    // Dynamic scale range that reacts more strongly to E changes
+    const maxE = Math.max(referenceThicknessMm ? referenceThicknessMm * 6 : 180, 120);
+    const minBlockHeight = isRoundProfile ? 70 : 55;
+    const maxBlockHeight = height * 0.58;
+    const normalizedE = Math.min(Math.max(blockHeightE / maxE, 0.05), 1);
+    const blockHeight = minBlockHeight + normalizedE * (maxBlockHeight - minBlockHeight);
+    const blockWidth = blockHeight * (isRoundProfile ? 0.62 : 0.55);
 
     const blockTop = commonCenterY - blockHeight / 2;
     const blockLeft = sideViewCenterX - blockWidth / 2;
@@ -59,29 +83,94 @@ export function FBHBlockPreview({
     const blockBottom = commonCenterY + blockHeight / 2;
 
     // FBH hole dimensions - scale H proportionally to block height
-    // H should be proportional to blockHeightE (H <= E)
-    const hRatio = Math.min(metalTravelH / blockHeightE, 0.95);
-    const fbhHoleDepth = Math.max(blockHeight * hRatio, 20);
+    const safeE = Math.max(blockHeightE, 1);
+    const hRatio = Math.min(metalTravelH / safeE, 0.95);
+    const fbhHoleDepth = Math.max(blockHeight * hRatio, 14);
 
     // FBH diameter visualization - scale based on actual diameter
-    // Make it visible but proportional (min 12px, max 35px)
-    const fbhHoleWidth = Math.max(12, Math.min(35, diameterMm * 7));
+    const fbhHoleWidth = Math.max(10, Math.min(35, diameterMm * 7));
 
     const fbhCenterX = sideViewCenterX;
     const fbhTop = blockBottom - fbhHoleDepth; // Top of hole (flat bottom)
 
     // Dimension line offsets - positioned outside the block with consistent spacing
-    const dimLineGap = 15; // Gap between block edge and first dimension line
-    const dimLineSpacing = 45; // Spacing between H and E dimension lines
-
-    // H dimension line X position (closer to block)
+    const dimLineGap = isRoundProfile ? 18 : 15;
+    const dimLineSpacing = 45;
     const hLineX = blockRight + dimLineGap + 20;
-    // E dimension line X position (further from block)
     const eLineX = hLineX + dimLineSpacing;
+    const profileBulge = isRoundProfile ? blockWidth * 0.16 : 0;
+    const dimensionLabelFontSize = 20;
+    const dimensionLabelPadding = 6;
+    const labelYMin = 24;
+    const labelYMax = height - 36;
+
+    // Avoid H/E label collision when H is close to E (deep holes)
+    const defaultHLabelY = fbhTop + fbhHoleDepth / 2 + 6;
+    const eLabelY = (blockTop + blockBottom) / 2 + 6;
+    let hLabelY = Math.min(Math.max(defaultHLabelY, labelYMin), labelYMax);
+    let hLabelX = hLineX + 12;
+    let hLabelAnchor: "start" | "end" = "start";
+    const eLabelX = eLineX + 12;
+    const eLabelAnchor: "start" | "end" = "start";
+
+    const hLabelText = `H=${metalTravelH.toFixed(1)}`;
+    const eLabelText = `E=${blockHeightE.toFixed(1)}`;
+
+    const estimatedTextWidth = (text: string) => Math.max(24, text.length * dimensionLabelFontSize * 0.62);
+    const getTextBounds = (
+      x: number,
+      y: number,
+      text: string,
+      anchor: "start" | "end",
+    ) => {
+      const widthPx = estimatedTextWidth(text);
+      const left = anchor === "end" ? x - widthPx : x;
+      const right = anchor === "end" ? x : x + widthPx;
+      const top = y - dimensionLabelFontSize * 0.85;
+      const bottom = y + dimensionLabelFontSize * 0.25;
+      return { left, right, top, bottom };
+    };
+
+    const areBoundsOverlapping = (
+      a: { left: number; right: number; top: number; bottom: number },
+      b: { left: number; right: number; top: number; bottom: number },
+    ) =>
+      a.left < b.right + dimensionLabelPadding &&
+      a.right > b.left - dimensionLabelPadding &&
+      a.top < b.bottom + dimensionLabelPadding &&
+      a.bottom > b.top - dimensionLabelPadding;
+
+    const eBounds = getTextBounds(eLabelX, eLabelY, eLabelText, eLabelAnchor);
+    let hBounds = getTextBounds(hLabelX, hLabelY, hLabelText, hLabelAnchor);
+
+    if (areBoundsOverlapping(hBounds, eBounds)) {
+      // First fallback: keep same Y but render H text on the left side of its dimension line
+      hLabelX = hLineX - 12;
+      hLabelAnchor = "end";
+      hBounds = getTextBounds(hLabelX, hLabelY, hLabelText, hLabelAnchor);
+    }
+
+    if (areBoundsOverlapping(hBounds, eBounds)) {
+      // Second fallback: move H label above/under the measured region
+      const preferredAbove = Math.min(Math.max(fbhTop - 10, labelYMin), labelYMax);
+      const preferredBelow = Math.min(Math.max(blockBottom + 24, labelYMin), labelYMax);
+
+      hLabelY = preferredAbove;
+      hBounds = getTextBounds(hLabelX, hLabelY, hLabelText, hLabelAnchor);
+
+      if (areBoundsOverlapping(hBounds, eBounds)) {
+        hLabelY = preferredBelow;
+        hBounds = getTextBounds(hLabelX, hLabelY, hLabelText, hLabelAnchor);
+      }
+
+      if (areBoundsOverlapping(hBounds, eBounds)) {
+        hLabelY = Math.min(Math.max(eLabelY - dimensionLabelFontSize * 1.5, labelYMin), labelYMax);
+      }
+    }
 
     return {
-      commonCenterY,
-      sideViewCenterX,
+      isRoundProfile,
+      profileBulge,
       blockWidth,
       blockHeight,
       blockTop,
@@ -94,10 +183,27 @@ export function FBHBlockPreview({
       fbhTop,
       hLineX,
       eLineX,
+      hLabelY,
+      hLabelX,
+      hLabelAnchor,
+      eLabelY,
+      eLabelX,
+      eLabelAnchor,
+      dimensionLabelFontSize,
     };
-  }, [width, height, blockHeightE, metalTravelH, diameterMm]);
+  }, [
+    width,
+    height,
+    blockHeightE,
+    metalTravelH,
+    diameterMm,
+    partGeometry,
+    referenceThicknessMm,
+  ]);
 
   const {
+    isRoundProfile,
+    profileBulge,
     blockWidth,
     blockHeight,
     blockTop,
@@ -110,6 +216,13 @@ export function FBHBlockPreview({
     fbhTop,
     hLineX,
     eLineX,
+    hLabelY,
+    hLabelX,
+    hLabelAnchor,
+    eLabelY,
+    eLabelX,
+    eLabelAnchor,
+    dimensionLabelFontSize,
   } = dimensions;
 
   return (
@@ -130,16 +243,29 @@ export function FBHBlockPreview({
 
         {/* ==================== SIDE VIEW ==================== */}
 
-        {/* Main block outline - STRAIGHT RECTANGLE */}
-        <rect
-          x={blockLeft}
-          y={blockTop}
-          width={blockWidth}
-          height={blockHeight}
-          fill="none"
-          stroke="#333"
-          strokeWidth={2.5}
-        />
+        {/* Main block outline - flat or curved profile based on selected part geometry */}
+        {isRoundProfile ? (
+          <path
+            d={`M ${blockLeft} ${blockTop}
+                Q ${fbhCenterX} ${blockTop - profileBulge} ${blockRight} ${blockTop}
+                L ${blockRight} ${blockBottom}
+                Q ${fbhCenterX} ${blockBottom + profileBulge} ${blockLeft} ${blockBottom}
+                Z`}
+            fill="none"
+            stroke="#333"
+            strokeWidth={2.5}
+          />
+        ) : (
+          <rect
+            x={blockLeft}
+            y={blockTop}
+            width={blockWidth}
+            height={blockHeight}
+            fill="none"
+            stroke="#333"
+            strokeWidth={2.5}
+          />
+        )}
 
         {/* FBH Hole INSIDE the block */}
         <g>
@@ -269,10 +395,11 @@ export function FBHBlockPreview({
           />
           {/* Label - positioned to the right of H line */}
           <text
-            x={hLineX + 12}
-            y={fbhTop + fbhHoleDepth / 2 + 6}
+            x={hLabelX}
+            y={hLabelY}
+            textAnchor={hLabelAnchor}
             fill="#16a34a"
-            style={{ fontSize: 20, fontWeight: 700 }}
+            style={{ fontSize: dimensionLabelFontSize, fontWeight: 700 }}
           >
             H={metalTravelH.toFixed(1)}
           </text>
@@ -328,10 +455,11 @@ export function FBHBlockPreview({
           />
           {/* Label - positioned to the right of E line */}
           <text
-            x={eLineX + 12}
-            y={(blockTop + blockBottom) / 2 + 6}
+            x={eLabelX}
+            y={eLabelY}
+            textAnchor={eLabelAnchor}
             fill="#ea580c"
-            style={{ fontSize: 20, fontWeight: 700 }}
+            style={{ fontSize: dimensionLabelFontSize, fontWeight: 700 }}
           >
             E={blockHeightE.toFixed(1)}
           </text>
@@ -346,6 +474,9 @@ export function FBHBlockPreview({
           style={{ fontSize: 14, fontWeight: 600 }}
         >
           ØFBH: {diameterMm.toFixed(2)}mm | E: {blockHeightE.toFixed(1)}mm | H: {metalTravelH.toFixed(1)}mm
+          {isRoundProfile ? " | Profile: Round" : " | Profile: Flat"}
+          {isRoundProfile && outerDiameterMm ? ` | OD: ${outerDiameterMm.toFixed(1)}mm` : ""}
+          {isRoundProfile && innerDiameterMm ? ` | ID: ${innerDiameterMm.toFixed(1)}mm` : ""}
         </text>
       </svg>
     </div>

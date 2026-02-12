@@ -78,8 +78,38 @@ export function PWCalibrationBlockDrawing({
 
   const highlighted = useMemo(() => new Set(highlightedHoles.map(normId)), [highlightedHoles]);
 
-  // Scale: tuned to match the OEM figure layout within the default 950x700.
-  const SCALE = 60; // px per inch
+  // Adaptive layout sizing to avoid view overlap on narrower canvases.
+  const layout = {
+    leftMargin: 70,
+    rightMargin: 32,
+    topViewY: 90,
+    profileY: 270,
+    isoY: 270,
+    minGap: 24,
+  } as const;
+  const isoFace = {
+    width: 260,
+    height: 140,
+    depthX: 90,
+    depthY: 60,
+  } as const;
+
+  // Keep enough room for the isometric block (including back-face offset)
+  // and preserve a minimum horizontal gap from the left views.
+  const maxScaleByWidth =
+    (width -
+      layout.rightMargin -
+      isoFace.width -
+      isoFace.depthX -
+      layout.minGap -
+      layout.leftMargin) / FIG1.topLengthIn;
+
+  // Keep profile + dimensions above the optional title block.
+  const titleBlockTop = showTitleBlock ? height - 120 : height - 24;
+  const profileExtra = 82; // dimension text and arrows under profile
+  const maxScaleByHeight = (titleBlockTop - layout.profileY - profileExtra) / FIG1.heightRefIn;
+
+  const SCALE = Math.max(34, Math.min(60, maxScaleByWidth, maxScaleByHeight)); // px per inch
   const topLenPx = FIG1.topLengthIn * SCALE;
   const topDepthPx = FIG1.topDepthIn * SCALE;
   const profHeightPx = FIG1.heightRefIn * SCALE;
@@ -94,9 +124,14 @@ export function PWCalibrationBlockDrawing({
   const bottomFlatPx = bottomRightPx - bottomLeftPx;
 
   // View anchors
-  const topView = { x: 70, y: 90 };
-  const profileView = { x: 70, y: 270 };
-  const isoView = { x: 620, y: 270 };
+  const topView = { x: layout.leftMargin, y: layout.topViewY };
+  const profileView = { x: layout.leftMargin, y: layout.profileY };
+  const leftViewsRight = topView.x + topLenPx;
+  const isoFrontX = Math.max(
+    width - layout.rightMargin - isoFace.width,
+    leftViewsRight + layout.minGap + isoFace.depthX
+  );
+  const isoView = { x: isoFrontX, y: layout.isoY };
 
   const stroke = "#111827";
   const dim = "#374151";
@@ -310,10 +345,10 @@ export function PWCalibrationBlockDrawing({
           </text>
 
           {(() => {
-            const faceW = 260;
-            const faceH = 140;
-            const dx = -90;
-            const dy = -60;
+            const faceW = isoFace.width;
+            const faceH = isoFace.height;
+            const dx = -isoFace.depthX;
+            const dy = -isoFace.depthY;
 
             // Front face origin (0,0) to (faceW, faceH)
             const front = { x: 0, y: 0 };

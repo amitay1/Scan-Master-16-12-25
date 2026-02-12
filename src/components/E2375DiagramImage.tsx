@@ -130,6 +130,7 @@ const getE2375ImageInfo = (partType: PartGeometry): {
     case "disk":
     case "disk_forging":
     case "hub":
+    case "hpt_disk":
       return {
         imagePath: `${basePath}/disk-forging.png`,
         figure: "Figure 7",

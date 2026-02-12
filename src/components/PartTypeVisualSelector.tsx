@@ -4,9 +4,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Maximize2, Sparkles, ChevronDown, Check } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Canvas } from "@react-three/fiber";
-import { OrbitControls, PerspectiveCamera } from "@react-three/drei";
+import { motion } from "framer-motion";
+import { Canvas, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { getGeometryByType } from "@/components/3d/ShapeGeometries";
 import ShapeCard from "@/components/ui/ShapeCard";
@@ -27,6 +26,14 @@ interface PartTypeOption {
   gradient: string;
 }
 
+type IdleWindow = Window & {
+  requestIdleCallback?: (
+    callback: (deadline: { timeRemaining: () => number; didTimeout: boolean }) => void,
+    options?: { timeout: number }
+  ) => number;
+  cancelIdleCallback?: (handle: number) => void;
+};
+
 // Flat list of all part types with icons and premium gradients
 const allPartTypes: PartTypeOption[] = [
   { value: "plate", label: "Plate / Flat Bar", description: "W/T > 5: Flat rectangular products", color: "#4A90E2", icon: "📋", gradient: "from-blue-500/20 via-blue-400/10 to-transparent" },
@@ -43,26 +50,52 @@ const allPartTypes: PartTypeOption[] = [
   { value: "hpt_disk", label: "HPT Disk", description: "Turbine disk with stepped bore (V2500 NDIP)", color: "#D35400", icon: "🔶", gradient: "from-orange-600/20 via-orange-500/10 to-transparent" },
 ];
 
+// Use lightweight proxy geometry for heavy aero shapes in tiny preview thumbnails.
+const PREVIEW_GEOMETRY_ALIAS: Partial<Record<PartGeometry, string>> = {
+  impeller: "disk_forging",
+  blisk: "disk_forging",
+  hpt_disk: "disk_forging",
+};
+
+const getPreviewPartType = (partType: PartGeometry): string =>
+  PREVIEW_GEOMETRY_ALIAS[partType] || partType;
+
+const PREVIEW_WARMUP_TYPES = Array.from(
+  new Set(allPartTypes.map((option) => getPreviewPartType(option.value)))
+);
+
 // Mini 3D Shape Component for inline preview
 // PERFORMANCE: Only animates when visible on screen
-function Mini3DShape({ partType, color, isHovered, isVisible = true }: { partType: string; color: string; isHovered: boolean; isVisible?: boolean }) {
-  const geometry = React.useMemo(() => getGeometryByType(partType), [partType]);
+function Mini3DShape({
+  partType,
+  color,
+  isHovered,
+  isVisible = true,
+  shouldAnimate = true,
+}: {
+  partType: PartGeometry;
+  color: string;
+  isHovered: boolean;
+  isVisible?: boolean;
+  shouldAnimate?: boolean;
+}) {
+  const previewPartType = React.useMemo(
+    () => getPreviewPartType(partType),
+    [partType]
+  );
+  const geometry = React.useMemo(() => getGeometryByType(previewPartType), [previewPartType]);
   const meshRef = useRef<THREE.Mesh>(null);
 
   React.useEffect(() => {
-    // PERFORMANCE: Skip animation loop entirely if not visible
-    if (!isVisible) return;
-
-    let animationId: number;
-    const animate = () => {
-      if (meshRef.current) {
-        meshRef.current.rotation.y += isHovered ? 0.03 : 0.01;
-      }
-      animationId = requestAnimationFrame(animate);
+    return () => {
+      geometry.dispose();
     };
-    animate();
-    return () => cancelAnimationFrame(animationId);
-  }, [isHovered, isVisible]);
+  }, [geometry]);
+
+  useFrame((_, delta) => {
+    if (!meshRef.current || !isVisible || !shouldAnimate) return;
+    meshRef.current.rotation.y += delta * (isHovered ? 2.2 : 0.8);
+  });
 
   return (
     <mesh ref={meshRef} geometry={geometry} scale={isHovered ? 0.85 : 0.7}>
@@ -77,44 +110,50 @@ function Mini3DShape({ partType, color, isHovered, isVisible = true }: { partTyp
 }
 
 // Inline 3D preview component
-// PERFORMANCE: Uses IntersectionObserver to only render when visible
-function Inline3DPreview({ partType, color, isHovered }: { partType: string; color: string; isHovered: boolean }) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [isVisible, setIsVisible] = useState(false);
-
-  // Track visibility with IntersectionObserver
-  React.useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => setIsVisible(entry.isIntersecting),
-      { threshold: 0.1 }
-    );
-    observer.observe(container);
-    return () => observer.disconnect();
-  }, []);
-
+// PERFORMANCE: Render only a small subset of live WebGL previews at any time.
+function Inline3DPreview({
+  partType,
+  color,
+  isHovered,
+  animate = true,
+  show3D = true,
+  fallbackIcon,
+}: {
+  partType: PartGeometry;
+  color: string;
+  isHovered: boolean;
+  animate?: boolean;
+  show3D?: boolean;
+  fallbackIcon?: string;
+}) {
   return (
-    <div ref={containerRef} className="w-8 h-8 relative">
-      {/* PERFORMANCE: Only render Canvas when visible */}
-      {isVisible ? (
+    <div className="w-8 h-8 relative">
+      {show3D ? (
         <Canvas
           camera={{ position: [0, 0, 3.5], fov: 40 }}
           style={{ background: 'transparent' }}
-          gl={{ antialias: true, alpha: true }}
-          frameloop="demand"
+          dpr={[1, 1.5]}
+          gl={{ antialias: false, alpha: true, powerPreference: "high-performance" }}
+          frameloop={animate ? "always" : "demand"}
         >
           <ambientLight intensity={0.6} />
           <directionalLight position={[5, 5, 5]} intensity={1} />
           <directionalLight position={[-3, 2, -3]} intensity={0.4} color="#e0e8ff" />
           <pointLight position={[0, 0, 3]} intensity={isHovered ? 0.8 : 0.3} color={color} />
           <Suspense fallback={null}>
-            <Mini3DShape partType={partType} color={color} isHovered={isHovered} isVisible={isVisible} />
+            <Mini3DShape
+              partType={partType}
+              color={color}
+              isHovered={isHovered}
+              isVisible={show3D}
+              shouldAnimate={animate}
+            />
           </Suspense>
         </Canvas>
       ) : (
-        <div className="w-full h-full bg-slate-800/50 rounded animate-pulse" />
+        <div className="w-full h-full rounded-md bg-slate-800/50 border border-slate-700/60 flex items-center justify-center text-sm text-slate-200">
+          <span aria-hidden>{fallbackIcon || "◻"}</span>
+        </div>
       )}
       {/* Glow effect */}
       <div 
@@ -133,12 +172,16 @@ function ShapeOption({
   option, 
   isSelected, 
   isHovered,
+  show3DPreview = true,
+  animatePreview = true,
   onHover,
   onClick 
 }: { 
   option: PartTypeOption; 
   isSelected: boolean;
   isHovered: boolean;
+  show3DPreview?: boolean;
+  animatePreview?: boolean;
   onHover: () => void;
   onClick: () => void;
 }) {
@@ -171,6 +214,9 @@ function ShapeOption({
           partType={option.value} 
           color={option.color} 
           isHovered={isHovered}
+          show3D={show3DPreview}
+          fallbackIcon={option.icon}
+          animate={animatePreview}
         />
       </div>
 
@@ -230,6 +276,7 @@ export const PartTypeVisualSelector: React.FC<PartTypeVisualSelectorProps> = ({
   const handleSelect = (partType: PartGeometry) => {
     onChange(partType);
     setDropdownOpen(false);
+    setHoveredOption(null);
     setDialogOpen(false);
   };
 
@@ -238,10 +285,55 @@ export const PartTypeVisualSelector: React.FC<PartTypeVisualSelectorProps> = ({
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setDropdownOpen(false);
+        setHoveredOption(null);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Preload preview geometries in small idle chunks so first dropdown open is instant.
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const idleWindow = window as IdleWindow;
+    let timeoutId: number | null = null;
+    let idleId: number | null = null;
+    let nextIndex = 0;
+    let cancelled = false;
+
+    const warmUpChunk = (deadline?: { timeRemaining: () => number; didTimeout: boolean }) => {
+      while (!cancelled && nextIndex < PREVIEW_WARMUP_TYPES.length) {
+        if (deadline && !deadline.didTimeout && deadline.timeRemaining() < 2) break;
+        const geometry = getGeometryByType(PREVIEW_WARMUP_TYPES[nextIndex] as PartGeometry);
+        geometry.dispose();
+        nextIndex += 1;
+      }
+
+      if (cancelled || nextIndex >= PREVIEW_WARMUP_TYPES.length) return;
+
+      if (idleWindow.requestIdleCallback) {
+        idleId = idleWindow.requestIdleCallback(warmUpChunk, { timeout: 200 });
+      } else {
+        timeoutId = window.setTimeout(() => warmUpChunk(), 16);
+      }
+    };
+
+    if (idleWindow.requestIdleCallback) {
+      idleId = idleWindow.requestIdleCallback(warmUpChunk, { timeout: 150 });
+    } else {
+      timeoutId = window.setTimeout(() => warmUpChunk(), 60);
+    }
+
+    return () => {
+      cancelled = true;
+      if (idleId !== null && idleWindow.cancelIdleCallback) {
+        idleWindow.cancelIdleCallback(idleId);
+      }
+      if (timeoutId !== null) {
+        window.clearTimeout(timeoutId);
+      }
+    };
   }, []);
 
   return (
@@ -258,7 +350,13 @@ export const PartTypeVisualSelector: React.FC<PartTypeVisualSelectorProps> = ({
             "text-left",
             dropdownOpen && "border-primary ring-2 ring-primary/20"
           )}
-          onClick={() => setDropdownOpen(!dropdownOpen)}
+          onClick={() => {
+            setDropdownOpen((prev) => {
+              const next = !prev;
+              if (!next) setHoveredOption(null);
+              return next;
+            });
+          }}
           whileTap={{ scale: 0.98 }}
         >
           {selectedType ? (
@@ -267,6 +365,7 @@ export const PartTypeVisualSelector: React.FC<PartTypeVisualSelectorProps> = ({
                 partType={selectedType.value} 
                 color={selectedType.color} 
                 isHovered={dropdownOpen}
+                fallbackIcon={selectedType.icon}
               />
               <div className="flex-1 min-w-0">
                 <span className="text-sm font-medium truncate block">
@@ -288,44 +387,60 @@ export const PartTypeVisualSelector: React.FC<PartTypeVisualSelectorProps> = ({
         </motion.button>
 
         {/* Dropdown menu */}
-        <AnimatePresence>
-          {dropdownOpen && (
-            <motion.div
-              initial={{ opacity: 0, y: -10, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -10, scale: 0.95 }}
-              transition={{ type: "spring", stiffness: 400, damping: 25 }}
-              className={cn(
-                "absolute z-50 top-full left-0 right-0 mt-1.5",
-                "bg-popover border border-border rounded-xl shadow-xl",
-                "max-h-[320px] overflow-y-auto",
-                "backdrop-blur-xl"
-              )}
-            >
-              {/* Header */}
-              <div className="sticky top-0 bg-popover/95 backdrop-blur-sm px-3 py-2 border-b border-border/50">
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <Sparkles className="h-3 w-3" />
-                  <span>Select geometry type</span>
-                </div>
+        {dropdownOpen && (
+          <motion.div
+            initial={false}
+            animate={{
+              opacity: dropdownOpen ? 1 : 0,
+              y: dropdownOpen ? 0 : -10,
+              scale: dropdownOpen ? 1 : 0.95,
+            }}
+            transition={{ type: "spring", stiffness: 400, damping: 25 }}
+            style={{
+              pointerEvents: dropdownOpen ? "auto" : "none",
+              visibility: dropdownOpen ? "visible" : "hidden",
+            }}
+            className={cn(
+              "absolute z-50 top-full left-0 right-0 mt-1.5",
+              "bg-popover border border-border rounded-xl shadow-xl",
+              "max-h-[320px] overflow-y-auto",
+              "backdrop-blur-xl"
+            )}
+          >
+            {/* Header */}
+            <div className="sticky top-0 bg-popover/95 backdrop-blur-sm px-3 py-2 border-b border-border/50">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Sparkles className="h-3 w-3" />
+                <span>Select geometry type</span>
               </div>
-              
-              {/* Options */}
-              <div className="p-1.5 space-y-0.5">
-                {allPartTypes.map((option) => (
+            </div>
+            
+            {/* Options */}
+            <div className="p-1.5 space-y-0.5">
+              {allPartTypes.map((option, index) => {
+                const show3DPreview =
+                  index < 4 ||
+                  hoveredOption === option.value ||
+                  value === option.value;
+                const animatePreview =
+                  hoveredOption === option.value || value === option.value;
+
+                return (
                   <ShapeOption
                     key={option.value}
                     option={option}
                     isSelected={value === option.value}
                     isHovered={hoveredOption === option.value}
+                    show3DPreview={show3DPreview}
+                    animatePreview={animatePreview}
                     onHover={() => setHoveredOption(option.value)}
                     onClick={() => handleSelect(option.value)}
                   />
-                ))}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
       </div>
 
       {/* Expand button for full visual picker dialog */}

@@ -20,11 +20,15 @@ import { PWCalibrationBlockDrawing } from "../drawings/PWCalibrationBlockDrawing
 import { PWASIMCalibrationBlockDrawing } from "../drawings/PWASIMCalibrationBlockDrawing";
 import { DynamicCalibrationBlockDrawing } from "../drawings/DynamicCalibrationBlockDrawing";
 import { V2500BoreScanDiagram } from "../V2500BoreScanDiagram";
-import type { PartGeometry as CalcPartGeometry } from "@/rules/calibrationBlockDimensions";
+import type {
+  PartGeometry as CalcPartGeometry,
+  CalculatedBlockType,
+} from "@/rules/calibrationBlockDimensions";
 import {
   DEFAULT_FBH_HOLES,
   type FBHHoleRowData,
   FBH_DIAMETER_OPTIONS,
+  BLOCK_HEIGHT_E_OPTIONS,
   METAL_TRAVEL_OPTIONS
 } from "@/data/fbhStandardsData";
 import {
@@ -196,6 +200,33 @@ const getFBHDropdownStandard = (standard: StandardType): string => {
   return "All";
 };
 
+const hasPositiveNumber = (value?: number): value is number =>
+  typeof value === "number" && Number.isFinite(value) && value > 0;
+
+const formatMissingInputsSentence = (missingInputs: string[]): string => {
+  if (missingInputs.length === 0) return "";
+  if (missingInputs.length === 1) return missingInputs[0];
+  if (missingInputs.length === 2) return `${missingInputs[0]} or ${missingInputs[1]}`;
+  return `${missingInputs.slice(0, -1).join(", ")}, or ${missingInputs[missingInputs.length - 1]}`;
+};
+
+const normalizeSelectedBlockType = (selected?: string): CalculatedBlockType | undefined => {
+  switch ((selected || "").trim()) {
+    case "flat_fbh":
+    case "cylinder_notched":
+    case "cylinder_fbh":
+    case "curved_fbh":
+    case "custom":
+      return selected as CalculatedBlockType;
+    case "flat_block":
+      return "flat_fbh";
+    case "curved_block":
+      return "curved_fbh";
+    default:
+      return undefined;
+  }
+};
+
 export const CalibrationTab = ({
   data,
   onChange,
@@ -261,11 +292,27 @@ export const CalibrationTab = ({
   const requiresBothBeams = beamRequirement === "both";
 
   // Memoize partDimensions to prevent infinite re-renders in RingSegmentBlockDrawing
-  const partDimensions = useMemo(() => ({
-    outerDiameterMm: inspectionSetup.diameter || undefined,
-    innerDiameterMm: inspectionSetup.innerDiameter || undefined,
-    axialWidthMm: inspectionSetup.partLength || inspectionSetup.wallThickness || undefined,
-  }), [inspectionSetup.diameter, inspectionSetup.innerDiameter, inspectionSetup.partLength, inspectionSetup.wallThickness]);
+  // and ensure it follows the actual part envelope dimensions from Setup.
+  const partDimensions = useMemo(() => {
+    const axialWidth =
+      (typeof inspectionSetup.partLength === "number" && inspectionSetup.partLength > 0 ? inspectionSetup.partLength : undefined) ??
+      (typeof inspectionSetup.partWidth === "number" && inspectionSetup.partWidth > 0 ? inspectionSetup.partWidth : undefined) ??
+      (typeof inspectionSetup.partThickness === "number" && inspectionSetup.partThickness > 0 ? inspectionSetup.partThickness : undefined) ??
+      (typeof inspectionSetup.wallThickness === "number" && inspectionSetup.wallThickness > 0 ? inspectionSetup.wallThickness : undefined);
+
+    return {
+      outerDiameterMm: inspectionSetup.diameter || undefined,
+      innerDiameterMm: inspectionSetup.innerDiameter || undefined,
+      axialWidthMm: axialWidth,
+    };
+  }, [
+    inspectionSetup.diameter,
+    inspectionSetup.innerDiameter,
+    inspectionSetup.partLength,
+    inspectionSetup.partWidth,
+    inspectionSetup.partThickness,
+    inspectionSetup.wallThickness,
+  ]);
 
   const effectiveInspectionThickness = useMemo(
     () => getInspectionThickness(inspectionSetup, 0),
@@ -297,6 +344,138 @@ export const CalibrationTab = ({
     inspectionSetup.innerDiameter,
     inspectionSetup.wallThickness,
   ]);
+
+  const mappedPartGeometry = useMemo(
+    () => mapPartGeometry(inspectionSetup.partType || "plate"),
+    [inspectionSetup.partType]
+  );
+
+  const selectedBlockOverride = useMemo(
+    () => normalizeSelectedBlockType(data.standardType),
+    [data.standardType]
+  );
+
+  const autoCalculatedBlockType = useMemo<CalculatedBlockType>(() => {
+    const hasOD = hasPositiveNumber(inspectionSetup.diameter);
+    const hasID = hasPositiveNumber(inspectionSetup.innerDiameter);
+    const hasExplicitWall = hasPositiveNumber(inspectionSetup.wallThickness);
+    const hasDerivedWall = hasOD && hasID && inspectionSetup.diameter > inspectionSetup.innerDiameter;
+
+    if (["tube", "pipe", "hollow_cylinder", "ring", "sleeve", "ring_forging"].includes(mappedPartGeometry)) {
+      const wall = hasExplicitWall
+        ? inspectionSetup.wallThickness
+        : hasDerivedWall
+          ? (inspectionSetup.diameter - inspectionSetup.innerDiameter) / 2
+          : Number.NaN;
+      return Number.isFinite(wall) && wall < 25 ? "cylinder_notched" : "cylinder_fbh";
+    }
+
+    if (["cylinder", "round_bar", "shaft", "solid_round"].includes(mappedPartGeometry)) {
+      return hasOD && inspectionSetup.diameter < 50 ? "curved_fbh" : "flat_fbh";
+    }
+
+    if (["sphere", "cone", "pyramid", "custom"].includes(mappedPartGeometry)) {
+      return "custom";
+    }
+
+    return "flat_fbh";
+  }, [
+    inspectionSetup.diameter,
+    inspectionSetup.innerDiameter,
+    inspectionSetup.wallThickness,
+    mappedPartGeometry,
+  ]);
+
+  // Keep previous behavior for tube/round families.
+  // Use scan-aware override only for HPT disk workflows.
+  const scanAwareBlockTypeOverride = useMemo<CalculatedBlockType | undefined>(() => {
+    if (mappedPartGeometry !== "hpt_disk") {
+      return undefined;
+    }
+    return selectedBlockOverride;
+  }, [mappedPartGeometry, selectedBlockOverride]);
+
+  // Straight-beam drawing override:
+  // 1) explicit user selection if exists
+  // 2) HPT scan-aware override
+  // 3) automatic geometry-based block selection
+  const straightBeamBlockOverride = useMemo<CalculatedBlockType>(
+    () => selectedBlockOverride || scanAwareBlockTypeOverride || autoCalculatedBlockType,
+    [selectedBlockOverride, scanAwareBlockTypeOverride, autoCalculatedBlockType]
+  );
+
+  const missingCalibrationModelInputs = useMemo(() => {
+    const missing: string[] = [];
+
+    const hasOD = hasPositiveNumber(inspectionSetup.diameter);
+    const hasID = hasPositiveNumber(inspectionSetup.innerDiameter);
+    const hasExplicitWall = hasPositiveNumber(inspectionSetup.wallThickness);
+    const hasDerivedWall = hasOD && hasID && inspectionSetup.diameter > inspectionSetup.innerDiameter;
+    const hasThickness = effectiveInspectionThickness > 0;
+
+    if (!inspectionSetup.partType) missing.push("Part Type");
+    if (!inspectionSetup.material) missing.push("Part Material");
+    if (!acceptanceClass) missing.push("Acceptance Class");
+    if (!hasThickness) missing.push("Inspection Thickness (or Wall Thickness)");
+
+    const resolvedBlockType: CalculatedBlockType =
+      scanAwareBlockTypeOverride || autoCalculatedBlockType;
+
+    if (resolvedBlockType === "cylinder_notched") {
+      if (!hasOD) missing.push("Outer Diameter (OD)");
+      if (!(hasExplicitWall || hasDerivedWall)) missing.push("Wall Thickness (or OD + ID)");
+    }
+
+    if (resolvedBlockType === "cylinder_fbh" || resolvedBlockType === "curved_fbh") {
+      if (!hasOD) missing.push("Outer Diameter (OD)");
+    }
+
+    if (mappedPartGeometry === "cone") {
+      if (!hasPositiveNumber(inspectionSetup.coneTopDiameter)) missing.push("Cone Top Diameter");
+      if (!hasPositiveNumber(inspectionSetup.coneBottomDiameter)) missing.push("Cone Bottom Diameter");
+      if (!hasPositiveNumber(inspectionSetup.coneHeight)) missing.push("Cone Height");
+    }
+
+    if (
+      mappedPartGeometry === "custom" &&
+      !inspectionSetup.customShapeDescription?.trim() &&
+      !inspectionSetup.customShapeImage
+    ) {
+      missing.push("Custom Shape Dimensions/Description");
+    }
+
+    if (
+      (standard === "NDIP-1254" || standard === "NDIP-1257" || standard === "NDIP-1260") &&
+      !inspectionSetup.partNumber?.trim()
+    ) {
+      missing.push("Part Number (OEM Traceability)");
+    }
+
+    return [...new Set(missing)];
+  }, [
+    acceptanceClass,
+    effectiveInspectionThickness,
+    inspectionSetup.coneBottomDiameter,
+    inspectionSetup.coneHeight,
+    inspectionSetup.coneTopDiameter,
+    inspectionSetup.customShapeDescription,
+    inspectionSetup.customShapeImage,
+    inspectionSetup.diameter,
+    inspectionSetup.innerDiameter,
+    inspectionSetup.material,
+    inspectionSetup.partNumber,
+    inspectionSetup.partType,
+    inspectionSetup.wallThickness,
+    autoCalculatedBlockType,
+    mappedPartGeometry,
+    scanAwareBlockTypeOverride,
+    standard,
+  ]);
+
+  const missingCalibrationModelSentence = useMemo(
+    () => formatMissingInputsSentence(missingCalibrationModelInputs),
+    [missingCalibrationModelInputs]
+  );
 
   const updateField = (field: keyof CalibrationData, value: any) => {
     onChange({ ...data, [field]: value });
@@ -413,13 +592,35 @@ export const CalibrationTab = ({
     // Calculate DAC depths based on standard
     const dacDepths = isV2500NDIP ? pwHoleDepthsMm : calculateDACDepths(thickness);
 
+    // Resolve block height E from standard options + required cover over deepest reflector.
+    // This makes the preview/table react to part size changes, not only hole depths.
+    const optionStandard = getFBHDropdownStandard(standard);
+    const blockHeightOptions = (
+      optionStandard === "All"
+        ? BLOCK_HEIGHT_E_OPTIONS
+        : BLOCK_HEIGHT_E_OPTIONS.filter((opt) => opt.standard.includes(optionStandard))
+    )
+      .map((opt) => opt.heightMm)
+      .sort((a, b) => a - b);
+
+    const deepestDepth = Math.max(...dacDepths, 0);
+    const minCover = Math.max(5, thickness * 0.1);
+    const targetBlockHeight = Math.max(thickness, deepestDepth + minCover);
+    const resolvedBlockHeight =
+      blockHeightOptions.find((h) => h >= targetBlockHeight) ||
+      blockHeightOptions[blockHeightOptions.length - 1] ||
+      Number(targetBlockHeight.toFixed(2));
+
     // Check if values are already set to the same - avoid unnecessary updates
     const currentDiameter = fbhHoles[0]?.diameterInch;
     const currentDepths = fbhHoles.map(h => h.metalTravelH);
+    const currentBlockHeights = fbhHoles.map(h => h.blockHeightE);
     const isSameDiameter = currentDiameter === parsed.inch;
-    const isSameDepths = dacDepths.every((d, i) => currentDepths[i] === d);
+    const isSameDepths = dacDepths.length === currentDepths.length && dacDepths.every((d, i) => currentDepths[i] === d);
+    const isSameBlockHeight = currentBlockHeights.length === dacDepths.length &&
+      currentBlockHeights.every((e) => Math.abs(e - resolvedBlockHeight) < 0.01);
 
-    if (isSameDiameter && isSameDepths && fbhAutoFilled) {
+    if (isSameDiameter && isSameDepths && isSameBlockHeight && fbhAutoFilled) {
       // Already auto-filled with same values, skip
       return;
     }
@@ -431,8 +632,8 @@ export const CalibrationTab = ({
       deltaType: 'dac', // DAC for distance-amplitude correction
       diameterInch: parsed.inch,
       diameterMm: parsed.mm,
-      blockHeightE: depth,   // E - block height equals DAC depth
-      metalTravelH: depth,   // H - hole depth equals block height
+      blockHeightE: resolvedBlockHeight,
+      metalTravelH: depth,
       isCustom: false,
     }));
 
@@ -443,6 +644,7 @@ export const CalibrationTab = ({
       setFbhAutoFillReason(
         `PW IAE2P16675 calibration block - #1 FBH (1/64") at 80% FSH. ` +
         `7 holes (${pwHoleLabels.join(', ')}): ${pwHoleDepthsMm.map((d, i) => `${pwHoleLabels[i]}=${d}mm`).join(', ')}. ` +
+        `Block height E=${resolvedBlockHeight}mm. ` +
         `Per ${standard === 'NDIP-1226' ? 'NDIP-1226 Rev F' : 'NDIP-1227 Rev D'} Section 5.1.1.7.1. ` +
         `+/-45 deg circumferential shear wave, 8" water path immersion.`
       );
@@ -450,12 +652,14 @@ export const CalibrationTab = ({
       setFbhAutoFillReason(
         `#1 FBH (${parsed.inch}" / ${parsed.mm}mm) selected for ${standard}. ` +
         `Using thickness-based 3-point DAC depths: ${dacDepths.map((d) => `${d}mm`).join(', ')}. ` +
+        `Block height E=${resolvedBlockHeight}mm. ` +
         `Exact OEM block geometry is proprietary and should be verified against the active NDIP release.`
       );
     } else {
       setFbhAutoFillReason(
         `FBH ${parsed.inch}" (${parsed.mm}mm) selected per ${standard} Class ${acceptanceClass} for ${thickness}mm thickness. ` +
-        `DAC depths: ${dacDepths.map(d => `${d}mm`).join(', ')} (25%, 50%, 75% of thickness).`
+        `DAC depths: ${dacDepths.map(d => `${d}mm`).join(', ')} (25%, 50%, 75% of thickness). ` +
+        `Block height E=${resolvedBlockHeight}mm.`
       );
     }
 
@@ -485,7 +689,18 @@ export const CalibrationTab = ({
     }
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [acceptanceClass, standard, effectiveInspectionThickness]);
+  }, [
+    acceptanceClass,
+    standard,
+    effectiveInspectionThickness,
+    mappedPartGeometry,
+    inspectionSetup.diameter,
+    inspectionSetup.innerDiameter,
+    inspectionSetup.wallThickness,
+    inspectionSetup.partLength,
+    inspectionSetup.partWidth,
+    inspectionSetup.partThickness,
+  ]);
 
   const handleSelectModel = (modelId: string) => {
     setSelectedModelId(modelId as CalibrationBlockType);
@@ -536,6 +751,30 @@ export const CalibrationTab = ({
           standard={fbhOptionStandard}
           previewWidth={420}
           previewHeight={520}
+          partGeometry={mappedPartGeometry}
+          outerDiameterMm={inspectionSetup.diameter}
+          innerDiameterMm={inspectionSetup.innerDiameter}
+          referenceThicknessMm={effectiveInspectionThickness}
+        />
+      </div>
+
+      {/* Live straight-beam calibration model (auto-updates from Setup dimensions). */}
+      <div className="space-y-2">
+        <div className="text-sm text-muted-foreground">
+          Live model sync: OD / ID / Length / Width / Thickness
+        </div>
+        <DynamicCalibrationBlockDrawing
+          partGeometry={mappedPartGeometry}
+          partDimensions={partDimensionsForDrawing}
+          standard={standard}
+          acceptanceClass={acceptanceClass || 'A'}
+          partMaterial={inspectionSetup.material || 'steel'}
+          forcedBlockType={straightBeamBlockOverride}
+          width={950}
+          height={740}
+          showDimensions={true}
+          showSpecsTable={true}
+          title={`Straight Beam Calibration Block - ${standard} (Live)`}
         />
       </div>
     </>
@@ -809,11 +1048,12 @@ export const CalibrationTab = ({
                 A calculated placeholder block is shown below and must be verified against active OEM data.
               </div>
               <DynamicCalibrationBlockDrawing
-                partGeometry={mapPartGeometry(inspectionSetup.partType || "plate")}
+                partGeometry={mappedPartGeometry}
                 partDimensions={partDimensionsForDrawing}
                 standard={standard}
                 acceptanceClass={acceptanceClass || "A"}
                 partMaterial={inspectionSetup.material || "steel"}
+                forcedBlockType={scanAwareBlockTypeOverride}
                 width={950}
                 height={700}
                 showDimensions={true}
@@ -935,36 +1175,76 @@ export const CalibrationTab = ({
           </div>
         )}
 
-        {/* Dynamic Calibration Block Drawing - Calculated dimensions based on part! */}
-        <DynamicCalibrationBlockDrawing
-          partGeometry={mapPartGeometry(inspectionSetup.partType || 'plate')}
-          partDimensions={partDimensionsForDrawing}
-          standard={standard}
-          acceptanceClass={acceptanceClass || 'A'}
-          partMaterial={inspectionSetup.material || 'steel'}
-          width={950}
-          height={750}
-          showDimensions={true}
-          showSpecsTable={true}
-          title={`Calibration Block - ${standard} (Calculated for your part)`}
-        />
-
-        {/* Legacy Angle Beam Drawing for reference */}
-        <details className="mt-4">
-          <summary className="text-sm text-muted-foreground cursor-pointer hover:text-foreground">
-            Show Alternative Reference Drawing
-          </summary>
-          <div className="mt-2">
+        {selectedBlockType === "curved" ? (
+          <>
+            {/* Professional parametric ring-segment drawing (primary for round parts). */}
             <AngleBeamCalibrationBlockDrawing
-              width={900}
-              height={600}
+              width={950}
+              height={760}
               showDimensions={true}
-              title="Reference: Generic Shear Wave Block"
+              title={`Calibration Block - ${standard} (Parametric Ring Segment)`}
               partDimensions={partDimensions}
               useParametric={true}
+              initialTemplateId="TUV_STYLE_REF_BLOCK"
             />
-          </div>
-        </details>
+
+            {/* Keep dynamic calculated view as optional fallback/reference. */}
+            <details className="mt-4">
+              <summary className="text-sm text-muted-foreground cursor-pointer hover:text-foreground">
+                Show Alternative Calculated Block Sketch
+              </summary>
+              <div className="mt-2">
+                <DynamicCalibrationBlockDrawing
+                  partGeometry={mappedPartGeometry}
+                  partDimensions={partDimensionsForDrawing}
+                  standard={standard}
+                  acceptanceClass={acceptanceClass || 'A'}
+                  partMaterial={inspectionSetup.material || 'steel'}
+                  forcedBlockType={scanAwareBlockTypeOverride}
+                  width={950}
+                  height={750}
+                  showDimensions={true}
+                  showSpecsTable={true}
+                  title={`Calibration Block - ${standard} (Calculated for your part)`}
+                />
+              </div>
+            </details>
+          </>
+        ) : (
+          <>
+            {/* Flat option keeps the classic calculated drawing. */}
+            <DynamicCalibrationBlockDrawing
+              partGeometry={mappedPartGeometry}
+              partDimensions={partDimensionsForDrawing}
+              standard={standard}
+              acceptanceClass={acceptanceClass || 'A'}
+              partMaterial={inspectionSetup.material || 'steel'}
+              forcedBlockType={"flat_fbh"}
+              width={950}
+              height={750}
+              showDimensions={true}
+              showSpecsTable={true}
+              title={`Calibration Block - ${standard} (Calculated for your part)`}
+            />
+
+            <details className="mt-4">
+              <summary className="text-sm text-muted-foreground cursor-pointer hover:text-foreground">
+                Show Parametric Ring-Segment Reference
+              </summary>
+              <div className="mt-2">
+                <AngleBeamCalibrationBlockDrawing
+                  width={900}
+                  height={650}
+                  showDimensions={true}
+                  title="Reference: Parametric Shear Wave Block"
+                  partDimensions={partDimensions}
+                  useParametric={true}
+                  initialTemplateId="TUV_STYLE_REF_BLOCK"
+                />
+              </div>
+            </details>
+          </>
+        )}
       </div>
     );
   };
@@ -1085,6 +1365,23 @@ export const CalibrationTab = ({
             </TooltipProvider>
           )}
         </h3>
+
+        {missingCalibrationModelInputs.length > 0 && (
+          <div className="bg-amber-50 border border-amber-300 rounded-lg p-3">
+            <p className="text-sm font-semibold text-amber-900 flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4" />
+              Missing data for exact calibration model selection
+            </p>
+            <p className="text-sm text-amber-800 mt-1">
+              Please provide: {missingCalibrationModelSentence}.
+            </p>
+            <ul className="text-xs text-amber-700 list-disc list-inside mt-2 space-y-0.5">
+              {missingCalibrationModelInputs.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {/* Show tabs when both beam types are required */}
         {showBeamTabs ? (

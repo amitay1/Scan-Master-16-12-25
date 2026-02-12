@@ -144,6 +144,7 @@ const normalizePartType = (partType: PartGeometry): string => {
     "disk": "disk",
     "disk_forging": "disk_forging",
     "hub": "hub",
+    "hpt_disk": "disk_forging",
     "round_forging_stock": "round_forging_stock",
 
     // Hollow cylindrical

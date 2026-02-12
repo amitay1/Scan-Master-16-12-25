@@ -115,6 +115,13 @@ export interface CalibrationBlockSpecification {
   notes: string[];
 }
 
+export type CalculatedBlockType =
+  | 'flat_fbh'
+  | 'cylinder_notched'
+  | 'cylinder_fbh'
+  | 'curved_fbh'
+  | 'custom';
+
 export type PartGeometry =
   | 'plate' | 'sheet' | 'bar' | 'block' | 'billet' | 'slab'
   | 'tube' | 'pipe' | 'hollow_cylinder' | 'ring' | 'sleeve'
@@ -583,13 +590,15 @@ export function calculateCalibrationBlockSpec(
   partDimensions: PartDimensions,
   standard: StandardType | string,
   acceptanceClass: string,
-  partMaterial: string = 'steel'
+  partMaterial: string = 'steel',
+  blockTypeOverride?: string
 ): CalibrationBlockSpecification {
   const warnings: string[] = [];
   const notes: string[] = [];
 
   // Determine block type based on geometry
-  const blockType = determineBlockType(partGeometry, partDimensions);
+  const normalizedBlockTypeOverride = normalizeBlockTypeOverride(blockTypeOverride);
+  const blockType = normalizedBlockTypeOverride || determineBlockType(partGeometry, partDimensions);
 
   // Calculate dimensions
   const dimensions = calculateBlockDimensions(
@@ -607,14 +616,21 @@ export function calculateCalibrationBlockSpec(
     acceptanceClass
   );
 
-  // Calculate notches for tube/pipe geometries
+  // Calculate notches for notched-cylinder blocks and tubular geometries.
+  // Use derived wall thickness when explicit wall thickness is not provided.
   let notches: NotchDimensions[] | undefined;
-  if (isTubularGeometry(partGeometry) && partDimensions.wallThickness) {
-    notches = calculateNotchDimensions(
-      partDimensions.wallThickness,
-      partDimensions.outerDiameter || 0,
-      standard
-    );
+  const derivedWallThickness =
+    partDimensions.wallThickness ||
+    (partDimensions.outerDiameter && partDimensions.innerDiameter
+      ? (partDimensions.outerDiameter - partDimensions.innerDiameter) / 2
+      : undefined);
+  const notchOuterDiameter = partDimensions.outerDiameter || dimensions.outerDiameter;
+  const requiresNotches = blockType === 'cylinder_notched' || isTubularGeometry(partGeometry);
+
+  if (requiresNotches && derivedWallThickness && notchOuterDiameter) {
+    notches = calculateNotchDimensions(derivedWallThickness, notchOuterDiameter, standard);
+  } else if (blockType === 'cylinder_notched') {
+    warnings.push('Notch dimensions could not be fully calculated: missing wall thickness or outer diameter.');
   }
 
   // Get material specification
@@ -697,6 +713,23 @@ function determineBlockType(geometry: PartGeometry, dimensions: PartDimensions):
   }
 
   return 'flat_fbh';
+}
+
+function normalizeBlockTypeOverride(blockTypeOverride?: string): CalculatedBlockType | null {
+  if (!blockTypeOverride) {
+    return null;
+  }
+
+  switch (blockTypeOverride) {
+    case 'flat_fbh':
+    case 'cylinder_notched':
+    case 'cylinder_fbh':
+    case 'curved_fbh':
+    case 'custom':
+      return blockTypeOverride;
+    default:
+      return null;
+  }
 }
 
 /**

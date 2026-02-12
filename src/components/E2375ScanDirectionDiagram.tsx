@@ -78,6 +78,7 @@ const getE2375DiagramInfo = (partType: PartGeometry): {
       };
     case "disk_forging":
     case "hub":
+    case "hpt_disk":
       return {
         figure: "Figure 7",
         page: 12,
@@ -717,6 +718,7 @@ export const E2375ScanDirectionDiagram: React.FC<E2375ScanDirectionDiagramProps>
       case "disk":
       case "disk_forging":
       case "hub":
+      case "hpt_disk":
         return <CylindricalDiagram {...props} />;
       case "tube":
       case "pipe":

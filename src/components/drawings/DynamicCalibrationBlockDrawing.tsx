@@ -15,6 +15,7 @@ import React, { useMemo, useId } from 'react';
 import {
   calculateCalibrationBlockSpec,
   type CalibrationBlockSpecification,
+  type CalculatedBlockType,
   type PartGeometry,
   type PartDimensions,
 } from '@/rules/calibrationBlockDimensions';
@@ -45,6 +46,8 @@ interface DynamicCalibrationBlockDrawingProps {
   showSpecsTable?: boolean;
   /** Custom title */
   title?: string;
+  /** Optional block type override from scan-aware recommendation */
+  forcedBlockType?: CalculatedBlockType;
 }
 
 // ============================================================================
@@ -62,6 +65,7 @@ export function DynamicCalibrationBlockDrawing({
   showDimensions = true,
   showSpecsTable = true,
   title,
+  forcedBlockType,
 }: DynamicCalibrationBlockDrawingProps) {
   const uniqueId = useId().replace(/:/g, '');
 
@@ -72,9 +76,10 @@ export function DynamicCalibrationBlockDrawing({
       partDimensions,
       standard,
       acceptanceClass,
-      partMaterial
+      partMaterial,
+      forcedBlockType
     );
-  }, [partGeometry, partDimensions, standard, acceptanceClass, partMaterial]);
+  }, [partGeometry, partDimensions, standard, acceptanceClass, partMaterial, forcedBlockType]);
 
   // Determine which drawing to render based on block type
   const renderBlockDrawing = () => {
@@ -204,24 +209,30 @@ interface BlockDrawingProps {
 }
 
 function FlatFBHBlockDrawing({ spec, width, height, showDimensions, uniqueId }: BlockDrawingProps) {
-  // Scale calculation
-  const margin = 60;
-  const drawingWidth = width - margin * 2;
-  const drawingHeight = height - margin * 2 - 100; // Leave space for table
-
-  // Calculate scale to fit block
+  const margin = 36;
+  const paneGap = 24;
+  const rightPaneWidth = Math.max(195, Math.min(240, width * 0.26));
+  const mainWidth = Math.max(320, width - margin * 2 - rightPaneWidth - paneGap);
+  const mainHeight = Math.max(360, height - margin * 2);
   const { dimensions, fbhSpecs } = spec;
-  const scaleX = drawingWidth / (dimensions.length * 1.5);
-  const scaleY = drawingHeight / (dimensions.height * 4);
-  const scale = Math.min(scaleX, scaleY, 3); // Max scale 3
+
+  // Layout-aware scale so the drawing and text never overlap.
+  const scaleX = (mainWidth - 40) / Math.max(dimensions.length, 1);
+  const scaleY =
+    (mainHeight - 150) /
+    Math.max(dimensions.width + dimensions.height * 2, 1);
+  const scale = Math.max(0.55, Math.min(scaleX, scaleY, 3));
 
   const scaledLength = dimensions.length * scale;
   const scaledWidth = dimensions.width * scale;
-  const scaledHeight = dimensions.height * scale;
-
-  // View positions
-  const topViewY = margin;
-  const sideViewY = margin + scaledWidth + 80;
+  const sideSectionHeight = dimensions.height * scale * 2;
+  const topViewY = margin + 22;
+  const sideViewY = topViewY + scaledWidth + 78;
+  const originX = margin + Math.max(0, (mainWidth - scaledLength) / 2);
+  const specsX = margin + mainWidth + paneGap;
+  const specsY = margin + 20;
+  const holeRadiusBase = fbhSpecs.diameter * scale * 1.8;
+  const holeRadius = Math.max(3.5, Math.min(holeRadiusBase, 7.5));
 
   return (
     <svg
@@ -243,14 +254,14 @@ function FlatFBHBlockDrawing({ spec, width, height, showDimensions, uniqueId }: 
       </defs>
 
       {/* TOP VIEW */}
-      <g transform={`translate(${margin}, ${topViewY})`}>
+      <g transform={`translate(${originX}, ${topViewY})`}>
         <text x={scaledLength / 2} y="-10" textAnchor="middle" fontSize="12" fontWeight="700" fill="#1e293b">
           TOP VIEW
         </text>
 
-        {/* Block outline */}
         <rect
-          x="0" y="0"
+          x="0"
+          y="0"
           width={scaledLength}
           height={scaledWidth}
           fill="#f8fafc"
@@ -258,17 +269,28 @@ function FlatFBHBlockDrawing({ spec, width, height, showDimensions, uniqueId }: 
           strokeWidth="2"
         />
 
-        {/* Center lines */}
-        <line x1={scaledLength / 2} y1="-8" x2={scaledLength / 2} y2={scaledWidth + 8}
-          stroke="#dc2626" strokeWidth="0.5" strokeDasharray="10,3,3,3" />
-        <line x1="-8" y1={scaledWidth / 2} x2={scaledLength + 8} y2={scaledWidth / 2}
-          stroke="#dc2626" strokeWidth="0.5" strokeDasharray="10,3,3,3" />
+        <line
+          x1={scaledLength / 2}
+          y1="-8"
+          x2={scaledLength / 2}
+          y2={scaledWidth + 8}
+          stroke="#dc2626"
+          strokeWidth="0.5"
+          strokeDasharray="10,3,3,3"
+        />
+        <line
+          x1="-8"
+          y1={scaledWidth / 2}
+          x2={scaledLength + 8}
+          y2={scaledWidth / 2}
+          stroke="#dc2626"
+          strokeWidth="0.5"
+          strokeDasharray="10,3,3,3"
+        />
 
-        {/* FBH holes */}
         {fbhSpecs.depths.map((depth, index) => {
           const spacing = scaledLength / (fbhSpecs.depths.length + 1);
           const x = spacing * (index + 1);
-          const holeRadius = Math.max(fbhSpecs.diameter * scale * 3, 4);
 
           return (
             <g key={`hole-${index}`}>
@@ -280,35 +302,54 @@ function FlatFBHBlockDrawing({ spec, width, height, showDimensions, uniqueId }: 
                 stroke="#1e40af"
                 strokeWidth="1.5"
               />
-              <text x={x} y={scaledWidth / 2 + holeRadius + 12}
-                textAnchor="middle" fontSize="8" fontWeight="600" fill="#1e293b">
+              <text
+                x={x}
+                y={scaledWidth / 2 + holeRadius + 12}
+                textAnchor="middle"
+                fontSize="8"
+                fontWeight="600"
+                fill="#1e293b"
+              >
                 {depth.toFixed(1)}mm
               </text>
             </g>
           );
         })}
 
-        {/* Dimensions */}
         {showDimensions && (
           <>
-            {/* Length */}
             <g transform={`translate(0, ${scaledWidth + 25})`}>
               <line x1="0" y1="-10" x2="0" y2="5" stroke="#1e293b" strokeWidth="0.5" />
               <line x1={scaledLength} y1="-10" x2={scaledLength} y2="5" stroke="#1e293b" strokeWidth="0.5" />
-              <line x1="5" y1="0" x2={scaledLength - 5} y2="0" stroke="#1e293b" strokeWidth="0.8"
-                markerStart={`url(#arrow-rev-${uniqueId})`} markerEnd={`url(#arrow-${uniqueId})`} />
-              <rect x={scaledLength / 2 - 30} y="-8" width="60" height="16" fill="white" />
+              <line
+                x1="5"
+                y1="0"
+                x2={scaledLength - 5}
+                y2="0"
+                stroke="#1e293b"
+                strokeWidth="0.8"
+                markerStart={`url(#arrow-rev-${uniqueId})`}
+                markerEnd={`url(#arrow-${uniqueId})`}
+              />
+              <rect x={scaledLength / 2 - 35} y="-8" width="70" height="16" fill="white" />
               <text x={scaledLength / 2} y="5" textAnchor="middle" fontSize="10" fontWeight="600" fill="#1e293b">
                 {dimensions.length.toFixed(1)} {dimensions.lengthTolerance}
               </text>
             </g>
 
-            {/* Width */}
-            <g transform={`translate(${scaledLength + 20}, 0)`}>
+            <g transform={`translate(${scaledLength + 18}, 0)`}>
               <line x1="-10" y1="0" x2="5" y2="0" stroke="#1e293b" strokeWidth="0.5" />
               <line x1="-10" y1={scaledWidth} x2="5" y2={scaledWidth} stroke="#1e293b" strokeWidth="0.5" />
-              <line x1="0" y1="5" x2="0" y2={scaledWidth - 5} stroke="#1e293b" strokeWidth="0.8"
-                markerStart={`url(#arrow-rev-${uniqueId})`} markerEnd={`url(#arrow-${uniqueId})`} />
+              <line
+                x1="0"
+                y1="5"
+                x2="0"
+                y2={scaledWidth - 5}
+                stroke="#1e293b"
+                strokeWidth="0.8"
+                markerStart={`url(#arrow-rev-${uniqueId})`}
+                markerEnd={`url(#arrow-${uniqueId})`}
+              />
               <rect x="-25" y={scaledWidth / 2 - 8} width="50" height="16" fill="white" />
               <text x="0" y={scaledWidth / 2 + 4} textAnchor="middle" fontSize="10" fontWeight="600" fill="#1e293b">
                 {dimensions.width.toFixed(1)}
@@ -319,54 +360,51 @@ function FlatFBHBlockDrawing({ spec, width, height, showDimensions, uniqueId }: 
       </g>
 
       {/* SIDE VIEW (SECTION) */}
-      <g transform={`translate(${margin}, ${sideViewY})`}>
+      <g transform={`translate(${originX}, ${sideViewY})`}>
         <text x={scaledLength / 2} y="-10" textAnchor="middle" fontSize="12" fontWeight="700" fill="#1e293b">
           SIDE VIEW - Section with FBH
         </text>
 
-        {/* Block with hatching */}
         <rect
-          x="0" y="0"
+          x="0"
+          y="0"
           width={scaledLength}
-          height={scaledHeight * 2}
+          height={sideSectionHeight}
           fill={`url(#hatch-${uniqueId})`}
           stroke="#1e293b"
           strokeWidth="2"
         />
 
-        {/* FBH holes in section */}
         {fbhSpecs.depths.map((depth, index) => {
           const spacing = scaledLength / (fbhSpecs.depths.length + 1);
           const x = spacing * (index + 1);
-          const depthScaled = (depth / dimensions.height) * scaledHeight * 2;
+          const depthScaled = (depth / Math.max(dimensions.height, 1)) * sideSectionHeight;
+          const yDepth = Math.min(depthScaled, sideSectionHeight - 6);
 
           return (
             <g key={`section-hole-${index}`}>
-              <line
-                x1={x} y1="0"
-                x2={x} y2={Math.min(depthScaled, scaledHeight * 2 - 5)}
-                stroke="#3b82f6"
-                strokeWidth="2"
-              />
-              <line
-                x1={x - 4} y1={Math.min(depthScaled, scaledHeight * 2 - 5)}
-                x2={x + 4} y2={Math.min(depthScaled, scaledHeight * 2 - 5)}
-                stroke="#3b82f6"
-                strokeWidth="2.5"
-              />
+              <line x1={x} y1="0" x2={x} y2={yDepth} stroke="#3b82f6" strokeWidth="2" />
+              <line x1={x - 4} y1={yDepth} x2={x + 4} y2={yDepth} stroke="#3b82f6" strokeWidth="2.5" />
             </g>
           );
         })}
 
-        {/* Height dimension */}
         {showDimensions && (
           <g transform={`translate(${scaledLength + 20}, 0)`}>
             <line x1="-10" y1="0" x2="5" y2="0" stroke="#1e293b" strokeWidth="0.5" />
-            <line x1="-10" y1={scaledHeight * 2} x2="5" y2={scaledHeight * 2} stroke="#1e293b" strokeWidth="0.5" />
-            <line x1="0" y1="5" x2="0" y2={scaledHeight * 2 - 5} stroke="#1e293b" strokeWidth="0.8"
-              markerStart={`url(#arrow-rev-${uniqueId})`} markerEnd={`url(#arrow-${uniqueId})`} />
-            <rect x="-25" y={scaledHeight - 8} width="50" height="16" fill="white" />
-            <text x="0" y={scaledHeight + 4} textAnchor="middle" fontSize="10" fontWeight="600" fill="#1e293b">
+            <line x1="-10" y1={sideSectionHeight} x2="5" y2={sideSectionHeight} stroke="#1e293b" strokeWidth="0.5" />
+            <line
+              x1="0"
+              y1="5"
+              x2="0"
+              y2={sideSectionHeight - 5}
+              stroke="#1e293b"
+              strokeWidth="0.8"
+              markerStart={`url(#arrow-rev-${uniqueId})`}
+              markerEnd={`url(#arrow-${uniqueId})`}
+            />
+            <rect x="-25" y={sideSectionHeight / 2 - 8} width="50" height="16" fill="white" />
+            <text x="0" y={sideSectionHeight / 2 + 4} textAnchor="middle" fontSize="10" fontWeight="600" fill="#1e293b">
               {dimensions.height.toFixed(1)}
             </text>
           </g>
@@ -374,10 +412,10 @@ function FlatFBHBlockDrawing({ spec, width, height, showDimensions, uniqueId }: 
       </g>
 
       {/* FBH Info Box */}
-      <g transform={`translate(${width - 220}, ${margin})`}>
-        <rect x="0" y="0" width="200" height="100" fill="white" stroke="#1e293b" strokeWidth="1.5" rx="4" />
-        <rect x="0" y="0" width="200" height="25" fill="#3b82f6" rx="4 4 0 0" />
-        <text x="100" y="17" textAnchor="middle" fontSize="11" fontWeight="700" fill="white">
+      <g transform={`translate(${specsX}, ${specsY})`}>
+        <rect x="0" y="0" width={rightPaneWidth} height="132" fill="white" stroke="#1e293b" strokeWidth="1.5" rx="4" />
+        <rect x="0" y="0" width={rightPaneWidth} height="25" fill="#3b82f6" rx="4 4 0 0" />
+        <text x={rightPaneWidth / 2} y="17" textAnchor="middle" fontSize="11" fontWeight="700" fill="white">
           FBH SPECIFICATION
         </text>
 
@@ -391,11 +429,17 @@ function FlatFBHBlockDrawing({ spec, width, height, showDimensions, uniqueId }: 
 
         <text x="10" y="72" fontSize="9" fill="#64748b">Depths:</text>
         <text x="80" y="72" fontSize="9" fontWeight="600" fill="#1e293b">
-          {fbhSpecs.depths.map(d => d.toFixed(1)).join(', ')}mm
+          {fbhSpecs.depths.map((d) => d.toFixed(1)).join(', ')}mm
         </text>
 
         <text x="10" y="87" fontSize="9" fill="#64748b">Drilling:</text>
-        <text x="80" y="87" fontSize="9" fontWeight="600" fill="#1e293b">Perpendicular (0°)</text>
+        <text x="80" y="87" fontSize="9" fontWeight="600" fill="#1e293b">Perpendicular (0 deg)</text>
+
+        <line x1="10" y1="96" x2={rightPaneWidth - 10} y2="96" stroke="#e2e8f0" strokeWidth="1" />
+        <text x="10" y="111" fontSize="8" fill="#64748b">Units: mm</text>
+        <text x="10" y="123" fontSize="8" fill="#64748b">
+          Tol: L/W +/-0.5, H +/-0.25
+        </text>
       </g>
     </svg>
   );
@@ -406,14 +450,13 @@ function FlatFBHBlockDrawing({ spec, width, height, showDimensions, uniqueId }: 
 // ============================================================================
 
 function CylinderNotchedBlockDrawing({ spec, width, height, showDimensions, uniqueId }: BlockDrawingProps) {
-  const margin = 60;
+  const margin = 34;
+  const paneGap = 24;
+  const rightPaneWidth = Math.max(220, Math.min(260, width * 0.28));
+  const columnGap = 24;
   const { dimensions, notches } = spec;
 
   // Use OD/ID from spec when available.
-  // Fallback: height represents wall thickness for cylinder_notched blocks,
-  // so derive OD/ID from it using realistic proportions rather than arbitrary
-  // multipliers. If only one of OD or ID is known, compute the other from
-  // OD = ID + 2*wall (wall = dimensions.height).
   let od: number;
   let id: number;
   if (dimensions.outerDiameter) {
@@ -423,20 +466,34 @@ function CylinderNotchedBlockDrawing({ spec, width, height, showDimensions, uniq
     id = dimensions.innerDiameter;
     od = id + 2 * dimensions.height;
   } else {
-    // Neither available -- estimate a plausible tube cross-section.
-    // Use 5x wall thickness as OD (typical thin-wall ratio) with a
-    // floor of 40mm so the drawing remains legible for very thin walls.
     od = Math.max(dimensions.height * 5, 40);
     id = od - 2 * dimensions.height;
   }
-  const wall = (od - id) / 2;
+  const wall = Math.max((od - id) / 2, 0.1);
 
-  // Scale
-  const scale = Math.min((width - margin * 2) / (od * 2), (height - margin * 2 - 150) / (dimensions.length * 1.5), 2);
+  const drawingWidth = Math.max(420, width - margin * 2 - rightPaneWidth - paneGap);
+  const leftWidth = Math.max(220, Math.min(drawingWidth * 0.5, drawingWidth - 220));
+  const rightWidth = Math.max(200, drawingWidth - leftWidth - columnGap);
+  const drawingHeight = Math.max(300, height - margin * 2 - 40);
+
+  const scaleByEndX = (leftWidth - 70) / Math.max(od, 1);
+  const scaleByEndY = (drawingHeight - 120) / Math.max(od, 1);
+  const scaleBySideX = (rightWidth - 45) / Math.max(dimensions.length, 1);
+  const scaleBySideY = (drawingHeight - 140) / Math.max(od, 1);
+  const scale = Math.max(0.45, Math.min(scaleByEndX, scaleByEndY, scaleBySideX, scaleBySideY, 2));
 
   const scaledOD = od * scale;
   const scaledID = id * scale;
   const scaledLength = dimensions.length * scale;
+
+  const endCx = margin + leftWidth / 2;
+  const endCy = margin + 56 + scaledOD / 2;
+
+  const sideX = margin + leftWidth + columnGap + Math.max(0, (rightWidth - scaledLength) / 2);
+  const sideY = margin + 56;
+
+  const specsX = width - margin - rightPaneWidth;
+  const specsY = margin + 18;
 
   return (
     <svg
@@ -457,19 +514,15 @@ function CylinderNotchedBlockDrawing({ spec, width, height, showDimensions, uniq
         </pattern>
       </defs>
 
-      {/* END VIEW - Circular cross-section */}
-      <g transform={`translate(${margin + scaledOD / 2 + 20}, ${margin + scaledOD / 2 + 20})`}>
-        <text x="0" y={-scaledOD / 2 - 15} textAnchor="middle" fontSize="12" fontWeight="700" fill="#1e293b">
+      {/* END VIEW */}
+      <g transform={`translate(${endCx}, ${endCy})`}>
+        <text x="0" y={-scaledOD / 2 - 14} textAnchor="middle" fontSize="12" fontWeight="700" fill="#1e293b">
           END VIEW - Cross Section
         </text>
 
-        {/* Outer circle */}
         <circle cx="0" cy="0" r={scaledOD / 2} fill="#f8fafc" stroke="#1e293b" strokeWidth="2" />
-
-        {/* Inner circle (bore) */}
         <circle cx="0" cy="0" r={scaledID / 2} fill="white" stroke="#1e293b" strokeWidth="2" />
 
-        {/* Wall hatching */}
         <path
           d={`M 0 ${-scaledOD / 2} A ${scaledOD / 2} ${scaledOD / 2} 0 1 1 0 ${scaledOD / 2} A ${scaledOD / 2} ${scaledOD / 2} 0 1 1 0 ${-scaledOD / 2}
               M 0 ${-scaledID / 2} A ${scaledID / 2} ${scaledID / 2} 0 1 0 0 ${scaledID / 2} A ${scaledID / 2} ${scaledID / 2} 0 1 0 0 ${-scaledID / 2}`}
@@ -477,55 +530,76 @@ function CylinderNotchedBlockDrawing({ spec, width, height, showDimensions, uniq
           fillRule="evenodd"
         />
 
-        {/* Center lines */}
-        <line x1={-scaledOD / 2 - 10} y1="0" x2={scaledOD / 2 + 10} y2="0"
-          stroke="#dc2626" strokeWidth="0.5" strokeDasharray="10,3,3,3" />
-        <line x1="0" y1={-scaledOD / 2 - 10} x2="0" y2={scaledOD / 2 + 10}
-          stroke="#dc2626" strokeWidth="0.5" strokeDasharray="10,3,3,3" />
+        <line
+          x1={-scaledOD / 2 - 10}
+          y1="0"
+          x2={scaledOD / 2 + 10}
+          y2="0"
+          stroke="#dc2626"
+          strokeWidth="0.5"
+          strokeDasharray="10,3,3,3"
+        />
+        <line
+          x1="0"
+          y1={-scaledOD / 2 - 10}
+          x2="0"
+          y2={scaledOD / 2 + 10}
+          stroke="#dc2626"
+          strokeWidth="0.5"
+          strokeDasharray="10,3,3,3"
+        />
 
-        {/* Notch indicators */}
         {notches && notches.length > 0 && (
           <>
-            {/* OD Axial notch */}
             <rect x={scaledOD / 2 - 8} y="-3" width="10" height="6" fill="#ef4444" />
             <text x={scaledOD / 2 + 15} y="4" fontSize="7" fill="#ef4444">OD-A</text>
 
-            {/* OD Circumferential notch */}
             <rect x="-3" y={-scaledOD / 2 - 2} width="6" height="10" fill="#f59e0b" />
             <text x="8" y={-scaledOD / 2 + 5} fontSize="7" fill="#f59e0b">OD-C</text>
 
-            {/* ID Axial notch */}
             <rect x={-scaledID / 2 - 2} y="-3" width="10" height="6" fill="#22c55e" />
             <text x={-scaledID / 2 - 25} y="4" fontSize="7" fill="#22c55e">ID-A</text>
 
-            {/* ID Circumferential notch */}
             <rect x="-3" y={scaledID / 2 - 8} width="6" height="10" fill="#3b82f6" />
             <text x="8" y={scaledID / 2 - 2} fontSize="7" fill="#3b82f6">ID-C</text>
           </>
         )}
 
-        {/* Dimensions */}
         {showDimensions && (
           <>
-            {/* OD */}
             <g transform={`translate(0, ${scaledOD / 2 + 25})`}>
               <line x1={-scaledOD / 2} y1="-10" x2={-scaledOD / 2} y2="5" stroke="#1e293b" strokeWidth="0.5" />
               <line x1={scaledOD / 2} y1="-10" x2={scaledOD / 2} y2="5" stroke="#1e293b" strokeWidth="0.5" />
-              <line x1={-scaledOD / 2 + 5} y1="0" x2={scaledOD / 2 - 5} y2="0" stroke="#1e293b" strokeWidth="0.8"
-                markerStart={`url(#arrow-rev-${uniqueId})`} markerEnd={`url(#arrow-${uniqueId})`} />
-              <rect x="-35" y="-8" width="70" height="16" fill="white" />
+              <line
+                x1={-scaledOD / 2 + 5}
+                y1="0"
+                x2={scaledOD / 2 - 5}
+                y2="0"
+                stroke="#1e293b"
+                strokeWidth="0.8"
+                markerStart={`url(#arrow-rev-${uniqueId})`}
+                markerEnd={`url(#arrow-${uniqueId})`}
+              />
+              <rect x="-36" y="-8" width="72" height="16" fill="white" />
               <text x="0" y="5" textAnchor="middle" fontSize="10" fontWeight="600" fill="#1e293b">
                 OD: {od.toFixed(1)}mm
               </text>
             </g>
 
-            {/* Wall thickness */}
             <g transform={`translate(${scaledOD / 2 + 30}, 0)`}>
               <line x1="-10" y1={-scaledOD / 2} x2="5" y2={-scaledOD / 2} stroke="#1e293b" strokeWidth="0.5" />
               <line x1="-10" y1={-scaledID / 2} x2="5" y2={-scaledID / 2} stroke="#1e293b" strokeWidth="0.5" />
-              <line x1="0" y1={-scaledOD / 2 + 5} x2="0" y2={-scaledID / 2 - 5} stroke="#1e293b" strokeWidth="0.8"
-                markerStart={`url(#arrow-rev-${uniqueId})`} markerEnd={`url(#arrow-${uniqueId})`} />
-              <rect x="-20" y={(-scaledOD / 2 - scaledID / 2) / 2 - 8} width="40" height="16" fill="white" />
+              <line
+                x1="0"
+                y1={-scaledOD / 2 + 5}
+                x2="0"
+                y2={-scaledID / 2 - 5}
+                stroke="#1e293b"
+                strokeWidth="0.8"
+                markerStart={`url(#arrow-rev-${uniqueId})`}
+                markerEnd={`url(#arrow-${uniqueId})`}
+              />
+              <rect x="-22" y={(-scaledOD / 2 - scaledID / 2) / 2 - 8} width="44" height="16" fill="white" />
               <text x="0" y={(-scaledOD / 2 - scaledID / 2) / 2 + 4} textAnchor="middle" fontSize="9" fontWeight="600" fill="#1e293b">
                 t={wall.toFixed(1)}
               </text>
@@ -534,15 +608,15 @@ function CylinderNotchedBlockDrawing({ spec, width, height, showDimensions, uniq
         )}
       </g>
 
-      {/* SIDE VIEW - Cylinder length */}
-      <g transform={`translate(${margin + scaledOD + 100}, ${margin + 30})`}>
+      {/* SIDE VIEW */}
+      <g transform={`translate(${sideX}, ${sideY})`}>
         <text x={scaledLength / 2} y="-15" textAnchor="middle" fontSize="12" fontWeight="700" fill="#1e293b">
           SIDE VIEW - Notch Locations
         </text>
 
-        {/* Outer rectangle (cylinder profile) */}
         <rect
-          x="0" y="0"
+          x="0"
+          y="0"
           width={scaledLength}
           height={scaledOD}
           fill="#f8fafc"
@@ -550,14 +624,13 @@ function CylinderNotchedBlockDrawing({ spec, width, height, showDimensions, uniq
           strokeWidth="2"
         />
 
-        {/* Notch representations */}
         {notches && notches.map((notch, i) => {
-          const notchScaled = notch.length * scale * 0.3;
+          const notchScaled = Math.max(5, notch.length * scale * 0.3);
           const positions = [
-            { x: scaledLength * 0.2, y: 0, label: 'OD-A' },
-            { x: scaledLength * 0.4, y: 0, label: 'OD-C' },
-            { x: scaledLength * 0.6, y: scaledOD - 5, label: 'ID-A' },
-            { x: scaledLength * 0.8, y: scaledOD - 5, label: 'ID-C' },
+            { x: scaledLength * 0.18, y: 0, label: 'OD-A' },
+            { x: scaledLength * 0.38, y: 0, label: 'OD-C' },
+            { x: scaledLength * 0.62, y: scaledOD - 8, label: 'ID-A' },
+            { x: scaledLength * 0.82, y: scaledOD - 8, label: 'ID-C' },
           ];
           const pos = positions[i] || positions[0];
           const colors = ['#ef4444', '#f59e0b', '#22c55e', '#3b82f6'];
@@ -584,14 +657,21 @@ function CylinderNotchedBlockDrawing({ spec, width, height, showDimensions, uniq
           );
         })}
 
-        {/* Length dimension */}
         {showDimensions && (
           <g transform={`translate(0, ${scaledOD + 25})`}>
             <line x1="0" y1="-10" x2="0" y2="5" stroke="#1e293b" strokeWidth="0.5" />
             <line x1={scaledLength} y1="-10" x2={scaledLength} y2="5" stroke="#1e293b" strokeWidth="0.5" />
-            <line x1="5" y1="0" x2={scaledLength - 5} y2="0" stroke="#1e293b" strokeWidth="0.8"
-              markerStart={`url(#arrow-rev-${uniqueId})`} markerEnd={`url(#arrow-${uniqueId})`} />
-            <rect x={scaledLength / 2 - 30} y="-8" width="60" height="16" fill="white" />
+            <line
+              x1="5"
+              y1="0"
+              x2={scaledLength - 5}
+              y2="0"
+              stroke="#1e293b"
+              strokeWidth="0.8"
+              markerStart={`url(#arrow-rev-${uniqueId})`}
+              markerEnd={`url(#arrow-${uniqueId})`}
+            />
+            <rect x={scaledLength / 2 - 32} y="-8" width="64" height="16" fill="white" />
             <text x={scaledLength / 2} y="5" textAnchor="middle" fontSize="10" fontWeight="600" fill="#1e293b">
               L: {dimensions.length.toFixed(1)}mm
             </text>
@@ -599,40 +679,46 @@ function CylinderNotchedBlockDrawing({ spec, width, height, showDimensions, uniq
         )}
       </g>
 
-      {/* Notch Specs Box */}
-      {notches && notches.length > 0 && (
-        <g transform={`translate(${width - 240}, ${height - 180})`}>
-          <rect x="0" y="0" width="220" height="160" fill="white" stroke="#1e293b" strokeWidth="1.5" rx="4" />
-          <rect x="0" y="0" width="220" height="25" fill="#ef4444" rx="4 4 0 0" />
-          <text x="110" y="17" textAnchor="middle" fontSize="11" fontWeight="700" fill="white">
-            NOTCH SPECIFICATIONS
-          </text>
+      {/* Specs box */}
+      <g transform={`translate(${specsX}, ${specsY})`}>
+        <rect x="0" y="0" width={rightPaneWidth} height="178" fill="white" stroke="#1e293b" strokeWidth="1.5" rx="4" />
+        <rect x="0" y="0" width={rightPaneWidth} height="25" fill="#ef4444" rx="4 4 0 0" />
+        <text x={rightPaneWidth / 2} y="17" textAnchor="middle" fontSize="11" fontWeight="700" fill="white">
+          NOTCH SPECIFICATIONS
+        </text>
 
-          <text x="10" y="42" fontSize="9" fill="#64748b">Type:</text>
-          <text x="80" y="42" fontSize="9" fontWeight="600" fill="#1e293b">{notches[0].type.toUpperCase()}</text>
+        {notches && notches.length > 0 ? (
+          <>
+            <text x="10" y="42" fontSize="9" fill="#64748b">Type:</text>
+            <text x="80" y="42" fontSize="9" fontWeight="600" fill="#1e293b">{notches[0].type.toUpperCase()}</text>
 
-          <text x="10" y="57" fontSize="9" fill="#64748b">Depth:</text>
-          <text x="80" y="57" fontSize="9" fontWeight="600" fill="#1e293b">
-            {notches[0].depth.toFixed(2)}mm ({notches[0].depthPercent.toFixed(1)}% wall)
-          </text>
+            <text x="10" y="57" fontSize="9" fill="#64748b">Depth:</text>
+            <text x="80" y="57" fontSize="9" fontWeight="600" fill="#1e293b">
+              {notches[0].depth.toFixed(2)}mm ({notches[0].depthPercent.toFixed(1)}% wall)
+            </text>
 
-          <text x="10" y="72" fontSize="9" fill="#64748b">Width:</text>
-          <text x="80" y="72" fontSize="9" fontWeight="600" fill="#1e293b">{notches[0].width}mm</text>
+            <text x="10" y="72" fontSize="9" fill="#64748b">Width:</text>
+            <text x="80" y="72" fontSize="9" fontWeight="600" fill="#1e293b">{notches[0].width}mm</text>
 
-          <text x="10" y="87" fontSize="9" fill="#64748b">Length:</text>
-          <text x="80" y="87" fontSize="9" fontWeight="600" fill="#1e293b">{notches[0].length}mm</text>
+            <text x="10" y="87" fontSize="9" fill="#64748b">Length:</text>
+            <text x="80" y="87" fontSize="9" fontWeight="600" fill="#1e293b">{notches[0].length}mm</text>
 
-          <line x1="10" y1="95" x2="210" y2="95" stroke="#e2e8f0" strokeWidth="1" />
-
-          <text x="10" y="110" fontSize="8" fontWeight="600" fill="#1e293b">Locations (4 notches):</text>
-          <text x="15" y="125" fontSize="8" fill="#ef4444">• OD Axial</text>
-          <text x="80" y="125" fontSize="8" fill="#f59e0b">• OD Circumferential</text>
-          <text x="15" y="140" fontSize="8" fill="#22c55e">• ID Axial</text>
-          <text x="80" y="140" fontSize="8" fill="#3b82f6">• ID Circumferential</text>
-
-          <text x="10" y="155" fontSize="7" fill="#64748b">Tolerance: {notches[0].depthTolerance}</text>
-        </g>
-      )}
+            <line x1="10" y1="96" x2={rightPaneWidth - 10} y2="96" stroke="#e2e8f0" strokeWidth="1" />
+            <text x="10" y="111" fontSize="8" fontWeight="600" fill="#1e293b">Locations (4):</text>
+            <text x="15" y="126" fontSize="8" fill="#ef4444">- OD Axial</text>
+            <text x="95" y="126" fontSize="8" fill="#f59e0b">- OD Circumferential</text>
+            <text x="15" y="141" fontSize="8" fill="#22c55e">- ID Axial</text>
+            <text x="95" y="141" fontSize="8" fill="#3b82f6">- ID Circumferential</text>
+            <text x="10" y="157" fontSize="8" fill="#64748b">Units: mm</text>
+            <text x="10" y="169" fontSize="8" fill="#64748b">Tol depth: {notches[0].depthTolerance}</text>
+          </>
+        ) : (
+          <>
+            <text x="10" y="48" fontSize="9" fill="#dc2626">No notch data available.</text>
+            <text x="10" y="64" fontSize="8" fill="#64748b">Provide wall thickness / OD for full notch spec.</text>
+          </>
+        )}
+      </g>
     </svg>
   );
 }
@@ -642,16 +728,41 @@ function CylinderNotchedBlockDrawing({ spec, width, height, showDimensions, uniq
 // ============================================================================
 
 function CurvedFBHBlockDrawing({ spec, width, height, showDimensions, uniqueId }: BlockDrawingProps) {
-  // Similar to flat but with curved profile
-  const margin = 60;
+  const margin = 36;
+  const paneGap = 24;
+  const rightPaneWidth = Math.max(195, Math.min(230, width * 0.25));
+  const mainWidth = Math.max(320, width - margin * 2 - rightPaneWidth - paneGap);
   const { dimensions, fbhSpecs } = spec;
 
-  const od = dimensions.outerDiameter || dimensions.height * 3;
-  const scale = Math.min((width - margin * 2) / (od * 1.5), (height - margin * 2 - 100) / (dimensions.length), 2);
+  const od = dimensions.outerDiameter || Math.max(dimensions.height * 3, 40);
+  const arcAngle = Math.max(30, Math.min(180, dimensions.arcAngle || 90));
 
-  const scaledOD = od * scale;
-  const scaledLength = dimensions.length * scale;
-  const arcAngle = dimensions.arcAngle || 90;
+  const scaleX = (mainWidth - 90) / Math.max(od, 1);
+  const scaleY = (height - margin * 2 - 180) / Math.max(od, 1);
+  const scale = Math.max(0.45, Math.min(scaleX, scaleY, 2));
+
+  const outerR = (od * scale) / 2;
+  const innerR = Math.max(outerR - dimensions.height * scale, outerR * 0.45);
+  const centerX = margin + mainWidth / 2;
+  const centerY = margin + 72 + outerR;
+
+  const startDeg = -arcAngle / 2;
+  const endDeg = arcAngle / 2;
+  const largeArcFlag = arcAngle > 180 ? 1 : 0;
+
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const polar = (r: number, deg: number) => ({
+    x: r * Math.cos(toRad(deg)),
+    y: r * Math.sin(toRad(deg)),
+  });
+
+  const outerStart = polar(outerR, startDeg);
+  const outerEnd = polar(outerR, endDeg);
+  const innerStart = polar(innerR, startDeg);
+  const innerEnd = polar(innerR, endDeg);
+
+  const specsX = margin + mainWidth + paneGap;
+  const specsY = margin + 20;
 
   return (
     <svg
@@ -672,65 +783,73 @@ function CurvedFBHBlockDrawing({ spec, width, height, showDimensions, uniqueId }
         </pattern>
       </defs>
 
-      {/* Arc View */}
-      <g transform={`translate(${width / 2}, ${margin + scaledOD / 2 + 50})`}>
-        <text x="0" y={-scaledOD / 2 - 30} textAnchor="middle" fontSize="12" fontWeight="700" fill="#1e293b">
-          CURVED REFERENCE BLOCK - {arcAngle}° Arc Segment
+      <g transform={`translate(${centerX}, ${centerY})`}>
+        <text x="0" y={-outerR - 24} textAnchor="middle" fontSize="12" fontWeight="700" fill="#1e293b">
+          CURVED REFERENCE BLOCK - PLAN VIEW
         </text>
 
-        {/* Arc segment */}
         <path
-          d={`M ${-scaledOD / 2} 0
-              A ${scaledOD / 2} ${scaledOD / 2} 0 0 1 0 ${-scaledOD / 2}
-              L 0 ${-scaledOD / 2 + dimensions.height * scale}
-              A ${scaledOD / 2 - dimensions.height * scale} ${scaledOD / 2 - dimensions.height * scale} 0 0 0 ${-scaledOD / 2 + dimensions.height * scale} 0
+          d={`M ${outerStart.x} ${outerStart.y}
+              A ${outerR} ${outerR} 0 ${largeArcFlag} 1 ${outerEnd.x} ${outerEnd.y}
+              L ${innerEnd.x} ${innerEnd.y}
+              A ${innerR} ${innerR} 0 ${largeArcFlag} 0 ${innerStart.x} ${innerStart.y}
               Z`}
           fill={`url(#hatch-${uniqueId})`}
           stroke="#1e293b"
           strokeWidth="2"
         />
 
-        {/* FBH holes along the arc */}
+        <line
+          x1={-outerR - 10}
+          y1="0"
+          x2={outerR + 10}
+          y2="0"
+          stroke="#dc2626"
+          strokeWidth="0.5"
+          strokeDasharray="10,3,3,3"
+        />
+        <line
+          x1="0"
+          y1={-outerR - 10}
+          x2="0"
+          y2={outerR + 10}
+          stroke="#dc2626"
+          strokeWidth="0.5"
+          strokeDasharray="10,3,3,3"
+        />
+
         {fbhSpecs.depths.map((depth, index) => {
-          const angle = -45 + (90 / (fbhSpecs.depths.length + 1)) * (index + 1);
-          const angleRad = (angle * Math.PI) / 180;
-          const x = (scaledOD / 2 - 10) * Math.cos(angleRad);
-          const y = (scaledOD / 2 - 10) * Math.sin(angleRad);
+          const angle = startDeg + (arcAngle / (fbhSpecs.depths.length + 1)) * (index + 1);
+          const p = polar((outerR + innerR) / 2, angle);
+          const label = polar(outerR + 18, angle);
 
           return (
             <g key={`arc-hole-${index}`}>
-              <circle cx={x} cy={y} r="4" fill="#3b82f6" stroke="#1e40af" strokeWidth="1.5" />
-              <text
-                x={x + Math.cos(angleRad) * 20}
-                y={y + Math.sin(angleRad) * 20}
-                textAnchor="middle"
-                fontSize="8"
-                fill="#1e293b"
-              >
+              <circle cx={p.x} cy={p.y} r="4" fill="#3b82f6" stroke="#1e40af" strokeWidth="1.5" />
+              <text x={label.x} y={label.y} textAnchor="middle" fontSize="8" fill="#1e293b">
                 {depth.toFixed(1)}
               </text>
             </g>
           );
         })}
 
-        {/* Dimensions */}
         {showDimensions && (
           <>
-            <text x="0" y={scaledOD / 2 + 30} textAnchor="middle" fontSize="10" fontWeight="600" fill="#1e293b">
-              OD: {od.toFixed(1)}mm | Arc: {arcAngle}°
+            <text x="0" y={outerR + 28} textAnchor="middle" fontSize="10" fontWeight="600" fill="#1e293b">
+              OD: {od.toFixed(1)}mm | Arc: {arcAngle.toFixed(0)} deg
             </text>
-            <text x="0" y={scaledOD / 2 + 45} textAnchor="middle" fontSize="10" fontWeight="600" fill="#1e293b">
+            <text x="0" y={outerR + 43} textAnchor="middle" fontSize="10" fontWeight="600" fill="#1e293b">
               Thickness: {dimensions.height.toFixed(1)}mm | Length: {dimensions.length.toFixed(1)}mm
             </text>
           </>
         )}
       </g>
 
-      {/* FBH Specs Box */}
-      <g transform={`translate(${width - 220}, ${height - 150})`}>
-        <rect x="0" y="0" width="200" height="130" fill="white" stroke="#1e293b" strokeWidth="1.5" rx="4" />
-        <rect x="0" y="0" width="200" height="25" fill="#3b82f6" rx="4 4 0 0" />
-        <text x="100" y="17" textAnchor="middle" fontSize="11" fontWeight="700" fill="white">
+      {/* Specs box */}
+      <g transform={`translate(${specsX}, ${specsY})`}>
+        <rect x="0" y="0" width={rightPaneWidth} height="145" fill="white" stroke="#1e293b" strokeWidth="1.5" rx="4" />
+        <rect x="0" y="0" width={rightPaneWidth} height="25" fill="#3b82f6" rx="4 4 0 0" />
+        <text x={rightPaneWidth / 2} y="17" textAnchor="middle" fontSize="11" fontWeight="700" fill="white">
           CURVED BLOCK SPECS
         </text>
 
@@ -744,20 +863,17 @@ function CurvedFBHBlockDrawing({ spec, width, height, showDimensions, uniqueId }
 
         <text x="10" y="72" fontSize="9" fill="#64748b">FBH Depths:</text>
         <text x="90" y="72" fontSize="9" fontWeight="600" fill="#1e293b">
-          {fbhSpecs.depths.map(d => d.toFixed(1)).join(', ')}
+          {fbhSpecs.depths.map((d) => d.toFixed(1)).join(', ')}
         </text>
 
         <text x="10" y="87" fontSize="9" fill="#64748b">Arc Angle:</text>
-        <text x="90" y="87" fontSize="9" fontWeight="600" fill="#1e293b">{arcAngle}°</text>
+        <text x="90" y="87" fontSize="9" fontWeight="600" fill="#1e293b">{arcAngle.toFixed(0)} deg</text>
 
-        <line x1="10" y1="95" x2="190" y2="95" stroke="#e2e8f0" strokeWidth="1" />
+        <line x1="10" y1="96" x2={rightPaneWidth - 10} y2="96" stroke="#e2e8f0" strokeWidth="1" />
 
-        <text x="10" y="110" fontSize="8" fill="#64748b">
-          Block curvature matches part OD
-        </text>
-        <text x="10" y="122" fontSize="8" fill="#64748b">
-          within ±10% tolerance
-        </text>
+        <text x="10" y="111" fontSize="8" fill="#64748b">Units: mm</text>
+        <text x="10" y="123" fontSize="8" fill="#64748b">Tol: L/W +/-0.5, H +/-0.25</text>
+        <text x="10" y="135" fontSize="8" fill="#64748b">Curvature within +/-10% OD</text>
       </g>
     </svg>
   );
@@ -886,3 +1002,4 @@ function SpecificationsTable({ spec }: { spec: CalibrationBlockSpecification }) 
 }
 
 export default DynamicCalibrationBlockDrawing;
+

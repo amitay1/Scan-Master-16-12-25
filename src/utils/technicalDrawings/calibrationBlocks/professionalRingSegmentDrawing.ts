@@ -466,12 +466,9 @@ export class ProfessionalRingSegmentDrawing {
 
     this.resetTopViewLabelBounds();
 
-    console.log('[RingSegment] drawTopView - cx:', cx, 'cy:', cy, 'scale:', scale, 'outerR:', outerR, 'innerR:', innerR);
-
     try {
       // 1. Draw arc segment outline (thick visible lines)
       this.drawArcSegmentOutline(cx, cy, innerR, outerR, startAngle, endAngle);
-      console.log('[RingSegment] drawArcSegmentOutline done');
     } catch (err) {
       console.error('[RingSegment] Error in drawArcSegmentOutline:', err);
     }
@@ -480,7 +477,6 @@ export class ProfessionalRingSegmentDrawing {
       // 2. Draw center lines
       if (this.config.showCenterlines) {
         this.drawTopViewCenterlines(cx, cy, innerR, outerR, startAngle, endAngle);
-        console.log('[RingSegment] drawTopViewCenterlines done');
       }
     } catch (err) {
       console.error('[RingSegment] Error in drawTopViewCenterlines:', err);
@@ -490,7 +486,6 @@ export class ProfessionalRingSegmentDrawing {
       // 3. Draw hidden lines (hole projections through the block)
       if (this.config.showHiddenLines) {
         this.drawHiddenHoleProjections(cx, cy, scale, startAngle);
-        console.log('[RingSegment] drawHiddenHoleProjections done');
       }
     } catch (err) {
       console.error('[RingSegment] Error in drawHiddenHoleProjections:', err);
@@ -500,7 +495,6 @@ export class ProfessionalRingSegmentDrawing {
       // 4. Draw scan path overlays (red dashed arcs)
       if (this.config.showDimensions) {
         this.drawScanPathArcs(cx, cy, innerR, outerR, startAngle, endAngle);
-        console.log('[RingSegment] drawScanPathArcs done');
       }
     } catch (err) {
       console.error('[RingSegment] Error in drawScanPathArcs:', err);
@@ -509,7 +503,6 @@ export class ProfessionalRingSegmentDrawing {
     try {
       // 5. Draw section cut lines (A-A, B-B, C-E)
       this.drawAllSectionCutLines(cx, cy, innerR, outerR, startAngle);
-      console.log('[RingSegment] drawAllSectionCutLines done');
     } catch (err) {
       console.error('[RingSegment] Error in drawAllSectionCutLines:', err);
     }
@@ -517,7 +510,6 @@ export class ProfessionalRingSegmentDrawing {
     try {
       // 6. Draw holes on arc (as circles with labels)
       this.drawHolesOnTopView(cx, cy, scale, startAngle);
-      console.log('[RingSegment] drawHolesOnTopView done');
     } catch (err) {
       console.error('[RingSegment] Error in drawHolesOnTopView:', err);
     }
@@ -526,7 +518,6 @@ export class ProfessionalRingSegmentDrawing {
       // 7. Draw comprehensive dimensions (TUV-17 style)
       if (this.config.showDimensions) {
         this.drawTopViewDimensionsTUV17(cx, cy, scale, outerR, innerR, meanR, startAngle, endAngle);
-        console.log('[RingSegment] drawTopViewDimensionsTUV17 done');
       }
     } catch (err) {
       console.error('[RingSegment] Error in drawTopViewDimensionsTUV17:', err);

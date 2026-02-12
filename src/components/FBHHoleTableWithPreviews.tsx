@@ -20,6 +20,11 @@ interface FBHHoleTableWithPreviewsProps {
   /** Preview size - LARGE by default (350x450) */
   previewWidth?: number;
   previewHeight?: number;
+  /** Optional part context to drive preview geometry */
+  partGeometry?: string;
+  outerDiameterMm?: number;
+  innerDiameterMm?: number;
+  referenceThicknessMm?: number;
 }
 
 export function FBHHoleTableWithPreviews({
@@ -33,6 +38,10 @@ export function FBHHoleTableWithPreviews({
   standard = "All",
   previewWidth = 350,
   previewHeight = 450,
+  partGeometry,
+  outerDiameterMm,
+  innerDiameterMm,
+  referenceThicknessMm,
 }: FBHHoleTableWithPreviewsProps) {
   return (
     <div className="space-y-6">
@@ -58,6 +67,10 @@ export function FBHHoleTableWithPreviews({
               metalTravelH={hole.metalTravelH}
               width={previewWidth}
               height={previewHeight}
+              partGeometry={partGeometry}
+              outerDiameterMm={outerDiameterMm}
+              innerDiameterMm={innerDiameterMm}
+              referenceThicknessMm={referenceThicknessMm}
             />
           ))}
         </div>
