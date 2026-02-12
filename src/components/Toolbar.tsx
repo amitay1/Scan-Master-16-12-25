@@ -10,6 +10,7 @@ import {
   RefreshCw,
   FileDown,
   FolderOpen,
+  Minus,
   X
 } from "lucide-react";
 import { SettingsDialog } from "@/components/SettingsDialog";
@@ -153,6 +154,23 @@ export const Toolbar = ({
 
       <Separator orientation="vertical" className="h-8 md:h-10 mx-1 md:mx-2" />
 
+      {/* Minimize Window Button */}
+      <Button
+        variant="ghost"
+        size="icon"
+        title="Minimize"
+        className="h-10 w-10 md:h-11 md:w-11 bg-amber-600/20 hover:bg-amber-500 text-amber-400 hover:text-white border border-amber-500/40 hover:border-amber-500 rounded-lg transition-all duration-200"
+        onClick={() => {
+          if ((window as any).electronAPI?.minimize) {
+            (window as any).electronAPI.minimize();
+          } else if ((window as any).electron?.minimize) {
+            (window as any).electron.minimize();
+          }
+        }}
+      >
+        <Minus className="h-5 w-5" strokeWidth={3} />
+      </Button>
+
       {/* Exit / Close Application Button */}
       <Button
         variant="ghost"
@@ -160,16 +178,10 @@ export const Toolbar = ({
         title="Exit Application"
         className="h-10 w-10 md:h-11 md:w-11 bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white border border-red-500/40 hover:border-red-500 rounded-lg transition-all duration-200"
         onClick={() => {
-          // Electron environment
-          if (typeof window !== 'undefined' && (window as any).electronAPI?.quit) {
+          if ((window as any).electronAPI?.quit) {
             (window as any).electronAPI.quit();
-          } else if (typeof window !== 'undefined' && (window as any).require) {
-            try {
-              const { ipcRenderer } = (window as any).require('electron');
-              ipcRenderer.send('app-quit');
-            } catch {
-              window.close();
-            }
+          } else if ((window as any).electron?.quit) {
+            (window as any).electron.quit();
           } else {
             window.close();
           }

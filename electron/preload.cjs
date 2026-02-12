@@ -41,6 +41,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   installUpdate: (silent = true) => ipcRenderer.invoke('install-update', silent),
   getAppVersion: () => ipcRenderer.invoke('get-app-version'),
 
+  // Window controls
+  minimize: () => ipcRenderer.invoke('window-minimize'),
+  quit: () => ipcRenderer.invoke('app-quit'),
+
   // Platform information
   platform: process.platform,
 
@@ -97,6 +101,10 @@ contextBridge.exposeInMainWorld('electron', {
     activateOffline: (licenseKey, responseCode) => ipcRenderer.invoke('license:activateOffline', licenseKey, responseCode),
     getMachineInfo: () => ipcRenderer.invoke('license:getMachineInfo')
   },
+
+  // Window controls
+  minimize: () => ipcRenderer.invoke('window-minimize'),
+  quit: () => ipcRenderer.invoke('app-quit'),
 
   // File operations - for PDF export etc.
   savePDF: (data, filename) => ipcRenderer.invoke('save-pdf', { data, filename }),

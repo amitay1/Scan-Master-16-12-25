@@ -309,6 +309,15 @@ function cancelScheduledRestart() {
 
 // Setup IPC handlers
 function setupIPCHandlers() {
+  // Window control handlers
+  ipcMain.handle('window-minimize', () => {
+    if (mainWindow) mainWindow.minimize();
+  });
+
+  ipcMain.handle('app-quit', () => {
+    app.quit();
+  });
+
   // IPC handlers for manual update control
   ipcMain.handle('check-for-updates', async () => {
     if (!isDev && autoUpdater) {
