@@ -11,6 +11,7 @@ import {
   FileDown,
   FolderOpen,
   Minus,
+  Square,
   X
 } from "lucide-react";
 import { SettingsDialog } from "@/components/SettingsDialog";
@@ -169,6 +170,23 @@ export const Toolbar = ({
         }}
       >
         <Minus className="h-5 w-5" strokeWidth={3} />
+      </Button>
+
+      {/* Maximize / Restore Window Button */}
+      <Button
+        variant="ghost"
+        size="icon"
+        title="Maximize / Restore"
+        className="h-10 w-10 md:h-11 md:w-11 bg-slate-600/20 hover:bg-slate-500 text-slate-400 hover:text-white border border-slate-500/40 hover:border-slate-400 rounded-lg transition-all duration-200"
+        onClick={() => {
+          if ((window as any).electronAPI?.maximize) {
+            (window as any).electronAPI.maximize();
+          } else if ((window as any).electron?.maximize) {
+            (window as any).electron.maximize();
+          }
+        }}
+      >
+        <Square className="h-4 w-4" strokeWidth={2.5} />
       </Button>
 
       {/* Exit / Close Application Button */}

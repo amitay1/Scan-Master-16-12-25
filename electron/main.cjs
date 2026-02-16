@@ -314,6 +314,16 @@ function setupIPCHandlers() {
     if (mainWindow) mainWindow.minimize();
   });
 
+  ipcMain.handle('window-maximize', () => {
+    if (mainWindow) {
+      if (mainWindow.isMaximized()) {
+        mainWindow.restore();
+      } else {
+        mainWindow.maximize();
+      }
+    }
+  });
+
   ipcMain.handle('app-quit', () => {
     app.quit();
   });

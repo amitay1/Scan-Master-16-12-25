@@ -43,6 +43,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Window controls
   minimize: () => ipcRenderer.invoke('window-minimize'),
+  maximize: () => ipcRenderer.invoke('window-maximize'),
   quit: () => ipcRenderer.invoke('app-quit'),
 
   // Platform information
@@ -104,6 +105,7 @@ contextBridge.exposeInMainWorld('electron', {
 
   // Window controls
   minimize: () => ipcRenderer.invoke('window-minimize'),
+  maximize: () => ipcRenderer.invoke('window-maximize'),
   quit: () => ipcRenderer.invoke('app-quit'),
 
   // File operations - for PDF export etc.
