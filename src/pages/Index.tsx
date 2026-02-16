@@ -52,7 +52,6 @@ import { LicenseWarningBanner } from "@/components/LicenseWarningBanner";
 import { requiresAngleBeam } from "@/utils/beamTypeClassification";
 import { exportInspectionReportPDF } from "@/utils/export/InspectionReportPDF";
 import { FloatingDesignerButton } from "@/components/ui/FloatingDesignerButton";
-import { FloatingSplashDemoButton } from "@/components/ui/FloatingSplashDemoButton";
 import { StandardProvider } from "@/contexts/StandardContext";
 
 // Custom hooks
@@ -884,8 +883,6 @@ const Index = () => {
       {/* Floating Button for Block Designer */}
       <FloatingDesignerButton />
 
-      {/* TEMPORARY: Floating Button for Splash Demo */}
-      <FloatingSplashDemoButton />
       </div>
     </StandardProvider>
   );

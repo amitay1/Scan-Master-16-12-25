@@ -417,27 +417,18 @@ export const PartTypeVisualSelector: React.FC<PartTypeVisualSelectorProps> = ({
             
             {/* Options */}
             <div className="p-1.5 space-y-0.5">
-              {allPartTypes.map((option, index) => {
-                const show3DPreview =
-                  index < 4 ||
-                  hoveredOption === option.value ||
-                  value === option.value;
-                const animatePreview =
-                  hoveredOption === option.value || value === option.value;
-
-                return (
+              {allPartTypes.map((option) => (
                   <ShapeOption
                     key={option.value}
                     option={option}
                     isSelected={value === option.value}
                     isHovered={hoveredOption === option.value}
-                    show3DPreview={show3DPreview}
-                    animatePreview={animatePreview}
+                    show3DPreview={true}
+                    animatePreview={true}
                     onHover={() => setHoveredOption(option.value)}
                     onClick={() => handleSelect(option.value)}
                   />
-                );
-              })}
+              ))}
             </div>
           </motion.div>
         )}
