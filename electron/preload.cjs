@@ -1,14 +1,4 @@
 const { contextBridge, ipcRenderer } = require('electron');
-const path = require('path');
-
-// Read version from package.json at startup
-let appVersion = '0.0.0';
-try {
-  const pkg = require(path.join(__dirname, '..', 'package.json'));
-  appVersion = pkg.version || '0.0.0';
-} catch (e) {
-  // Fallback - will be overridden by getAppVersion() IPC call
-}
 
 // Store update status listeners
 const updateListeners = new Set();
@@ -57,10 +47,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   quit: () => ipcRenderer.invoke('app-quit'),
 
   // Platform information
-  platform: process.platform,
-
-  // App version (read from package.json)
-  version: appVersion
+  platform: process.platform
 });
 
 // Also expose as 'electron' for easier access with enhanced update capabilities
