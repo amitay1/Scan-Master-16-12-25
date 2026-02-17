@@ -187,16 +187,16 @@ export const Toolbar = ({
       {/* Inspector Profile Indicator */}
       <ProfileIndicator className="hidden sm:flex" />
 
-      {/* Update Button - changes based on update state */}
+      {/* Update Button - always visible, changes based on update state */}
       {updateState === 'ready' ? (
         <Button
           variant="ghost"
           size="sm"
-          title={`Install Update v${updateVersion}`}
-          className="h-10 px-3 md:px-4 hidden sm:flex bg-green-500/20 hover:bg-green-500/30 text-green-400 font-semibold animate-pulse"
+          title={`Install Update v${updateVersion} - Click to update now`}
+          className="h-10 px-3 md:px-4 flex items-center bg-green-500/20 hover:bg-green-500/30 text-green-400 font-semibold animate-pulse"
           onClick={installUpdate}
         >
-          <Rocket className="h-4 w-4 mr-2" />
+          <Rocket className="h-5 w-5 mr-2" />
           <span>Update v{updateVersion}</span>
         </Button>
       ) : updateState === 'downloading' ? (
@@ -204,10 +204,10 @@ export const Toolbar = ({
           variant="ghost"
           size="sm"
           title={`Downloading update... ${updatePercent}%`}
-          className="h-10 px-3 md:px-4 hidden sm:flex bg-blue-500/20 text-blue-400 font-semibold cursor-default"
+          className="h-10 px-3 md:px-4 flex items-center bg-blue-500/20 text-blue-400 font-semibold cursor-default"
           disabled
         >
-          <Download className="h-4 w-4 mr-2 animate-bounce" />
+          <Download className="h-5 w-5 mr-2 animate-bounce" />
           <span>{updatePercent}%</span>
         </Button>
       ) : updateState === 'available' ? (
@@ -215,10 +215,10 @@ export const Toolbar = ({
           variant="ghost"
           size="sm"
           title={`Update v${updateVersion} available - downloading...`}
-          className="h-10 px-3 md:px-4 hidden sm:flex bg-yellow-500/20 text-yellow-400 font-semibold"
+          className="h-10 px-3 md:px-4 flex items-center bg-yellow-500/20 text-yellow-400 font-semibold"
           disabled
         >
-          <Download className="h-4 w-4 mr-2 animate-spin" />
+          <Download className="h-5 w-5 mr-2 animate-spin" />
           <span>v{updateVersion}</span>
         </Button>
       ) : (
@@ -226,7 +226,7 @@ export const Toolbar = ({
           variant="ghost"
           size="icon"
           title="Check for Updates"
-          className={`h-10 w-10 md:h-11 md:w-11 hidden sm:flex ${updateState === 'checking' ? 'animate-spin' : ''}`}
+          className={`h-10 w-10 md:h-11 md:w-11 flex items-center justify-center ${updateState === 'checking' ? 'animate-spin' : ''}`}
           onClick={checkForUpdates}
           disabled={updateState === 'checking'}
         >

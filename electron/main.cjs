@@ -154,8 +154,8 @@ function setupPeriodicUpdateChecks() {
 function setupAutoUpdaterHandlers() {
   autoUpdater.on('checking-for-update', () => {
     console.log('🔍 Checking for updates...');
-    if (mainWindow && !UPDATE_SETTINGS.silentMode) {
-      mainWindow.webContents.send('update-status', { status: 'checking' });
+    if (mainWindow) {
+      mainWindow.webContents.send('update-status', { status: 'checking', silent: UPDATE_SETTINGS.silentMode });
     }
   });
 
@@ -191,8 +191,8 @@ function setupAutoUpdaterHandlers() {
 
   autoUpdater.on('update-not-available', (info) => {
     console.log('👍 App is up to date:', info.version);
-    if (mainWindow && !UPDATE_SETTINGS.silentMode) {
-      mainWindow.webContents.send('update-status', { status: 'not-available' });
+    if (mainWindow) {
+      mainWindow.webContents.send('update-status', { status: 'not-available', silent: UPDATE_SETTINGS.silentMode });
     }
   });
 
