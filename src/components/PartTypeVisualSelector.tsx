@@ -4,8 +4,9 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Maximize2, Sparkles, ChevronDown, Check } from "lucide-react";
-import { motion } from "framer-motion";
-import { Canvas, useFrame } from "@react-three/fiber";
+import { motion, AnimatePresence } from "framer-motion";
+import { Canvas } from "@react-three/fiber";
+import { OrbitControls, PerspectiveCamera } from "@react-three/drei";
 import * as THREE from "three";
 import { getGeometryByType } from "@/components/3d/ShapeGeometries";
 import ShapeCard from "@/components/ui/ShapeCard";
@@ -26,14 +27,6 @@ interface PartTypeOption {
   gradient: string;
 }
 
-type IdleWindow = Window & {
-  requestIdleCallback?: (
-    callback: (deadline: { timeRemaining: () => number; didTimeout: boolean }) => void,
-    options?: { timeout: number }
-  ) => number;
-  cancelIdleCallback?: (handle: number) => void;
-};
-
 // Flat list of all part types with icons and premium gradients
 const allPartTypes: PartTypeOption[] = [
   { value: "plate", label: "Plate / Flat Bar", description: "W/T > 5: Flat rectangular products", color: "#4A90E2", icon: "📋", gradient: "from-blue-500/20 via-blue-400/10 to-transparent" },
@@ -45,57 +38,24 @@ const allPartTypes: PartTypeOption[] = [
   { value: "hexagon", label: "Hex Bar", description: "Hexagonal bar products", color: "#8E44AD", icon: "⬡", gradient: "from-violet-500/20 via-violet-400/10 to-transparent" },
   { value: "cone", label: "Tapered Tube / Cone", description: "Hollow tapered tube (like tube with different OD at each end)", color: "#1ABC9C", icon: "🔻", gradient: "from-teal-500/20 via-teal-400/10 to-transparent" },
   { value: "sphere", label: "Sphere", description: "Spherical parts", color: "#3498DB", icon: "🔵", gradient: "from-cyan-500/20 via-cyan-400/10 to-transparent" },
-  { value: "impeller", label: "Impeller", description: "Complex stepped disk with R surfaces (aero engine)", color: "#E74C3C", icon: "🌀", gradient: "from-red-500/20 via-red-400/10 to-transparent" },
-  { value: "blisk", label: "Blisk (Bladed Disk)", description: "Integrated blade-disk for aero engines", color: "#2980B9", icon: "🔷", gradient: "from-blue-600/20 via-blue-500/10 to-transparent" },
-  { value: "hpt_disk", label: "HPT Disk", description: "Turbine disk with stepped bore (V2500 NDIP)", color: "#D35400", icon: "🔶", gradient: "from-orange-600/20 via-orange-500/10 to-transparent" },
 ];
 
-// Use lightweight proxy geometry for heavy aero shapes in tiny preview thumbnails.
-const PREVIEW_GEOMETRY_ALIAS: Partial<Record<PartGeometry, string>> = {
-  impeller: "disk_forging",
-  blisk: "disk_forging",
-  hpt_disk: "disk_forging",
-};
-
-const getPreviewPartType = (partType: PartGeometry): string =>
-  PREVIEW_GEOMETRY_ALIAS[partType] || partType;
-
-const PREVIEW_WARMUP_TYPES = Array.from(
-  new Set(allPartTypes.map((option) => getPreviewPartType(option.value)))
-);
-
 // Mini 3D Shape Component for inline preview
-// PERFORMANCE: Only animates when visible on screen
-function Mini3DShape({
-  partType,
-  color,
-  isHovered,
-  isVisible = true,
-  shouldAnimate = true,
-}: {
-  partType: PartGeometry;
-  color: string;
-  isHovered: boolean;
-  isVisible?: boolean;
-  shouldAnimate?: boolean;
-}) {
-  const previewPartType = React.useMemo(
-    () => getPreviewPartType(partType),
-    [partType]
-  );
-  const geometry = React.useMemo(() => getGeometryByType(previewPartType), [previewPartType]);
+function Mini3DShape({ partType, color, isHovered }: { partType: string; color: string; isHovered: boolean }) {
+  const geometry = React.useMemo(() => getGeometryByType(partType), [partType]);
   const meshRef = useRef<THREE.Mesh>(null);
 
   React.useEffect(() => {
-    return () => {
-      geometry.dispose();
+    let animationId: number;
+    const animate = () => {
+      if (meshRef.current) {
+        meshRef.current.rotation.y += isHovered ? 0.03 : 0.01;
+      }
+      animationId = requestAnimationFrame(animate);
     };
-  }, [geometry]);
-
-  useFrame((_, delta) => {
-    if (!meshRef.current || !isVisible || !shouldAnimate) return;
-    meshRef.current.rotation.y += delta * (isHovered ? 2.2 : 0.8);
-  });
+    animate();
+    return () => cancelAnimationFrame(animationId);
+  }, [isHovered]);
 
   return (
     <mesh ref={meshRef} geometry={geometry} scale={isHovered ? 0.85 : 0.7}>
@@ -110,51 +70,22 @@ function Mini3DShape({
 }
 
 // Inline 3D preview component
-// PERFORMANCE: Render only a small subset of live WebGL previews at any time.
-function Inline3DPreview({
-  partType,
-  color,
-  isHovered,
-  animate = true,
-  show3D = true,
-  fallbackIcon,
-}: {
-  partType: PartGeometry;
-  color: string;
-  isHovered: boolean;
-  animate?: boolean;
-  show3D?: boolean;
-  fallbackIcon?: string;
-}) {
+function Inline3DPreview({ partType, color, isHovered }: { partType: string; color: string; isHovered: boolean }) {
   return (
     <div className="w-8 h-8 relative">
-      {show3D ? (
-        <Canvas
-          camera={{ position: [0, 0, 3.5], fov: 40 }}
-          style={{ background: 'transparent' }}
-          dpr={[1, 1.5]}
-          gl={{ antialias: false, alpha: true, powerPreference: "high-performance" }}
-          frameloop={animate ? "always" : "demand"}
-        >
-          <ambientLight intensity={0.6} />
-          <directionalLight position={[5, 5, 5]} intensity={1} />
-          <directionalLight position={[-3, 2, -3]} intensity={0.4} color="#e0e8ff" />
-          <pointLight position={[0, 0, 3]} intensity={isHovered ? 0.8 : 0.3} color={color} />
-          <Suspense fallback={null}>
-            <Mini3DShape
-              partType={partType}
-              color={color}
-              isHovered={isHovered}
-              isVisible={show3D}
-              shouldAnimate={animate}
-            />
-          </Suspense>
-        </Canvas>
-      ) : (
-        <div className="w-full h-full rounded-md bg-slate-800/50 border border-slate-700/60 flex items-center justify-center text-sm text-slate-200">
-          <span aria-hidden>{fallbackIcon || "◻"}</span>
-        </div>
-      )}
+      <Canvas
+        camera={{ position: [0, 0, 3.5], fov: 40 }}
+        style={{ background: 'transparent' }}
+        gl={{ antialias: true, alpha: true }}
+      >
+        <ambientLight intensity={0.6} />
+        <directionalLight position={[5, 5, 5]} intensity={1} />
+        <directionalLight position={[-3, 2, -3]} intensity={0.4} color="#e0e8ff" />
+        <pointLight position={[0, 0, 3]} intensity={isHovered ? 0.8 : 0.3} color={color} />
+        <Suspense fallback={null}>
+          <Mini3DShape partType={partType} color={color} isHovered={isHovered} />
+        </Suspense>
+      </Canvas>
       {/* Glow effect */}
       <div 
         className={cn(
@@ -172,16 +103,12 @@ function ShapeOption({
   option, 
   isSelected, 
   isHovered,
-  show3DPreview = true,
-  animatePreview = true,
   onHover,
   onClick 
 }: { 
   option: PartTypeOption; 
   isSelected: boolean;
   isHovered: boolean;
-  show3DPreview?: boolean;
-  animatePreview?: boolean;
   onHover: () => void;
   onClick: () => void;
 }) {
@@ -214,9 +141,6 @@ function ShapeOption({
           partType={option.value} 
           color={option.color} 
           isHovered={isHovered}
-          show3D={show3DPreview}
-          fallbackIcon={option.icon}
-          animate={animatePreview}
         />
       </div>
 
@@ -276,7 +200,6 @@ export const PartTypeVisualSelector: React.FC<PartTypeVisualSelectorProps> = ({
   const handleSelect = (partType: PartGeometry) => {
     onChange(partType);
     setDropdownOpen(false);
-    setHoveredOption(null);
     setDialogOpen(false);
   };
 
@@ -285,55 +208,10 @@ export const PartTypeVisualSelector: React.FC<PartTypeVisualSelectorProps> = ({
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setDropdownOpen(false);
-        setHoveredOption(null);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  // Preload preview geometries in small idle chunks so first dropdown open is instant.
-  React.useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    const idleWindow = window as IdleWindow;
-    let timeoutId: number | null = null;
-    let idleId: number | null = null;
-    let nextIndex = 0;
-    let cancelled = false;
-
-    const warmUpChunk = (deadline?: { timeRemaining: () => number; didTimeout: boolean }) => {
-      while (!cancelled && nextIndex < PREVIEW_WARMUP_TYPES.length) {
-        if (deadline && !deadline.didTimeout && deadline.timeRemaining() < 2) break;
-        const geometry = getGeometryByType(PREVIEW_WARMUP_TYPES[nextIndex] as PartGeometry);
-        geometry.dispose();
-        nextIndex += 1;
-      }
-
-      if (cancelled || nextIndex >= PREVIEW_WARMUP_TYPES.length) return;
-
-      if (idleWindow.requestIdleCallback) {
-        idleId = idleWindow.requestIdleCallback(warmUpChunk, { timeout: 200 });
-      } else {
-        timeoutId = window.setTimeout(() => warmUpChunk(), 16);
-      }
-    };
-
-    if (idleWindow.requestIdleCallback) {
-      idleId = idleWindow.requestIdleCallback(warmUpChunk, { timeout: 150 });
-    } else {
-      timeoutId = window.setTimeout(() => warmUpChunk(), 60);
-    }
-
-    return () => {
-      cancelled = true;
-      if (idleId !== null && idleWindow.cancelIdleCallback) {
-        idleWindow.cancelIdleCallback(idleId);
-      }
-      if (timeoutId !== null) {
-        window.clearTimeout(timeoutId);
-      }
-    };
   }, []);
 
   return (
@@ -350,13 +228,7 @@ export const PartTypeVisualSelector: React.FC<PartTypeVisualSelectorProps> = ({
             "text-left",
             dropdownOpen && "border-primary ring-2 ring-primary/20"
           )}
-          onClick={() => {
-            setDropdownOpen((prev) => {
-              const next = !prev;
-              if (!next) setHoveredOption(null);
-              return next;
-            });
-          }}
+          onClick={() => setDropdownOpen(!dropdownOpen)}
           whileTap={{ scale: 0.98 }}
         >
           {selectedType ? (
@@ -365,7 +237,6 @@ export const PartTypeVisualSelector: React.FC<PartTypeVisualSelectorProps> = ({
                 partType={selectedType.value} 
                 color={selectedType.color} 
                 isHovered={dropdownOpen}
-                fallbackIcon={selectedType.icon}
               />
               <div className="flex-1 min-w-0">
                 <span className="text-sm font-medium truncate block">
@@ -387,62 +258,55 @@ export const PartTypeVisualSelector: React.FC<PartTypeVisualSelectorProps> = ({
         </motion.button>
 
         {/* Dropdown menu */}
-        {dropdownOpen && (
-          <motion.div
-            initial={false}
-            animate={{
-              opacity: dropdownOpen ? 1 : 0,
-              y: dropdownOpen ? 0 : -10,
-              scale: dropdownOpen ? 1 : 0.95,
-            }}
-            transition={{ type: "spring", stiffness: 400, damping: 25 }}
-            style={{
-              pointerEvents: dropdownOpen ? "auto" : "none",
-              visibility: dropdownOpen ? "visible" : "hidden",
-            }}
-            className={cn(
-              "absolute z-50 top-full left-0 right-0 mt-1.5",
-              "bg-popover border border-border rounded-xl shadow-xl",
-              "max-h-[320px] overflow-y-auto",
-              "backdrop-blur-xl"
-            )}
-          >
-            {/* Header */}
-            <div className="sticky top-0 bg-popover/95 backdrop-blur-sm px-3 py-2 border-b border-border/50">
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Sparkles className="h-3 w-3" />
-                <span>Select geometry type</span>
+        <AnimatePresence>
+          {dropdownOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: -10, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -10, scale: 0.95 }}
+              transition={{ type: "spring", stiffness: 400, damping: 25 }}
+              className={cn(
+                "absolute z-50 top-full left-0 right-0 mt-1.5",
+                "bg-popover border border-border rounded-xl shadow-xl",
+                "max-h-[320px] overflow-y-auto",
+                "backdrop-blur-xl"
+              )}
+            >
+              {/* Header */}
+              <div className="sticky top-0 bg-popover/95 backdrop-blur-sm px-3 py-2 border-b border-border/50">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Sparkles className="h-3 w-3" />
+                  <span>Select geometry type</span>
+                </div>
               </div>
-            </div>
-            
-            {/* Options */}
-            <div className="p-1.5 space-y-0.5">
-              {allPartTypes.map((option) => (
+              
+              {/* Options */}
+              <div className="p-1.5 space-y-0.5">
+                {allPartTypes.map((option) => (
                   <ShapeOption
                     key={option.value}
                     option={option}
                     isSelected={value === option.value}
                     isHovered={hoveredOption === option.value}
-                    show3DPreview={true}
-                    animatePreview={true}
                     onHover={() => setHoveredOption(option.value)}
                     onClick={() => handleSelect(option.value)}
                   />
-              ))}
-            </div>
-          </motion.div>
-        )}
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Expand button for full visual picker dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
               <DialogTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="icon"
+                <Button 
+                  variant="outline" 
+                  size="icon" 
                   className={cn(
                     "h-9 w-9 flex-shrink-0 relative overflow-hidden",
                     "hover:border-primary/50 hover:bg-primary/5",
@@ -454,69 +318,69 @@ export const PartTypeVisualSelector: React.FC<PartTypeVisualSelectorProps> = ({
                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full hover:translate-x-full transition-transform duration-700" />
                 </Button>
               </DialogTrigger>
-            </TooltipTrigger>
-            <TooltipContent side="top">
-              <p className="text-xs">Open 3D visual selector</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-        <DialogContent className="max-w-5xl max-h-[85vh] overflow-hidden p-0">
-          {/* Premium dialog header */}
-          <div className="relative bg-gradient-to-r from-primary/10 via-primary/5 to-transparent p-6 border-b">
-            <div className="absolute inset-0 bg-grid-white/5 [mask-image:linear-gradient(to_bottom,white,transparent)]" />
-            <DialogHeader className="relative">
-              <DialogTitle className="text-xl font-semibold flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-primary/10">
-                  <Sparkles className="h-5 w-5 text-primary" />
+              <DialogContent className="max-w-5xl max-h-[85vh] overflow-hidden p-0">
+                {/* Premium dialog header */}
+                <div className="relative bg-gradient-to-r from-primary/10 via-primary/5 to-transparent p-6 border-b">
+                  <div className="absolute inset-0 bg-grid-white/5 [mask-image:linear-gradient(to_bottom,white,transparent)]" />
+                  <DialogHeader className="relative">
+                    <DialogTitle className="text-xl font-semibold flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-primary/10">
+                        <Sparkles className="h-5 w-5 text-primary" />
+                      </div>
+                      Select Part Geometry
+                    </DialogTitle>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Choose the shape that best matches your part for accurate inspection planning
+                    </p>
+                  </DialogHeader>
                 </div>
-                Select Part Geometry
-              </DialogTitle>
-              <p className="text-sm text-muted-foreground mt-1">
-                Choose the shape that best matches your part for accurate inspection planning
-              </p>
-            </DialogHeader>
-          </div>
-
-          {/* Cards grid */}
-          <div className="p-6 overflow-y-auto max-h-[calc(85vh-120px)]">
-            <motion.div
-              className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4"
-              initial="hidden"
-              animate="visible"
-              variants={{
-                hidden: { opacity: 0 },
-                visible: {
-                  opacity: 1,
-                  transition: {
-                    staggerChildren: 0.05
-                  }
-                }
-              }}
-            >
-              {allPartTypes.map((option, index) => (
-                <motion.div
-                  key={option.value}
-                  variants={{
-                    hidden: { opacity: 0, y: 20, scale: 0.9 },
-                    visible: { opacity: 1, y: 0, scale: 1 }
-                  }}
-                  transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                >
-                  <ShapeCard
-                    title={option.label}
-                    description={option.description}
-                    partType={option.value}
-                    color={option.color}
-                    material={material}
-                    isSelected={value === option.value}
-                    onClick={() => handleSelect(option.value)}
-                  />
-                </motion.div>
-              ))}
-            </motion.div>
-          </div>
-        </DialogContent>
-      </Dialog>
+                
+                {/* Cards grid */}
+                <div className="p-6 overflow-y-auto max-h-[calc(85vh-120px)]">
+                  <motion.div 
+                    className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4"
+                    initial="hidden"
+                    animate="visible"
+                    variants={{
+                      hidden: { opacity: 0 },
+                      visible: {
+                        opacity: 1,
+                        transition: {
+                          staggerChildren: 0.05
+                        }
+                      }
+                    }}
+                  >
+                    {allPartTypes.map((option, index) => (
+                      <motion.div
+                        key={option.value}
+                        variants={{
+                          hidden: { opacity: 0, y: 20, scale: 0.9 },
+                          visible: { opacity: 1, y: 0, scale: 1 }
+                        }}
+                        transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                      >
+                        <ShapeCard
+                          title={option.label}
+                          description={option.description}
+                          partType={option.value}
+                          color={option.color}
+                          material={material}
+                          isSelected={value === option.value}
+                          onClick={() => handleSelect(option.value)}
+                        />
+                      </motion.div>
+                    ))}
+                  </motion.div>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </TooltipTrigger>
+          <TooltipContent side="top">
+            <p className="text-xs">Open 3D visual selector</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
     </div>
   );
 };

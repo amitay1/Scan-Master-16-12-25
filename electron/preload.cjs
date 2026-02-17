@@ -1,4 +1,14 @@
 const { contextBridge, ipcRenderer } = require('electron');
+const path = require('path');
+
+// Read version from package.json at startup
+let appVersion = '0.0.0';
+try {
+  const pkg = require(path.join(__dirname, '..', 'package.json'));
+  appVersion = pkg.version || '0.0.0';
+} catch (e) {
+  // Fallback - will be overridden by getAppVersion() IPC call
+}
 
 // Store update status listeners
 const updateListeners = new Set();
@@ -49,8 +59,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Platform information
   platform: process.platform,
 
-  // App version (hardcoded to avoid path issues in Electron)
-  version: '0.0.0'
+  // App version (read from package.json)
+  version: appVersion
 });
 
 // Also expose as 'electron' for easier access with enhanced update capabilities
@@ -58,29 +68,29 @@ contextBridge.exposeInMainWorld('electron', {
   // Flag to identify Electron environment
   isElectron: true,
   platform: process.platform,
-  
+
   // Version info
   getAppVersion: () => ipcRenderer.invoke('get-app-version'),
-  
+
   // Update checking
   checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
   forceCheckUpdates: () => ipcRenderer.invoke('force-check-updates'),
-  
+
   // Update installation
   installUpdate: (silent = true) => ipcRenderer.invoke('install-update', silent),
   downloadUpdate: () => ipcRenderer.invoke('download-update'),
-  
+
   // Update info
   getUpdateInfo: () => ipcRenderer.invoke('get-update-info'),
-  
+
   // Update settings
   getUpdateSettings: () => ipcRenderer.invoke('get-update-settings'),
   setUpdateSettings: (settings) => ipcRenderer.invoke('set-update-settings', settings),
-  
+
   // Scheduled restart management
   scheduleRestart: (delaySeconds) => ipcRenderer.invoke('schedule-restart', delaySeconds),
   cancelScheduledRestart: () => ipcRenderer.invoke('cancel-scheduled-restart'),
-  
+
   // Update status listeners
   onUpdateStatus: (callback) => {
     updateListeners.add(callback);
@@ -88,7 +98,7 @@ contextBridge.exposeInMainWorld('electron', {
   removeUpdateListener: (callback) => {
     updateListeners.delete(callback);
   },
-  
+
   // License Management API
   license: {
     check: () => ipcRenderer.invoke('license:check'),

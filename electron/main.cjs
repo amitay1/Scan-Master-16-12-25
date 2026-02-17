@@ -116,11 +116,15 @@ function initAutoUpdater() {
   autoUpdater.allowPrerelease = false;          // Only stable releases
   
   // Set logger for debugging
-  autoUpdater.logger = require('electron-log');
+  const log = require('electron-log');
+  autoUpdater.logger = log;
   autoUpdater.logger.transports.file.level = 'info';
+  console.log('📋 Update log file:', log.transports.file.getFile().path);
 
   // GitHub releases are configured in electron-builder.json
   // No custom feed URL configuration needed
+  console.log('📦 Current app version:', app.getVersion());
+  console.log('🔗 Update provider: GitHub (amitay1/Scan-Master-16-12-25)');
 
   setupAutoUpdaterHandlers();
   
@@ -1417,6 +1421,25 @@ function startEmbeddedServer() {
         }
       });
 
+      expressApp.get('/api/organizations/:id', (req, res) => {
+        try {
+          const orgs = JSON.parse(fs.readFileSync(orgsFile, 'utf8'));
+          const org = orgs.find(o => String(o.id) === String(req.params.id));
+          if (org) {
+            res.json(org);
+          } else {
+            res.status(404).json({ error: 'Organization not found' });
+          }
+        } catch (e) {
+          res.status(500).json({ error: e.message });
+        }
+      });
+
+      expressApp.get('/api/organizations/:id/role', (req, res) => {
+        // In Electron offline mode, user is always the owner
+        res.json({ role: 'owner' });
+      });
+
       expressApp.post('/api/logs', (req, res) => {
         // Just acknowledge logs without saving
         res.json({ success: true });
@@ -1543,7 +1566,10 @@ app.whenReady().then(async () => {
   // Check for updates on startup (production only)
   if (!isDev) {
     setTimeout(() => {
-      autoUpdater.checkForUpdates();
+      console.log('🚀 Initial update check on startup...');
+      autoUpdater.checkForUpdates().catch(err => {
+        console.error('Initial update check failed:', err.message);
+      });
     }, 3000);
   }
 

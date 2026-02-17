@@ -173,23 +173,14 @@ const Part = memo(function Part({ partType, material, dimensions }: ThreeDViewer
   // Calculate scale based on debounced dimensions
   const scale = useMemo((): [number, number, number] => {
     if (!debouncedDimensions) return [1, 1, 1];
-
+    
     const baseSize = 1;
-    const isRound = partType === 'cylinder' || partType === 'tube' || partType === 'cone' || partType === 'sphere';
-
-    if (isRound && debouncedDimensions.diameter) {
-      // For round parts, use uniform YZ scale from diameter to preserve circular cross-section
-      const diameterScale = debouncedDimensions.diameter / 75;
-      const lengthScale = debouncedDimensions.length ? debouncedDimensions.length / 100 : diameterScale;
-      return [lengthScale, diameterScale, diameterScale];
-    }
-
     const scaleX = debouncedDimensions.length ? debouncedDimensions.length / 100 : baseSize;
     const scaleY = debouncedDimensions.thickness ? debouncedDimensions.thickness / 50 : baseSize;
     const scaleZ = debouncedDimensions.width ? debouncedDimensions.width / 75 : baseSize;
-
+    
     return [scaleX, scaleY, scaleZ];
-  }, [debouncedDimensions, partType]);
+  }, [debouncedDimensions]);
 
   // Use deep comparison for geometry parameters to ensure updates
   const geometryParams = useDeepMemo({

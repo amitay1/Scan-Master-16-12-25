@@ -147,30 +147,30 @@ if ($ghAvailable) {
             gh release upload "v$newVersion" $latestYml --clobber
         }
         
-        # Find installer files for current version and rename them to match latest.yml
-        # electron-builder creates files with spaces, but latest.yml expects hyphens
-        $installerPatterns = @(
-            "*Setup*$newVersion*.exe",
-            "*Portable*$newVersion*.exe",
-            "*$newVersion*.exe.blockmap"
+        # Upload installer files matching artifactName from electron-builder.json
+        # artifactName: "ScanMaster-Setup-${version}.${ext}" (hyphens, no spaces)
+        $expectedFiles = @(
+            "ScanMaster-Setup-$newVersion.exe",
+            "ScanMaster-Setup-$newVersion.exe.blockmap",
+            "ScanMaster-Portable-$newVersion.exe"
         )
-        
-        foreach ($pattern in $installerPatterns) {
-            $files = Get-ChildItem -Path (Join-Path $releaseFolder $pattern) -ErrorAction SilentlyContinue
-            foreach ($file in $files) {
-                # Replace spaces with hyphens in filename for GitHub upload
-                $newFileName = $file.Name -replace ' ', '-'
-                $tempPath = Join-Path $releaseFolder $newFileName
-                
-                if ($file.Name -ne $newFileName) {
-                    Write-Info "  Renaming: $($file.Name) -> $newFileName"
-                    Copy-Item $file.FullName $tempPath -Force
-                    Write-Info "  Uploading: $newFileName"
-                    gh release upload "v$newVersion" $tempPath --clobber
-                    Remove-Item $tempPath -Force
+
+        foreach ($expectedFile in $expectedFiles) {
+            $filePath = Join-Path $releaseFolder $expectedFile
+            if (Test-Path $filePath) {
+                Write-Info "  Uploading: $expectedFile"
+                gh release upload "v$newVersion" $filePath --clobber
+            } else {
+                # Fallback: look for files with spaces and rename
+                $spaceVersion = $expectedFile -replace '-', ' '
+                $spacePath = Join-Path $releaseFolder $spaceVersion
+                if (Test-Path $spacePath) {
+                    Write-Info "  Renaming: $spaceVersion -> $expectedFile"
+                    Copy-Item $spacePath $filePath -Force
+                    gh release upload "v$newVersion" $filePath --clobber
+                    Remove-Item $filePath -Force
                 } else {
-                    Write-Info "  Uploading: $($file.Name)"
-                    gh release upload "v$newVersion" $file.FullName --clobber
+                    Write-Warning "  Not found: $expectedFile (skipping)"
                 }
             }
         }

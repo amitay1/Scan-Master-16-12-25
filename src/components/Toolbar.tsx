@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -12,13 +12,95 @@ import {
   FolderOpen,
   Minus,
   Square,
-  X
+  X,
+  Download,
+  Rocket
 } from "lucide-react";
 import { SettingsDialog } from "@/components/SettingsDialog";
 import { SavedCardsDialog } from "@/components/SavedCardsDialog";
 import { ProfileIndicator } from "@/components/inspector";
 import { useSavedCards } from "@/hooks/useSavedCards";
 import type { SavedCard } from "@/contexts/SavedCardsContext";
+
+// Safe access to electron API
+const getElectron = (): any => {
+  if (typeof window !== 'undefined' && 'electron' in window) {
+    return (window as any).electron;
+  }
+  return undefined;
+};
+
+type UpdateState = 'idle' | 'checking' | 'available' | 'downloading' | 'ready' | 'error';
+
+function useUpdateStatus() {
+  const [state, setState] = useState<UpdateState>('idle');
+  const [version, setVersion] = useState<string | null>(null);
+  const [percent, setPercent] = useState(0);
+
+  useEffect(() => {
+    const electron = getElectron();
+    if (!electron?.onUpdateStatus) return;
+
+    const handler = (_event: unknown, status: any) => {
+      switch (status.status) {
+        case 'checking':
+          setState('checking');
+          break;
+        case 'available':
+          setState('available');
+          if (status.version) setVersion(status.version);
+          break;
+        case 'downloading':
+          setState('downloading');
+          setPercent(Math.round(status.percent || 0));
+          break;
+        case 'downloaded':
+          setState('ready');
+          if (status.version) setVersion(status.version);
+          break;
+        case 'not-available':
+          setState('idle');
+          break;
+        case 'error':
+          setState('error');
+          break;
+      }
+    };
+
+    electron.onUpdateStatus(handler);
+
+    // Check if update was already downloaded
+    electron.getUpdateInfo?.().then((info: any) => {
+      if (info?.updateDownloaded) {
+        setState('ready');
+        setVersion(info.updateVersion);
+      } else if (info?.updateAvailable) {
+        setState('available');
+        setVersion(info.updateVersion);
+      }
+    });
+
+    return () => {
+      electron.removeUpdateListener?.(handler);
+    };
+  }, []);
+
+  const checkForUpdates = useCallback(() => {
+    const electron = getElectron();
+    if (electron?.forceCheckUpdates) {
+      electron.forceCheckUpdates();
+    } else if (electron?.checkForUpdates) {
+      electron.checkForUpdates();
+    }
+    setState('checking');
+  }, []);
+
+  const installUpdate = useCallback(() => {
+    getElectron()?.installUpdate?.(true);
+  }, []);
+
+  return { state, version, percent, checkForUpdates, installUpdate };
+}
 
 interface ToolbarProps {
   onSave: () => void;
@@ -55,6 +137,7 @@ export const Toolbar = ({
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [localSavedCardsOpen, setLocalSavedCardsOpen] = useState(false);
   const { cards } = useSavedCards();
+  const { state: updateState, version: updateVersion, percent: updatePercent, checkForUpdates, installUpdate } = useUpdateStatus();
   
   return (
     <div className="h-14 border-b-2 border-border bg-card flex items-center px-3 md:px-4 gap-2 md:gap-3 overflow-x-auto overflow-y-hidden flex-shrink-0">
@@ -103,6 +186,53 @@ export const Toolbar = ({
 
       {/* Inspector Profile Indicator */}
       <ProfileIndicator className="hidden sm:flex" />
+
+      {/* Update Button - changes based on update state */}
+      {updateState === 'ready' ? (
+        <Button
+          variant="ghost"
+          size="sm"
+          title={`Install Update v${updateVersion}`}
+          className="h-10 px-3 md:px-4 hidden sm:flex bg-green-500/20 hover:bg-green-500/30 text-green-400 font-semibold animate-pulse"
+          onClick={installUpdate}
+        >
+          <Rocket className="h-4 w-4 mr-2" />
+          <span>Update v{updateVersion}</span>
+        </Button>
+      ) : updateState === 'downloading' ? (
+        <Button
+          variant="ghost"
+          size="sm"
+          title={`Downloading update... ${updatePercent}%`}
+          className="h-10 px-3 md:px-4 hidden sm:flex bg-blue-500/20 text-blue-400 font-semibold cursor-default"
+          disabled
+        >
+          <Download className="h-4 w-4 mr-2 animate-bounce" />
+          <span>{updatePercent}%</span>
+        </Button>
+      ) : updateState === 'available' ? (
+        <Button
+          variant="ghost"
+          size="sm"
+          title={`Update v${updateVersion} available - downloading...`}
+          className="h-10 px-3 md:px-4 hidden sm:flex bg-yellow-500/20 text-yellow-400 font-semibold"
+          disabled
+        >
+          <Download className="h-4 w-4 mr-2 animate-spin" />
+          <span>v{updateVersion}</span>
+        </Button>
+      ) : (
+        <Button
+          variant="ghost"
+          size="icon"
+          title="Check for Updates"
+          className={`h-10 w-10 md:h-11 md:w-11 hidden sm:flex ${updateState === 'checking' ? 'animate-spin' : ''}`}
+          onClick={checkForUpdates}
+          disabled={updateState === 'checking'}
+        >
+          <RefreshCw className="h-5 w-5" />
+        </Button>
+      )}
 
       <Separator orientation="vertical" className="h-8 md:h-10 mx-1 md:mx-2 hidden sm:block" />
 
@@ -155,58 +285,55 @@ export const Toolbar = ({
 
       <Separator orientation="vertical" className="h-8 md:h-10 mx-1 md:mx-2" />
 
-      {/* Minimize Window Button */}
-      <Button
-        variant="ghost"
-        size="icon"
-        title="Minimize"
-        className="h-10 w-10 md:h-11 md:w-11 bg-amber-600/20 hover:bg-amber-500 text-amber-400 hover:text-white border border-amber-500/40 hover:border-amber-500 rounded-lg transition-all duration-200"
-        onClick={() => {
-          if ((window as any).electronAPI?.minimize) {
-            (window as any).electronAPI.minimize();
-          } else if ((window as any).electron?.minimize) {
-            (window as any).electron.minimize();
-          }
-        }}
-      >
-        <Minus className="h-5 w-5" strokeWidth={3} />
-      </Button>
+      {/* Window Controls Group */}
+      <div className="flex items-center gap-1 bg-slate-900/60 rounded-xl p-1 border border-slate-700/50 shadow-lg shadow-black/20">
+        {/* Minimize */}
+        <button
+          title="Minimize"
+          className="group relative h-9 w-9 flex items-center justify-center rounded-lg transition-all duration-200 hover:bg-amber-500/90 hover:shadow-md hover:shadow-amber-500/25 active:scale-90"
+          onClick={() => {
+            if ((window as any).electronAPI?.minimize) {
+              (window as any).electronAPI.minimize();
+            } else if ((window as any).electron?.minimize) {
+              (window as any).electron.minimize();
+            }
+          }}
+        >
+          <Minus className="h-4 w-4 text-amber-400 group-hover:text-white transition-colors" strokeWidth={2.5} />
+        </button>
 
-      {/* Maximize / Restore Window Button */}
-      <Button
-        variant="ghost"
-        size="icon"
-        title="Maximize / Restore"
-        className="h-10 w-10 md:h-11 md:w-11 bg-slate-600/20 hover:bg-slate-500 text-slate-400 hover:text-white border border-slate-500/40 hover:border-slate-400 rounded-lg transition-all duration-200"
-        onClick={() => {
-          if ((window as any).electronAPI?.maximize) {
-            (window as any).electronAPI.maximize();
-          } else if ((window as any).electron?.maximize) {
-            (window as any).electron.maximize();
-          }
-        }}
-      >
-        <Square className="h-4 w-4" strokeWidth={2.5} />
-      </Button>
+        {/* Maximize / Restore */}
+        <button
+          title="Maximize / Restore"
+          className="group relative h-9 w-9 flex items-center justify-center rounded-lg transition-all duration-200 hover:bg-blue-500/90 hover:shadow-md hover:shadow-blue-500/25 active:scale-90"
+          onClick={() => {
+            if ((window as any).electronAPI?.maximize) {
+              (window as any).electronAPI.maximize();
+            } else if ((window as any).electron?.maximize) {
+              (window as any).electron.maximize();
+            }
+          }}
+        >
+          <Square className="h-3.5 w-3.5 text-blue-400 group-hover:text-white transition-colors" strokeWidth={2.5} />
+        </button>
 
-      {/* Exit / Close Application Button */}
-      <Button
-        variant="ghost"
-        size="icon"
-        title="Exit Application"
-        className="h-10 w-10 md:h-11 md:w-11 bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white border border-red-500/40 hover:border-red-500 rounded-lg transition-all duration-200"
-        onClick={() => {
-          if ((window as any).electronAPI?.quit) {
-            (window as any).electronAPI.quit();
-          } else if ((window as any).electron?.quit) {
-            (window as any).electron.quit();
-          } else {
-            window.close();
-          }
-        }}
-      >
-        <X className="h-5 w-5" strokeWidth={3} />
-      </Button>
+        {/* Close */}
+        <button
+          title="Exit Application"
+          className="group relative h-9 w-9 flex items-center justify-center rounded-lg transition-all duration-200 hover:bg-red-500/90 hover:shadow-md hover:shadow-red-500/25 active:scale-90"
+          onClick={() => {
+            if ((window as any).electronAPI?.quit) {
+              (window as any).electronAPI.quit();
+            } else if ((window as any).electron?.quit) {
+              (window as any).electron.quit();
+            } else {
+              window.close();
+            }
+          }}
+        >
+          <X className="h-4 w-4 text-red-400 group-hover:text-white transition-colors" strokeWidth={2.5} />
+        </button>
+      </div>
     </div>
   );
 };

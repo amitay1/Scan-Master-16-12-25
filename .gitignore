@@ -52,7 +52,19 @@ coverage/
 # User data (unified storage)
 data/
 
-# Large files and unrelated content
+# Large media files (prevent GitHub 100MB limit errors)
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.wmv
+*.flv
+*.webm
+marketing/frames*/
+marketing/clips*/
+marketing/verify_*/
+
+# Large archives and unrelated content
 *.rar
 *.zip
 *.7z
