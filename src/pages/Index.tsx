@@ -7,7 +7,7 @@ import { StandardSelector } from "@/components/StandardSelector";
 import { AcceptanceClassSelector } from "@/components/AcceptanceClassSelector";
 import { ThreeDViewer } from "@/components/ThreeDViewer";
 import { MenuBar } from "@/components/MenuBar";
-
+import { Toolbar } from "@/components/Toolbar";
 import { StatusBar } from "@/components/StatusBar";
 import { UnifiedExportDialog } from "@/components/export/UnifiedExportDialog";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -338,6 +338,22 @@ const Index = () => {
           />
         </div>
       )}
+
+      {/* Toolbar */}
+      <Toolbar
+        onSave={persistence.handleSave}
+        onExport={() => setExportDialogOpen(true)}
+        onValidate={handleValidate}
+        reportMode={reportMode}
+        onReportModeChange={setReportMode}
+        isSplitMode={isSplitMode}
+        onSplitModeChange={setIsSplitMode}
+        activePart={activePart}
+        onActivePartChange={setActivePart}
+        onCopyAToB={copyPartAToB}
+        onOpenSavedCards={persistence.handleOpenSavedCards}
+        onLoadLocalCard={persistence.handleLoadLocalCard}
+      />
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col md:flex-row overflow-hidden min-h-0">
