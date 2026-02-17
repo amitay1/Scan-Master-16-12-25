@@ -196,3 +196,176 @@ export const insertPurchaseHistorySchema = createInsertSchema(purchaseHistory).o
 });
 export type InsertPurchaseHistory = typeof purchaseHistory.$inferInsert;
 export type PurchaseHistory = typeof purchaseHistory.$inferSelect;
+
+// Desktop Licenses table - Track all generated licenses
+export const desktopLicenses = pgTable("desktop_licenses", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  licenseKey: text("license_key").unique().notNull(),
+  factoryId: text("factory_id").notNull(),
+  factoryName: text("factory_name").notNull(),
+  contactEmail: text("contact_email"),
+  contactPhone: text("contact_phone"),
+  purchasedStandards: jsonb("purchased_standards").$type<string[]>().default([]),
+  maxActivations: integer("max_activations").default(3),
+  isLifetime: boolean("is_lifetime").default(false),
+  expiryDate: timestamp("expiry_date"),
+  totalPrice: decimal("total_price", { precision: 10, scale: 2 }),
+  notes: text("notes"),
+  status: text("status").default("active"), // active, revoked, expired
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertDesktopLicenseSchema = createInsertSchema(desktopLicenses).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertDesktopLicense = typeof desktopLicenses.$inferInsert;
+export type DesktopLicense = typeof desktopLicenses.$inferSelect;
+
+// License Activations table - Track each time a license is activated
+export const licenseActivations = pgTable("license_activations", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  licenseId: uuid("license_id").notNull().references(() => desktopLicenses.id),
+  licenseKey: text("license_key").notNull(),
+  machineId: text("machine_id").notNull(),
+  machineName: text("machine_name"),
+  osVersion: text("os_version"),
+  appVersion: text("app_version"),
+  ipAddress: text("ip_address"),
+  country: text("country"),
+  isActive: boolean("is_active").default(true),
+  activatedAt: timestamp("activated_at").defaultNow().notNull(),
+  lastSeenAt: timestamp("last_seen_at").defaultNow(),
+  deactivatedAt: timestamp("deactivated_at"),
+});
+
+export const insertLicenseActivationSchema = createInsertSchema(licenseActivations).omit({
+  id: true,
+  activatedAt: true,
+  lastSeenAt: true,
+});
+export type InsertLicenseActivation = typeof licenseActivations.$inferInsert;
+export type LicenseActivation = typeof licenseActivations.$inferSelect;
+
+// ============================================================================
+// EQUIPMENT TRACKING TABLES (Phase 1.2)
+// ============================================================================
+
+// Equipment table - Track UT equipment (flaw detectors, transducers, cables, etc.)
+export const equipment = pgTable("equipment", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  orgId: uuid("org_id").references(() => organizations.id),
+  userId: uuid("user_id").notNull(), // Owner/creator of the equipment record
+
+  // Equipment identification
+  name: text("name").notNull(),
+  type: text("type").notNull(), // flaw_detector, transducer, cable, wedge, calibration_block, couplant_system, scanner
+  manufacturer: text("manufacturer"),
+  model: text("model"),
+  serialNumber: text("serial_number"),
+  assetTag: text("asset_tag"), // Internal asset management tag
+
+  // Status
+  status: text("status").notNull().default("active"), // active, maintenance, retired, out_of_service
+  location: text("location"), // Physical location (Lab A, Field Kit 1, etc.)
+
+  // Calibration tracking
+  lastCalibrationDate: timestamp("last_calibration_date", { withTimezone: true }),
+  nextCalibrationDue: timestamp("next_calibration_due", { withTimezone: true }),
+  calibrationIntervalDays: integer("calibration_interval_days").default(365),
+  calibrationProvider: text("calibration_provider"), // External calibration lab name
+  certificateNumber: text("certificate_number"), // Latest certificate number
+  certificateUrl: text("certificate_url"), // URL or path to certificate PDF
+
+  // Equipment specifications (JSON for flexibility)
+  specifications: jsonb("specifications").default({}), // frequency, elements, focal length, etc.
+
+  // Additional metadata
+  purchaseDate: timestamp("purchase_date", { withTimezone: true }),
+  warrantyExpiry: timestamp("warranty_expiry", { withTimezone: true }),
+  cost: decimal("cost", { precision: 10, scale: 2 }),
+  notes: text("notes"),
+
+  // Timestamps
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const insertEquipmentSchema = createInsertSchema(equipment).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertEquipment = typeof equipment.$inferInsert;
+export type Equipment = typeof equipment.$inferSelect;
+
+// Equipment calibration history - Track all calibrations performed on equipment
+export const equipmentCalibrationHistory = pgTable("equipment_calibration_history", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  equipmentId: uuid("equipment_id").notNull().references(() => equipment.id, { onDelete: "cascade" }),
+
+  // Calibration details
+  calibrationDate: timestamp("calibration_date", { withTimezone: true }).notNull(),
+  nextDueDate: timestamp("next_due_date", { withTimezone: true }),
+  performedBy: text("performed_by"), // Name of person/lab who performed calibration
+  calibrationProvider: text("calibration_provider"), // External lab name (if outsourced)
+  certificateNumber: text("certificate_number"),
+  certificateUrl: text("certificate_url"), // URL or path to certificate PDF
+
+  // Calibration results
+  result: text("result").notNull().default("pass"), // pass, fail, adjusted, limited
+  deviationNotes: text("deviation_notes"), // Any deviations or adjustments made
+
+  // Measurements (JSON for flexibility - different equipment has different checks)
+  measurements: jsonb("measurements").default({}), // linearity, sensitivity, resolution, etc.
+
+  // Cost tracking
+  cost: decimal("cost", { precision: 10, scale: 2 }),
+
+  // Notes
+  notes: text("notes"),
+
+  // Timestamps
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const insertEquipmentCalibrationHistorySchema = createInsertSchema(equipmentCalibrationHistory).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertEquipmentCalibrationHistory = typeof equipmentCalibrationHistory.$inferInsert;
+export type EquipmentCalibrationHistory = typeof equipmentCalibrationHistory.$inferSelect;
+
+// Equipment maintenance log - Track maintenance and repairs
+export const equipmentMaintenanceLog = pgTable("equipment_maintenance_log", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  equipmentId: uuid("equipment_id").notNull().references(() => equipment.id, { onDelete: "cascade" }),
+
+  // Maintenance details
+  maintenanceDate: timestamp("maintenance_date", { withTimezone: true }).notNull(),
+  maintenanceType: text("maintenance_type").notNull(), // routine, repair, cleaning, firmware_update, replacement
+  description: text("description").notNull(),
+  performedBy: text("performed_by"),
+
+  // Cost tracking
+  cost: decimal("cost", { precision: 10, scale: 2 }),
+  partsReplaced: text("parts_replaced"), // Description of any parts replaced
+
+  // Downtime tracking
+  downtimeHours: decimal("downtime_hours", { precision: 6, scale: 2 }),
+
+  // Notes
+  notes: text("notes"),
+
+  // Timestamps
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const insertEquipmentMaintenanceLogSchema = createInsertSchema(equipmentMaintenanceLog).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertEquipmentMaintenanceLog = typeof equipmentMaintenanceLog.$inferInsert;
+export type EquipmentMaintenanceLog = typeof equipmentMaintenanceLog.$inferSelect;

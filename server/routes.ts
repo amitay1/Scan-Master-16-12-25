@@ -5,23 +5,29 @@ import { spawn } from "child_process";
 import { z } from "zod";
 import { DbStorage } from "./storage";
 import logger from "./utils/logger";
-import { insertTechniqueSheetSchema, organizations } from "../shared/schema";
+import { insertTechniqueSheetSchema, organizations, desktopLicenses, licenseActivations } from "../shared/schema";
 import type { CadJobDTO } from "../shared/drawingSpec";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, desc, sql, and } from "drizzle-orm";
+import crypto from "crypto";
 // import { registerOrganizationRoutes } from "./routes/organizations"; // Disabled - tables don't exist yet
+import { registerEquipmentRoutes } from "./routes/equipment";
 
 const storage = new DbStorage();
 
 // Mock organization ID for development mode
 const MOCK_ORG_ID = "11111111-1111-1111-1111-111111111111";
 
+// Track whether the database is properly initialized
+let isDatabaseReady = false;
+let mockOrgExists = false;
+
 // Ensure the mock organization exists in the database for development
 async function ensureMockOrganization() {
   try {
     // Check if mock org already exists
     const existing = await db.select().from(organizations).where(eq(organizations.id, MOCK_ORG_ID));
-    
+
     if (existing.length === 0) {
       // Create the mock organization with a specific ID
       // Use ON CONFLICT on both id and slug to handle any constraint violations
@@ -34,6 +40,8 @@ async function ensureMockOrganization() {
     } else {
       logger.info('✅ Mock organization already exists');
     }
+    isDatabaseReady = true;
+    mockOrgExists = true;
   } catch (error: any) {
     // If it's a unique constraint on slug, try to update instead
     if (error.code === '23505') {
@@ -42,11 +50,17 @@ async function ensureMockOrganization() {
           UPDATE organizations SET id = '${MOCK_ORG_ID}' WHERE slug = 'default'
         `);
         logger.info('✅ Updated existing default organization');
+        isDatabaseReady = true;
+        mockOrgExists = true;
       } catch (updateError) {
         logger.warn('⚠️ Could not update default organization:', updateError);
+        isDatabaseReady = false;
+        mockOrgExists = false;
       }
     } else {
       logger.warn('⚠️ Could not ensure mock organization (this is OK if migrations have not been run):', error.message || error);
+      isDatabaseReady = false;
+      mockOrgExists = false;
     }
   }
 }
@@ -54,6 +68,8 @@ async function ensureMockOrganization() {
 // Initialize mock organization on module load
 ensureMockOrganization().catch(err => {
   logger.warn('Mock organization setup deferred:', err.message);
+  isDatabaseReady = false;
+  mockOrgExists = false;
 });
 
 // Minimal validation for CAD jobs coming from the client. We deliberately
@@ -162,15 +178,161 @@ export function registerRoutes(app: Express) {
   // Register organization routes - DISABLED until migrations are run
   // registerOrganizationRoutes(app);
 
+  // Register equipment tracking routes
+  registerEquipmentRoutes(app);
+
   // Health check endpoint
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok", timestamp: new Date().toISOString() });
   });
 
+  // ==========================================================================
+  // UNIFIED STORAGE API
+  // Provides cross-browser/Electron data persistence via local files
+  // All browsers (Chrome, Edge) and Electron share the same data
+  // ==========================================================================
+
+  const unifiedStorageDir = path.join(process.cwd(), "data", "unified-storage");
+
+  // Ensure unified storage directory exists
+  if (!fs.existsSync(unifiedStorageDir)) {
+    fs.mkdirSync(unifiedStorageDir, { recursive: true });
+    logger.info("Created unified storage directory:", unifiedStorageDir);
+  }
+
+  // Valid storage keys (whitelist for security)
+  const VALID_STORAGE_KEYS = [
+    "scanmaster_saved_cards",
+    "scanmaster_settings",
+    "scanmaster_inspector_profiles",
+    "scanmaster_first_run_completed",
+    "scanmaster_first_run_data",
+    "scanmaster_user_id",
+  ];
+
+  function isValidStorageKey(key: string): boolean {
+    return VALID_STORAGE_KEYS.includes(key);
+  }
+
+  function getStorageFilePath(key: string): string {
+    return path.join(unifiedStorageDir, `${key}.json`);
+  }
+
+  // Health check for unified storage
+  app.get("/api/unified-storage/health", (req, res) => {
+    res.json({ status: "ok", storageDir: unifiedStorageDir });
+  });
+
+  // Get data for a specific key
+  app.get("/api/unified-storage/:key", (req, res) => {
+    const { key } = req.params;
+
+    if (!isValidStorageKey(key)) {
+      return res.status(400).json({ error: "Invalid storage key" });
+    }
+
+    const filePath = getStorageFilePath(key);
+
+    try {
+      if (fs.existsSync(filePath)) {
+        const content = fs.readFileSync(filePath, "utf-8");
+        const data = JSON.parse(content);
+        res.json({ data, timestamp: fs.statSync(filePath).mtime.toISOString() });
+      } else {
+        res.json({ data: null, timestamp: null });
+      }
+    } catch (error: any) {
+      logger.error(`Failed to read unified storage key ${key}:`, error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Set data for a specific key
+  app.post("/api/unified-storage/:key", (req, res) => {
+    const { key } = req.params;
+    const { data } = req.body;
+
+    if (!isValidStorageKey(key)) {
+      return res.status(400).json({ error: "Invalid storage key" });
+    }
+
+    const filePath = getStorageFilePath(key);
+
+    try {
+      fs.writeFileSync(filePath, JSON.stringify(data, null, 2), "utf-8");
+      logger.info(`Unified storage updated: ${key}`);
+      res.json({ success: true, timestamp: new Date().toISOString() });
+    } catch (error: any) {
+      logger.error(`Failed to write unified storage key ${key}:`, error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Delete data for a specific key
+  app.delete("/api/unified-storage/:key", (req, res) => {
+    const { key } = req.params;
+
+    if (!isValidStorageKey(key)) {
+      return res.status(400).json({ error: "Invalid storage key" });
+    }
+
+    const filePath = getStorageFilePath(key);
+
+    try {
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+        logger.info(`Unified storage deleted: ${key}`);
+      }
+      res.json({ success: true });
+    } catch (error: any) {
+      logger.error(`Failed to delete unified storage key ${key}:`, error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // List all stored keys
+  app.get("/api/unified-storage", (req, res) => {
+    try {
+      const files = fs.readdirSync(unifiedStorageDir);
+      const keys = files
+        .filter((f) => f.endsWith(".json"))
+        .map((f) => f.replace(".json", ""));
+      res.json({ keys });
+    } catch (error: any) {
+      logger.error("Failed to list unified storage keys:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ==========================================================================
+  // END UNIFIED STORAGE API
+  // ==========================================================================
+
   // Temporary mock organizations endpoint (until database migrations are run)
   // Use the module-level MOCK_ORG_ID constant (ensured to exist in DB)
   
-  app.get("/api/organizations", mockAuth, (req, res) => {
+  app.get("/api/organizations", mockAuth, async (req, res) => {
+    // Only return mock organization if database is ready and org exists
+    // This prevents auto-save from trying to save when DB isn't set up
+    if (!isDatabaseReady || !mockOrgExists) {
+      logger.warn('⚠️ /api/organizations: Database not ready or mock org not created. Returning empty list to disable auto-save.');
+      return res.json([]);
+    }
+
+    // Double-check that the org actually exists in DB (in case of race conditions)
+    try {
+      const existing = await db.select().from(organizations).where(eq(organizations.id, MOCK_ORG_ID));
+      if (existing.length === 0) {
+        logger.warn('⚠️ /api/organizations: Mock org not found in DB. Returning empty list.');
+        mockOrgExists = false;
+        return res.json([]);
+      }
+    } catch (error: any) {
+      logger.warn('⚠️ /api/organizations: DB check failed:', error.message);
+      isDatabaseReady = false;
+      return res.json([]);
+    }
+
     res.json([
       {
         id: MOCK_ORG_ID,
@@ -930,5 +1092,429 @@ export function registerRoutes(app: Express) {
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
+  });
+
+  // =====================================================
+  // DESKTOP LICENSE MANAGEMENT ROUTES
+  // =====================================================
+
+  const LICENSE_SECRET = process.env.LICENSE_SECRET || 'your-super-secret-key-change-this-in-production';
+
+  // Available standards catalog
+  const AVAILABLE_STANDARDS: Record<string, { code: string; name: string; price: number }> = {
+    'AMS': { code: 'AMS-STD-2154E', name: 'Aerospace Material Specification', price: 500 },
+    'ASTM': { code: 'ASTM-A388', name: 'Steel Forgings', price: 500 },
+    'BS3': { code: 'BS-EN-10228-3', name: 'European Steel Standards Part 3', price: 500 },
+    'BS4': { code: 'BS-EN-10228-4', name: 'European Steel Standards Part 4', price: 500 },
+    'MIL': { code: 'MIL-STD-2154', name: 'Military Standard', price: 800 },
+  };
+
+  // Helper: Generate factory ID
+  function generateFactoryId(factoryName: string): string {
+    const normalized = factoryName.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    const timestamp = Date.now().toString(36).toUpperCase();
+    return `FAC-${normalized.substring(0, 6)}-${timestamp}`;
+  }
+
+  // Helper: Generate HMAC signature
+  function generateSignature(data: string): string {
+    return crypto
+      .createHmac('sha256', LICENSE_SECRET)
+      .update(data)
+      .digest('hex')
+      .substring(0, 12)
+      .toUpperCase();
+  }
+
+  // Helper: Generate license key
+  function generateLicenseKey(factoryId: string, standards: string[], expiryDate: Date | null): string {
+    const standardsCodes = standards.join('').toUpperCase();
+    const expiryStr = expiryDate
+      ? expiryDate.toISOString().split('T')[0].replace(/-/g, '')
+      : 'LIFETIME';
+    const data = `${factoryId}:${standardsCodes}:${expiryStr}`;
+    const signature = generateSignature(data);
+    return `SM-${factoryId}-${standardsCodes}-${expiryStr}-${signature}`;
+  }
+
+  // Helper function to read local license files
+  function readLocalLicenseFiles(): any[] {
+    const licensesDir = path.join(process.cwd(), 'licenses');
+    const localLicenses: any[] = [];
+    
+    try {
+      if (fs.existsSync(licensesDir)) {
+        const files = fs.readdirSync(licensesDir).filter(f => f.endsWith('.json'));
+        for (const file of files) {
+          try {
+            const content = fs.readFileSync(path.join(licensesDir, file), 'utf-8');
+            const license = JSON.parse(content);
+            localLicenses.push({
+              id: license.factoryId,
+              licenseKey: license.licenseKey,
+              factoryId: license.factoryId,
+              factoryName: license.factoryName,
+              contactEmail: null,
+              contactPhone: null,
+              purchasedStandards: license.purchasedStandards || [],
+              maxActivations: license.maxUsers || 5,
+              isLifetime: license.isLifetime || false,
+              expiryDate: license.expiryDate,
+              totalPrice: String(license.totalPrice || 0),
+              notes: null,
+              status: 'active',
+              createdAt: license.generatedAt,
+              activationCount: 0,
+              activeCount: 0,
+              activations: [],
+              source: 'local-file'
+            });
+          } catch (e) {
+            logger.warn(`Failed to parse license file: ${file}`, e);
+          }
+        }
+      }
+    } catch (e) {
+      logger.warn('Failed to read licenses directory', e);
+    }
+    
+    return localLicenses;
+  }
+
+  // GET /api/licenses - List all licenses with stats (DB + local files)
+  app.get("/api/licenses", mockAuth, async (req, res) => {
+    try {
+      // Get licenses from database
+      const dbLicenses = await db
+        .select()
+        .from(desktopLicenses)
+        .orderBy(desc(desktopLicenses.createdAt));
+
+      // Get activation counts for each license
+      const licensesWithStats = await Promise.all(
+        dbLicenses.map(async (license) => {
+          const activations = await db
+            .select()
+            .from(licenseActivations)
+            .where(eq(licenseActivations.licenseId, license.id));
+          
+          const activeActivations = activations.filter(a => a.isActive);
+          
+          return {
+            ...license,
+            activationCount: activations.length,
+            activeCount: activeActivations.length,
+            activations: activations.map(a => ({
+              id: a.id,
+              machineName: a.machineName,
+              machineId: a.machineId,
+              appVersion: a.appVersion,
+              activatedAt: a.activatedAt,
+              lastSeenAt: a.lastSeenAt,
+              isActive: a.isActive,
+            })),
+            source: 'database'
+          };
+        })
+      );
+
+      // Also read local license files from /licenses folder
+      const localLicenses = readLocalLicenseFiles();
+      
+      // Merge - avoid duplicates by factoryId
+      const existingFactoryIds = new Set(licensesWithStats.map(l => l.factoryId));
+      const uniqueLocalLicenses = localLicenses.filter(l => !existingFactoryIds.has(l.factoryId));
+      
+      const allLicenses = [...licensesWithStats, ...uniqueLocalLicenses];
+
+      res.json(allLicenses);
+    } catch (error: any) {
+      logger.error('Failed to fetch licenses:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // GET /api/licenses/stats - Dashboard statistics (DB + local files)
+  app.get("/api/licenses/stats", mockAuth, async (req, res) => {
+    try {
+      // Get DB stats
+      const [dbLicenses] = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(desktopLicenses);
+
+      const [activeLicenses] = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(desktopLicenses)
+        .where(eq(desktopLicenses.status, 'active'));
+
+      const [totalActivations] = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(licenseActivations);
+
+      const [activeActivations] = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(licenseActivations)
+        .where(eq(licenseActivations.isActive, true));
+
+      // Recent activations (last 7 days)
+      const recentActivations = await db
+        .select()
+        .from(licenseActivations)
+        .orderBy(desc(licenseActivations.activatedAt))
+        .limit(10);
+
+      // Also count local license files
+      const localLicenses = readLocalLicenseFiles();
+      const localLicenseCount = localLicenses.length;
+      
+      // Combine stats
+      const totalLicenses = Number(dbLicenses?.count || 0) + localLicenseCount;
+      const activeLocalLicenses = localLicenses.filter(l => l.status === 'active').length;
+
+      res.json({
+        totalLicenses,
+        activeLicenses: Number(activeLicenses?.count || 0) + activeLocalLicenses,
+        totalActivations: Number(totalActivations?.count || 0),
+        activeActivations: Number(activeActivations?.count || 0),
+        recentActivations,
+        localLicenseCount, // Extra info
+      });
+    } catch (error: any) {
+      logger.error('Failed to fetch license stats:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // POST /api/licenses - Generate a new license
+  app.post("/api/licenses", mockAuth, async (req, res) => {
+    try {
+      const { factoryName, contactEmail, contactPhone, standards, isLifetime, expiryDate, maxActivations, notes } = req.body;
+
+      if (!factoryName || !standards || standards.length === 0) {
+        return res.status(400).json({ error: 'Factory name and standards are required' });
+      }
+
+      // Validate standards
+      const validStandards = standards.filter((std: string) => AVAILABLE_STANDARDS[std]);
+      if (validStandards.length === 0) {
+        return res.status(400).json({ error: 'No valid standards provided' });
+      }
+
+      // Generate IDs and key
+      const factoryId = generateFactoryId(factoryName);
+      const expiry = isLifetime ? null : (expiryDate ? new Date(expiryDate) : null);
+      const licenseKey = generateLicenseKey(factoryId, validStandards, expiry);
+
+      // Calculate price
+      const totalPrice = validStandards.reduce((sum: number, key: string) => sum + (AVAILABLE_STANDARDS[key]?.price || 0), 0);
+
+      // Get full standard codes
+      const purchasedStandards = validStandards.map((key: string) => AVAILABLE_STANDARDS[key].code);
+
+      // Save to database
+      const [newLicense] = await db
+        .insert(desktopLicenses)
+        .values({
+          licenseKey,
+          factoryId,
+          factoryName,
+          contactEmail: contactEmail || null,
+          contactPhone: contactPhone || null,
+          purchasedStandards,
+          maxActivations: maxActivations || 3,
+          isLifetime: isLifetime ?? true,
+          expiryDate: expiry,
+          totalPrice: totalPrice.toString(),
+          notes: notes || null,
+          status: 'active',
+        })
+        .returning();
+
+      logger.info('✅ License generated:', { factoryId, licenseKey, standards: purchasedStandards });
+
+      res.status(201).json({
+        ...newLicense,
+        licenseKey, // Make sure to return the key
+      });
+    } catch (error: any) {
+      logger.error('Failed to generate license:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // POST /api/licenses/activate - Called by Electron app when activating
+  app.post("/api/licenses/activate", async (req, res) => {
+    try {
+      const { licenseKey, machineId, machineName, osVersion, appVersion } = req.body;
+
+      if (!licenseKey || !machineId) {
+        return res.status(400).json({ error: 'License key and machine ID are required' });
+      }
+
+      // Find the license
+      const [license] = await db
+        .select()
+        .from(desktopLicenses)
+        .where(eq(desktopLicenses.licenseKey, licenseKey));
+
+      if (!license) {
+        return res.status(404).json({ error: 'License not found', valid: false });
+      }
+
+      if (license.status !== 'active') {
+        return res.status(403).json({ error: `License is ${license.status}`, valid: false });
+      }
+
+      // Check expiry
+      if (license.expiryDate && new Date() > new Date(license.expiryDate)) {
+        await db
+          .update(desktopLicenses)
+          .set({ status: 'expired' })
+          .where(eq(desktopLicenses.id, license.id));
+        return res.status(403).json({ error: 'License has expired', valid: false });
+      }
+
+      // Check if this machine is already activated
+      const [existingActivation] = await db
+        .select()
+        .from(licenseActivations)
+        .where(and(
+          eq(licenseActivations.licenseId, license.id),
+          eq(licenseActivations.machineId, machineId)
+        ));
+
+      // Get client IP
+      const ipAddress = req.headers['x-forwarded-for']?.toString().split(',')[0] || req.ip || 'unknown';
+
+      if (existingActivation) {
+        // Update last seen
+        await db
+          .update(licenseActivations)
+          .set({
+            lastSeenAt: new Date(),
+            appVersion: appVersion || existingActivation.appVersion,
+            isActive: true,
+          })
+          .where(eq(licenseActivations.id, existingActivation.id));
+
+        logger.info('📱 License check-in:', { factoryId: license.factoryId, machineId, machineName });
+        
+        return res.json({
+          valid: true,
+          factoryName: license.factoryName,
+          purchasedStandards: license.purchasedStandards,
+          isLifetime: license.isLifetime,
+          expiryDate: license.expiryDate,
+          isNewActivation: false,
+        });
+      }
+
+      // Check activation limit
+      const [activationCount] = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(licenseActivations)
+        .where(and(
+          eq(licenseActivations.licenseId, license.id),
+          eq(licenseActivations.isActive, true)
+        ));
+
+      const currentCount = Number(activationCount?.count || 0);
+      if (license.maxActivations && currentCount >= license.maxActivations) {
+        return res.status(403).json({
+          error: `Maximum activations (${license.maxActivations}) reached`,
+          valid: false,
+          currentActivations: currentCount,
+          maxActivations: license.maxActivations,
+        });
+      }
+
+      // Create new activation
+      await db
+        .insert(licenseActivations)
+        .values({
+          licenseId: license.id,
+          licenseKey,
+          machineId,
+          machineName: machineName || 'Unknown',
+          osVersion: osVersion || null,
+          appVersion: appVersion || null,
+          ipAddress,
+          isActive: true,
+        });
+
+      logger.info('🎉 NEW LICENSE ACTIVATION:', {
+        factoryId: license.factoryId,
+        factoryName: license.factoryName,
+        machineId,
+        machineName,
+        ipAddress,
+        appVersion,
+      });
+
+      res.json({
+        valid: true,
+        factoryName: license.factoryName,
+        purchasedStandards: license.purchasedStandards,
+        isLifetime: license.isLifetime,
+        expiryDate: license.expiryDate,
+        isNewActivation: true,
+      });
+    } catch (error: any) {
+      logger.error('Failed to activate license:', error);
+      res.status(500).json({ error: error.message, valid: false });
+    }
+  });
+
+  // PATCH /api/licenses/:id - Update license (status, notes, etc.)
+  app.patch("/api/licenses/:id", mockAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { status, notes, maxActivations } = req.body;
+
+      const [updated] = await db
+        .update(desktopLicenses)
+        .set({
+          ...(status && { status }),
+          ...(notes !== undefined && { notes }),
+          ...(maxActivations !== undefined && { maxActivations }),
+          updatedAt: new Date(),
+        })
+        .where(eq(desktopLicenses.id, id))
+        .returning();
+
+      if (!updated) {
+        return res.status(404).json({ error: 'License not found' });
+      }
+
+      res.json(updated);
+    } catch (error: any) {
+      logger.error('Failed to update license:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // DELETE /api/licenses/:id/activations/:activationId - Deactivate a machine
+  app.delete("/api/licenses/:id/activations/:activationId", mockAuth, async (req, res) => {
+    try {
+      const { activationId } = req.params;
+
+      await db
+        .update(licenseActivations)
+        .set({
+          isActive: false,
+          deactivatedAt: new Date(),
+        })
+        .where(eq(licenseActivations.id, activationId));
+
+      res.json({ success: true });
+    } catch (error: any) {
+      logger.error('Failed to deactivate machine:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // GET /api/licenses/standards - Get available standards catalog
+  app.get("/api/licenses/standards", (req, res) => {
+    res.json(AVAILABLE_STANDARDS);
   });
 }
