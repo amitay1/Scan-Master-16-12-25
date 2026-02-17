@@ -97,23 +97,68 @@ if (-not $SkipBuild) {
     Write-Info "Building Electron app for Windows..."
     Write-Host "========================================" -ForegroundColor Yellow
     Write-Host ""
-    
+
     # Try to close ScanMaster if running
     Write-Info "Closing ScanMaster if running..."
     Get-Process | Where-Object { $_.ProcessName -like "*Scan*Master*" -or $_.MainWindowTitle -like "*ScanMaster*" } | Stop-Process -Force -ErrorAction SilentlyContinue
     Start-Sleep -Seconds 2
-    
-    # Clean dist-electron folder
+
+    # Clean build folders to prevent stale artifacts
+    Write-Info "Cleaning build folders..."
     if (Test-Path "dist-electron") {
-        Write-Info "Cleaning dist-electron folder..."
         Remove-Item -Path "dist-electron" -Recurse -Force -ErrorAction SilentlyContinue
     }
-    
+    if (Test-Path "release") {
+        Write-Info "  Removing old release/ folder..."
+        Remove-Item -Path "release" -Recurse -Force -ErrorAction SilentlyContinue
+    }
+
     npm run dist:win
-    
+
     if ($LASTEXITCODE -ne 0) {
         Write-Error "Build failed! Release created but without installer files."
         Write-Warning "You can manually build later with: npm run dist:win"
+    }
+}
+
+# Validate build output before uploading
+$releaseFolder = "release"
+$installerPath = Join-Path $releaseFolder "ScanMaster-Setup-$newVersion.exe"
+$latestYmlPath = Join-Path $releaseFolder "latest.yml"
+$buildOK = $true
+
+if (-not $SkipBuild) {
+    Write-Host ""
+    Write-Info "Validating build output..."
+
+    # Check installer exists and is reasonable size (>50MB)
+    if (Test-Path $installerPath) {
+        $installerSize = (Get-Item $installerPath).Length / 1MB
+        if ($installerSize -lt 50) {
+            Write-Error "INSTALLER TOO SMALL: $([math]::Round($installerSize, 1)) MB (expected >50 MB)"
+            Write-Error "Build likely failed. Will NOT upload broken installer."
+            $buildOK = $false
+        } else {
+            Write-Success "  Installer OK: $([math]::Round($installerSize, 1)) MB"
+        }
+    } else {
+        Write-Error "  Installer not found: $installerPath"
+        $buildOK = $false
+    }
+
+    # Check latest.yml exists and has correct version
+    if (Test-Path $latestYmlPath) {
+        $ymlContent = Get-Content $latestYmlPath -Raw
+        if ($ymlContent -match "version:\s*$([regex]::Escape($newVersion))") {
+            Write-Success "  latest.yml OK: version $newVersion"
+        } else {
+            Write-Error "  latest.yml has WRONG version (expected $newVersion)"
+            Write-Error "  Content: $($ymlContent.Substring(0, [Math]::Min(200, $ymlContent.Length)))"
+            $buildOK = $false
+        }
+    } else {
+        Write-Error "  latest.yml not found"
+        $buildOK = $false
     }
 }
 
@@ -123,7 +168,7 @@ $ghAvailable = $null -ne (Get-Command "gh" -ErrorAction SilentlyContinue)
 if ($ghAvailable) {
     Write-Host ""
     Write-Info "Creating GitHub Release for auto-update..."
-    
+
     $releaseNotes = "## What's New`n`n"
     if ($Message -ne "") {
         $releaseNotes += "- $Message`n"
@@ -131,24 +176,21 @@ if ($ghAvailable) {
         $releaseNotes += "- Version bump to v$newVersion`n"
     }
     $releaseNotes += "`n**Full Changelog**: https://github.com/amitay1/Scan-Master-16-12-25/compare/v$currentVersion...v$newVersion"
-    
+
     # Create the release
     gh release create "v$newVersion" --title "$releaseTitle" --notes "$releaseNotes"
-    
-    # Upload installer files if they exist
-    $releaseFolder = "release"
-    if (Test-Path $releaseFolder) {
+
+    # Upload installer files only if build validation passed
+    if ($buildOK -and (Test-Path $releaseFolder)) {
         Write-Info "Uploading installer files to release..."
-        
-        # First, always upload latest.yml (required for auto-update)
-        $latestYml = Join-Path $releaseFolder "latest.yml"
-        if (Test-Path $latestYml) {
-            Write-Info "  Uploading: latest.yml (required for auto-update)"
-            gh release upload "v$newVersion" $latestYml --clobber
+
+        # Upload latest.yml (required for auto-update)
+        if (Test-Path $latestYmlPath) {
+            Write-Info "  Uploading: latest.yml"
+            gh release upload "v$newVersion" $latestYmlPath --clobber
         }
-        
-        # Upload installer files matching artifactName from electron-builder.json
-        # artifactName: "ScanMaster-Setup-${version}.${ext}" (hyphens, no spaces)
+
+        # Upload installer files
         $expectedFiles = @(
             "ScanMaster-Setup-$newVersion.exe",
             "ScanMaster-Setup-$newVersion.exe.blockmap",
@@ -161,22 +203,22 @@ if ($ghAvailable) {
                 Write-Info "  Uploading: $expectedFile"
                 gh release upload "v$newVersion" $filePath --clobber
             } else {
-                # Fallback: look for files with spaces and rename
-                $spaceVersion = $expectedFile -replace '-', ' '
-                $spacePath = Join-Path $releaseFolder $spaceVersion
-                if (Test-Path $spacePath) {
-                    Write-Info "  Renaming: $spaceVersion -> $expectedFile"
-                    Copy-Item $spacePath $filePath -Force
-                    gh release upload "v$newVersion" $filePath --clobber
-                    Remove-Item $filePath -Force
-                } else {
-                    Write-Warning "  Not found: $expectedFile (skipping)"
-                }
+                Write-Warning "  Not found: $expectedFile (skipping)"
             }
         }
+
+        Write-Success "GitHub Release created with installer files!"
+    } elseif (-not $buildOK) {
+        Write-Error ""
+        Write-Error "================================================"
+        Write-Error "  BUILD VALIDATION FAILED - No files uploaded!"
+        Write-Error "  The GitHub release was created but is EMPTY."
+        Write-Error "  Fix the build and run: npm run dist:win"
+        Write-Error "  Then manually upload files with:"
+        Write-Error "    gh release upload v$newVersion release/latest.yml --clobber"
+        Write-Error "    gh release upload v$newVersion release/ScanMaster-Setup-$newVersion.exe --clobber"
+        Write-Error "================================================"
     }
-    
-    Write-Success "GitHub Release created with installer files!"
 } else {
     Write-Host ""
     Write-Warning "GitHub CLI (gh) not installed - skipping GitHub Release creation."
@@ -191,8 +233,10 @@ Write-Success "Released v$newVersion successfully!"
 Write-Host "========================================" -ForegroundColor Green
 Write-Host ""
 
-if ($ghAvailable -and -not $SkipBuild) {
+if ($ghAvailable -and -not $SkipBuild -and $buildOK) {
     Write-Host "Other computers will auto-update when they open the app!" -ForegroundColor Green
+} elseif (-not $buildOK) {
+    Write-Host "WARNING: Build failed - auto-update will NOT work until fixed!" -ForegroundColor Red
 } else {
     Write-Host "To update other computers manually, run:" -ForegroundColor Yellow
     Write-Host "  git pull origin main" -ForegroundColor White
