@@ -214,7 +214,7 @@ export const ScanDetailsTab = ({ data, onChange, partType, standard = "AMS-STD-2
     onChange({ ...data, scanDetails: newScanDetails });
   };
 
-  const updateGate = (index: number, gateField: 'gate1' | 'gate2', subField: keyof GateSettings, value: number) => {
+  const updateGate = (index: number, gateField: 'gate1' | 'gate2' | 'gate3' | 'gate4', subField: keyof GateSettings, value: number) => {
     const newScanDetails = [...scanDetails];
     const currentGate = (newScanDetails[index][gateField] as GateSettings | undefined) || DEFAULT_GATE;
     newScanDetails[index] = { ...newScanDetails[index], [gateField]: { ...currentGate, [subField]: value } };
@@ -354,7 +354,7 @@ export const ScanDetailsTab = ({ data, onChange, partType, standard = "AMS-STD-2
   // Render expanded details panel - Dark theme design
   const renderExpandedDetails = (detail: ExtendedScanDetail, index: number) => (
     <tr className="bg-slate-900/50 border-b border-slate-700">
-      <td colSpan={8} className="p-4">
+      <td colSpan={7} className="p-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Probe Details Section */}
           <div className="bg-slate-800/80 rounded-lg p-4 border border-blue-500/30">
@@ -401,7 +401,7 @@ export const ScanDetailsTab = ({ data, onChange, partType, standard = "AMS-STD-2
                 />
               </div>
               <div>
-                <Label className="text-[10px] text-slate-400 uppercase tracking-wide">Focus Size</Label>
+                <Label className="text-[10px] text-slate-400 uppercase tracking-wide">Focus Size (inch)</Label>
                 <Input
                   value={detail.focusSize || ""}
                   onChange={(e) => updateScanDetail(index, "focusSize", e.target.value)}
@@ -411,18 +411,14 @@ export const ScanDetailsTab = ({ data, onChange, partType, standard = "AMS-STD-2
               </div>
               <div>
                 <Label className="text-[10px] text-slate-400 uppercase tracking-wide">Frequency (MHz)</Label>
-                <Select value={detail.frequency || ""} onValueChange={(v) => updateScanDetail(index, "frequency", v)}>
-                  <SelectTrigger className="h-8 text-xs bg-slate-900/60 border-slate-600 text-slate-100">
-                    <SelectValue placeholder="Select" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-slate-800 border-slate-600">
-                    {frequencyOptions.map((f) => (
-                      <SelectItem key={f} value={f} className="text-xs text-slate-100">
-                        {f}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Input
+                  type="number"
+                  value={detail.frequency || ""}
+                  onChange={(e) => updateScanDetail(index, "frequency", e.target.value)}
+                  className="h-8 text-xs bg-slate-900/60 border-slate-600 text-slate-100 placeholder:text-slate-500"
+                  placeholder="e.g., 5"
+                  step={0.5}
+                />
               </div>
               <div>
                 <Label className="text-[10px] text-slate-400 uppercase tracking-wide">Velocity (m/s)</Label>
@@ -533,6 +529,60 @@ export const ScanDetailsTab = ({ data, onChange, partType, standard = "AMS-STD-2
                   />
                 </div>
               </div>
+              {/* Gate 3 */}
+              <div>
+                <Label className="text-[10px] text-violet-400/80 uppercase tracking-wide">Gate 3 (Start - Length - Level)</Label>
+                <div className="grid grid-cols-3 gap-2 mt-1">
+                  <Input
+                    type="number"
+                    value={detail.gate3?.start?.toString() || ""}
+                    onChange={(e) => updateGate(index, "gate3", "start", parseFloat(e.target.value) || 0)}
+                    className="h-8 text-xs text-center bg-violet-950/40 border-violet-700/50 text-slate-100 placeholder:text-slate-500"
+                    placeholder="Start"
+                  />
+                  <Input
+                    type="number"
+                    value={detail.gate3?.length?.toString() || ""}
+                    onChange={(e) => updateGate(index, "gate3", "length", parseFloat(e.target.value) || 0)}
+                    className="h-8 text-xs text-center bg-violet-950/40 border-violet-700/50 text-slate-100 placeholder:text-slate-500"
+                    placeholder="Length"
+                  />
+                  <Input
+                    type="number"
+                    value={detail.gate3?.level?.toString() || ""}
+                    onChange={(e) => updateGate(index, "gate3", "level", parseFloat(e.target.value) || 0)}
+                    className="h-8 text-xs text-center bg-violet-950/40 border-violet-700/50 text-slate-100 placeholder:text-slate-500"
+                    placeholder="Level %"
+                  />
+                </div>
+              </div>
+              {/* Gate 4 */}
+              <div>
+                <Label className="text-[10px] text-rose-400/80 uppercase tracking-wide">Gate 4 (Start - Length - Level)</Label>
+                <div className="grid grid-cols-3 gap-2 mt-1">
+                  <Input
+                    type="number"
+                    value={detail.gate4?.start?.toString() || ""}
+                    onChange={(e) => updateGate(index, "gate4", "start", parseFloat(e.target.value) || 0)}
+                    className="h-8 text-xs text-center bg-rose-950/40 border-rose-700/50 text-slate-100 placeholder:text-slate-500"
+                    placeholder="Start"
+                  />
+                  <Input
+                    type="number"
+                    value={detail.gate4?.length?.toString() || ""}
+                    onChange={(e) => updateGate(index, "gate4", "length", parseFloat(e.target.value) || 0)}
+                    className="h-8 text-xs text-center bg-rose-950/40 border-rose-700/50 text-slate-100 placeholder:text-slate-500"
+                    placeholder="Length"
+                  />
+                  <Input
+                    type="number"
+                    value={detail.gate4?.level?.toString() || ""}
+                    onChange={(e) => updateGate(index, "gate4", "level", parseFloat(e.target.value) || 0)}
+                    className="h-8 text-xs text-center bg-rose-950/40 border-rose-700/50 text-slate-100 placeholder:text-slate-500"
+                    placeholder="Level %"
+                  />
+                </div>
+              </div>
             </div>
           </div>
 
@@ -618,10 +668,17 @@ export const ScanDetailsTab = ({ data, onChange, partType, standard = "AMS-STD-2
                 <Select value={detail.filter || ""} onValueChange={(v) => updateScanDetail(index, "filter", v)}>
                   <SelectTrigger className="h-8 text-xs bg-slate-900/60 border-slate-600 text-slate-100"><SelectValue placeholder="Select" /></SelectTrigger>
                   <SelectContent className="bg-slate-800 border-slate-600">
+                    <SelectItem value="1MHZ" className="text-xs text-slate-100">1MHZ</SelectItem>
                     <SelectItem value="2MHZ" className="text-xs text-slate-100">2MHZ</SelectItem>
+                    <SelectItem value="3MHZ" className="text-xs text-slate-100">3MHZ</SelectItem>
+                    <SelectItem value="4MHZ" className="text-xs text-slate-100">4MHZ</SelectItem>
                     <SelectItem value="5MHZ" className="text-xs text-slate-100">5MHZ</SelectItem>
+                    <SelectItem value="7.5MHZ" className="text-xs text-slate-100">7.5MHZ</SelectItem>
                     <SelectItem value="10MHZ" className="text-xs text-slate-100">10MHZ</SelectItem>
+                    <SelectItem value="15MHZ" className="text-xs text-slate-100">15MHZ</SelectItem>
                     <SelectItem value="WIDEBAND" className="text-xs text-slate-100">WIDEBAND</SelectItem>
+                    <SelectItem value="OFF" className="text-xs text-slate-100">OFF</SelectItem>
+                    <SelectItem value="NONE" className="text-xs text-slate-100">NONE</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -878,8 +935,7 @@ export const ScanDetailsTab = ({ data, onChange, partType, standard = "AMS-STD-2
                   <th className="px-2 py-2 text-center w-14 text-slate-300 font-medium">Direction</th>
                   <th className="px-2 py-2 text-left text-slate-300 font-medium">Wave Mode</th>
                   <th className="px-2 py-2 text-center w-20 text-slate-300 font-medium">Make</th>
-                  <th className="px-2 py-2 text-center w-16 text-slate-300 font-medium">Frequency</th>
-                  <th className="px-2 py-2 text-left w-28 text-slate-300 font-medium">Size / Type</th>
+                  <th className="px-2 py-2 text-center w-24 text-slate-300 font-medium">Water Path (mm)</th>
                   <th className="px-2 py-2 text-left text-slate-300 font-medium">Remarks</th>
                 </tr>
               </thead>
@@ -939,27 +995,14 @@ export const ScanDetailsTab = ({ data, onChange, partType, standard = "AMS-STD-2
                         />
                       </td>
 
-                      {/* Frequency */}
-                      <td className="px-1 py-1.5" onClick={(e) => e.stopPropagation()}>
-                        <Select value={detail.frequency} onValueChange={(v) => updateScanDetail(index, "frequency", v)}>
-                          <SelectTrigger className="h-7 text-xs px-1 w-full bg-slate-800/60 border-slate-600 text-slate-100">
-                            <SelectValue placeholder="MHz" />
-                          </SelectTrigger>
-                          <SelectContent className="bg-slate-800 border-slate-600">
-                            {frequencyOptions.map((f) => (
-                              <SelectItem key={f} value={f} className="text-xs text-slate-100">{f}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </td>
-
-                      {/* Size / Type */}
+                      {/* Water Path */}
                       <td className="px-1 py-1.5" onClick={(e) => e.stopPropagation()}>
                         <Input
-                          value={detail.probe || ""}
-                          onChange={(e) => updateScanDetail(index, "probe", e.target.value)}
+                          type="number"
+                          value={detail.waterPath?.toString() || ""}
+                          onChange={(e) => updateScanDetail(index, "waterPath", e.target.value ? parseFloat(e.target.value) : undefined)}
                           className="h-7 text-xs px-1 bg-slate-800/60 border-slate-600 text-slate-100 placeholder:text-slate-500"
-                          placeholder="10mm, Single"
+                          placeholder="mm"
                         />
                       </td>
 

@@ -276,18 +276,19 @@ export const REFLECTOR_TYPE_OPTIONS: ReflectorTypeOption[] = [
 // ANGLE BEAM CALIBRATION - ROW DATA STRUCTURE
 // ============================================================================
 
+export type CurrentReflectorUsed = 'FBH' | 'SDH' | 'Notch';
+
 export interface AngleBeamCalibrationRow {
   id: number;
   reflectorType: ReflectorType;
-  reflectorSizeMm: number;       // Diameter (mm) for FBH/SDH, or length for notch
-  acceptanceSizeInch: string;    // e.g., "3/64" - acceptance size in inches
-  acceptanceSizeMm: number;      // e.g., 1.19 - acceptance size in mm
-  sizeDbCorrection: number;      // Size ΔdB (auto-calculated)
-  transferDbCorrection: number;  // Transfer ΔdB (manual entry)
-  totalDb: number;               // Auto-calculated: sizeDb + transferDb
-  depthMm: number;               // Depth position in mm
-  soundPathMm: number;           // Sound path in mm
-  notes: string;                 // Free text
+  reflectorSizeInch: number;         // Reflector Size Required (inch) — required acceptance size
+  currentReflectorUsed: CurrentReflectorUsed; // What reflector is actually being used (FBH, SDH, Notch)
+  currentReflectorSize: string;      // Descriptive text of current reflector size (editable)
+  sizeDbCorrection: number;          // Size ΔdB (auto-calculated: 20*log10(A1/A2))
+  transferDbCorrection: number;      // Transfer ΔdB (manual entry)
+  totalDb: number;                   // Auto-calculated: sizeDb + transferDb
+  depthMm: number;                   // Depth position in mm
+  soundPathMm: number;              // Sound path in mm
 }
 
 // Default 3 rows for Angle Beam calibration table
@@ -295,41 +296,38 @@ export const DEFAULT_ANGLE_BEAM_CALIBRATION_ROWS: AngleBeamCalibrationRow[] = [
   {
     id: 1,
     reflectorType: 'SDH',
-    reflectorSizeMm: 1.5,
-    acceptanceSizeInch: '3/64',
-    acceptanceSizeMm: 1.19,
+    reflectorSizeInch: 0.047,       // 3/64 inch
+    currentReflectorUsed: 'SDH',
+    currentReflectorSize: 'SDH 0.02" dia x 0.25"',
     sizeDbCorrection: 0,
     transferDbCorrection: 0,
     totalDb: 0,
     depthMm: 6.35,
     soundPathMm: 0,
-    notes: '',
   },
   {
     id: 2,
     reflectorType: 'SDH',
-    reflectorSizeMm: 1.5,
-    acceptanceSizeInch: '3/64',
-    acceptanceSizeMm: 1.19,
+    reflectorSizeInch: 0.047,       // 3/64 inch
+    currentReflectorUsed: 'SDH',
+    currentReflectorSize: 'SDH 0.02" dia x 0.25"',
     sizeDbCorrection: 0,
     transferDbCorrection: 0,
     totalDb: 0,
     depthMm: 12.70,
     soundPathMm: 0,
-    notes: '',
   },
   {
     id: 3,
     reflectorType: 'SDH',
-    reflectorSizeMm: 1.5,
-    acceptanceSizeInch: '3/64',
-    acceptanceSizeMm: 1.19,
+    reflectorSizeInch: 0.047,       // 3/64 inch
+    currentReflectorUsed: 'SDH',
+    currentReflectorSize: 'SDH 0.02" dia x 0.25"',
     sizeDbCorrection: 0,
     transferDbCorrection: 0,
     totalDb: 0,
     depthMm: 19.05,
     soundPathMm: 0,
-    notes: '',
   },
 ];
 
@@ -459,6 +457,54 @@ export function convertToFBHEquivalent(
     return { fbhInch: closest.inch, fbhMm: closest.mm, description: `≈ FBH ${closest.inch !== '-' ? closest.inch + '"' : closest.mm + 'mm'} (${closest.mm}mm)` };
   }
 
+  return null;
+}
+
+// ============================================================================
+// AUTO-FILL LOGIC FOR CURRENT REFLECTOR SIZE
+// ============================================================================
+
+/**
+ * Common FBH required sizes mapped to their inch fractions for matching.
+ * 3/64 inch ≈ 0.047, 5/64 inch ≈ 0.078
+ */
+const FBH_3_64_INCH = 3 / 64;  // ≈ 0.046875
+const FBH_5_64_INCH = 5 / 64;  // ≈ 0.078125
+
+function isCloseTo(value: number, target: number, tolerance = 0.005): boolean {
+  return Math.abs(value - target) < tolerance;
+}
+
+/**
+ * Get auto-filled "Current Reflector Size" description based on:
+ * - What reflector is being used (SDH or Notch)
+ * - What FBH size is required (reflectorSizeInch)
+ *
+ * Returns null if no auto-fill rule matches (user keeps manual entry).
+ */
+export function getAutoFilledReflectorSize(
+  currentReflectorUsed: CurrentReflectorUsed,
+  reflectorSizeRequiredInch: number
+): string | null {
+  if (currentReflectorUsed === 'SDH') {
+    if (isCloseTo(reflectorSizeRequiredInch, FBH_3_64_INCH)) {
+      return 'SDH 0.02" dia x 0.25"';
+    }
+    if (isCloseTo(reflectorSizeRequiredInch, FBH_5_64_INCH)) {
+      return 'SDH 0.020" dia x 0.50"';
+    }
+  }
+
+  if (currentReflectorUsed === 'Notch') {
+    if (isCloseTo(reflectorSizeRequiredInch, FBH_3_64_INCH)) {
+      return 'Notch L:0.07" D:0.025"';
+    }
+    if (isCloseTo(reflectorSizeRequiredInch, FBH_5_64_INCH)) {
+      return 'Notch L:0.1" D:0.05"';
+    }
+  }
+
+  // FBH or no matching rule — no auto-fill
   return null;
 }
 

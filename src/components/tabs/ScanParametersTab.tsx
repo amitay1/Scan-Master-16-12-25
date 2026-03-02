@@ -1,19 +1,16 @@
 // @ts-nocheck
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ScanParametersData, StandardType, CouplingMethod, PhasedArraySettings, EquipmentData } from "@/types/techniqueSheet";
+import { ScanParametersData, StandardType, PhasedArraySettings, EquipmentData } from "@/types/techniqueSheet";
 import { FieldWithHelp } from "@/components/FieldWithHelp";
-import { Badge } from "@/components/ui/badge";
-import { Info, AlertTriangle, Radio } from "lucide-react";
+import { Info, Radio } from "lucide-react";
 import { useMemo, useEffect } from "react";
 import {
   scanParametersByStandard,
   calibrationByStandard,
-  equipmentParametersByStandard,
 } from "@/data/standardsDifferences";
 import { getFrequencyOptionsForStandard } from "@/utils/frequencyUtils";
 
@@ -85,30 +82,8 @@ export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E", 
     return { speedOk, overlapOk, coverageOk };
   }, [data.scanSpeed, data.scanIndex, data.coverage, hasSpeedLimit, hasOverlapRequirement, maxSpeed, scanParams]);
 
-  // Get equipment parameters for current standard
-  const equipmentParams = useMemo(() => {
-    return equipmentParametersByStandard[standard];
-  }, [standard]);
-
-  // Check linearity compliance
-  const linearityCompliance = useMemo(() => {
-    if (!equipmentData) return { verticalOk: true, horizontalOk: true };
-    const vMin = equipmentParams.verticalLinearity.min;
-    const vMax = equipmentParams.verticalLinearity.max;
-    const hMin = equipmentParams.horizontalLinearity?.min || 0;
-    const verticalOk = equipmentData.verticalLinearity >= vMin && equipmentData.verticalLinearity <= vMax;
-    const horizontalOk = !hMin || equipmentData.horizontalLinearity >= hMin;
-    return { verticalOk, horizontalOk };
-  }, [equipmentData?.verticalLinearity, equipmentData?.horizontalLinearity, equipmentParams]);
-
   const updateField = (field: keyof ScanParametersData, value: any) => {
     onChange({ ...data, [field]: value });
-  };
-
-  const updateEquipmentField = (field: keyof EquipmentData, value: any) => {
-    if (equipmentData && onEquipmentDataChange) {
-      onEquipmentDataChange({ ...equipmentData, [field]: value });
-    }
   };
 
   // Update defaults when standard changes
@@ -306,92 +281,6 @@ export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E", 
           </Select>
         </FieldWithHelp>
       </div>
-
-      {/* Equipment Compliance - Linearity & Resolution */}
-      {equipmentData && (
-        <div className="bg-green-500/5 border border-green-500/20 rounded-lg p-2 mb-2">
-          <Label className="text-sm font-semibold mb-1.5 block">Linearity & Resolution</Label>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-            <FieldWithHelp
-              label="Vertical Linearity (%)"
-              fieldKey="verticalLinearity"
-              help={`Per ${standard}: ${equipmentParams.verticalLinearity.min}-${equipmentParams.verticalLinearity.max}% FSH range required`}
-              required
-            >
-              <Input
-                type="number"
-                value={equipmentData.verticalLinearity}
-                onChange={(e) => updateEquipmentField("verticalLinearity", parseFloat(e.target.value) || 0)}
-                min={equipmentParams.verticalLinearity.min}
-                max={100}
-                className={`bg-background ${!linearityCompliance.verticalOk ? "border-destructive" : ""}`}
-              />
-              {!linearityCompliance.verticalOk && (
-                <p className="text-xs text-destructive mt-1">
-                  Below minimum requirement ({equipmentParams.verticalLinearity.min}%)
-                </p>
-              )}
-            </FieldWithHelp>
-
-            <FieldWithHelp
-              label="Horizontal Linearity (%)"
-              fieldKey="horizontalLinearity"
-              help={equipmentParams.horizontalLinearity
-                ? `Per ${standard}: Minimum ${equipmentParams.horizontalLinearity.min}% required`
-                : `Not specified in ${standard}`}
-              required={!!equipmentParams.horizontalLinearity}
-            >
-              <Input
-                type="number"
-                value={equipmentData.horizontalLinearity}
-                onChange={(e) => updateEquipmentField("horizontalLinearity", parseFloat(e.target.value) || 0)}
-                min={equipmentParams.horizontalLinearity?.min || 0}
-                max={100}
-                className={`bg-background ${!linearityCompliance.horizontalOk ? "border-destructive" : ""}`}
-                disabled={!equipmentParams.horizontalLinearity}
-              />
-              {equipmentParams.horizontalLinearity && !linearityCompliance.horizontalOk && (
-                <p className="text-xs text-destructive mt-1">
-                  Below minimum requirement ({equipmentParams.horizontalLinearity.min}%)
-                </p>
-              )}
-              {!equipmentParams.horizontalLinearity && (
-                <p className="text-xs text-muted-foreground mt-1">
-                  Not required by {standard}
-                </p>
-              )}
-            </FieldWithHelp>
-
-            <FieldWithHelp
-              label="Entry Surface Resolution (inches)"
-              fieldKey="entrySurfaceResolution"
-              required
-              autoFilled
-            >
-              <Input
-                type="number"
-                value={equipmentData.entrySurfaceResolution}
-                className="bg-background"
-                disabled
-              />
-            </FieldWithHelp>
-
-            <FieldWithHelp
-              label="Back Surface Resolution (inches)"
-              fieldKey="backSurfaceResolution"
-              required
-              autoFilled
-            >
-              <Input
-                type="number"
-                value={equipmentData.backSurfaceResolution}
-                className="bg-background"
-                disabled
-              />
-            </FieldWithHelp>
-          </div>
-        </div>
-      )}
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2">
 
@@ -657,9 +546,6 @@ export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E", 
               Results in {100 - data.scanIndex}% overlap. Minimum {scanParams.minOverlap}% required per {standard}
             </p>
           )}
-          <p className="text-xs text-muted-foreground mt-1">
-            Current overlap: {100 - data.scanIndex}%
-          </p>
         </FieldWithHelp>
 
         <FieldWithHelp
@@ -674,7 +560,6 @@ export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E", 
             onChange={(e) => updateField("coverage", parseFloat(e.target.value) || 0)}
             min={scanParams.coverageRequired}
             max={100}
-            disabled
             className="bg-background"
           />
         </FieldWithHelp>
@@ -748,32 +633,7 @@ export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E", 
           />
         </FieldWithHelp>
 
-        <FieldWithHelp
-          label="Gain Settings (dB)"
-          fieldKey="gainSettings"
-          help={scanParams.sensitivityGain}
-        >
-          <Input
-            value={data.gainSettings}
-            onChange={(e) => updateField("gainSettings", e.target.value)}
-            placeholder="45 dB"
-            className="bg-background"
-          />
-        </FieldWithHelp>
       </div>
-
-      <FieldWithHelp
-        label="Alarm/Gate Settings"
-        fieldKey="alarmGateSettings"
-      >
-        <Textarea
-          value={data.alarmGateSettings}
-          onChange={(e) => updateField("alarmGateSettings", e.target.value)}
-          placeholder="Describe gate positions, alarm levels, and trigger settings..."
-          rows={4}
-          className="bg-background"
-        />
-      </FieldWithHelp>
 
       <p className="text-xs text-muted-foreground">
         {getStandardLabel(standard)}: calibration interval {calibParams.calibrationInterval}, required coverage {scanParams.coverageRequired}%.

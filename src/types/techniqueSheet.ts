@@ -199,6 +199,16 @@ export interface CalibrationSensitivityRow {
   deltaDbTotal: number;
 }
 
+export interface StraightBeamConversionRow {
+  id: number;
+  partNumber: string;
+  fbhCalibrationSize: string; // e.g., "3/64"
+  fbhRequired: string;        // e.g., "3/64"
+  deltaDbNeeded: number;       // auto-calculated: 20*log10(A1/A2)
+  transferCorrectionDb: number;
+  curvatureCorrectionDb: number;
+}
+
 export interface CalibrationData {
   standardType: CalibrationBlockType | "";
   referenceMaterial: string;
@@ -211,6 +221,8 @@ export interface CalibrationData {
   autoRecommendedReason?: string; // NEW: Reason why this block was auto-selected (for tooltip)
   selectedBlockType?: 'curved' | 'flat'; // Block surface type selection for tubes (curved vs flat)
   sensitivityTable?: CalibrationSensitivityRow[];
+  customStraightBeamImage?: string; // Base64 data URL for user-uploaded custom calibration block image
+  straightBeamConversionTable?: StraightBeamConversionRow[];
 }
 
 // Technique type for scan parameters

@@ -1265,33 +1265,7 @@ class TechniqueSheetPDFBuilder {
 
     const eq = this.data.equipment;
 
-    // Main Equipment Info
-    const equipmentInfo = buildTableRows([
-      ['Manufacturer', eq.manufacturer],
-      ['Model', eq.model],
-      ['Serial Number', eq.serialNumber],
-      ['Software Version', eq.softwareVersion],
-    ], { showEmpty: true });
-
-    autoTable(this.pdf, {
-      startY: y,
-      head: [['Equipment', 'Value']],
-      body: equipmentInfo,
-      theme: 'grid',
-      styles: { fontSize: 9, cellPadding: 3 },
-      headStyles: { fillColor: COLORS.primary, textColor: [255, 255, 255] },
-      columnStyles: {
-        0: { fontStyle: 'bold', cellWidth: 60 },
-        1: { cellWidth: 'auto' },
-      },
-      margin: { left: PAGE.marginLeft, right: PAGE.marginRight, bottom: PAGE.footerHeight + 5 },
-    });
-
-    y = this.getTableEndY(y);
-
-    // Transducer Settings
-    y = this.addSubsectionTitle('Transducer', y);
-
+    // Transducer display values (computed before building the combined table)
     const transducerTypeDisplay = eq.transducerTypes?.length
       ? eq.transducerTypes.map((type) => formatTransducerType(type)).join(', ')
       : formatTransducerType(eq.transducerType);
@@ -1299,9 +1273,14 @@ class TechniqueSheetPDFBuilder {
       ? eq.transducerShapeAndSize.replace(/_/g, ' ')
       : undefined;
 
-    const transducerInfo = buildTableRows([
+    // Combined Equipment + Transducer table
+    const equipmentInfo = buildTableRows([
+      ['Manufacturer', eq.manufacturer],
+      ['Model', eq.model],
+      ['Serial Number', eq.serialNumber],
+      ['Software Version', eq.softwareVersion],
       ['Frequency', eq.frequency ? `${eq.frequency} MHz` : undefined],
-      ['Type', transducerTypeDisplay],
+      ['Transducer Type', transducerTypeDisplay],
       ['Transducer Shape & Size', transducerShapeDisplay],
       ['Element Diameter', eq.transducerDiameter ? formatNumber(eq.transducerDiameter, 3, 'inches') : undefined],
       ['Couplant', eq.customCouplant || eq.couplant],
@@ -1310,11 +1289,11 @@ class TechniqueSheetPDFBuilder {
 
     autoTable(this.pdf, {
       startY: y,
-      head: [['Transducer Parameter', 'Value']],
-      body: transducerInfo,
+      head: [['Equipment / Transducer', 'Value']],
+      body: equipmentInfo,
       theme: 'grid',
       styles: { fontSize: 9, cellPadding: 3 },
-      headStyles: { fillColor: COLORS.secondary, textColor: [255, 255, 255] },
+      headStyles: { fillColor: COLORS.primary, textColor: [255, 255, 255] },
       columnStyles: {
         0: { fontStyle: 'bold', cellWidth: 60 },
         1: { cellWidth: 'auto' },

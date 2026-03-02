@@ -450,21 +450,6 @@ export const EquipmentTab = ({ data, onChange, partThickness, standard = "AMS-ST
           </div>
         </FieldWithHelp>
 
-        <FieldWithHelp
-          label="Acoustic Velocity (m/s)"
-          fieldKey="manufacturer"
-          help="Longitudinal wave velocity in the test material"
-        >
-          <Input
-            type="number"
-            value={data.velocity ?? ""}
-            onChange={(e) => updateField("velocity", e.target.value ? parseFloat(e.target.value) : undefined)}
-            placeholder="e.g., 5920"
-            step={10}
-            className="bg-background"
-          />
-        </FieldWithHelp>
-
       </div>
 
       {/* Phased Array Settings Section (Collapsible) */}

@@ -273,10 +273,10 @@ export function getPartDimensionRows(setup: {
     if (setup.diameter) {
       rows.push(['Outer Diameter (OD)', formatNumber(setup.diameter, 1, 'mm')]);
     }
-    if (setup.isHollow && setup.innerDiameter) {
+    if (setup.innerDiameter) {
       rows.push(['Inner Diameter (ID)', formatNumber(setup.innerDiameter, 1, 'mm')]);
     }
-    if (setup.isHollow && setup.wallThickness) {
+    if (setup.wallThickness) {
       rows.push(['Wall Thickness', formatNumber(setup.wallThickness, 2, 'mm')]);
     }
   }

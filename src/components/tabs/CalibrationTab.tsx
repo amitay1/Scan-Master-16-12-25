@@ -1,8 +1,8 @@
 ﻿import { useState, useEffect, useMemo, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { CalibrationData, InspectionSetupData, AcceptanceClass, CalibrationBlockType, StandardType, CalibrationSensitivityRow } from "@/types/techniqueSheet";
-import { Target, Info, Sparkles, AlertTriangle, Plus, X } from "lucide-react";
+import { CalibrationData, InspectionSetupData, AcceptanceClass, CalibrationBlockType, StandardType, CalibrationSensitivityRow, StraightBeamConversionRow } from "@/types/techniqueSheet";
+import { Target, Info, Sparkles, AlertTriangle, Plus, X, Upload } from "lucide-react";
 import { CalibrationCatalog } from "../CalibrationCatalog";
 import { toast } from "sonner";
 import { FieldWithHelp } from "@/components/FieldWithHelp";
@@ -20,6 +20,7 @@ import { PWCalibrationBlockDrawing } from "../drawings/PWCalibrationBlockDrawing
 import { PWASIMCalibrationBlockDrawing } from "../drawings/PWASIMCalibrationBlockDrawing";
 import { DynamicCalibrationBlockDrawing } from "../drawings/DynamicCalibrationBlockDrawing";
 import { V2500BoreScanDiagram } from "../V2500BoreScanDiagram";
+import { StraightBeamConversionTable } from "../StraightBeamConversionTable";
 import type {
   PartGeometry as CalcPartGeometry,
   CalculatedBlockType,
@@ -714,32 +715,6 @@ export const CalibrationTab = ({
       <div className="border rounded-lg p-4 bg-card">
         <div className="flex items-center justify-between mb-4">
           <h4 className="font-semibold">FBH Hole Specifications</h4>
-          {fbhAutoFilled && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300 cursor-help">
-                    <Sparkles className="h-3 w-3 mr-1" />
-                    Auto-Selected
-                  </Badge>
-                </TooltipTrigger>
-                <TooltipContent className="max-w-md">
-                  <div className="space-y-2">
-                    <p className="text-sm font-semibold">FBH Auto-Fill Based On:</p>
-                    <ul className="text-xs space-y-1 list-disc list-inside">
-                      <li>Standard: {standard}</li>
-                      <li>Acceptance Class: {acceptanceClass}</li>
-                      <li>Inspection Thickness: {effectiveInspectionThickness}mm</li>
-                    </ul>
-                    <p className="text-sm border-t pt-2">{fbhAutoFillReason}</p>
-                    <p className="text-xs text-muted-foreground italic">
-                      You can manually override these values by editing the table below.
-                    </p>
-                  </div>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          )}
         </div>
         <FBHHoleTableWithPreviews
           holes={fbhHoles}
@@ -757,6 +732,64 @@ export const CalibrationTab = ({
           referenceThicknessMm={effectiveInspectionThickness}
         />
       </div>
+
+      {/* Sensitivity Conversion Table */}
+      <div className="border rounded-lg p-4 bg-card mt-4">
+        <h4 className="font-semibold mb-4">Sensitivity Conversion Table</h4>
+        <StraightBeamConversionTable
+          rows={data.straightBeamConversionTable || []}
+          onChange={(rows) => updateField("straightBeamConversionTable", rows)}
+        />
+      </div>
+
+      {/* Load Custom Image Option */}
+      <div className="flex items-center gap-2 mt-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => document.getElementById('straight-beam-custom-image')?.click()}
+          className="text-xs"
+        >
+          <Upload className="h-3 w-3 mr-1" />
+          Load Image
+        </Button>
+        <input
+          id="straight-beam-custom-image"
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) {
+              const reader = new FileReader();
+              reader.onload = (event) => {
+                updateField("customStraightBeamImage", event.target?.result as string);
+              };
+              reader.readAsDataURL(file);
+            }
+          }}
+        />
+        {data.customStraightBeamImage && (
+          <>
+            <span className="text-xs text-muted-foreground">Custom image loaded</span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => updateField("customStraightBeamImage", "")}
+              className="text-xs text-destructive"
+            >
+              Reset
+            </Button>
+          </>
+        )}
+      </div>
+
+      {/* Custom uploaded image (shown when available) */}
+      {data.customStraightBeamImage && (
+        <div className="border rounded-lg overflow-hidden">
+          <img src={data.customStraightBeamImage} alt="Custom calibration block" className="w-full h-auto max-h-[600px] object-contain bg-white" />
+        </div>
+      )}
 
       {/* Live straight-beam calibration model (auto-updates from Setup dimensions). */}
       <div className="space-y-2">
@@ -1105,29 +1138,6 @@ export const CalibrationTab = ({
     // Non-P&W Standard - Show generic angle beam content
     return (
       <div className="space-y-4">
-        {/* Prominent notice for shear wave calibration */}
-        <div className="bg-gradient-to-r from-orange-50 to-amber-50 border-2 border-orange-200 rounded-xl p-4">
-          <h4 className="font-bold text-orange-800 text-lg mb-2">
-            Shear Wave Calibration Required
-          </h4>
-          <p className="text-orange-700 text-sm">
-            This part geometry (tube, cylinder, cone, or sphere) requires shear wave inspection
-            for circumferential coverage. The reference standard below shows the required calibration
-            block design with FBH positions and step wedge profiles.
-          </p>
-          {/* Show part dimensions if available */}
-          {(inspectionSetup.diameter || inspectionSetup.innerDiameter) && (
-            <div className="mt-2 p-2 bg-white/50 rounded-lg">
-              <p className="text-sm text-orange-800 font-medium">
-                Part Dimensions:
-                {inspectionSetup.diameter && ` OD=${inspectionSetup.diameter}mm`}
-                {inspectionSetup.innerDiameter && ` ID=${inspectionSetup.innerDiameter}mm`}
-                {inspectionSetup.wallThickness && ` Wall=${inspectionSetup.wallThickness}mm`}
-              </p>
-            </div>
-          )}
-        </div>
-
         {/* Block Type Selection (Curved vs Flat) */}
         {showBlockTypeSelection && blockTypeOptions.length > 0 && (
           <div className="border-2 border-blue-200 rounded-xl p-4 bg-blue-50/50">
@@ -1177,14 +1187,14 @@ export const CalibrationTab = ({
 
         {selectedBlockType === "curved" ? (
           <>
-            {/* Professional parametric ring-segment drawing (primary for round parts). */}
+            {/* TUV-17 static reference drawing (primary for round parts). */}
             <AngleBeamCalibrationBlockDrawing
               width={950}
               height={760}
               showDimensions={true}
-              title={`Calibration Block - ${standard} (Parametric Ring Segment)`}
+              title={`Calibration Block - ${standard} (TUV Reference)`}
               partDimensions={partDimensions}
-              useParametric={true}
+              useParametric={false}
               initialTemplateId="TUV_STYLE_REF_BLOCK"
             />
 

@@ -114,7 +114,7 @@ export const AcceptanceCriteriaTab = ({
   useEffect(() => {
     const currentData = dataRef.current;
     if (currentData.acceptanceClass && currentCriteria) {
-      const bwlParsed = parseFloat((currentCriteria.backReflectionLoss || "").replace(/[^0-9.]/g, ""));
+      const bwlParsed = parseFloat((currentCriteria.backReflectionLoss || "").match(/[\d.]+/)?.[0] || "");
       onChangeRef.current({
         ...currentData,
         singleDiscontinuity: currentCriteria.singleDiscontinuity,

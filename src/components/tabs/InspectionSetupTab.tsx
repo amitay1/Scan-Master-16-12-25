@@ -1158,19 +1158,6 @@ export const InspectionSetupTab = ({
         </FieldWithHelp>
 
         <FieldWithHelp
-          label="Velocity (m/s)"
-          fieldKey="material"
-        >
-          <Input
-            type="number"
-            value={data.acousticVelocity || ""}
-            onChange={(e) => updateField("acousticVelocity", parseFloat(e.target.value) || undefined)}
-            placeholder={materialProps ? `${materialProps.velocity * 1000}` : ""}
-            className="bg-background"
-          />
-        </FieldWithHelp>
-
-        <FieldWithHelp
           label="Density (kg/m³)"
           fieldKey="material"
         >
@@ -1387,7 +1374,6 @@ export const InspectionSetupTab = ({
                 min={0}
                 step={0.1}
                 className="bg-background"
-                disabled
               />
             </FieldWithHelp>
           </>

@@ -73,6 +73,12 @@ export interface ScanDetail {
   backWallEcho?: number;
   /** Gate 2 settings (Start-Length-Level) */
   gate2?: GateSettings;
+  /** Gate 3 settings (Start-Length-Level) */
+  gate3?: GateSettings;
+  /** Gate 4 settings (Start-Length-Level) */
+  gate4?: GateSettings;
+  /** Water path distance in mm */
+  waterPath?: number;
   /** SSS (Surface, Start, Stop) or additional gate info */
   sss?: string;
 

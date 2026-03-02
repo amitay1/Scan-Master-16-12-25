@@ -1,0 +1,18 @@
+{
+  "licenseKey": "SM-FAC-NODESC-MLSBFH18-AMSASTM-LIFETIME-1F24E97D33D4",
+  "factoryId": "FAC-NODESC-MLSBFH18",
+  "factoryName": "node scripts/license-generator.js \" --standards --FACTORYACMECORPORATION\\ --lifetime",
+  "purchasedStandards": [
+    "AMS-STD-2154E",
+    "ASTM-A388"
+  ],
+  "standardsShortCodes": [
+    "AMS",
+    "ASTM"
+  ],
+  "expiryDate": null,
+  "isLifetime": true,
+  "maxUsers": null,
+  "generatedAt": "2026-02-18T17:38:09.788Z",
+  "totalPrice": 1000
+}

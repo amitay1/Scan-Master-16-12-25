@@ -1,6 +1,5 @@
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { StandardType } from "@/types/techniqueSheet";
-import { Lock, Check, AlertCircle, Info, ShieldCheck, Factory, Globe, FlaskConical, DollarSign, Wrench, Beaker, FileText, Zap, Layers, BookOpen, CircleDot, AlertTriangle, Clock, Gauge, Target } from "lucide-react";
+import { Lock, Check, AlertCircle, Info, ShieldCheck, Factory, Globe, FlaskConical, DollarSign, Wrench, FileText, Zap, Layers, BookOpen, CircleDot, AlertTriangle, Clock, Gauge, Target } from "lucide-react";
 import { useStandardAccess } from "@/hooks/useStandardAccess";
 import { useLicense } from "@/contexts/LicenseContext";
 import { Button } from "@/components/ui/button";
@@ -396,83 +395,67 @@ export const StandardSelector = ({ value, onChange, showComparisonIndicator = fa
           )}
         </div>
         
-        <Select value={value} onValueChange={handleStandardChange} disabled={isLoading}>
-          <SelectTrigger className={`w-full bg-card border-border ${showComparisonIndicator ? 'ring-2 ring-primary/20' : ''}`}>
-            <SelectValue placeholder="Select a standard...">
-              {currentStandard && (
-                <span className="text-xs truncate block">{currentStandard.value}</span>
-              )}
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent className="max-w-xl">
-            {standards.map((standard) => {
-              const Icon = standard.icon;
-              const isCurrentStandard = standard.value === value;
-              const isPurchased = isStandardPurchased(standard.value);
-              const isLocked = !isPurchased && isElectron;
-              const hasCurrentAccess = isCurrentStandard && isPurchased;
-              
-              return (
-                <SelectItem 
-                  key={standard.value} 
-                  value={standard.value}
-                  disabled={isLocked}
-                  className="py-4"
-                >
-                  <div className="flex items-start gap-2 sm:gap-3 w-full">
-                    <div className={`p-1.5 sm:p-2 rounded-lg ${standard.iconBg} shrink-0`}>
-                      <Icon className="h-3 w-3 sm:h-4 sm:w-4 text-white" />
-                    </div>
-                    
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-medium text-[10px] sm:text-xs truncate flex-1">{standard.label}</span>
-                        <div className="flex gap-1 shrink-0">
-                          {isLocked && (
-                            <Tooltip>
-                              <TooltipTrigger>
-                                <Lock className="h-3 w-3 text-amber-500" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p className="text-xs">Not purchased - Contact sales</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          )}
-                          {hasCurrentAccess && (
-                            <Tooltip>
-                              <TooltipTrigger>
-                                <Check className="h-3 w-3 text-green-500" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p className="text-xs">Included in your license</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          )}
-                        </div>
-                      </div>
-                      <p className="text-[9px] sm:text-[10px] text-muted-foreground mb-2 truncate">{standard.description}</p>
-                      
-                      <div className="grid grid-cols-2 gap-1">
-                        {standard.features.map((feature, idx) => (
-                          <Tooltip key={idx}>
-                            <TooltipTrigger asChild>
-                              <Badge variant="secondary" className="text-[9px] sm:text-[10px] px-1.5 py-0.5 text-ellipsis overflow-hidden whitespace-nowrap">
-                                {feature}
-                              </Badge>
+        <div className={`max-h-[320px] overflow-y-auto border rounded-lg p-1.5 space-y-1 bg-card ${showComparisonIndicator ? 'ring-2 ring-primary/20' : ''}`}>
+          {standards.map((standard) => {
+            const Icon = standard.icon;
+            const isCurrentStandard = standard.value === value;
+            const isPurchased = isStandardPurchased(standard.value);
+            const isLocked = !isPurchased && isElectron;
+            const hasCurrentAccess = isCurrentStandard && isPurchased;
+
+            return (
+              <div
+                key={standard.value}
+                onClick={() => !isLocked && !isLoading && handleStandardChange(standard.value)}
+                className={`p-2 rounded-lg border transition-all text-sm
+                  ${isCurrentStandard
+                    ? `border-2 ${standard.borderColor} ${standard.bgColor} shadow-sm`
+                    : 'border-transparent hover:bg-muted/60'}
+                  ${isLocked ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+                  ${isLoading ? 'pointer-events-none' : ''}`}
+              >
+                <div className="flex items-start gap-2">
+                  <div className={`p-1.5 rounded-lg ${standard.iconBg} shrink-0 mt-0.5`}>
+                    <Icon className="h-3 w-3 text-white" />
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span className="font-medium text-xs truncate flex-1">{standard.value}</span>
+                      <div className="flex items-center gap-1 shrink-0">
+                        {isLocked && (
+                          <Tooltip>
+                            <TooltipTrigger>
+                              <Lock className="h-3 w-3 text-amber-500" />
                             </TooltipTrigger>
                             <TooltipContent>
-                              <p className="text-xs">{feature}</p>
+                              <p className="text-xs">Not purchased - Contact sales</p>
                             </TooltipContent>
                           </Tooltip>
-                        ))}
+                        )}
+                        {hasCurrentAccess && (
+                          <Check className="h-3 w-3 text-green-500" />
+                        )}
+                        <Badge
+                          variant="outline"
+                          className="text-[9px] px-1.5 py-0 font-medium"
+                          style={{
+                            backgroundColor: standard.badgeBg,
+                            color: standard.badgeText,
+                            borderColor: standard.badgeBorder
+                          }}
+                        >
+                          {standard.stringency}
+                        </Badge>
                       </div>
                     </div>
+                    <p className="text-[10px] text-muted-foreground leading-snug">{standard.description}</p>
                   </div>
-                </SelectItem>
-              );
-            })}
-          </SelectContent>
-        </Select>
+                </div>
+              </div>
+            );
+          })}
+        </div>
         
         {!isStandardPurchased(value) && isElectron && (
           <div className="flex flex-col gap-2 p-3 bg-amber-50 dark:bg-amber-950 rounded-md border border-amber-200 dark:border-amber-800 mt-4 w-full">
