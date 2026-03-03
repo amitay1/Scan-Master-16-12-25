@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scan-Master License Code Generator (Admin Only)</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: system-ui, -apple-system, sans-serif; background:#0a0f1e; color:#e2e8f0; padding:2rem; min-height:100vh; }
+  .container { max-width:700px; margin:0 auto; }
+  h1 { font-size:1.5rem; margin-bottom:.5rem; }
+  h1 span { background:linear-gradient(135deg,#3b82f6,#10b981); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+  .subtitle { color:#64748b; font-size:.85rem; margin-bottom:2rem; }
+  .warning { background:rgba(239,68,68,.1); border:1px solid rgba(239,68,68,.3); border-radius:12px; padding:1rem 1.2rem; margin-bottom:2rem; font-size:.85rem; color:#fca5a5; }
+  .card { background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.07); border-radius:16px; padding:2rem; margin-bottom:1.5rem; }
+  label { display:block; font-size:.8rem; color:#94a3b8; margin-bottom:.5rem; text-transform:uppercase; letter-spacing:.05em; }
+  .row { display:flex; gap:.75rem; margin-bottom:1rem; }
+  input, select { flex:1; padding:12px 16px; background:rgba(0,0,0,.4); border:1px solid rgba(255,255,255,.1); border-radius:10px; color:#e2e8f0; font-family:'Courier New',monospace; font-size:.95rem; outline:none; }
+  input:focus { border-color:#3b82f6; }
+  button { padding:12px 24px; background:linear-gradient(135deg,#3b82f6,#2563eb); color:#fff; border:none; border-radius:10px; font-weight:600; cursor:pointer; transition:.3s; font-size:.9rem; }
+  button:hover { box-shadow:0 4px 20px rgba(59,130,246,.4); transform:translateY(-1px); }
+  .btn-secondary { background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1); }
+  .btn-secondary:hover { background:rgba(255,255,255,.1); box-shadow:none; }
+  .output { margin-top:1.5rem; }
+  .output-item { background:rgba(0,0,0,.3); border:1px solid rgba(255,255,255,.07); border-radius:10px; padding:1rem; margin-bottom:.75rem; font-family:'Courier New',monospace; font-size:.82rem; word-break:break-all; position:relative; }
+  .output-item .label { font-family:system-ui; font-size:.7rem; color:#64748b; text-transform:uppercase; letter-spacing:.05em; margin-bottom:.4rem; }
+  .copy-btn { position:absolute; top:.75rem; right:.75rem; padding:4px 12px; font-size:.7rem; background:rgba(59,130,246,.2); border:1px solid rgba(59,130,246,.3); border-radius:6px; color:#60a5fa; cursor:pointer; }
+  .copy-btn:hover { background:rgba(59,130,246,.3); }
+  .history { margin-top:2rem; }
+  .history h3 { font-size:.9rem; color:#94a3b8; margin-bottom:1rem; }
+  table { width:100%; border-collapse:collapse; font-size:.8rem; }
+  th { text-align:left; padding:.6rem .8rem; color:#64748b; border-bottom:1px solid rgba(255,255,255,.07); font-weight:500; }
+  td { padding:.6rem .8rem; border-bottom:1px solid rgba(255,255,255,.04); color:#cbd5e1; font-family:'Courier New',monospace; }
+  .hash-cell { font-size:.7rem; color:#64748b; max-width:200px; overflow:hidden; text-overflow:ellipsis; }
+  .badge { display:inline-block; padding:2px 8px; border-radius:6px; font-size:.7rem; font-family:system-ui; }
+  .badge-active { background:rgba(16,185,129,.15); color:#34d399; }
+  #noHistory { color:#475569; font-size:.85rem; text-align:center; padding:2rem; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1><span>Scan-Master</span> License Code Generator</h1>
+  <p class="subtitle">Admin tool - Generate license codes for customers. Do NOT share this page.</p>
+
+  <div class="warning">
+    This tool is for admin use only. Each generated code should be given to one customer.
+    After generating, copy the SHA-256 hash and add it to the <code>VALID_HASHES</code> array in <code>gh-pages-audit.html</code>.
+  </div>
+
+  <div class="card">
+    <label>Generate New License Code</label>
+    <div class="row">
+      <input id="prefix" value="SM-2026" placeholder="Prefix (e.g. SM-2026)" style="max-width:140px">
+      <input id="customerNote" placeholder="Customer name (for your records)" style="flex:2">
+      <button onclick="generateCode()">Generate</button>
+    </div>
+    <div class="row" style="margin-bottom:0">
+      <button class="btn-secondary" onclick="generateBatch(3)" style="flex:1">Generate 3 Codes</button>
+      <button class="btn-secondary" onclick="clearHistory()" style="flex:1">Clear History</button>
+    </div>
+
+    <div id="result" class="output" style="display:none">
+      <div class="output-item" style="border-color:rgba(59,130,246,.2)">
+        <div class="label">License Code (give to customer)</div>
+        <div id="codeOutput" style="font-size:1.1rem;color:#60a5fa;font-weight:bold"></div>
+        <span class="copy-btn" onclick="copyText('codeOutput')">Copy</span>
+      </div>
+      <div class="output-item">
+        <div class="label">SHA-256 Hash (add to VALID_HASHES in HTML)</div>
+        <div id="hashOutput"></div>
+        <span class="copy-btn" onclick="copyText('hashOutput')">Copy</span>
+      </div>
+      <div class="output-item" style="border-color:rgba(16,185,129,.2)">
+        <div class="label">Ready-to-paste line for VALID_HASHES array</div>
+        <div id="lineOutput" style="color:#34d399"></div>
+        <span class="copy-btn" onclick="copyText('lineOutput')">Copy</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="history">
+    <h3>Generated Codes History (this session)</h3>
+    <div id="historyContent">
+      <p id="noHistory">No codes generated yet.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+const history = [];
+
+function randomSegment(len) {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let s = '';
+  for(let i = 0; i < len; i++) s += chars[Math.floor(Math.random() * chars.length)];
+  return s;
+}
+
+async function sha256(str) {
+  const buf = new TextEncoder().encode(str.trim().toUpperCase());
+  const hash = await crypto.subtle.digest('SHA-256', buf);
+  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+async function generateCode() {
+  const prefix = document.getElementById('prefix').value.trim() || 'SM-2026';
+  const customer = document.getElementById('customerNote').value.trim() || 'N/A';
+  const code = prefix + '-' + randomSegment(4) + '-' + randomSegment(4);
+  const hash = await sha256(code);
+
+  document.getElementById('codeOutput').textContent = code;
+  document.getElementById('hashOutput').textContent = hash;
+  document.getElementById('lineOutput').textContent = `'${hash}',  // ${code}`;
+  document.getElementById('result').style.display = 'block';
+
+  history.push({ code, hash, customer, date: new Date().toLocaleString() });
+  renderHistory();
+}
+
+async function generateBatch(n) {
+  for(let i = 0; i < n; i++) await generateCode();
+}
+
+function renderHistory() {
+  if(history.length === 0) {
+    document.getElementById('historyContent').innerHTML = '<p id="noHistory">No codes generated yet.</p>';
+    return;
+  }
+  let html = '<table><thead><tr><th>Code</th><th>Hash</th><th>Customer</th><th>Date</th></tr></thead><tbody>';
+  for(const h of [...history].reverse()) {
+    html += `<tr>
+      <td style="color:#60a5fa;font-weight:bold">${h.code}</td>
+      <td class="hash-cell" title="${h.hash}">${h.hash.slice(0,16)}...</td>
+      <td style="font-family:system-ui;color:#94a3b8">${h.customer}</td>
+      <td style="font-family:system-ui;color:#64748b;font-size:.75rem">${h.date}</td>
+    </tr>`;
+  }
+  html += '</tbody></table>';
+  document.getElementById('historyContent').innerHTML = html;
+}
+
+function copyText(id) {
+  const text = document.getElementById(id).textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById(id).parentElement.querySelector('.copy-btn');
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = 'Copy', 1500);
+  });
+}
+
+function clearHistory() {
+  history.length = 0;
+  renderHistory();
+  document.getElementById('result').style.display = 'none';
+}
+</script>
+</body>
+</html>
