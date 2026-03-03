@@ -108,9 +108,9 @@ if (-not $SkipBuild) {
     if (Test-Path "dist-electron") {
         Remove-Item -Path "dist-electron" -Recurse -Force -ErrorAction SilentlyContinue
     }
-    if (Test-Path "release") {
-        Write-Info "  Removing old release/ folder..."
-        Remove-Item -Path "release" -Recurse -Force -ErrorAction SilentlyContinue
+    if (Test-Path "release-build") {
+        Write-Info "  Removing old release-build/ folder..."
+        Remove-Item -Path "release-build" -Recurse -Force -ErrorAction SilentlyContinue
     }
 
     npm run dist:win
@@ -122,7 +122,7 @@ if (-not $SkipBuild) {
 }
 
 # Validate build output before uploading
-$releaseFolder = "release"
+$releaseFolder = "release-build"
 $installerPath = Join-Path $releaseFolder "ScanMaster-Setup-$newVersion.exe"
 $latestYmlPath = Join-Path $releaseFolder "latest.yml"
 $buildOK = $true
@@ -215,8 +215,8 @@ if ($ghAvailable) {
         Write-Error "  The GitHub release was created but is EMPTY."
         Write-Error "  Fix the build and run: npm run dist:win"
         Write-Error "  Then manually upload files with:"
-        Write-Error "    gh release upload v$newVersion release/latest.yml --clobber"
-        Write-Error "    gh release upload v$newVersion release/ScanMaster-Setup-$newVersion.exe --clobber"
+        Write-Error "    gh release upload v$newVersion release-build/latest.yml --clobber"
+        Write-Error "    gh release upload v$newVersion release-build/ScanMaster-Setup-$newVersion.exe --clobber"
         Write-Error "================================================"
     }
 } else {
