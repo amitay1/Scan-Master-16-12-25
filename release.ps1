@@ -108,12 +108,28 @@ if (-not $SkipBuild) {
     if (Test-Path "dist-electron") {
         Remove-Item -Path "dist-electron" -Recurse -Force -ErrorAction SilentlyContinue
     }
-    if (Test-Path "release-build") {
-        Write-Info "  Removing old release-build/ folder..."
-        Remove-Item -Path "release-build" -Recurse -Force -ErrorAction SilentlyContinue
-    }
+
+    # Use a fresh timestamped output directory to avoid Windows file-lock issues
+    # (Windows Defender / Search Indexer often lock .asar files from previous builds)
+    $buildTimestamp = Get-Date -Format "yyyyMMdd-HHmmss"
+    $freshOutputDir = "release-build-$buildTimestamp"
+    Write-Info "  Build output directory: $freshOutputDir"
+
+    # Temporarily update electron-builder.json with the fresh output dir
+    $ebJsonPath = "electron-builder.json"
+    $ebJson = Get-Content $ebJsonPath -Raw | ConvertFrom-Json
+    $originalOutputDir = $ebJson.directories.output
+    $ebJson.directories.output = $freshOutputDir
+    $ebJsonContent = $ebJson | ConvertTo-Json -Depth 100
+    $utf8NoBOM2 = New-Object System.Text.UTF8Encoding $false
+    [System.IO.File]::WriteAllText((Resolve-Path $ebJsonPath).Path, $ebJsonContent, $utf8NoBOM2)
 
     npm run dist:win
+
+    # Restore the original output dir in electron-builder.json
+    $ebJson.directories.output = $originalOutputDir
+    $ebJsonRestored = $ebJson | ConvertTo-Json -Depth 100
+    [System.IO.File]::WriteAllText((Resolve-Path $ebJsonPath).Path, $ebJsonRestored, $utf8NoBOM2)
 
     if ($LASTEXITCODE -ne 0) {
         Write-Error "Build failed! Release created but without installer files."
@@ -122,7 +138,12 @@ if (-not $SkipBuild) {
 }
 
 # Validate build output before uploading
-$releaseFolder = "release-build"
+# Use the fresh timestamped dir if it was set, otherwise fall back to default
+if ($freshOutputDir -and (Test-Path $freshOutputDir)) {
+    $releaseFolder = $freshOutputDir
+} else {
+    $releaseFolder = "release-build"
+}
 $installerPath = Join-Path $releaseFolder "ScanMaster-Setup-$newVersion.exe"
 $latestYmlPath = Join-Path $releaseFolder "latest.yml"
 $buildOK = $true

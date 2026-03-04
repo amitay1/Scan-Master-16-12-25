@@ -252,6 +252,7 @@ export interface InspectionReportData {
 
   // Document Information
   documentNo: string;
+  indicatorNo?: string; // Indicator number (shown in header)
   currentRevision: string;
   revisionDate: string;
   batchNumber?: string; // Lotto Bytest N°
@@ -492,6 +493,7 @@ export const getDefaultResultsSummary = (): ResultsSummary => ({
 
 export const getDefaultInspectionReportData = (): InspectionReportData => ({
   documentNo: '',
+  indicatorNo: '',
   currentRevision: '0',
   revisionDate: new Date().toISOString().split('T')[0],
   batchNumber: '',

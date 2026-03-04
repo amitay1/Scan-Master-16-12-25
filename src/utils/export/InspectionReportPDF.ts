@@ -176,9 +176,9 @@ export const exportInspectionReportPDF = (
 
     // Document info box (white box on right)
     const boxWidth = 60;
-    const boxHeight = 22;
+    const boxHeight = 24;
     const boxX = PAGE.width - PAGE.marginRight - boxWidth;
-    const boxY = headerY + 3;
+    const boxY = headerY + 2;
 
     // White box with border
     doc.setFillColor(...COLORS.white);
@@ -191,15 +191,17 @@ export const exportInspectionReportPDF = (
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(...COLORS.lightText);
-    doc.text('Document No:', boxX + 3, boxY + 6);
-    doc.text('Revision:', boxX + 3, boxY + 12);
-    doc.text('Date:', boxX + 3, boxY + 18);
+    doc.text('Report No:', boxX + 3, boxY + 5);
+    doc.text('Indicator No:', boxX + 3, boxY + 10);
+    doc.text('Revision:', boxX + 3, boxY + 15);
+    doc.text('Date:', boxX + 3, boxY + 20);
 
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(...COLORS.primaryDark);
-    doc.text(formatValue(data.documentNo), boxX + 28, boxY + 6);
-    doc.text(formatValue(data.currentRevision), boxX + 28, boxY + 12);
-    doc.text(formatDate(data.issueDate), boxX + 28, boxY + 18);
+    doc.text(formatValue(data.documentNo), boxX + 28, boxY + 5);
+    doc.text(formatValue(data.indicatorNo), boxX + 28, boxY + 10);
+    doc.text(formatValue(data.currentRevision), boxX + 28, boxY + 15);
+    doc.text(formatDate(data.issueDate), boxX + 28, boxY + 20);
 
     return headerY + headerHeight + 8;
   };
@@ -357,12 +359,13 @@ export const exportInspectionReportPDF = (
   // ============================================================================
   const calculateTotalPages = (): number => {
     let pages = 1; // Cover page
+    pages += 1; // Observations & Results Detail page
     pages += 1; // Equipment
     if (includeAerospaceSection) pages += 1; // Aerospace
     if (data.indications && data.indications.length > 0) pages += 1; // Indications
     pages += Math.ceil((data.scans?.length || 0) / 2); // Scans
     pages += 1; // Remarks & Signatures
-    return Math.max(pages, 3);
+    return Math.max(pages, 4);
   };
 
   const totalPages = calculateTotalPages();
@@ -544,7 +547,145 @@ export const exportInspectionReportPDF = (
 
   yPos += 18;
 
+  // ---- Signature boxes on cover page ----
+  const coverSigWidth = 55;
+  const coverSigHeight = 28;
+  const coverSigGap = 7;
+  const sigs = data.signatures || {};
+
+  const drawCoverSignatureBox = (x: number, title: string, name?: string, date?: string) => {
+    doc.setFillColor(...COLORS.sectionBg);
+    doc.roundedRect(x, yPos, coverSigWidth, coverSigHeight, 2, 2, 'F');
+    doc.setDrawColor(...COLORS.tableBorder);
+    doc.setLineWidth(0.3);
+    doc.roundedRect(x, yPos, coverSigWidth, coverSigHeight, 2, 2, 'S');
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...COLORS.primary);
+    doc.text(title, x + 3, yPos + 5);
+    doc.setDrawColor(...COLORS.divider);
+    doc.line(x + 3, yPos + 8, x + coverSigWidth - 3, yPos + 8);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(...COLORS.text);
+    doc.text(name || '________________________', x + 3, yPos + 15);
+    doc.setFontSize(7);
+    doc.setTextColor(...COLORS.lightText);
+    doc.text('Date:', x + 3, yPos + 22);
+    doc.setTextColor(...COLORS.text);
+    doc.text(date || '______________', x + 15, yPos + 22);
+  };
+
+  drawCoverSignatureBox(PAGE.marginLeft, 'REPORT ISSUED BY', sigs.preparedBy?.name, sigs.preparedBy?.date);
+  drawCoverSignatureBox(PAGE.marginLeft + coverSigWidth + coverSigGap, 'APPROVED BY', sigs.approvedBy?.name, sigs.approvedBy?.date);
+  drawCoverSignatureBox(PAGE.marginLeft + (coverSigWidth + coverSigGap) * 2, 'AUTHORIZED BY', sigs.witness?.name, sigs.witness?.date);
+
+  yPos += coverSigHeight + 5;
+
   addFooter(1, totalPages);
+
+  // ============================================================================
+  // PAGE 1B: OBSERVATIONS & RESULTS DETAIL (Summary + Test Results tables)
+  // ============================================================================
+
+  doc.addPage();
+  currentPage++;
+  yPos = addHeader();
+
+  yPos = addSectionTitle('OBSERVATIONS & RESULTS', yPos);
+
+  // Part summary table (Part Inspected | Conforming Parts | Non-Conforming Parts)
+  const rs = data.resultsSummary;
+  autoTable(doc, {
+    startY: yPos,
+    head: [['Part Inspected', 'Conforming Parts', 'Non-Conforming Parts']],
+    body: [[
+      rs?.partsInspected?.toString() || '-',
+      rs?.conformingParts?.toString() || '-',
+      rs?.nonConformingParts?.toString() || '-',
+    ]],
+    theme: 'grid',
+    styles: { fontSize: 9, cellPadding: 4, halign: 'center' },
+    headStyles: {
+      fillColor: COLORS.primary,
+      textColor: [255, 255, 255],
+      fontStyle: 'bold',
+      halign: 'center',
+    },
+    tableLineColor: COLORS.tableBorder,
+    tableLineWidth: 0.3,
+    margin: { left: PAGE.marginLeft, right: PAGE.marginRight },
+  });
+
+  yPos = (doc as any).lastAutoTable.finalY + 10;
+
+  // Test Results detailed table
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...COLORS.primary);
+  doc.text('Test Results', PAGE.marginLeft, yPos);
+  yPos += 5;
+
+  // Build test results rows from indications data
+  const testResultRows = (data.indications && data.indications.length > 0)
+    ? data.indications.map(ind => [
+        ind.scanId || '-',
+        ind.xDistance || '-',
+        ind.amplitude || '-',
+        `${ind.soundPath || '-'} / ${ind.fbhEquivalentSize || '-'} / ${ind.xExtension || '-'}`,
+        ind.yDistance || '-',
+        ind.assessment?.toUpperCase() || '-',
+      ])
+    : [['', '', '', '', '', '']];
+
+  autoTable(doc, {
+    startY: yPos,
+    head: [['S/N', 'Scan Direction', 'Indication\nAmplitude', 'Indication Size\n(Depth / Type / Length)', 'Location', 'Assessment']],
+    body: testResultRows,
+    theme: 'grid',
+    styles: { fontSize: 8, cellPadding: 3 },
+    headStyles: {
+      fillColor: COLORS.primary,
+      textColor: [255, 255, 255],
+      fontStyle: 'bold',
+      halign: 'center',
+    },
+    columnStyles: {
+      0: { cellWidth: 20 },
+      1: { cellWidth: 30 },
+      2: { cellWidth: 25 },
+      3: { cellWidth: 45 },
+      4: { cellWidth: 30 },
+      5: { cellWidth: 30 },
+    },
+    alternateRowStyles: { fillColor: COLORS.rowAlt },
+    tableLineColor: COLORS.tableBorder,
+    tableLineWidth: 0.3,
+    margin: { left: PAGE.marginLeft, right: PAGE.marginRight },
+    didParseCell: (cellData) => {
+      if (cellData.column.index === 5 && cellData.section === 'body') {
+        const value = cellData.cell.raw?.toString().toLowerCase() || '';
+        if (value.includes('accept')) {
+          cellData.cell.styles.textColor = COLORS.success;
+          cellData.cell.styles.fontStyle = 'bold';
+        } else if (value.includes('reject')) {
+          cellData.cell.styles.textColor = COLORS.error;
+          cellData.cell.styles.fontStyle = 'bold';
+        }
+      }
+    },
+  });
+
+  yPos = (doc as any).lastAutoTable.finalY + 8;
+
+  // Note about C-Scan images
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'italic');
+  doc.setTextColor(...COLORS.lightText);
+  doc.text('If needed — Add C-Scan image result (see Scan Data pages).', PAGE.marginLeft + 3, yPos);
+  yPos += 8;
+
+  addFooter(currentPage, totalPages);
 
   // ============================================================================
   // PAGE 2: EQUIPMENT DETAILS
@@ -736,11 +877,6 @@ export const exportInspectionReportPDF = (
       { label: 'Part Temp', value: env?.partTemperature || '-' },
     ], yPos);
 
-    yPos = addFieldRow([
-      { label: 'Humidity', value: env?.humidity || '-' },
-      { label: 'Lighting', value: env?.lightingConditions || '-' },
-    ], yPos);
-
     yPos += 3;
 
     // Couplant Details
@@ -751,11 +887,6 @@ export const exportInspectionReportPDF = (
       { label: 'Type', value: coup?.couplantType || '-' },
       { label: 'Manufacturer', value: coup?.couplantManufacturer || '-' },
       { label: 'Batch', value: coup?.couplantBatchNumber || '-' },
-    ], yPos);
-
-    yPos = addFieldRow([
-      { label: 'Sulfur Content', value: coup?.sulfurContent || '-' },
-      { label: 'Halide Content', value: coup?.halideContent || '-' },
     ], yPos);
 
     yPos += 3;
@@ -817,34 +948,6 @@ export const exportInspectionReportPDF = (
       { label: 'Scanning Sens', value: sens?.scanningSensitivity || '-' },
       { label: 'Recording Level', value: sens?.recordingLevel || '-' },
       { label: 'Rejection Level', value: sens?.rejectionLevel || '-' },
-    ], yPos);
-
-    yPos += 3;
-
-    // Transfer Correction
-    const trans = data.transferCorrection;
-    yPos = addSubSectionTitle('Transfer Correction', yPos);
-
-    yPos = addFieldRow([
-      { label: 'Cal Block BWE', value: trans?.calibrationBlockBwe || '-' },
-      { label: 'Part BWE', value: trans?.partBweAtSameThickness || '-' },
-      { label: 'Correction', value: trans?.transferCorrectionValue || '-' },
-    ], yPos);
-
-    yPos += 3;
-
-    // BWE Monitoring
-    const bwe = data.bweMonitoring;
-    yPos = addSubSectionTitle('Back Wall Echo Monitoring (ASTM A388)', yPos);
-
-    yPos = addFieldRow([
-      { label: 'Threshold', value: bwe?.bweAttenuationThreshold || '-' },
-      { label: 'Loss Recorded', value: bwe?.bweLossRecorded || '-' },
-    ], yPos);
-
-    yPos = addFieldRow([
-      { label: 'Gate Start', value: bwe?.bweGateStart || '-' },
-      { label: 'Gate End', value: bwe?.bweGateEnd || '-' },
     ], yPos);
 
     yPos += 3;
@@ -1127,9 +1230,9 @@ export const exportInspectionReportPDF = (
     doc.text(date || '______________', x + 15, yPos + 22);
   };
 
-  drawSignatureBox(PAGE.marginLeft, 'PREPARED BY', signatures.preparedBy?.name, signatures.preparedBy?.date);
+  drawSignatureBox(PAGE.marginLeft, 'REPORT ISSUED BY', signatures.preparedBy?.name, signatures.preparedBy?.date);
   drawSignatureBox(PAGE.marginLeft + sigWidth + sigGap, 'APPROVED BY', signatures.approvedBy?.name, signatures.approvedBy?.date);
-  drawSignatureBox(PAGE.marginLeft + (sigWidth + sigGap) * 2, 'WITNESS', signatures.witness?.name, signatures.witness?.date);
+  drawSignatureBox(PAGE.marginLeft + (sigWidth + sigGap) * 2, 'AUTHORIZED BY', signatures.witness?.name, signatures.witness?.date);
 
   addFooter(currentPage, totalPages);
 

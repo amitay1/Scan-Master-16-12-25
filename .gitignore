@@ -41,6 +41,7 @@ Thumbs.db
 # Electron build output
 release/
 release-build/
+release-build-*/
 out/
 
 # Test coverage
