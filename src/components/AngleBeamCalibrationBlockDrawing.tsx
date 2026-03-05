@@ -140,9 +140,6 @@ function StaticImageView({
           </span>
           <span className="px-3 py-1 bg-green-50 rounded-full">Arc segment: 120° coverage</span>
         </div>
-        <p className="text-center text-xs text-gray-500 mt-2">
-          Voir rapport 5394 pour Coupe A-A et B-B | Reference: AMS-STD-2154 / ASTM E2375
-        </p>
       </div>
 
       {/* Control Buttons - Top Right */}
@@ -242,7 +239,7 @@ export function AngleBeamCalibrationBlockDrawing({
   // Container classes
   const containerClasses = isFullscreen
     ? 'fixed inset-0 z-50 bg-white flex flex-col'
-    : 'relative border-2 border-blue-200 rounded-xl bg-white flex flex-col shadow-lg';
+    : 'relative border-2 border-blue-200 bg-white flex flex-col shadow-lg';
 
   return (
     <div
@@ -255,9 +252,6 @@ export function AngleBeamCalibrationBlockDrawing({
       <div className="w-full border-b-2 border-blue-100 bg-gradient-to-r from-blue-50 via-white to-blue-50">
         <div className="text-center py-3">
           <h4 className="font-bold text-lg text-blue-800">{title}</h4>
-          <p className="text-sm text-blue-600 mt-1">
-            Applicable for: Tubes, Cylinders, Cones, Spheres - Circumferential Inspection
-          </p>
         </div>
 
         {/* Mode Tabs */}

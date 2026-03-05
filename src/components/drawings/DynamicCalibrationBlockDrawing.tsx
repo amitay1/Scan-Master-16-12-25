@@ -138,7 +138,7 @@ export function DynamicCalibrationBlockDrawing({
   }[blockSpec.blockType] || 'Reference Block';
 
   return (
-    <div className="dynamic-calibration-block-drawing bg-white rounded-lg border-2 border-blue-200 shadow-lg overflow-hidden">
+    <div className="dynamic-calibration-block-drawing bg-white border-2 border-blue-200 shadow-lg overflow-hidden">
       {/* Header */}
       <div className="bg-gradient-to-r from-emerald-600 to-teal-700 text-white px-4 py-3">
         <div className="flex items-center justify-between">
@@ -557,8 +557,8 @@ function CylinderNotchedBlockDrawing({ spec, width, height, showDimensions, uniq
             <rect x="-3" y={-scaledOD / 2 - 2} width="6" height="10" fill="#f59e0b" />
             <text x="8" y={-scaledOD / 2 + 5} fontSize="7" fill="#f59e0b">OD-C</text>
 
-            <rect x={-scaledID / 2 - 2} y="-3" width="10" height="6" fill="#22c55e" />
-            <text x={-scaledID / 2 - 25} y="4" fontSize="7" fill="#22c55e">ID-A</text>
+            <rect x={-scaledID / 2 - 2} y="-3" width="10" height="6" fill="#6366f1" />
+            <text x={-scaledID / 2 - 25} y="4" fontSize="7" fill="#6366f1">ID-A</text>
 
             <rect x="-3" y={scaledID / 2 - 8} width="6" height="10" fill="#3b82f6" />
             <text x="8" y={scaledID / 2 - 2} fontSize="7" fill="#3b82f6">ID-C</text>
@@ -633,7 +633,7 @@ function CylinderNotchedBlockDrawing({ spec, width, height, showDimensions, uniq
             { x: scaledLength * 0.82, y: scaledOD - 8, label: 'ID-C' },
           ];
           const pos = positions[i] || positions[0];
-          const colors = ['#ef4444', '#f59e0b', '#22c55e', '#3b82f6'];
+          const colors = ['#ef4444', '#f59e0b', '#6366f1', '#3b82f6'];
 
           return (
             <g key={`notch-side-${i}`}>
@@ -707,7 +707,7 @@ function CylinderNotchedBlockDrawing({ spec, width, height, showDimensions, uniq
             <text x="10" y="111" fontSize="8" fontWeight="600" fill="#1e293b">Locations (4):</text>
             <text x="15" y="126" fontSize="8" fill="#ef4444">- OD Axial</text>
             <text x="95" y="126" fontSize="8" fill="#f59e0b">- OD Circumferential</text>
-            <text x="15" y="141" fontSize="8" fill="#22c55e">- ID Axial</text>
+            <text x="15" y="141" fontSize="8" fill="#6366f1">- ID Axial</text>
             <text x="95" y="141" fontSize="8" fill="#3b82f6">- ID Circumferential</text>
             <text x="10" y="157" fontSize="8" fill="#64748b">Units: mm</text>
             <text x="10" y="169" fontSize="8" fill="#64748b">Tol depth: {notches[0].depthTolerance}</text>

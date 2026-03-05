@@ -72,7 +72,7 @@ const PWA_SIM_CONFIG = {
       diameterMm: 0.79,
       depthPercent: 10,
       purpose: 'Secondary Reference',
-      color: '#16a34a', // green
+      color: '#6366f1', // indigo
     },
     {
       id: 'NOTCH',

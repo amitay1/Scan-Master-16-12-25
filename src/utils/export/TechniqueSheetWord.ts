@@ -109,6 +109,7 @@ export interface TechniqueSheetWordExportData {
 export interface WordExportOptions {
   companyName?: string;
   companyLogo?: string;
+  showLogoOnEveryPage?: boolean; // When false, hide logo from all pages (default: true)
 }
 
 // ============================================================================
@@ -1108,7 +1109,8 @@ export async function exportTechniqueSheetWord(
 
   // ========== COVER PAGE ==========
   // Header bar with document info
-  children.push(createCoverHeader(docNum, revision, dateStr, options.companyName, options.companyLogo));
+  const effectiveLogo = options.showLogoOnEveryPage !== false ? options.companyLogo : undefined;
+  children.push(createCoverHeader(docNum, revision, dateStr, options.companyName, effectiveLogo));
   children.push(new Paragraph({ children: [], spacing: { after: 300 } }));
 
   // Document Summary section header
@@ -1392,8 +1394,6 @@ export async function exportTechniqueSheetWord(
 
   children.push(new Paragraph({ children: [], spacing: { after: 200 } }));
 
-  // Transducer subsection
-  children.push(createSubsectionTitle('Transducer'));
   children.push(new Paragraph({ children: [], spacing: { after: 100 } }));
 
   const transducerTypeDisplay = equipment.transducerTypes?.length

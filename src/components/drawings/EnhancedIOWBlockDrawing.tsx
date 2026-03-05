@@ -357,8 +357,8 @@ export function EnhancedIOWBlockDrawing({
         })}
 
         {/* Scanning surface indicator */}
-        <line x1="-10" y1="0" x2={scaledWidth + 10} y2="0" stroke="#22c55e" strokeWidth="2"/>
-        <text x={scaledWidth + 15} y="4" fontSize="6" fill="#22c55e">SCAN</text>
+        <line x1="-10" y1="0" x2={scaledWidth + 10} y2="0" stroke="#6366f1" strokeWidth="2"/>
+        <text x={scaledWidth + 15} y="4" fontSize="6" fill="#6366f1">SCAN</text>
 
         {/* Dimensions */}
         {showDimensions && (
@@ -417,7 +417,7 @@ export function EnhancedIOWBlockDrawing({
         <text x="10" y="38" fontSize="7" fill="#1e293b">• Response varies with reflector depth</text>
         <text x="10" y="51" fontSize="7" fill="#1e293b">• Used to establish DAC/TCG curves</text>
         <text x="10" y="64" fontSize="7" fill="#1e293b">• 15-hole array covers full range</text>
-        <text x="10" y="77" fontSize="7" fill="#1e293b">• Scan from top surface (green line)</text>
+        <text x="10" y="77" fontSize="7" fill="#1e293b">• Scan from top surface (indigo line)</text>
       </g>
 
       {/* Validation warning if FBH out of bounds */}

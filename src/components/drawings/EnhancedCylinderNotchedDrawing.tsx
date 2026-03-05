@@ -475,7 +475,7 @@ export function EnhancedCylinderNotchedDrawing({
         {notches.map((notch, i) => (
           <g key={i} transform={`translate(0, ${30 + i * 15})`}>
             <text x="10" y="10" fontSize="7" fill="#1e293b">{i + 1}</text>
-            <text x="35" y="10" fontSize="7" fill={notch.type === 'OD' ? '#2563eb' : notch.type === 'ID' ? '#16a34a' : '#ef4444'}>{notch.type}</text>
+            <text x="35" y="10" fontSize="7" fill={notch.type === 'OD' ? '#2563eb' : notch.type === 'ID' ? '#6366f1' : '#ef4444'}>{notch.type}</text>
             <text x="80" y="10" fontSize="7" fill="#1e293b">{notch.angle}°</text>
             <text x="125" y="10" fontSize="7" fill="#1e293b">{notch.depth.toFixed(2)}mm</text>
             <text x="175" y="10" fontSize="7" fill="#1e293b">{(notch.width || 0.5).toFixed(2)}mm</text>
@@ -492,7 +492,7 @@ export function EnhancedCylinderNotchedDrawing({
         <rect x="0" y="8" width="150" height="55" fill="white" stroke="#1e293b" strokeWidth="1"/>
         <rect x="10" y="18" width="10" height="3" fill="#2563eb"/>
         <text x="30" y="23" fontSize="7" fill="#1e293b">OD - Outer Diameter</text>
-        <rect x="10" y="33" width="10" height="3" fill="#16a34a"/>
+        <rect x="10" y="33" width="10" height="3" fill="#6366f1"/>
         <text x="30" y="38" fontSize="7" fill="#1e293b">ID - Inner Diameter</text>
         <circle cx="15" cy="50" r="3" fill="#ef4444"/>
         <text x="30" y="53" fontSize="7" fill="#1e293b">AX - Axial</text>

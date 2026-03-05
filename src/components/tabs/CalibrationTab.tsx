@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { BlockTypeSelection, getBlockTypeOptions } from "@/types/calibrationBlocks";
+import { BlockTypeSelection, getBlockTypeOptions, GEOMETRY_GROUPS } from "@/types/calibrationBlocks";
 // New components for FBH table with dropdowns and previews
 import { FBHHoleTableWithPreviews } from "../FBHHoleTableWithPreviews";
 import { AngleBeamCalibrationBlockDrawing } from "../AngleBeamCalibrationBlockDrawing";
@@ -21,13 +21,16 @@ import { PWASIMCalibrationBlockDrawing } from "../drawings/PWASIMCalibrationBloc
 import { DynamicCalibrationBlockDrawing } from "../drawings/DynamicCalibrationBlockDrawing";
 import { V2500BoreScanDiagram } from "../V2500BoreScanDiagram";
 import { StraightBeamConversionTable } from "../StraightBeamConversionTable";
+import { AngleBeamCalibrationTable } from "../AngleBeamCalibrationTable";
 import type {
   PartGeometry as CalcPartGeometry,
   CalculatedBlockType,
 } from "@/rules/calibrationBlockDimensions";
 import {
   DEFAULT_FBH_HOLES,
+  DEFAULT_ANGLE_BEAM_CALIBRATION_ROWS,
   type FBHHoleRowData,
+  type AngleBeamCalibrationRow,
   FBH_DIAMETER_OPTIONS,
   BLOCK_HEIGHT_E_OPTIONS,
   METAL_TRAVEL_OPTIONS
@@ -248,6 +251,16 @@ export const CalibrationTab = ({
   const [sensitivityRows, setSensitivityRows] = useState<CalibrationSensitivityRow[]>(
     data.sensitivityTable || [{ id: 1, reflectorType: 'FBH', reflectorSizeInch: '1/64', curvatureCorrection: 0, gainOffset: 0, deltaDbTotal: 0 }]
   );
+
+  // Angle Beam Calibration Table state (dB corrections, reflector types)
+  const [angleBeamCalibrationRows, setAngleBeamCalibrationRows] = useState<AngleBeamCalibrationRow[]>(
+    data.angleBeamCalibrationRows || DEFAULT_ANGLE_BEAM_CALIBRATION_ROWS
+  );
+
+  const handleAngleBeamCalibrationRowsChange = (rows: AngleBeamCalibrationRow[]) => {
+    setAngleBeamCalibrationRows(rows);
+    onChange({ ...data, angleBeamCalibrationRows: rows });
+  };
 
   const addSensitivityRow = () => {
     if (sensitivityRows.length >= 8) return;
@@ -891,7 +904,14 @@ export const CalibrationTab = ({
     const blockTypeOptions = inspectionSetup.diameter
       ? getBlockTypeOptions(inspectionSetup.diameter)
       : [];
-    const showBlockTypeSelection = inspectionSetup.diameter && inspectionSetup.diameter > 0;
+    // Only show curved-vs-flat block type selection for tubular/pipe geometries
+    // where matching the part curvature is relevant.
+    const tubularTypes = [
+      ...GEOMETRY_GROUPS.THIN_WALL_TUBULAR,
+      ...GEOMETRY_GROUPS.THICK_WALL_TUBULAR,
+    ] as string[];
+    const isTubularGeometry = tubularTypes.includes(inspectionSetup.partType || '');
+    const showBlockTypeSelection = isTubularGeometry && inspectionSetup.diameter && inspectionSetup.diameter > 0;
 
     // Handle block type change
     const handleBlockTypeChange = (value: string) => {
@@ -1255,6 +1275,23 @@ export const CalibrationTab = ({
             </details>
           </>
         )}
+
+        {/* Angle Beam Calibration Table - dB corrections per reflector */}
+        <div className="border-2 border-orange-200 rounded-xl p-4 bg-orange-50/30 mt-4">
+          <h4 className="font-bold text-orange-800 text-base mb-3 flex items-center gap-2">
+            <Target className="h-4 w-4" />
+            Angle Beam Calibration Table
+          </h4>
+          <p className="text-sm text-muted-foreground mb-3">
+            Define reflector types, sizes and dB corrections for angle beam calibration.
+            Size dB and Sound Path are auto-calculated; Transfer dB is entered manually.
+          </p>
+          <AngleBeamCalibrationTable
+            rows={angleBeamCalibrationRows}
+            onChange={handleAngleBeamCalibrationRowsChange}
+            beamAngleDegrees={45}
+          />
+        </div>
       </div>
     );
   };

@@ -25,6 +25,7 @@ import {
   Cpu,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { ComplianceCheckerDialog, ComplianceBadge } from "@/components/ComplianceCheckerDialog";
 import { runComplianceCheck } from "@/utils/complianceChecker";
 import type { ComplianceCheckData } from "@/types/compliance";
@@ -98,6 +99,7 @@ export const UnifiedExportDialog: React.FC<UnifiedExportDialogProps> = ({
   const [companyName, setCompanyName] = useState("");
   const [companyLogo, setCompanyLogo] = useState<string | null>(null);
   const [logoFileName, setLogoFileName] = useState<string | null>(null);
+  const [showLogoOnEveryPage, setShowLogoOnEveryPage] = useState(true);
   const [showComplianceDialog, setShowComplianceDialog] = useState(false);
 
   // Build compliance check data from props
@@ -280,6 +282,7 @@ export const UnifiedExportDialog: React.FC<UnifiedExportDialogProps> = ({
     }, {
       companyName: companyName || undefined,
       companyLogo: companyLogo || undefined,
+      showLogoOnEveryPage,
       previewInNewTab: true,
     });
   };
@@ -316,6 +319,7 @@ export const UnifiedExportDialog: React.FC<UnifiedExportDialogProps> = ({
           exportInspectionReportPDF(inspectionReport, {
             companyName: companyName || undefined,
             companyLogo: companyLogo || undefined,
+            showLogoOnEveryPage,
             includeAerospaceSection: true,
           });
         } else {
@@ -338,6 +342,7 @@ export const UnifiedExportDialog: React.FC<UnifiedExportDialogProps> = ({
           }, {
             companyName: companyName || undefined,
             companyLogo: companyLogo || undefined,
+            showLogoOnEveryPage,
           });
         }
       } else {
@@ -360,6 +365,7 @@ export const UnifiedExportDialog: React.FC<UnifiedExportDialogProps> = ({
         }, {
           companyName: companyName || undefined,
           companyLogo: companyLogo || undefined,
+          showLogoOnEveryPage,
         });
       }
 
@@ -622,7 +628,7 @@ export const UnifiedExportDialog: React.FC<UnifiedExportDialogProps> = ({
                       {logoFileName || "Logo uploaded"}
                     </div>
                     <div className="text-xs text-emerald-600 dark:text-emerald-400">
-                      Will appear on all pages
+                      {showLogoOnEveryPage ? "Will appear on all pages" : "Logo hidden from export"}
                     </div>
                   </div>
                   <button onClick={removeLogo} className="p-1.5 text-emerald-600 hover:text-red-500 hover:bg-red-50 rounded transition-colors" title="Remove logo">
@@ -637,6 +643,18 @@ export const UnifiedExportDialog: React.FC<UnifiedExportDialogProps> = ({
                 </label>
               )}
             </div>
+            {companyLogo && (
+              <div className="flex items-center justify-between px-1">
+                <label htmlFor="logo-toggle" className="text-xs text-slate-500 dark:text-slate-400 cursor-pointer">
+                  Show logo on every page
+                </label>
+                <Switch
+                  id="logo-toggle"
+                  checked={showLogoOnEveryPage}
+                  onCheckedChange={setShowLogoOnEveryPage}
+                />
+              </div>
+            )}
           </div>
 
           {/* Info for low completion - but export still works */}

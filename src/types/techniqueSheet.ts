@@ -1,3 +1,5 @@
+import type { AngleBeamCalibrationRow } from "@/data/fbhStandardsData";
+
 export type StandardType =
   // Primary Aerospace Standards
   | "AMS-STD-2154E"  // Ultrasonic Inspection of Wrought Metals - Aerospace
@@ -98,6 +100,7 @@ export interface PhasedArraySettings {
 }
 
 export interface InspectionSetupData {
+  techniqueCardId?: string;  // Technique Card ID for printed reports
   partNumber: string;
   partName: string;
   material: MaterialType | "";
@@ -223,6 +226,7 @@ export interface CalibrationData {
   sensitivityTable?: CalibrationSensitivityRow[];
   customStraightBeamImage?: string; // Base64 data URL for user-uploaded custom calibration block image
   straightBeamConversionTable?: StraightBeamConversionRow[];
+  angleBeamCalibrationRows?: AngleBeamCalibrationRow[]; // Angle beam calibration table rows (dB corrections, reflector data)
 }
 
 // Technique type for scan parameters

@@ -77,6 +77,7 @@ export interface TechniqueSheetExportData {
 export interface ExportOptions {
   companyName?: string;
   companyLogo?: string;
+  showLogoOnEveryPage?: boolean; // When false, hide logo from all pages (default: true)
   documentNumber?: string;
   previewInNewTab?: boolean; // Open PDF in new browser tab instead of downloading
 }
@@ -422,7 +423,7 @@ class TechniqueSheetPDFBuilder {
     // Company logo (left side)
     let textStartX = PAGE.marginLeft;
 
-    if (this.options.companyLogo) {
+    if (this.options.companyLogo && this.options.showLogoOnEveryPage !== false) {
       try {
         const imgProps = this.pdf.getImageProperties(this.options.companyLogo);
         const aspectRatio = imgProps.width / imgProps.height;
@@ -665,7 +666,7 @@ class TechniqueSheetPDFBuilder {
 
     // Company logo (left side of header)
     let titleStartX = PAGE.marginLeft;
-    if (this.options.companyLogo) {
+    if (this.options.companyLogo && this.options.showLogoOnEveryPage !== false) {
       try {
         const imgProps = this.pdf.getImageProperties(this.options.companyLogo);
         const aspectRatio = imgProps.width / imgProps.height;
@@ -1112,7 +1113,9 @@ class TechniqueSheetPDFBuilder {
 
     this.pdf.setFontSize(11);
     tocItems.forEach((item) => {
+      // Use blue text color for clickable TOC entries
       this.pdf.setFont('helvetica', 'normal');
+      this.pdf.setTextColor(0, 51, 153);
       this.pdf.text(item.title, PAGE.marginLeft + 5, y);
 
       // Dotted line
@@ -1129,6 +1132,12 @@ class TechniqueSheetPDFBuilder {
 
       // Page number
       this.pdf.text(pageNumStr, PAGE.width - PAGE.marginRight, y, { align: 'right' });
+
+      // Make the entire row a clickable internal link to the target page
+      this.pdf.link(PAGE.marginLeft, y - 8, PAGE.contentWidth, 10, { pageNumber: item.page });
+
+      // Reset text color back to default
+      this.pdf.setTextColor(...COLORS.text);
 
       y += 10;
     });
@@ -1150,6 +1159,7 @@ class TechniqueSheetPDFBuilder {
 
     // Basic Part Info Table
     const basicInfo = buildTableRows([
+      ['Technique Card ID', setup.techniqueCardId],
       ['Part Number', setup.partNumber],
       ['Part Name', setup.partName],
       ['Material', formatMaterial(setup.material, setup.customMaterialName)],
@@ -1197,12 +1207,11 @@ class TechniqueSheetPDFBuilder {
       y = this.getTableEndY(y);
     }
 
-    // Material Properties
-    if (setup.acousticVelocity || setup.materialDensity) {
+    // Material Properties (Acoustic Velocity removed per requirements)
+    if (setup.materialDensity) {
       y = this.addSubsectionTitle('Material Properties', y);
 
       const matProps = buildTableRows([
-        ['Acoustic Velocity', setup.acousticVelocity ? formatNumber(setup.acousticVelocity, 0, 'm/s') : undefined],
         ['Material Density', setup.materialDensity ? formatNumber(setup.materialDensity, 0, 'kg/m³') : undefined],
       ]);
 
@@ -1289,7 +1298,7 @@ class TechniqueSheetPDFBuilder {
 
     autoTable(this.pdf, {
       startY: y,
-      head: [['Equipment / Transducer', 'Value']],
+      head: [['Equipment', 'Value']],
       body: equipmentInfo,
       theme: 'grid',
       styles: { fontSize: 9, cellPadding: 3 },
@@ -1977,13 +1986,13 @@ class TechniqueSheetPDFBuilder {
         detail.sensitivity || (detail.fbhSize ? `${detail.fbhSize}" FBH DAC` : '-'),  // Sensitivity
         detail.angle !== undefined ? `${detail.angle}°` : '0°',   // Angle
         detail.probe || '-',                                      // Probe
-        detail.frequency ? `${detail.frequency}` : '-',           // Freq (MHz)
+        detail.waterPath ? `${detail.waterPath}` : '-',           // Water Path
       ];
     });
 
     autoTable(this.pdf, {
       startY: y,
-      head: [['Seq', 'Dir', 'Surface', 'Wave', 'Beam Direction', 'Sensitivity', 'Angle', 'Probe', 'MHz']],
+      head: [['Seq', 'Dir', 'Surface', 'Wave', 'Beam Direction', 'Sensitivity', 'Angle', 'Probe', 'Water Path']],
       body: scanPlanRows,
       theme: 'grid',
       styles: { fontSize: 7, cellPadding: 2, lineColor: COLORS.tableBorder, lineWidth: 0.2 },
@@ -2036,7 +2045,7 @@ class TechniqueSheetPDFBuilder {
     const probeDetailRows: string[][] = enabledDetails.map((detail) => [
       detail.scanningDirection,
       detail.probe || '-',
-      detail.frequency ? `${detail.frequency} MHz` : '-',
+      detail.waterPath ? `${detail.waterPath}` : '-',
       detail.make || '-',
       detail.partNumber || '-',
       detail.serialNumber || '-',
@@ -2045,7 +2054,7 @@ class TechniqueSheetPDFBuilder {
 
     autoTable(this.pdf, {
       startY: y,
-      head: [['Dir', 'Probe Details (Size, Type, Angle)', 'Freq', 'Make', 'Part No.', 'Serial No.', 'Wave Mode']],
+      head: [['Dir', 'Probe Details (Size, Type, Angle)', 'Water Path', 'Make', 'Part No.', 'Serial No.', 'Wave Mode']],
       body: probeDetailRows,
       theme: 'grid',
       styles: { fontSize: 7, cellPadding: 2 },
@@ -2090,14 +2099,14 @@ class TechniqueSheetPDFBuilder {
       detail.activeElementDiameter !== undefined ? `${detail.activeElementDiameter}` : '-',
       detail.bandwidth || '-',
       detail.focusSize || '-',
-      detail.frequency ? `${detail.frequency}` : '-',
+      detail.waterPath ? `${detail.waterPath}` : '-',
       detail.velocity !== undefined ? `${detail.velocity}` : '-',
       computeNearField(detail),
     ]);
 
     autoTable(this.pdf, {
       startY: y,
-      head: [['Dir', 'Active Element (mm)', 'Bandwidth', 'Focus Size', 'Freq (MHz)', 'Velocity (m/s)', 'Near Field']],
+      head: [['Dir', 'Active Element (mm)', 'Bandwidth', 'Focus Size', 'Water Path', 'Velocity (m/s)', 'Near Field']],
       body: probeParamRows,
       theme: 'grid',
       styles: { fontSize: 7, cellPadding: 2 },

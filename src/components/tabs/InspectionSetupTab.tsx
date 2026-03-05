@@ -805,6 +805,18 @@ export const InspectionSetupTab = ({
     <div className="space-y-2 p-2">
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2">
         <FieldWithHelp
+          label="Technique Card ID"
+          fieldKey="techniqueCardId"
+        >
+          <Input
+            value={data.techniqueCardId ?? ''}
+            onChange={(e) => updateField("techniqueCardId", e.target.value)}
+            placeholder="TC-001"
+            className="bg-background"
+          />
+        </FieldWithHelp>
+
+        <FieldWithHelp
           label="Part Number"
           fieldKey="partNumber"
           required

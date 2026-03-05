@@ -14,12 +14,12 @@ import { InspectionReportData } from '@/types/inspectionReport';
 // COLORS - Professional TÜV/FRISA style (matching TechniqueSheetPDF)
 // ============================================================================
 const COLORS = {
-  // Primary colors
-  primary: [0, 82, 147] as [number, number, number],       // TÜV blue - headers
-  primaryDark: [0, 60, 110] as [number, number, number],   // Darker blue - cover page
-  secondary: [64, 128, 178] as [number, number, number],   // Medium blue - subheaders
-  accent: [0, 122, 194] as [number, number, number],       // Light blue - highlights
-  accentGold: [212, 175, 55] as [number, number, number],  // Gold accent - premium styling
+  // Primary colors - Gold theme
+  primary: [180, 150, 45] as [number, number, number],       // Gold - headers & section bars
+  primaryDark: [150, 125, 35] as [number, number, number],   // Darker gold - cover page header
+  secondary: [130, 170, 210] as [number, number, number],    // Light blue - subheaders
+  accent: [100, 155, 210] as [number, number, number],       // Soft blue - highlights
+  accentGold: [212, 175, 55] as [number, number, number],    // Bright gold accent
 
   // Background colors
   headerBg: [240, 245, 250] as [number, number, number],   // Light gray-blue
@@ -65,6 +65,7 @@ const PAGE = {
 interface ExportOptions {
   companyName?: string;
   companyLogo?: string;
+  showLogoOnEveryPage?: boolean; // When false, hide logo from all pages (default: true)
   includeAerospaceSection?: boolean;
   language?: 'en' | 'it' | 'fr';
 }
@@ -116,9 +117,9 @@ export const exportInspectionReportPDF = (
     const headerHeight = 28;
     const headerY = 10;
 
-    // Logo box (white background on left) - if logo provided
+    // Logo box (white background on left) - if logo provided and toggle allows it
     let titleStartX = PAGE.marginLeft;
-    const { companyLogo } = options;
+    const companyLogo = options.showLogoOnEveryPage !== false ? options.companyLogo : undefined;
 
     if (companyLogo) {
       const logoBoxWidth = 30;
@@ -161,18 +162,10 @@ export const exportInspectionReportPDF = (
     doc.setFillColor(...COLORS.accentGold);
     doc.rect(0, headerY + headerHeight, PAGE.width, 1.5, 'F');
 
-    // Company name (left of title area)
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(...COLORS.white);
-    if (companyName) {
-      doc.text(companyName, titleStartX + 2, headerY + 8);
-    }
-
-    // Main title
+    // Main title only (no subtitle)
     doc.setFontSize(20);
     doc.setFont('helvetica', 'bold');
-    doc.text('UT INSPECTION REPORT', titleStartX + 2, headerY + 20);
+    doc.text('UT INSPECTION REPORT', titleStartX + 2, headerY + 18);
 
     // Document info box (white box on right)
     const boxWidth = 60;
@@ -712,45 +705,54 @@ export const exportInspectionReportPDF = (
 
   yPos += 3;
 
-  // Transducers
-  yPos = addSubSectionTitle('Transducers', yPos);
-
-  // Immersion
-  doc.setFontSize(8);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(...COLORS.secondary);
-  doc.text('Immersion:', PAGE.marginLeft, yPos);
-  yPos += 4;
-
-  yPos = addFieldRow([
-    { label: 'Model', value: eq?.immersionTransducerModel || '-' },
-    { label: 'Serial N°', value: eq?.immersionTransducerSerial || '-' },
-    { label: 'Cal. Date', value: eq?.immersionTransducerCalibrationDate || '-' },
-  ], yPos);
-
-  // Contact
-  doc.setFontSize(8);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(...COLORS.secondary);
-  doc.text('Contact:', PAGE.marginLeft, yPos);
-  yPos += 4;
-
-  yPos = addFieldRow([
-    { label: 'Model', value: eq?.contactTransducerModel || '-' },
-    { label: 'Serial N°', value: eq?.contactTransducerSerial || '-' },
-    { label: 'Cal. Date', value: eq?.contactTransducerCalibrationDate || '-' },
-  ], yPos);
-
-  yPos += 3;
-
-  // Scan Parameters
-  yPos = addSubSectionTitle('Scan Parameters', yPos);
+  // Scan Details
+  yPos = addSubSectionTitle('Scan Details', yPos);
 
   yPos = addFieldRow([
     { label: 'Frequency', value: eq?.frequency || '-' },
     { label: 'Probe Diameter', value: eq?.probeDiameter || '-' },
     { label: 'Water Path', value: eq?.waterPath || '-' },
   ], yPos);
+
+  // Technique parameters (from technique sheet)
+  if (eq?.techniqueParameters) {
+    const tp = eq.techniqueParameters;
+    if (tp.scanType || tp.scanDirection || tp.scanSpeed) {
+      yPos += 2;
+      yPos = addFieldRow([
+        { label: 'Scan Type', value: tp.scanType || '-' },
+        { label: 'Direction', value: tp.scanDirection || '-' },
+        { label: 'Speed', value: tp.scanSpeed || '-' },
+      ], yPos);
+    }
+    if (tp.indexStep || tp.coverage || tp.gain) {
+      yPos = addFieldRow([
+        { label: 'Index Step', value: tp.indexStep || '-' },
+        { label: 'Coverage', value: tp.coverage || '-' },
+        { label: 'Gain', value: tp.gain || '-' },
+      ], yPos);
+    }
+  }
+
+  // Scan image (C-scan / scan result image from technique)
+  if (eq?.includeScanImage && eq?.scanImage) {
+    yPos = checkPageBreak(65);
+    yPos += 3;
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...COLORS.secondary);
+    doc.text('Scan Image:', PAGE.marginLeft, yPos);
+    yPos += 3;
+    try {
+      doc.addImage(eq.scanImage, 'PNG', PAGE.marginLeft, yPos, 85, 55);
+      yPos += 58;
+    } catch {
+      doc.setFontSize(7);
+      doc.setTextColor(...COLORS.lightText);
+      doc.text('[Scan image not available]', PAGE.marginLeft, yPos);
+      yPos += 5;
+    }
+  }
 
   yPos += 3;
 
@@ -766,7 +768,7 @@ export const exportInspectionReportPDF = (
   yPos += 3;
 
   // Calibration Block
-  yPos = addSubSectionTitle('Calibration Block (ASTM E127)', yPos);
+  yPos = addSubSectionTitle('Calibration Block', yPos);
 
   yPos = addFieldRow([
     { label: 'Serial N°', value: eq?.calibrationBlockSerial || '-' },
@@ -793,7 +795,48 @@ export const exportInspectionReportPDF = (
   doc.setFontSize(8);
   doc.setTextColor(...COLORS.text);
   doc.text('NIST Traceable', PAGE.marginLeft + 6, yPos);
-  yPos += 8;
+  yPos += 5;
+
+  // Calibration block type
+  if (eq?.calibrationBlockType) {
+    yPos = addField('Block Type', eq.calibrationBlockType, PAGE.marginLeft, yPos, 25);
+  }
+
+  // Calibration model images (dynamic per part)
+  if (eq?.includeCalibrationImages && eq?.calibrationBlockImages && eq.calibrationBlockImages.length > 0) {
+    yPos = checkPageBreak(65);
+    yPos += 3;
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...COLORS.secondary);
+    doc.text('Calibration Model Images:', PAGE.marginLeft, yPos);
+    yPos += 3;
+
+    const imgWidth = 80;
+    const imgHeight = 55;
+    let imgX = PAGE.marginLeft;
+
+    eq.calibrationBlockImages.forEach((img, idx) => {
+      if (idx > 0 && idx % 2 === 0) {
+        // Move to next row
+        yPos += imgHeight + 5;
+        imgX = PAGE.marginLeft;
+        yPos = checkPageBreak(imgHeight + 10);
+      }
+      try {
+        doc.addImage(img, 'PNG', imgX, yPos, imgWidth, imgHeight);
+      } catch {
+        doc.setFontSize(7);
+        doc.setTextColor(...COLORS.lightText);
+        doc.text(`[Image ${idx + 1} not available]`, imgX, yPos + imgHeight / 2);
+      }
+      imgX += imgWidth + 10;
+    });
+
+    yPos += imgHeight + 5;
+  }
+
+  yPos += 3;
 
   // Probe Details Table
   if (data.probeDetails && data.probeDetails.length > 0) {
@@ -891,49 +934,6 @@ export const exportInspectionReportPDF = (
 
     yPos += 3;
 
-    // Forging Information
-    const forg = data.forgingDetails;
-    yPos = addSubSectionTitle('Forging Information', yPos);
-
-    yPos = addFieldRow([
-      { label: 'Type', value: forg?.forgingType || '-' },
-      { label: 'Grain Flow', value: forg?.grainFlowDirection || '-' },
-      { label: 'Ratio', value: forg?.forgingRatio || '-' },
-    ], yPos);
-
-    // Inspection directions as styled checkboxes
-    doc.setFontSize(8);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(...COLORS.text);
-    doc.text('Inspection Directions:', PAGE.marginLeft, yPos);
-
-    const directions = [
-      { label: 'Axial', checked: forg?.axialInspection },
-      { label: 'Radial', checked: forg?.radialInspection },
-      { label: 'Circumf.', checked: forg?.circumferentialInspection },
-      { label: 'Angle Beam', checked: forg?.angleBeamApplied },
-    ];
-
-    let dirX = PAGE.marginLeft + 42;
-    directions.forEach(dir => {
-      if (dir.checked) {
-        doc.setFillColor(...COLORS.primary);
-        doc.rect(dirX, yPos - 3, 4, 4, 'F');
-        doc.setTextColor(...COLORS.white);
-        doc.setFontSize(7);
-        doc.text('✓', dirX + 0.8, yPos);
-      } else {
-        doc.setDrawColor(...COLORS.tableBorder);
-        doc.rect(dirX, yPos - 3, 4, 4, 'S');
-      }
-      doc.setFontSize(8);
-      doc.setTextColor(...COLORS.text);
-      doc.setFont('helvetica', 'normal');
-      doc.text(dir.label, dirX + 6, yPos);
-      dirX += 30;
-    });
-    yPos += 8;
-
     // Sensitivity Settings
     const sens = data.sensitivitySettings;
     yPos = addSubSectionTitle('Sensitivity & Reference (AMS-STD-2154)', yPos);
@@ -951,6 +951,87 @@ export const exportInspectionReportPDF = (
     ], yPos);
 
     yPos += 3;
+
+    // ---- Acceptance Criteria (if available) ----
+    const acc = data.acceptanceCriteria;
+    if (acc && acc.acceptanceClass) {
+      yPos = checkPageBreak(60);
+      yPos = addSubSectionTitle('Acceptance Criteria (AMS-STD-2154)', yPos);
+
+      // Acceptance Class badge
+      const classDescriptions: Record<string, string> = {
+        'AAA': 'Most Stringent - Critical Flight Components',
+        'AA': 'Very Stringent - Primary Structure',
+        'A': 'Stringent - Secondary Structure',
+        'B': 'Standard - General Aerospace',
+        'C': 'Least Stringent - Non-Critical Parts',
+      };
+
+      const classDesc = classDescriptions[acc.acceptanceClass] || 'Custom acceptance criteria';
+
+      // Badge background
+      doc.setFillColor(...COLORS.primary);
+      doc.roundedRect(PAGE.marginLeft, yPos, 55, 14, 2, 2, 'F');
+
+      // Badge text
+      doc.setTextColor(...COLORS.white);
+      doc.setFontSize(7);
+      doc.setFont('helvetica', 'bold');
+      doc.text('ACCEPTANCE CLASS', PAGE.marginLeft + 3, yPos + 5);
+      doc.setFontSize(11);
+      doc.text(acc.acceptanceClass, PAGE.marginLeft + 3, yPos + 12);
+
+      // Description next to badge
+      doc.setTextColor(...COLORS.text);
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.text(classDesc, PAGE.marginLeft + 60, yPos + 9, { maxWidth: PAGE.contentWidth - 65 });
+
+      yPos += 18;
+
+      // Criteria table
+      const criteriaRows: string[][] = [];
+      criteriaRows.push(['Single Discontinuity', formatValue(acc.singleDiscontinuity)]);
+      criteriaRows.push(['Multiple Discontinuities', formatValue(acc.multipleDiscontinuities)]);
+      criteriaRows.push(['Linear Discontinuity', formatValue(acc.linearDiscontinuity)]);
+      criteriaRows.push(['Back Reflection Loss', acc.backReflectionLoss ? `${acc.backReflectionLoss}%` : '-']);
+      criteriaRows.push(['Noise Level', formatValue(acc.noiseLevel)]);
+
+      autoTable(doc, {
+        startY: yPos,
+        head: [['Criterion', 'Limit']],
+        body: criteriaRows,
+        theme: 'grid',
+        styles: { fontSize: 8, cellPadding: 2.5 },
+        headStyles: {
+          fillColor: COLORS.primary,
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+        },
+        columnStyles: {
+          0: { fontStyle: 'bold', cellWidth: 60 },
+          1: { cellWidth: 'auto' },
+        },
+        alternateRowStyles: { fillColor: COLORS.rowAlt },
+        tableLineColor: COLORS.tableBorder,
+        tableLineWidth: 0.3,
+        margin: { left: PAGE.marginLeft, right: PAGE.marginRight },
+      });
+
+      yPos = (doc as any).lastAutoTable.finalY + 5;
+
+      // Special requirements (if any)
+      if (acc.specialRequirements) {
+        doc.setFontSize(7);
+        doc.setFont('helvetica', 'italic');
+        doc.setTextColor(...COLORS.lightText);
+        const reqLines = doc.splitTextToSize(`Special Requirements: ${acc.specialRequirements}`, PAGE.contentWidth - 6);
+        doc.text(reqLines, PAGE.marginLeft + 3, yPos);
+        yPos += reqLines.length * 3.5 + 3;
+      }
+
+      yPos += 3;
+    }
 
     // Scan Coverage
     const cov = data.scanCoverage;

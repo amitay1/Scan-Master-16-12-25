@@ -7,8 +7,10 @@ import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { isOEMStandard, getOEMRulesFromStandard } from "@/utils/oemRuleEngine";
+import { Input } from "@/components/ui/input";
+import { Search } from "lucide-react";
 
 interface StandardSelectorProps {
   value: StandardType;
@@ -316,8 +318,24 @@ export const StandardSelector = ({ value, onChange, showComparisonIndicator = fa
     return getOEMRulesFromStandard(value);
   }, [value]);
 
+  // Search filter
+  const [searchTerm, setSearchTerm] = useState("");
+
   // Get standards catalog with license info
   const standardsCatalog = getStandards();
+
+  // Filter standards based on search term
+  const filteredStandards = useMemo(() => {
+    if (!searchTerm.trim()) return standards;
+    const term = searchTerm.toLowerCase();
+    return standards.filter(
+      (s) =>
+        s.value.toLowerCase().includes(term) ||
+        s.label.toLowerCase().includes(term) ||
+        s.description.toLowerCase().includes(term) ||
+        s.badge.toLowerCase().includes(term)
+    );
+  }, [searchTerm]);
 
   // Check if current standard is purchased
   const isStandardPurchased = (standardCode: string) => {
@@ -395,8 +413,19 @@ export const StandardSelector = ({ value, onChange, showComparisonIndicator = fa
           )}
         </div>
         
+        <div className="relative mb-2">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <Input
+            type="text"
+            placeholder="Search standards..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-8 h-8 text-xs"
+          />
+        </div>
+
         <div className={`max-h-[320px] overflow-y-auto border rounded-lg p-1.5 space-y-1 bg-card ${showComparisonIndicator ? 'ring-2 ring-primary/20' : ''}`}>
-          {standards.map((standard) => {
+          {filteredStandards.map((standard) => {
             const Icon = standard.icon;
             const isCurrentStandard = standard.value === value;
             const isPurchased = isStandardPurchased(standard.value);

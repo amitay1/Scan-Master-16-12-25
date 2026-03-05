@@ -409,17 +409,7 @@ export const ScanDetailsTab = ({ data, onChange, partType, standard = "AMS-STD-2
                   placeholder="e.g., 8 inch"
                 />
               </div>
-              <div>
-                <Label className="text-[10px] text-slate-400 uppercase tracking-wide">Frequency (MHz)</Label>
-                <Input
-                  type="number"
-                  value={detail.frequency || ""}
-                  onChange={(e) => updateScanDetail(index, "frequency", e.target.value)}
-                  className="h-8 text-xs bg-slate-900/60 border-slate-600 text-slate-100 placeholder:text-slate-500"
-                  placeholder="e.g., 5"
-                  step={0.5}
-                />
-              </div>
+              {/* Frequency hidden from UI per requirements — kept in data model for transducer selection */}
               <div>
                 <Label className="text-[10px] text-slate-400 uppercase tracking-wide">Velocity (m/s)</Label>
                 <Input

@@ -124,6 +124,17 @@ export interface ZoningRequirements {
   zones: InspectionZone[];
 }
 
+// Acceptance Criteria (AMS-STD-2154 / ASTM E2375)
+export interface AcceptanceCriteriaReport {
+  acceptanceClass: string; // e.g., "AAA", "AA", "A", "B", "C"
+  singleDiscontinuity: string; // Max single indication size
+  multipleDiscontinuities: string; // Max clustered indications
+  linearDiscontinuity: string; // Max linear indication length
+  backReflectionLoss: number; // Max allowed back reflection loss (%)
+  noiseLevel: string; // Max allowed noise level
+  specialRequirements?: string; // Additional requirements text
+}
+
 // Scan Index & Coverage (ASME V / ASTM E2375)
 export interface ScanCoverage {
   scanIndex: string; // mm between passes
@@ -176,12 +187,30 @@ export interface EquipmentDetails {
   softwareVersion: string; // e.g., "v4.1.3"
   utConfigName: string; // e.g., "Forgital_FMDL"
 
-  // Calibration Block Info (ASTM E127)
+  // Scan Details - scan image + technique parameters
+  includeScanImage?: boolean; // Toggle to include scan image
+  scanImage?: string; // Base64 or URL of scan image (C-scan / scan result)
+  techniqueParameters?: {
+    scanType?: string;
+    scanDirection?: string;
+    scanSpeed?: string;
+    indexStep?: string;
+    coverage?: string;
+    gain?: string;
+    range?: string;
+  };
+
+  // Calibration Block Info
   calibrationBlockSerial: string;
   calibrationBlockMaterial: string;
   calibrationBlockThickness: string;
   nistTraceability: boolean;
   calibrationValidUntil: string;
+
+  // Calibration model images (dynamic per part)
+  includeCalibrationImages?: boolean; // Toggle to include cal block images
+  calibrationBlockImages?: string[]; // Base64 or URL array of calibration model images
+  calibrationBlockType?: string; // Type/model ID linked to the part
 }
 
 // Surface condition options (TÜV format)
@@ -329,6 +358,9 @@ export interface InspectionReportData {
 
   // Scan Coverage
   scanCoverage: ScanCoverage;
+
+  // Acceptance Criteria (optional -- only present when class is selected)
+  acceptanceCriteria?: AcceptanceCriteriaReport;
 
   // === EXISTING SECTIONS ===
 

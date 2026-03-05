@@ -78,8 +78,9 @@ export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E", 
     const speedOk = !hasSpeedLimit || data.scanSpeed <= maxSpeed;
     const overlapOk = !hasOverlapRequirement || (100 - data.scanIndex) >= scanParams.minOverlap;
     const coverageOk = data.coverage >= scanParams.coverageRequired;
+    const coverageAccepted = data.coverage >= 85; // 85% acceptance threshold
 
-    return { speedOk, overlapOk, coverageOk };
+    return { speedOk, overlapOk, coverageOk, coverageAccepted };
   }, [data.scanSpeed, data.scanIndex, data.coverage, hasSpeedLimit, hasOverlapRequirement, maxSpeed, scanParams]);
 
   const updateField = (field: keyof ScanParametersData, value: any) => {
@@ -551,17 +552,24 @@ export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E", 
         <FieldWithHelp
           label="Coverage (%)"
           fieldKey="coverage"
-          help={`Per ${standard}: ${scanParams.coverageRequired}% volumetric coverage required`}
+          help={`Per ${standard}: ${scanParams.coverageRequired}% volumetric coverage required. Acceptance threshold: 85%`}
           required
         >
           <Input
             type="number"
             value={data.coverage}
             onChange={(e) => updateField("coverage", parseFloat(e.target.value) || 0)}
-            min={scanParams.coverageRequired}
+            min={0}
             max={100}
-            className="bg-background"
+            className={`bg-background ${!compliance.coverageAccepted ? "border-destructive" : ""}`}
           />
+          {data.coverage > 0 && (
+            <p className={`text-xs mt-1 font-medium ${compliance.coverageAccepted ? "text-green-600" : "text-destructive"}`}>
+              {compliance.coverageAccepted
+                ? `Pass (${data.coverage}% >= 85%)`
+                : `Fail (${data.coverage}% < 85% acceptance threshold)`}
+            </p>
+          )}
         </FieldWithHelp>
 
         <FieldWithHelp
