@@ -124,12 +124,14 @@ if (-not $SkipBuild) {
     $utf8NoBOM2 = New-Object System.Text.UTF8Encoding $false
     [System.IO.File]::WriteAllText((Resolve-Path $ebJsonPath).Path, $ebJsonContent, $utf8NoBOM2)
 
-    npm run dist:win
-
-    # Restore the original output dir in electron-builder.json
-    $ebJson.directories.output = $originalOutputDir
-    $ebJsonRestored = $ebJson | ConvertTo-Json -Depth 100
-    [System.IO.File]::WriteAllText((Resolve-Path $ebJsonPath).Path, $ebJsonRestored, $utf8NoBOM2)
+    try {
+        npm run dist:win
+    } finally {
+        # Always restore the original output dir, even if build fails or is interrupted
+        $ebJson.directories.output = $originalOutputDir
+        $ebJsonRestored = $ebJson | ConvertTo-Json -Depth 100
+        [System.IO.File]::WriteAllText((Resolve-Path $ebJsonPath).Path, $ebJsonRestored, $utf8NoBOM2)
+    }
 
     if ($LASTEXITCODE -ne 0) {
         Write-Error "Build failed! Release created but without installer files."
