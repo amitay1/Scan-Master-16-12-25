@@ -3,7 +3,7 @@
     "productName":  "Scan Master Inspection Pro",
     "artifactName":  "ScanMaster-Setup-${version}.${ext}",
     "directories":  {
-                        "output":  "release-build"
+                        "output":  "release-build-20260305-201517"
                     },
     "extraMetadata":  {
                           "main":  "electron/main.cjs",
