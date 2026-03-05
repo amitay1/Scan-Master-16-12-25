@@ -40,6 +40,7 @@ Thumbs.db
 
 # Electron build output
 release/
+release-v*/
 release-build/
 release-build-*/
 out/
