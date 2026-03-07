@@ -538,26 +538,8 @@ export const StandardSelector = ({ value, onChange, showComparisonIndicator = fa
               </span>
             </div>
             
-            {/* Feature Tags - 2x2 Grid with better visibility */}
-            <div className="grid grid-cols-2 gap-2">
-              {currentStandard.features.slice(0, 4).map((feature, idx) => (
-                <Tooltip key={idx}>
-                  <TooltipTrigger asChild>
-                    <div className="bg-slate-700/80 rounded-lg p-2 border border-slate-600 hover:bg-slate-600/80 transition-colors cursor-help">
-                      <div className="text-white font-bold text-sm text-center">
-                        {feature.split(' ')[0]}
-                      </div>
-                      <div className="text-slate-300 text-[10px] text-center truncate">
-                        {feature.split(' ').slice(1).join(' ')}
-                      </div>
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p className="text-xs font-medium">{feature}</p>
-                  </TooltipContent>
-                </Tooltip>
-              ))}
-            </div>
+            {/* Standard description */}
+            <p className="text-xs text-slate-300 mt-1">{currentStandard.description}</p>
           </div>
         )}
 

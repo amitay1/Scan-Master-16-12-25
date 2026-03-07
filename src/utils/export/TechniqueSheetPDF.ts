@@ -1882,6 +1882,46 @@ class TechniqueSheetPDFBuilder {
       y += 18;
     }
 
+    // AMS-STD-2154 / MIL-STD-2154 Table 6 Notes
+    if (
+      acc.includeStandardNotesInReport &&
+      (this.data.standard === 'AMS-STD-2154E' || this.data.standard === 'MIL-STD-2154')
+    ) {
+      // Check if we need a new page
+      if (y > PAGE.height - PAGE.footerHeight - 120) {
+        this.addFooter();
+        this.pdf.addPage();
+        this.addHeader();
+        y = PAGE.contentStart;
+      }
+
+      y = this.addSubsectionTitle('Table 6 — Ultrasonic Classes — Notes', y);
+
+      const table6Notes: [string, string][] = [
+        ['1/', 'Any discontinuity with an indication greater than the response from a reference flat-bottom hole or equivalent notch at the estimated discontinuity depth of the size given (inches diameter) is not acceptable.'],
+        ['2/', 'Multiple discontinuities with indications greater than the response from a reference flat-bottom hole or equivalent notch at the estimated discontinuity depth of the size given (inches diameter) are not acceptable if the centers of any two of these discontinuities are less than 1 inch apart. Not applicable to class C.'],
+        ['3/', 'Any discontinuity longer than the length given with indications greater than the response given (flat-bottom hole or equivalent notch response) is not acceptable. Not applicable to class C.'],
+        ['4/', 'Loss of back reflection greater than the percent given, when compared to non-defective material in a similar or like part, is not acceptable when this loss of back reflection is accompanied by an increase or decrease in noise signal (at least double the normal background noise signal) between the front and back surface. Applicable only to straight beam tests.'],
+        ['5/', 'When inspecting titanium to class AA, the multiple discontinuity separation shall be 1/4 inch.'],
+        ['6/', 'For class AAA single discontinuity, 50% of 2/64 = 25% of 3/64.'],
+        ['7/', 'For class AAA linear and multiple discontinuities, 1/64 or 25% of 2/64 = 10% of 3/64.'],
+      ];
+
+      autoTable(this.pdf, {
+        startY: y,
+        body: table6Notes,
+        theme: 'plain',
+        styles: { fontSize: 7.5, cellPadding: { top: 1.5, bottom: 1.5, left: 3, right: 3 } },
+        columnStyles: {
+          0: { fontStyle: 'bold', cellWidth: 12, textColor: COLORS.text, halign: 'right' },
+          1: { cellWidth: 'auto', textColor: COLORS.lightText },
+        },
+        margin: { left: PAGE.marginLeft, right: PAGE.marginRight, bottom: PAGE.footerHeight + 5 },
+      });
+
+      y = this.getTableEndY(y);
+    }
+
     // Material Warning
     const warning = getMaterialWarning(this.data.inspectionSetup.material, this.data.standard);
     if (warning) {

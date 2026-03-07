@@ -395,6 +395,39 @@ export const AcceptanceCriteriaTab = ({
             <p className="text-xs text-muted-foreground">
               Note: {getQuickReferenceNote(standard)}
             </p>
+            {(standard === "AMS-STD-2154E" || standard === "MIL-STD-2154") && (
+              <div className="bg-background/60 border border-border rounded-md p-3 space-y-1.5">
+                <p className="text-xs font-semibold text-foreground mb-2">Table 6 — Ultrasonic Classes — Notes</p>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  <span className="font-semibold text-foreground">1/</span>{" "}
+                  Any discontinuity with an indication greater than the response from a reference flat-bottom hole or equivalent notch at the estimated discontinuity depth of the size given (inches diameter) is not acceptable.
+                </p>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  <span className="font-semibold text-foreground">2/</span>{" "}
+                  Multiple discontinuities with indications greater than the response from a reference flat-bottom hole or equivalent notch at the estimated discontinuity depth of the size given (inches diameter) are not acceptable if the centers of any two of these discontinuities are less than 1 inch apart. Not applicable to class C.
+                </p>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  <span className="font-semibold text-foreground">3/</span>{" "}
+                  Any discontinuity longer than the length given with indications greater than the response given (flat-bottom hole or equivalent notch response) is not acceptable. Not applicable to class C.
+                </p>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  <span className="font-semibold text-foreground">4/</span>{" "}
+                  Loss of back reflection greater than the percent given, when compared to non-defective material in a similar or like part, is not acceptable when this loss of back reflection is accompanied by an increase or decrease in noise signal (at least double the normal background noise signal) between the front and back surface. Applicable only to straight beam tests.
+                </p>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  <span className="font-semibold text-foreground">5/</span>{" "}
+                  When inspecting titanium to class AA, the multiple discontinuity separation shall be 1/4 inch.
+                </p>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  <span className="font-semibold text-foreground">6/</span>{" "}
+                  {"For class AAA single discontinuity, 50% of 2/64 = 25% of 3/64."}
+                </p>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  <span className="font-semibold text-foreground">7/</span>{" "}
+                  {"For class AAA linear and multiple discontinuities, 1/64 or 25% of 2/64 = 10% of 3/64."}
+                </p>
+              </div>
+            )}
             {!!data.standardNotes && (
               <div className="bg-background/60 border border-border rounded-md p-3">
                 <p className="text-xs font-semibold text-foreground mb-1">Standard Notes</p>

@@ -7,6 +7,7 @@
 import { FBHHoleTable } from './FBHHoleTable';
 import { FBHBlockPreview } from './FBHBlockPreview';
 import type { FBHHoleRowData } from '@/data/fbhStandardsData';
+import type { StraightBeamConversionRow } from '@/types/techniqueSheet';
 
 interface FBHHoleTableWithPreviewsProps {
   holes: FBHHoleRowData[];
@@ -25,6 +26,10 @@ interface FBHHoleTableWithPreviewsProps {
   outerDiameterMm?: number;
   innerDiameterMm?: number;
   referenceThicknessMm?: number;
+  /** Show inline sensitivity conversion columns */
+  showSensitivityColumns?: boolean;
+  sensitivityRows?: StraightBeamConversionRow[];
+  onSensitivityChange?: (rows: StraightBeamConversionRow[]) => void;
 }
 
 export function FBHHoleTableWithPreviews({
@@ -42,6 +47,9 @@ export function FBHHoleTableWithPreviews({
   outerDiameterMm,
   innerDiameterMm,
   referenceThicknessMm,
+  showSensitivityColumns = false,
+  sensitivityRows,
+  onSensitivityChange,
 }: FBHHoleTableWithPreviewsProps) {
   return (
     <div className="space-y-6">
@@ -91,6 +99,9 @@ export function FBHHoleTableWithPreviews({
         showDeltaType={showDeltaType}
         showSoundPath={showSoundPath}
         standard={standard}
+        showSensitivityColumns={showSensitivityColumns}
+        sensitivityRows={sensitivityRows}
+        onSensitivityChange={onSensitivityChange}
       />
     </div>
   );

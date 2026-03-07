@@ -39,9 +39,6 @@ export function FBHBlockPreview({
   metalTravelH,
   width = 420,
   height = 520,
-  partGeometry,
-  outerDiameterMm,
-  innerDiameterMm,
   referenceThicknessMm,
 }: FBHBlockPreviewProps) {
   // Calculate proportional dimensions similar to FBHStraightBeamDrawing
@@ -51,31 +48,13 @@ export function FBHBlockPreview({
     // Shift block left to make more room for dimension lines on the right
     const sideViewCenterX = width * 0.38;
 
-    const roundGeometries = new Set([
-      "tube",
-      "pipe",
-      "hollow_cylinder",
-      "ring",
-      "sleeve",
-      "ring_forging",
-      "cylinder",
-      "round_bar",
-      "shaft",
-      "solid_round",
-      "disk",
-      "disk_forging",
-      "hub",
-      "hpt_disk",
-    ]);
-    const isRoundProfile = !!partGeometry && roundGeometries.has(partGeometry);
-
     // Dynamic scale range that reacts more strongly to E changes
     const maxE = Math.max(referenceThicknessMm ? referenceThicknessMm * 6 : 180, 120);
-    const minBlockHeight = isRoundProfile ? 70 : 55;
+    const minBlockHeight = 55;
     const maxBlockHeight = height * 0.58;
     const normalizedE = Math.min(Math.max(blockHeightE / maxE, 0.05), 1);
     const blockHeight = minBlockHeight + normalizedE * (maxBlockHeight - minBlockHeight);
-    const blockWidth = blockHeight * (isRoundProfile ? 0.62 : 0.55);
+    const blockWidth = blockHeight * 0.55;
 
     const blockTop = commonCenterY - blockHeight / 2;
     const blockLeft = sideViewCenterX - blockWidth / 2;
@@ -94,11 +73,10 @@ export function FBHBlockPreview({
     const fbhTop = blockBottom - fbhHoleDepth; // Top of hole (flat bottom)
 
     // Dimension line offsets - positioned outside the block with consistent spacing
-    const dimLineGap = isRoundProfile ? 18 : 15;
+    const dimLineGap = 15;
     const dimLineSpacing = 45;
     const hLineX = blockRight + dimLineGap + 20;
     const eLineX = hLineX + dimLineSpacing;
-    const profileBulge = isRoundProfile ? blockWidth * 0.16 : 0;
     const dimensionLabelFontSize = 20;
     const dimensionLabelPadding = 6;
     const labelYMin = 24;
@@ -169,8 +147,6 @@ export function FBHBlockPreview({
     }
 
     return {
-      isRoundProfile,
-      profileBulge,
       blockWidth,
       blockHeight,
       blockTop,
@@ -197,13 +173,10 @@ export function FBHBlockPreview({
     blockHeightE,
     metalTravelH,
     diameterMm,
-    partGeometry,
     referenceThicknessMm,
   ]);
 
   const {
-    isRoundProfile,
-    profileBulge,
     blockWidth,
     blockHeight,
     blockTop,
@@ -243,29 +216,16 @@ export function FBHBlockPreview({
 
         {/* ==================== SIDE VIEW ==================== */}
 
-        {/* Main block outline - flat or curved profile based on selected part geometry */}
-        {isRoundProfile ? (
-          <path
-            d={`M ${blockLeft} ${blockTop}
-                Q ${fbhCenterX} ${blockTop - profileBulge} ${blockRight} ${blockTop}
-                L ${blockRight} ${blockBottom}
-                Q ${fbhCenterX} ${blockBottom + profileBulge} ${blockLeft} ${blockBottom}
-                Z`}
-            fill="none"
-            stroke="#333"
-            strokeWidth={2.5}
-          />
-        ) : (
-          <rect
-            x={blockLeft}
-            y={blockTop}
-            width={blockWidth}
-            height={blockHeight}
-            fill="none"
-            stroke="#333"
-            strokeWidth={2.5}
-          />
-        )}
+        {/* Main block outline - always a flat rectangular block */}
+        <rect
+          x={blockLeft}
+          y={blockTop}
+          width={blockWidth}
+          height={blockHeight}
+          fill="none"
+          stroke="#333"
+          strokeWidth={2.5}
+        />
 
         {/* FBH Hole INSIDE the block */}
         <g>
@@ -474,9 +434,6 @@ export function FBHBlockPreview({
           style={{ fontSize: 14, fontWeight: 600 }}
         >
           ØFBH: {diameterMm.toFixed(2)}mm | E: {blockHeightE.toFixed(1)}mm | H: {metalTravelH.toFixed(1)}mm
-          {isRoundProfile ? " | Profile: Round" : " | Profile: Flat"}
-          {isRoundProfile && outerDiameterMm ? ` | OD: ${outerDiameterMm.toFixed(1)}mm` : ""}
-          {isRoundProfile && innerDiameterMm ? ` | ID: ${innerDiameterMm.toFixed(1)}mm` : ""}
         </text>
       </svg>
     </div>

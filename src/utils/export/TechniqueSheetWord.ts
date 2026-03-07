@@ -1549,6 +1549,31 @@ export async function exportTechniqueSheetWord(
     }));
   }
 
+  // AMS-STD-2154 / MIL-STD-2154 Table 6 Notes
+  if (
+    acceptanceCriteria.includeStandardNotesInReport &&
+    (data.standard === 'AMS-STD-2154E' || data.standard === 'MIL-STD-2154')
+  ) {
+    children.push(createSubsectionTitle('Table 6 — Ultrasonic Classes — Notes'));
+    children.push(new Paragraph({ children: [], spacing: { after: 100 } }));
+    const table6Notes = [
+      '1/ Any discontinuity with an indication greater than the response from a reference flat-bottom hole or equivalent notch at the estimated discontinuity depth of the size given (inches diameter) is not acceptable.',
+      '2/ Multiple discontinuities with indications greater than the response from a reference flat-bottom hole or equivalent notch at the estimated discontinuity depth of the size given (inches diameter) are not acceptable if the centers of any two of these discontinuities are less than 1 inch apart. Not applicable to class C.',
+      '3/ Any discontinuity longer than the length given with indications greater than the response given (flat-bottom hole or equivalent notch response) is not acceptable. Not applicable to class C.',
+      '4/ Loss of back reflection greater than the percent given, when compared to non-defective material in a similar or like part, is not acceptable when this loss of back reflection is accompanied by an increase or decrease in noise signal (at least double the normal background noise signal) between the front and back surface. Applicable only to straight beam tests.',
+      '5/ When inspecting titanium to class AA, the multiple discontinuity separation shall be 1/4 inch.',
+      '6/ For class AAA single discontinuity, 50% of 2/64 = 25% of 3/64.',
+      '7/ For class AAA linear and multiple discontinuities, 1/64 or 25% of 2/64 = 10% of 3/64.',
+    ];
+    for (const note of table6Notes) {
+      children.push(new Paragraph({
+        children: [new TextRun({ text: note, size: 16, italics: true })],
+        spacing: { after: 80 },
+      }));
+    }
+    children.push(new Paragraph({ children: [], spacing: { after: 200 } }));
+  }
+
   // Material Warning in Acceptance section
   if (materialWarning) {
     children.push(createWarningBox(`MATERIAL WARNING: ${materialWarning}`));

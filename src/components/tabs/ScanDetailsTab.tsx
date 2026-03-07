@@ -194,8 +194,13 @@ export const ScanDetailsTab = ({ data, onChange, partType, standard = "AMS-STD-2
 
   const toggleScanDetail = (index: number) => {
     const newScanDetails = [...scanDetails];
-    newScanDetails[index] = { ...newScanDetails[index], enabled: !newScanDetails[index].enabled };
+    const wasEnabled = newScanDetails[index].enabled;
+    newScanDetails[index] = { ...newScanDetails[index], enabled: !wasEnabled };
     onChange({ ...data, scanDetails: newScanDetails });
+    // When enabling a direction, auto-expand its details and keep it open
+    if (!wasEnabled) {
+      setExpandedRow(newScanDetails[index].scanningDirection);
+    }
   };
 
   const updateScanDetail = (index: number, field: string, value: string | number | boolean | GateSettings) => {

@@ -727,7 +727,7 @@ export const InspectionSetupTab = ({
 
   // Auto-enable isHollow when selecting an always-hollow shape
   React.useEffect(() => {
-    if (isAlwaysHollow && data.isHollow === undefined) {
+    if (isAlwaysHollow && !data.isHollow) {
       onChange({ ...data, isHollow: true });
     }
   }, [data.partType]); // Only run when partType changes
@@ -1355,10 +1355,12 @@ export const InspectionSetupTab = ({
                   }
                   const innerDiam = parseFloat(value);
                   if (!isNaN(innerDiam)) {
-                    updateField("innerDiameter", innerDiam);
-                    // Auto-calculate wall thickness
+                    // Update innerDiameter + wallThickness in a single call
+                    // to avoid stale-closure overwrite when both are set separately
                     if (data.diameter && innerDiam > 0) {
-                      updateField("wallThickness", (data.diameter - innerDiam) / 2);
+                      onChange({ ...data, innerDiameter: innerDiam, wallThickness: (data.diameter - innerDiam) / 2 });
+                    } else {
+                      updateField("innerDiameter", innerDiam);
                     }
                   }
                 }}

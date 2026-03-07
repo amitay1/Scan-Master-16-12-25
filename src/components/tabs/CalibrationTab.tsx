@@ -9,18 +9,15 @@ import { FieldWithHelp } from "@/components/FieldWithHelp";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
-import { BlockTypeSelection, getBlockTypeOptions, GEOMETRY_GROUPS } from "@/types/calibrationBlocks";
 // New components for FBH table with dropdowns and previews
 import { FBHHoleTableWithPreviews } from "../FBHHoleTableWithPreviews";
-import { AngleBeamCalibrationBlockDrawing } from "../AngleBeamCalibrationBlockDrawing";
 import { PWCalibrationBlockDrawing } from "../drawings/PWCalibrationBlockDrawing";
 import { PWASIMCalibrationBlockDrawing } from "../drawings/PWASIMCalibrationBlockDrawing";
 import { DynamicCalibrationBlockDrawing } from "../drawings/DynamicCalibrationBlockDrawing";
 import { V2500BoreScanDiagram } from "../V2500BoreScanDiagram";
-import { StraightBeamConversionTable } from "../StraightBeamConversionTable";
+// StraightBeamConversionTable columns are now merged inline into FBHHoleTable
+// via the showSensitivityColumns prop (see FBHHoleTableWithPreviews).
 import { AngleBeamCalibrationTable } from "../AngleBeamCalibrationTable";
 import type {
   PartGeometry as CalcPartGeometry,
@@ -242,8 +239,6 @@ export const CalibrationTab = ({
   const [fbhHoles, setFbhHoles] = useState<FBHHoleRowData[]>(DEFAULT_FBH_HOLES);
   const [selectedModelId, setSelectedModelId] = useState<CalibrationBlockType | null>(null);
   const [activeBeamTab, setActiveBeamTab] = useState<"straight" | "angle">("straight");
-  // Block type selection (curved vs flat) for tubular parts
-  const [selectedBlockType, setSelectedBlockType] = useState<BlockTypeSelection>("curved");
   // Track if FBH table was auto-filled from standards
   const [fbhAutoFilled, setFbhAutoFilled] = useState(false);
   const [fbhAutoFillReason, setFbhAutoFillReason] = useState<string>("");
@@ -743,15 +738,9 @@ export const CalibrationTab = ({
           outerDiameterMm={inspectionSetup.diameter}
           innerDiameterMm={inspectionSetup.innerDiameter}
           referenceThicknessMm={effectiveInspectionThickness}
-        />
-      </div>
-
-      {/* Sensitivity Conversion Table */}
-      <div className="border rounded-lg p-4 bg-card mt-4">
-        <h4 className="font-semibold mb-4">Sensitivity Conversion Table</h4>
-        <StraightBeamConversionTable
-          rows={data.straightBeamConversionTable || []}
-          onChange={(rows) => updateField("straightBeamConversionTable", rows)}
+          showSensitivityColumns={true}
+          sensitivityRows={data.straightBeamConversionTable || []}
+          onSensitivityChange={(rows) => updateField("straightBeamConversionTable", rows)}
         />
       </div>
 
@@ -900,29 +889,6 @@ export const CalibrationTab = ({
   // Render the Angle Beam content (calibration block drawing)
   // Note: partDimensions is memoized at component level to prevent infinite re-renders
   const renderAngleBeamContent = () => {
-    // Get block type options based on part OD
-    const blockTypeOptions = inspectionSetup.diameter
-      ? getBlockTypeOptions(inspectionSetup.diameter)
-      : [];
-    // Only show curved-vs-flat block type selection for tubular/pipe geometries
-    // where matching the part curvature is relevant.
-    const tubularTypes = [
-      ...GEOMETRY_GROUPS.THIN_WALL_TUBULAR,
-      ...GEOMETRY_GROUPS.THICK_WALL_TUBULAR,
-    ] as string[];
-    const isTubularGeometry = tubularTypes.includes(inspectionSetup.partType || '');
-    const showBlockTypeSelection = isTubularGeometry && inspectionSetup.diameter && inspectionSetup.diameter > 0;
-
-    // Handle block type change
-    const handleBlockTypeChange = (value: string) => {
-      setSelectedBlockType(value as BlockTypeSelection);
-      // Update calibration data with block type
-      onChange({
-        ...data,
-        selectedBlockType: value as BlockTypeSelection,
-      });
-    };
-
     // PWA-SIM - Show dedicated multi-reflector calibration block drawing
     if (isPWASIM) {
       return (
@@ -1158,123 +1124,20 @@ export const CalibrationTab = ({
     // Non-P&W Standard - Show generic angle beam content
     return (
       <div className="space-y-4">
-        {/* Block Type Selection (Curved vs Flat) */}
-        {showBlockTypeSelection && blockTypeOptions.length > 0 && (
-          <div className="border-2 border-blue-200 rounded-xl p-4 bg-blue-50/50">
-            <h4 className="font-bold text-blue-800 text-base mb-3 flex items-center gap-2">
-              <Target className="h-4 w-4" />
-              Reference Block Type Selection
-            </h4>
-            <RadioGroup
-              value={selectedBlockType}
-              onValueChange={handleBlockTypeChange}
-              className="space-y-3"
-            >
-              {blockTypeOptions.map((option) => (
-                <div
-                  key={option.type}
-                  className={`flex items-start space-x-3 p-3 rounded-lg border-2 transition-all ${
-                    selectedBlockType === option.type
-                      ? option.isRecommended
-                        ? "border-green-400 bg-green-50"
-                        : "border-amber-400 bg-amber-50"
-                      : "border-gray-200 bg-white hover:border-gray-300"
-                  }`}
-                >
-                  <RadioGroupItem value={option.type} id={`block-type-${option.type}`} className="mt-1" />
-                  <Label htmlFor={`block-type-${option.type}`} className="flex-1 cursor-pointer">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">{option.label}</span>
-                      {option.isRecommended && (
-                        <Badge variant="default" className="bg-green-600 text-xs">
-                          Recommended
-                        </Badge>
-                      )}
-                      {option.requiresLevel3Approval && (
-                        <Badge variant="outline" className="border-amber-500 text-amber-700 text-xs flex items-center gap-1">
-                          <AlertTriangle className="h-3 w-3" />
-                          Level III Approval Required
-                        </Badge>
-                      )}
-                    </div>
-                    <p className="text-sm text-muted-foreground mt-1">{option.reasoning}</p>
-                  </Label>
-                </div>
-              ))}
-            </RadioGroup>
-          </div>
-        )}
-
-        {selectedBlockType === "curved" ? (
-          <>
-            {/* TUV-17 static reference drawing (primary for round parts). */}
-            <AngleBeamCalibrationBlockDrawing
-              width={950}
-              height={760}
-              showDimensions={true}
-              title={`Calibration Block - ${standard} (TUV Reference)`}
-              partDimensions={partDimensions}
-              useParametric={false}
-              initialTemplateId="TUV_STYLE_REF_BLOCK"
-            />
-
-            {/* Keep dynamic calculated view as optional fallback/reference. */}
-            <details className="mt-4">
-              <summary className="text-sm text-muted-foreground cursor-pointer hover:text-foreground">
-                Show Alternative Calculated Block Sketch
-              </summary>
-              <div className="mt-2">
-                <DynamicCalibrationBlockDrawing
-                  partGeometry={mappedPartGeometry}
-                  partDimensions={partDimensionsForDrawing}
-                  standard={standard}
-                  acceptanceClass={acceptanceClass || 'A'}
-                  partMaterial={inspectionSetup.material || 'steel'}
-                  forcedBlockType={scanAwareBlockTypeOverride}
-                  width={950}
-                  height={750}
-                  showDimensions={true}
-                  showSpecsTable={true}
-                  title={`Calibration Block - ${standard} (Calculated for your part)`}
-                />
-              </div>
-            </details>
-          </>
-        ) : (
-          <>
-            {/* Flat option keeps the classic calculated drawing. */}
-            <DynamicCalibrationBlockDrawing
-              partGeometry={mappedPartGeometry}
-              partDimensions={partDimensionsForDrawing}
-              standard={standard}
-              acceptanceClass={acceptanceClass || 'A'}
-              partMaterial={inspectionSetup.material || 'steel'}
-              forcedBlockType={"flat_fbh"}
-              width={950}
-              height={750}
-              showDimensions={true}
-              showSpecsTable={true}
-              title={`Calibration Block - ${standard} (Calculated for your part)`}
-            />
-
-            <details className="mt-4">
-              <summary className="text-sm text-muted-foreground cursor-pointer hover:text-foreground">
-                Show Parametric Ring-Segment Reference
-              </summary>
-              <div className="mt-2">
-                <AngleBeamCalibrationBlockDrawing
-                  width={900}
-                  height={650}
-                  showDimensions={true}
-                  title="Reference: Parametric Shear Wave Block"
-                  partDimensions={partDimensions}
-                  useParametric={true}
-                  initialTemplateId="TUV_STYLE_REF_BLOCK"
-                />
-              </div>
-            </details>
-          </>
-        )}
+        {/* Flat reference block drawing for angle beam calibration */}
+        <DynamicCalibrationBlockDrawing
+          partGeometry={mappedPartGeometry}
+          partDimensions={partDimensionsForDrawing}
+          standard={standard}
+          acceptanceClass={acceptanceClass || 'A'}
+          partMaterial={inspectionSetup.material || 'steel'}
+          forcedBlockType={"flat_fbh"}
+          width={950}
+          height={750}
+          showDimensions={true}
+          showSpecsTable={true}
+          title={`Calibration Block - ${standard} (Calculated for your part)`}
+        />
 
         {/* Angle Beam Calibration Table - dB corrections per reflector */}
         <div className="border-2 border-orange-200 rounded-xl p-4 bg-orange-50/30 mt-4">
