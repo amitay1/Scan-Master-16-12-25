@@ -240,6 +240,54 @@ export function isCone(partType: string | undefined): boolean {
 }
 
 /**
+ * Format transducer shape & size for display (proper labels instead of raw keys)
+ */
+export function formatTransducerShape(shape: string | undefined): string {
+  if (!shape) return '-';
+  const shapeMap: Record<string, string> = {
+    'active_element_diameter_3_8_to_1_inch': 'Active Element \u22053/8" to 1"',
+    'active_element_diameter_1_4_inch': 'Active Element \u22051/4"',
+    'active_element_diameter_3_8_inch': 'Active Element \u22053/8"',
+    'active_element_diameter_1_2_inch': 'Active Element \u22051/2"',
+    'active_element_diameter_3_4_inch': 'Active Element \u22053/4"',
+    'active_element_diameter_1_inch': 'Active Element \u22051"',
+    'round': 'Round',
+    'square': 'Square',
+    'rectangular': 'Rectangular',
+    'line_focused': 'Line Focused',
+    'point_focused': 'Point Focused',
+  };
+  return shapeMap[shape] || shape.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
+/**
+ * Get geometry-aware dimension labels based on part type
+ * Mirrors getPartFieldConfig() in InspectionSetupTab
+ */
+function getDimensionLabels(partType?: string): {
+  thicknessLabel: string;
+  lengthLabel: string;
+  odLabel: string;
+} {
+  if (!partType) return { thicknessLabel: 'Thickness', lengthLabel: 'Length', odLabel: 'Outer Diameter (OD)' };
+
+  const heightTypes = ['disk', 'disk_forging', 'hub', 'impeller', 'blisk', 'hpt_disk'];
+  const axialWidthTypes = ['ring', 'ring_forging', 'sleeve', 'bushing', 'tube', 'pipe'];
+
+  let thicknessLabel = 'Thickness';
+  if (heightTypes.includes(partType)) thicknessLabel = 'Height';
+
+  let lengthLabel = 'Length';
+  if (axialWidthTypes.includes(partType)) lengthLabel = 'Axial Width';
+
+  let odLabel = 'Outer Diameter (OD)';
+  if (partType === 'hexagon') odLabel = 'Across Flats';
+  else if (partType === 'sphere') odLabel = 'Diameter';
+
+  return { thicknessLabel, lengthLabel, odLabel };
+}
+
+/**
  * Get part dimensions as formatted rows based on part type
  */
 export function getPartDimensionRows(setup: {
@@ -254,15 +302,18 @@ export function getPartDimensionRows(setup: {
   coneTopDiameter?: number;
   coneBottomDiameter?: number;
   coneHeight?: number;
+  innerLength?: number;
+  innerWidth?: number;
 }): Array<[string, string]> {
   const rows: Array<[string, string]> = [];
+  const labels = getDimensionLabels(setup.partType);
 
-  // Common dimensions
+  // Common dimensions with geometry-aware labels
   if (setup.partThickness) {
-    rows.push(['Thickness', formatNumber(setup.partThickness, 1, 'mm')]);
+    rows.push([labels.thicknessLabel, formatNumber(setup.partThickness, 1, 'mm')]);
   }
   if (setup.partLength) {
-    rows.push(['Length', formatNumber(setup.partLength, 1, 'mm')]);
+    rows.push([labels.lengthLabel, formatNumber(setup.partLength, 1, 'mm')]);
   }
   if (setup.partWidth) {
     rows.push(['Width', formatNumber(setup.partWidth, 1, 'mm')]);
@@ -271,7 +322,7 @@ export function getPartDimensionRows(setup: {
   // Cylindrical dimensions
   if (isCylindrical(setup.partType)) {
     if (setup.diameter) {
-      rows.push(['Outer Diameter (OD)', formatNumber(setup.diameter, 1, 'mm')]);
+      rows.push([labels.odLabel, formatNumber(setup.diameter, 1, 'mm')]);
     }
     if (setup.innerDiameter) {
       rows.push(['Inner Diameter (ID)', formatNumber(setup.innerDiameter, 1, 'mm')]);
@@ -279,6 +330,14 @@ export function getPartDimensionRows(setup: {
     if (setup.wallThickness) {
       rows.push(['Wall Thickness', formatNumber(setup.wallThickness, 2, 'mm')]);
     }
+  }
+
+  // Rectangular hollow inner dimensions
+  if (setup.innerLength) {
+    rows.push(['Inner Length', formatNumber(setup.innerLength, 1, 'mm')]);
+  }
+  if (setup.innerWidth) {
+    rows.push(['Inner Width', formatNumber(setup.innerWidth, 1, 'mm')]);
   }
 
   // Cone dimensions
@@ -291,6 +350,9 @@ export function getPartDimensionRows(setup: {
     }
     if (setup.coneHeight) {
       rows.push(['Cone Height', formatNumber(setup.coneHeight, 1, 'mm')]);
+    }
+    if (setup.wallThickness) {
+      rows.push(['Wall Thickness', formatNumber(setup.wallThickness, 2, 'mm')]);
     }
   }
 

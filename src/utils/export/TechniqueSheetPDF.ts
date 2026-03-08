@@ -46,6 +46,7 @@ import {
   formatBlockType,
   formatScanMethod,
   formatTransducerType,
+  formatTransducerShape,
   formatAcceptanceClass,
   isCylindrical,
   isCone,
@@ -1278,9 +1279,7 @@ class TechniqueSheetPDFBuilder {
     const transducerTypeDisplay = eq.transducerTypes?.length
       ? eq.transducerTypes.map((type) => formatTransducerType(type)).join(', ')
       : formatTransducerType(eq.transducerType);
-    const transducerShapeDisplay = eq.transducerShapeAndSize
-      ? eq.transducerShapeAndSize.replace(/_/g, ' ')
-      : undefined;
+    const transducerShapeDisplay = formatTransducerShape(eq.transducerShapeAndSize);
 
     // Combined Equipment + Transducer table
     const equipmentInfo = buildTableRows([
@@ -1336,16 +1335,26 @@ class TechniqueSheetPDFBuilder {
 
     y = this.getTableEndY(y);
 
-    // Phased Array Settings (if applicable)
-    if (eq.numberOfElements || eq.elementPitch || eq.wedgeModel || eq.wedgeType) {
+    // Phased Array Settings (if applicable) — respect *Applicable flags
+    const eqAny = eq as Record<string, unknown>;
+    const paHasData = (eq.numberOfElements && eqAny.numberOfElementsApplicable !== false)
+      || (eq.elementPitch && eqAny.elementPitchApplicable !== false)
+      || (eq.wedgeModel && eqAny.wedgeModelApplicable !== false)
+      || (eq.wedgeType && eqAny.wedgeTypeApplicable !== false);
+    if (paHasData) {
       y = this.addSubsectionTitle('Phased Array Configuration', y);
 
+      const paVal = (val: unknown, applicableFlag: unknown): string | undefined => {
+        if (applicableFlag === false) return 'N/A';
+        return val !== undefined && val !== null && val !== '' ? String(val) : undefined;
+      };
+
       const paInfo = buildTableRows([
-        ['Number of Elements', eq.numberOfElements?.toString()],
-        ['Element Pitch', eq.elementPitch ? formatNumber(eq.elementPitch, 2, 'mm') : undefined],
-        ['Wedge Model', eq.wedgeModel],
-        ['Wedge Type', eq.wedgeType],
-        ['Delay Line', eq.delayLine],
+        ['Number of Elements', paVal(eq.numberOfElements, eqAny.numberOfElementsApplicable)],
+        ['Element Pitch', eqAny.elementPitchApplicable === false ? 'N/A' : (eq.elementPitch ? formatNumber(eq.elementPitch, 2, 'mm') : undefined)],
+        ['Wedge Model', paVal(eq.wedgeModel, eqAny.wedgeModelApplicable)],
+        ['Wedge Type', paVal(eq.wedgeType, eqAny.wedgeTypeApplicable)],
+        ['Delay Line', paVal(eq.delayLine, eqAny.delayLineApplicable)],
       ]);
 
       if (paInfo.length > 0) {
@@ -1380,14 +1389,14 @@ class TechniqueSheetPDFBuilder {
 
     const cal = this.data.calibration;
 
-    // Calibration Block Info
+    // Calibration Block Info — fixed label from "Standard/Block Type" to "Calibration Block Type"
     const calInfo = buildTableRows([
-      ['Standard/Block Type', formatBlockType(cal.standardType)],
+      ['Calibration Block Type', formatBlockType(cal.standardType)],
       ['Reference Material', cal.referenceMaterial],
-      ['Block Dimensions', cal.blockDimensions],
+      ['Block Dimensions (mm)', cal.blockDimensions],
       ['Block Serial Number', cal.blockSerialNumber],
       ['Last Calibration Date', formatDate(cal.lastCalibrationDate)],
-      ['Metal Travel Distance', cal.metalTravelDistance ? formatNumber(cal.metalTravelDistance, 1, 'mm') : undefined],
+      ['Avg. Metal Travel Distance', cal.metalTravelDistance ? formatNumber(cal.metalTravelDistance, 1, 'mm') : undefined],
     ], { showEmpty: true });
 
     autoTable(this.pdf, {
@@ -1438,6 +1447,108 @@ class TechniqueSheetPDFBuilder {
       y += 15;
     }
 
+    // Calibration Sensitivity Table
+    if (cal.sensitivityTable && cal.sensitivityTable.length > 0) {
+      // Check if we need a new page
+      if (y > PAGE.height - PAGE.footerHeight - 80) {
+        this.addFooter();
+        this.addNewPage();
+        this.addHeader();
+        y = PAGE.contentStart;
+      }
+
+      y = this.addSubsectionTitle('Calibration Sensitivity', y);
+
+      const sensRows = cal.sensitivityTable.map((row) => [
+        row.reflectorType || '-',
+        row.reflectorSizeInch || '-',
+        formatNumber(row.curvatureCorrection, 1, 'dB'),
+        formatNumber(row.gainOffset, 1, 'dB'),
+        formatNumber(row.deltaDbTotal, 1, 'dB'),
+      ]);
+
+      autoTable(this.pdf, {
+        startY: y,
+        head: [['Reflector Type', 'Size (inch)', 'Curvature Corr. (dB)', 'Gain Offset (dB)', 'ΔdB Total']],
+        body: sensRows,
+        theme: 'grid',
+        styles: { fontSize: 8, cellPadding: 2 },
+        headStyles: { fillColor: COLORS.secondary, textColor: [255, 255, 255] },
+        margin: { left: PAGE.marginLeft, right: PAGE.marginRight, bottom: PAGE.footerHeight + 5 },
+      });
+
+      y = this.getTableEndY(y);
+    }
+
+    // Straight Beam Conversion Table
+    if (cal.straightBeamConversionTable && cal.straightBeamConversionTable.length > 0) {
+      if (y > PAGE.height - PAGE.footerHeight - 80) {
+        this.addFooter();
+        this.addNewPage();
+        this.addHeader();
+        y = PAGE.contentStart;
+      }
+
+      y = this.addSubsectionTitle('Straight Beam Conversion', y);
+
+      const sbcRows = cal.straightBeamConversionTable.map((row) => [
+        row.partNumber || '-',
+        row.fbhCalibrationSize || '-',
+        row.fbhRequired || '-',
+        formatNumber(row.deltaDbNeeded, 1, 'dB'),
+        formatNumber(row.transferCorrectionDb, 1, 'dB'),
+        formatNumber(row.curvatureCorrectionDb, 1, 'dB'),
+      ]);
+
+      autoTable(this.pdf, {
+        startY: y,
+        head: [['P/N', 'FBH Cal. Size', 'FBH Required', 'ΔdB Needed', 'Transfer Corr. (dB)', 'Curvature Corr. (dB)']],
+        body: sbcRows,
+        theme: 'grid',
+        styles: { fontSize: 8, cellPadding: 2 },
+        headStyles: { fillColor: COLORS.secondary, textColor: [255, 255, 255] },
+        margin: { left: PAGE.marginLeft, right: PAGE.marginRight, bottom: PAGE.footerHeight + 5 },
+      });
+
+      y = this.getTableEndY(y);
+    }
+
+    // Angle Beam Calibration Table
+    if (cal.angleBeamCalibrationRows && cal.angleBeamCalibrationRows.length > 0) {
+      if (y > PAGE.height - PAGE.footerHeight - 80) {
+        this.addFooter();
+        this.addNewPage();
+        this.addHeader();
+        y = PAGE.contentStart;
+      }
+
+      y = this.addSubsectionTitle('Angle Beam Calibration Data', y);
+
+      const abRows = cal.angleBeamCalibrationRows.map((row) => [
+        row.reflectorType || '-',
+        row.reflectorSizeInch !== undefined ? `${row.reflectorSizeInch}"` : '-',
+        row.currentReflectorUsed || '-',
+        row.currentReflectorSize || '-',
+        formatNumber(row.sizeDbCorrection, 1, 'dB'),
+        formatNumber(row.transferDbCorrection, 1, 'dB'),
+        formatNumber(row.totalDb, 1, 'dB'),
+        formatNumber(row.depthMm, 1, 'mm'),
+        formatNumber(row.soundPathMm, 1, 'mm'),
+      ]);
+
+      autoTable(this.pdf, {
+        startY: y,
+        head: [['Reflector', 'Size Req. (inch)', 'Current Ref.', 'Ref. Size', 'Size ΔdB', 'Transfer ΔdB', 'Total ΔdB', 'Depth (mm)', 'Sound Path (mm)']],
+        body: abRows,
+        theme: 'grid',
+        styles: { fontSize: 7, cellPadding: 2 },
+        headStyles: { fillColor: COLORS.secondary, textColor: [255, 255, 255], fontSize: 7 },
+        margin: { left: PAGE.marginLeft, right: PAGE.marginRight, bottom: PAGE.footerHeight + 5 },
+      });
+
+      y = this.getTableEndY(y);
+    }
+
     this.addFooter();
   }
 
@@ -1448,38 +1559,59 @@ class TechniqueSheetPDFBuilder {
   private buildCalibrationDiagram(): void {
     this.addHeader();
     let y = PAGE.contentStart;
+    const cal = this.data.calibration;
 
     y = this.addSectionTitle('3.1 CALIBRATION BLOCK DIAGRAM', y);
 
-    if (this.data.calibrationBlockDiagram) {
+    // Helper to render a single image centered on page
+    const renderImage = (imgData: string, maxH: number): number => {
+      const maxWidth = PAGE.contentWidth * 0.9;
+      const maxHeight = Math.min(maxH, 150);
+      const { width: imgWidth, height: imgHeight } = this.calculateImageDimensions(
+        imgData, maxWidth, maxHeight
+      );
+      const xPos = PAGE.marginLeft + (PAGE.contentWidth - imgWidth) / 2;
+
+      this.pdf.setDrawColor(200, 200, 200);
+      this.pdf.setLineWidth(0.5);
+      this.pdf.rect(xPos - 2, y - 2, imgWidth + 4, imgHeight + 4);
+
+      this.pdf.addImage(imgData, 'PNG', xPos, y, imgWidth, imgHeight, undefined, 'FAST');
+      return imgHeight;
+    };
+
+    const hasAutoDiagram = !!this.data.calibrationBlockDiagram;
+    const hasCustomImage = !!cal.customStraightBeamImage;
+
+    if (hasAutoDiagram || hasCustomImage) {
       try {
-        // Calculate proper dimensions from actual image (preserves aspect ratio)
-        const maxWidth = PAGE.contentWidth * 0.9;
-        const maxHeight = Math.min(PAGE.height - y - PAGE.footerHeight - 30, 150);
-        const { width: imgWidth, height: imgHeight } = this.calculateImageDimensions(
-          this.data.calibrationBlockDiagram,
-          maxWidth,
-          maxHeight
-        );
+        const availableH = PAGE.height - y - PAGE.footerHeight - 30;
 
-        // Center horizontally
-        const xPos = PAGE.marginLeft + (PAGE.contentWidth - imgWidth) / 2;
+        if (hasAutoDiagram && hasCustomImage) {
+          // Both images: split available height
+          const halfH = (availableH - 20) / 2; // 20mm gap between images
 
-        // Add border/frame around image
-        this.pdf.setDrawColor(200, 200, 200);
-        this.pdf.setLineWidth(0.5);
-        this.pdf.rect(xPos - 2, y - 2, imgWidth + 4, imgHeight + 4);
+          // Auto-captured diagram first
+          this.pdf.setFontSize(FONTS.small.size);
+          this.pdf.setFont('helvetica', 'bold');
+          this.pdf.setTextColor(...COLORS.secondary);
+          this.pdf.text('Auto-Generated Diagram', PAGE.marginLeft, y);
+          y += 5;
+          const h1 = renderImage(this.data.calibrationBlockDiagram!, halfH);
+          y += h1 + 10;
 
-        this.pdf.addImage(
-          this.data.calibrationBlockDiagram,
-          'PNG',
-          xPos,
-          y,
-          imgWidth,
-          imgHeight,
-          undefined,
-          'FAST' // High quality - minimal compression
-        );
+          // Custom uploaded image
+          this.pdf.setFontSize(FONTS.small.size);
+          this.pdf.setFont('helvetica', 'bold');
+          this.pdf.setTextColor(...COLORS.secondary);
+          this.pdf.text('Custom Uploaded Image', PAGE.marginLeft, y);
+          y += 5;
+          renderImage(cal.customStraightBeamImage!, halfH);
+        } else if (hasAutoDiagram) {
+          renderImage(this.data.calibrationBlockDiagram!, availableH);
+        } else {
+          renderImage(cal.customStraightBeamImage!, availableH);
+        }
       } catch {
         this.pdf.setFontSize(10);
         this.pdf.setTextColor(...COLORS.lightText);
@@ -1487,7 +1619,6 @@ class TechniqueSheetPDFBuilder {
       }
     } else {
       // Show block info in text form
-      const cal = this.data.calibration;
       this.pdf.setFontSize(10);
       this.pdf.setTextColor(...COLORS.lightText);
       this.pdf.text('No calibration block diagram available.', PAGE.marginLeft, y + 10);
@@ -1662,13 +1793,18 @@ class TechniqueSheetPDFBuilder {
       return techniqueMap[technique] || technique;
     };
 
+    // Scan method: support multi-select array
+    const scanMethodDisplay = scan.scanMethods?.length
+      ? scan.scanMethods.map(m => formatScanMethod(m)).join(', ')
+      : formatScanMethod(scan.scanMethod);
+
     // Main Scan Parameters
     const scanInfo = buildTableRows([
-      ['Scan Method', formatScanMethod(scan.scanMethod)],
+      ['Scan Method', scanMethodDisplay],
       ['Technique', formatTechnique(scan.technique)],
+      ['Frequency', this.data.equipment.frequency ? `${this.data.equipment.frequency} MHz` : undefined],
       ['Scan Type', formatValue(scan.scanType)],
       ['Scan Pattern', formatValue(scan.scanPattern)],
-      ['Coupling Method', formatValue(scan.couplingMethod)],
     ], { showEmpty: true });
 
     autoTable(this.pdf, {
@@ -1716,8 +1852,6 @@ class TechniqueSheetPDFBuilder {
 
     const gateInfo = buildTableRows([
       ['Pulse Repetition Rate (PRF)', scan.pulseRepetitionRate ? `${scan.pulseRepetitionRate} Hz` : undefined],
-      ['Gain Settings', scan.gainSettings],
-      ['Alarm Gate Settings', scan.alarmGateSettings],
     ], { showEmpty: true });
 
     autoTable(this.pdf, {
@@ -1734,16 +1868,25 @@ class TechniqueSheetPDFBuilder {
 
     y = this.getTableEndY(y);
 
-    // Phased Array Settings
-    if (scan.couplingMethod === 'phased_array' && scan.phasedArray) {
+    // Phased Array Settings — FIXED: use technique instead of legacy couplingMethod
+    if (scan.technique === 'phased_array' && scan.phasedArray) {
       y = this.addSubsectionTitle('Phased Array Settings', y);
 
       const pa = scan.phasedArray;
+
+      // Build scan types display from checkboxes
+      const scanTypesArr: string[] = [];
+      if (pa.scanTypes?.sScan) scanTypesArr.push('S-Scan');
+      if (pa.scanTypes?.linearScan) scanTypesArr.push('Linear');
+      if (pa.scanTypes?.compoundScan) scanTypesArr.push('Compound');
+      const scanTypesDisplay = scanTypesArr.length > 0 ? scanTypesArr.join(', ') : undefined;
+
       const paInfo = buildTableRows([
         ['Refracted Angle Start', pa.refractedAngleStart ? `${pa.refractedAngleStart}°` : undefined],
         ['Refracted Angle End', pa.refractedAngleEnd ? `${pa.refractedAngleEnd}°` : undefined],
         ['Aperture', pa.aperture?.toString()],
         ['Focus Laws', pa.focusLaws],
+        ['Scan Types', scanTypesDisplay],
       ]);
 
       if (paInfo.length > 0) {
@@ -2013,26 +2156,25 @@ class TechniqueSheetPDFBuilder {
 
     y += 8;
 
-    // Main scan plan table
+    // Main scan plan table — FIXED: use entrySurface, remove phantom fields, add remarks
     const scanPlanRows: string[][] = enabledDetails.map((detail, index) => {
-      const waveType = (detail.waveMode || '').toLowerCase().includes('shear') ? 'S' :
-                       (detail.waveMode || '').toLowerCase().includes('long') ? 'L' : '-';
+      const wm = (detail.waveMode || '').toLowerCase();
+      const waveType = wm.includes('shear') ? 'S' :
+                       (wm.includes('long') || wm.includes('dual')) ? 'L' : '-';
       return [
-        String(index + 1),                                        // Seq
-        detail.scanningDirection,                                 // Dir (A, B, C, etc.)
-        detail.surface || '-',                                    // Surface
-        waveType,                                                 // Wave (L/S)
-        detail.beamDirection || detail.waveMode || '-',           // Beam Direction
-        detail.sensitivity || (detail.fbhSize ? `${detail.fbhSize}" FBH DAC` : '-'),  // Sensitivity
-        detail.angle !== undefined ? `${detail.angle}°` : '0°',   // Angle
-        detail.probe || '-',                                      // Probe
-        detail.waterPath ? `${detail.waterPath}` : '-',           // Water Path
+        String(index + 1),                                           // Seq
+        detail.scanningDirection,                                    // Dir (A, B, C, etc.)
+        detail.entrySurface || '-',                                  // Entry Surface (was phantom "surface")
+        waveType,                                                    // Wave (L/S)
+        detail.angle !== undefined ? `${detail.angle}°` : '0°',     // Angle
+        detail.waterPath ? `${detail.waterPath}` : '-',              // Water Path
+        detail.remarkDetails || '-',                                 // Remarks
       ];
     });
 
     autoTable(this.pdf, {
       startY: y,
-      head: [['Seq', 'Dir', 'Surface', 'Wave', 'Beam Direction', 'Sensitivity', 'Angle', 'Probe', 'Water Path']],
+      head: [['Seq', 'Dir', 'Entry Surface', 'Wave', 'Angle', 'Water Path', 'Remarks']],
       body: scanPlanRows,
       theme: 'grid',
       styles: { fontSize: 7, cellPadding: 2, lineColor: COLORS.tableBorder, lineWidth: 0.2 },
@@ -2046,13 +2188,11 @@ class TechniqueSheetPDFBuilder {
       columnStyles: {
         0: { cellWidth: 10, halign: 'center', fontStyle: 'bold' },   // Seq
         1: { cellWidth: 12, halign: 'center', fontStyle: 'bold' },   // Dir
-        2: { cellWidth: 22 },                                         // Surface
+        2: { cellWidth: 24 },                                         // Entry Surface
         3: { cellWidth: 12, halign: 'center' },                       // Wave
-        4: { cellWidth: 32 },                                         // Beam Direction
-        5: { cellWidth: 32 },                                         // Sensitivity
-        6: { cellWidth: 14, halign: 'center' },                       // Angle
-        7: { cellWidth: 28 },                                         // Probe
-        8: { cellWidth: 12, halign: 'center' },                       // Freq
+        4: { cellWidth: 16, halign: 'center' },                       // Angle
+        5: { cellWidth: 20, halign: 'center' },                       // Water Path
+        6: { cellWidth: 'auto' },                                     // Remarks
       },
       didParseCell: (data) => {
         // Color code the Wave column
@@ -2166,38 +2306,78 @@ class TechniqueSheetPDFBuilder {
 
     y = this.getTableEndY(y);
 
-    // ========== U.T PARAMETERS TABLE ==========
+    // ========== U.T PARAMETERS TABLE (expanded with all per-direction fields) ==========
     y = this.addSubsectionTitle('U.T Parameters', y);
 
     const utRows: string[][] = enabledDetails.map((detail) => {
-      const extDetail = detail as typeof detail & {
-        gate1?: { start: number; length: number; level: number };
-        tcgMode?: boolean;
-      };
       return [
         detail.scanningDirection,
         detail.utParameter || detail.pulsarParams || '-',
         detail.utRange !== undefined ? `${detail.utRange}` : '-',
         detail.utDelay !== undefined ? `${detail.utDelay}` : '-',
-        formatGate(extDetail.gate1),
-        extDetail.tcgMode !== undefined ? (extDetail.tcgMode ? 'YES' : 'NO') : '-',
+        detail.prf ? `${detail.prf}` : '-',
+        detail.db !== undefined ? `${detail.db}` : '-',
+        detail.indexMode || '-',
+        detail.filter || '-',
+        detail.reject || '-',
+        detail.tcgMode !== undefined ? (detail.tcgMode ? 'YES' : 'NO') : '-',
       ];
     });
 
     autoTable(this.pdf, {
       startY: y,
-      head: [['Dir', 'U.T Parameter', 'Range', 'Delay', 'Gate 1', 'TCG']],
+      head: [['Dir', 'U.T Parameter', 'Range', 'Delay', 'PRF', 'dB', 'Index', 'Filter', 'Reject', 'TCG']],
       body: utRows,
       theme: 'grid',
+      styles: { fontSize: 6.5, cellPadding: 1.5 },
+      headStyles: { fillColor: [99, 102, 241], textColor: [255, 255, 255], fontSize: 6.5 },
+      columnStyles: {
+        0: { fontStyle: 'bold', cellWidth: 10, halign: 'center' },
+        1: { cellWidth: 32 },
+        2: { cellWidth: 16, halign: 'center' },
+        3: { cellWidth: 16, halign: 'center' },
+        4: { cellWidth: 34, halign: 'center' },
+        4: { cellWidth: 14, halign: 'center' },
+        5: { cellWidth: 14, halign: 'center' },
+        6: { cellWidth: 16, halign: 'center' },
+        7: { cellWidth: 16, halign: 'center' },
+        8: { cellWidth: 16, halign: 'center' },
+        9: { cellWidth: 14, halign: 'center' },
+      },
+      alternateRowStyles: { fillColor: COLORS.rowAlt },
+      margin: { left: PAGE.marginLeft, right: PAGE.marginRight, bottom: PAGE.footerHeight + 5 },
+    });
+
+    y = this.getTableEndY(y);
+
+    // ========== GATE SETTINGS TABLE (Gates 1-4) ==========
+    y = this.addSubsectionTitle('Gate Settings', y);
+
+    const gateRows: string[][] = enabledDetails.map((detail) => {
+      return [
+        detail.scanningDirection,
+        formatGate(detail.gate1),
+        formatGate(detail.gate2),
+        formatGate(detail.gate3),
+        formatGate(detail.gate4),
+        detail.scanningFile || '-',
+      ];
+    });
+
+    autoTable(this.pdf, {
+      startY: y,
+      head: [['Dir', 'Gate 1 (S-L-Lvl%)', 'Gate 2 (S-L-Lvl%)', 'Gate 3 (S-L-Lvl%)', 'Gate 4 (S-L-Lvl%)', 'Scanning File']],
+      body: gateRows,
+      theme: 'grid',
       styles: { fontSize: 7, cellPadding: 2 },
-      headStyles: { fillColor: [99, 102, 241], textColor: [255, 255, 255], fontSize: 7 },
+      headStyles: { fillColor: [245, 158, 11], textColor: [255, 255, 255], fontSize: 7 },
       columnStyles: {
         0: { fontStyle: 'bold', cellWidth: 12, halign: 'center' },
-        1: { cellWidth: 54 },
-        2: { cellWidth: 22, halign: 'center' },
-        3: { cellWidth: 20, halign: 'center' },
-        4: { cellWidth: 34, halign: 'center' },
-        5: { cellWidth: 'auto', halign: 'center' },
+        1: { cellWidth: 30, halign: 'center' },
+        2: { cellWidth: 30, halign: 'center' },
+        3: { cellWidth: 30, halign: 'center' },
+        4: { cellWidth: 30, halign: 'center' },
+        5: { cellWidth: 'auto' },
       },
       alternateRowStyles: { fillColor: COLORS.rowAlt },
       margin: { left: PAGE.marginLeft, right: PAGE.marginRight, bottom: PAGE.footerHeight + 5 },
@@ -2214,9 +2394,11 @@ class TechniqueSheetPDFBuilder {
     this.addHeader();
     let y = PAGE.contentStart;
 
-    // Dynamic section numbering
-    const sectionNum = this.data.scanDetails ? '6.1' : '6';
-    y = this.addSectionTitle(`${sectionNum}. SCAN DIRECTIONS - INSPECTION PLAN`, y);
+    // Dynamic section numbering — avoid collision with e2375 which uses 6.1
+    const dirSectionNum = this.data.scanDetails
+      ? (this.data.e2375Diagram ? '6.2' : '6.1')
+      : '6';
+    y = this.addSectionTitle(`${dirSectionNum}. SCAN DIRECTIONS - INSPECTION PLAN`, y);
 
     if (this.data.scanDirectionsDrawing) {
       try {
