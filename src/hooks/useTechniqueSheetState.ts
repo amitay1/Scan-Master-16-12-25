@@ -67,6 +67,7 @@ const defaultCalibration: CalibrationData = {
   fbhSizes: "",
   metalTravelDistance: 0,
   blockDimensions: "",
+  blockDimensionsMode: "flat",
   blockSerialNumber: "",
   lastCalibrationDate: "",
 };

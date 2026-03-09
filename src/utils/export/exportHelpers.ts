@@ -246,6 +246,8 @@ export function formatTransducerShape(shape: string | undefined): string {
   if (!shape) return '-';
   const shapeMap: Record<string, string> = {
     'active_element_diameter_3_8_to_1_inch': 'Active Element \u22053/8" to 1"',
+    'rectangular_flat': 'Rectangular Flat',
+    'cylindrically_focused_transducers': 'Cylindrically Focused Transducers',
     'active_element_diameter_1_4_inch': 'Active Element \u22051/4"',
     'active_element_diameter_3_8_inch': 'Active Element \u22053/8"',
     'active_element_diameter_1_2_inch': 'Active Element \u22051/2"',
@@ -257,7 +259,16 @@ export function formatTransducerShape(shape: string | undefined): string {
     'line_focused': 'Line Focused',
     'point_focused': 'Point Focused',
   };
-  return shapeMap[shape] || shape.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  const rawValues = shape
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  const formattedValues = rawValues.map((value) =>
+    shapeMap[value] || value.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+  );
+
+  return formattedValues.join(', ');
 }
 
 /**

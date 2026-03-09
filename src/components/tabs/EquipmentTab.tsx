@@ -199,6 +199,35 @@ export const EquipmentTab = ({ data, onChange, partThickness, standard = "AMS-ST
     applyTransducerSelection(updated);
   };
 
+  const selectedTransducerShapes = useMemo(() => {
+    return (data.transducerShapeAndSize || "")
+      .split(",")
+      .map((value) => value.trim())
+      .filter(Boolean);
+  }, [data.transducerShapeAndSize]);
+
+  const applyTransducerShapeSelection = (selected: string[]) => {
+    const normalized = Array.from(
+      new Set(selected.map((value) => value.trim()).filter(Boolean))
+    );
+    onChange({
+      ...data,
+      transducerShapeAndSize: normalized.join(", "),
+    });
+  };
+
+  const toggleTransducerShape = (value: string) => {
+    const current = selectedTransducerShapes;
+    const updated = current.includes(value)
+      ? current.filter((item) => item !== value)
+      : [...current, value];
+    applyTransducerShapeSelection(updated);
+
+    if (value === "active_element_diameter_3_8_to_1_inch" && !data.transducerDiameter) {
+      updateField("transducerDiameter", 0.5);
+    }
+  };
+
   const selectedCouplantValue = useMemo(() => {
     if (data.customCouplant) return "Custom";
     if (!data.couplant) return "";
@@ -375,31 +404,37 @@ export const EquipmentTab = ({ data, onChange, partThickness, standard = "AMS-ST
         </FieldWithHelp>
 
         <FieldWithHelp
-          label="Transducer Shape and Size"
+          label="Transducer Shape and Size (multi-select)"
           fieldKey="transducerDiameter"
-          help="As requested: choose one of the standard shape/size options"
+          help="Select one or more standard shape/size options"
           required
         >
-          <Select
-            value={data.transducerShapeAndSize || ""}
-            onValueChange={(value) => {
-              updateField("transducerShapeAndSize", value);
-              if (value === "active_element_diameter_3_8_to_1_inch" && !data.transducerDiameter) {
-                updateField("transducerDiameter", 0.5);
-              }
-            }}
-          >
-            <SelectTrigger className="bg-background">
-              <SelectValue placeholder="Select shape/size..." />
-            </SelectTrigger>
-            <SelectContent>
-              {transducerShapeOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="space-y-2">
+            <div className="flex flex-wrap gap-2">
+              {transducerShapeOptions.map((option) => {
+                const selected = selectedTransducerShapes.includes(option.value);
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => toggleTransducerShape(option.value)}
+                    className={`px-2 py-1 rounded border text-xs transition-colors ${
+                      selected
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-background border-border hover:bg-muted/50"
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                );
+              })}
+            </div>
+            {selectedTransducerShapes.length === 0 && (
+              <p className="text-xs text-muted-foreground">
+                Select one or more transducer shape/size options.
+              </p>
+            )}
+          </div>
         </FieldWithHelp>
 
         <FieldWithHelp

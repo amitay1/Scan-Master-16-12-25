@@ -1526,7 +1526,9 @@ class TechniqueSheetPDFBuilder {
 
       const abRows = cal.angleBeamCalibrationRows.map((row) => [
         row.reflectorType || '-',
-        row.reflectorSizeInch !== undefined ? `${row.reflectorSizeInch}"` : '-',
+        row.reflectorSizeInch !== undefined
+          ? (String(row.reflectorSizeInch).includes('/') ? String(row.reflectorSizeInch) : `${row.reflectorSizeInch}"`)
+          : '-',
         row.currentReflectorUsed || '-',
         row.currentReflectorSize || '-',
         formatNumber(row.sizeDbCorrection, 1, 'dB'),

@@ -219,6 +219,10 @@ export interface CalibrationData {
   fbhHoles?: FBHHoleData[];   // New: structured FBH hole data array
   metalTravelDistance: number;
   blockDimensions: string;
+  blockDimensionsMode?: "flat" | "curve" | "custom";
+  curveInnerDiameterMm?: number;
+  curveOuterDiameterMm?: number;
+  curveWallThicknessMm?: number;
   blockSerialNumber: string;
   lastCalibrationDate: string;
   autoRecommendedReason?: string; // NEW: Reason why this block was auto-selected (for tooltip)

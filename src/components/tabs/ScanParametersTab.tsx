@@ -12,7 +12,6 @@ import {
   scanParametersByStandard,
   calibrationByStandard,
 } from "@/data/standardsDifferences";
-import { getFrequencyOptionsForStandard } from "@/utils/frequencyUtils";
 
 interface ScanParametersTabProps {
   data: ScanParametersData;
@@ -37,21 +36,10 @@ const getStandardLabel = (standard: StandardType): string => {
 };
 
 export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E", equipmentFrequency, onEquipmentFrequencyChange, equipmentData, onEquipmentDataChange }: ScanParametersTabProps) => {
-  // Ensure we have valid data object with defaults
-  const safeData = data || {
-    scanMethod: "",
-    scanMethods: [],
-    technique: "conventional" as const,
-    scanType: "",
-    scanSpeed: 100,
-    scanIndex: 70,
-    coverage: 100,
-    scanPattern: "",
-    waterPath: 0,
-    pulseRepetitionRate: 1000,
-    gainSettings: "",
-    alarmGateSettings: "",
-  };
+  void equipmentFrequency;
+  void onEquipmentFrequencyChange;
+  void equipmentData;
+  void onEquipmentDataChange;
 
   // Get scan parameters for current standard with fallback
   const scanParams = useMemo(() => {
@@ -108,6 +96,26 @@ export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E", 
   // Show bubbler fields when bubbler technique is selected
   const showBubblerFields = data.technique === "bubbler";
   const isAustenitic = standard === "BS-EN-10228-4";
+  const scanSpeedPresets = [50, 100, 150, 200, 300];
+  const selectedSpeedPreset = scanSpeedPresets.includes(Number(data.scanSpeed))
+    ? String(Number(data.scanSpeed))
+    : "custom";
+
+  const prfRecommendationTable = useMemo(
+    () => [
+      { maxScanSpeed: 50, probe1InchPrf: 100, probeHalfInchPrf: 200 },
+      { maxScanSpeed: 100, probe1InchPrf: 200, probeHalfInchPrf: 400 },
+      { maxScanSpeed: 150, probe1InchPrf: 300, probeHalfInchPrf: 600 },
+      { maxScanSpeed: 200, probe1InchPrf: 400, probeHalfInchPrf: 800 },
+      { maxScanSpeed: 300, probe1InchPrf: 600, probeHalfInchPrf: 1200 },
+    ],
+    [],
+  );
+
+  const recommendedPrfRow = useMemo(() => {
+    const speed = Number(data.scanSpeed) || 0;
+    return prfRecommendationTable.find((row) => speed <= row.maxScanSpeed) || null;
+  }, [data.scanSpeed, prfRecommendationTable]);
 
   // Update phased array settings
   const updatePhasedArrayField = (field: keyof PhasedArraySettings, value: unknown) => {
@@ -255,32 +263,6 @@ export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E", 
             Phased array
           </button>
         </div>
-      </div>
-
-      {/* Frequency Selection - Standard-aware */}
-      <div className="bg-green-500/5 border border-green-500/20 rounded-lg p-2 mb-2">
-        <FieldWithHelp
-          label="Frequency (MHz)"
-          fieldKey="frequency"
-          help={`Standard ${standard} supports frequencies: ${getFrequencyOptionsForStandard(standard).join(", ")} MHz`}
-          required
-        >
-          <Select
-            value={equipmentFrequency || ""}
-            onValueChange={(value) => onEquipmentFrequencyChange?.(value)}
-          >
-            <SelectTrigger className="bg-background max-w-xs h-8">
-              <SelectValue placeholder="Select frequency..." />
-            </SelectTrigger>
-            <SelectContent className="bg-popover z-50">
-              {getFrequencyOptionsForStandard(standard).map((freq) => (
-                <SelectItem key={freq} value={freq}>
-                  {freq} MHz
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </FieldWithHelp>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2">
@@ -509,14 +491,44 @@ export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E", 
           }
           required
         >
-          <Input
-            type="number"
-            value={data.scanSpeed}
-            onChange={(e) => updateField("scanSpeed", parseFloat(e.target.value) || 0)}
-            min={hasSpeedLimit ? 1 : 0}
-            max={hasSpeedLimit ? maxSpeed : undefined}
-            className={`bg-background ${!compliance.speedOk ? "border-destructive" : ""}`}
-          />
+          <div className="space-y-2">
+            <Select
+              value={selectedSpeedPreset}
+              onValueChange={(value) => {
+                if (value === "custom") {
+                  if (scanSpeedPresets.includes(Number(data.scanSpeed))) {
+                    updateField("scanSpeed", 0);
+                  }
+                  return;
+                }
+                updateField("scanSpeed", Number(value));
+              }}
+            >
+              <SelectTrigger className="bg-background">
+                <SelectValue placeholder="Select speed preset..." />
+              </SelectTrigger>
+              <SelectContent className="bg-popover z-50">
+                {scanSpeedPresets.map((speed) => (
+                  <SelectItem key={speed} value={String(speed)}>
+                    {speed}
+                  </SelectItem>
+                ))}
+                <SelectItem value="custom">Custom</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {selectedSpeedPreset === "custom" && (
+              <Input
+                type="number"
+                value={data.scanSpeed}
+                onChange={(e) => updateField("scanSpeed", parseFloat(e.target.value) || 0)}
+                min={hasSpeedLimit ? 1 : 0}
+                max={hasSpeedLimit ? maxSpeed : undefined}
+                className={`bg-background ${!compliance.speedOk ? "border-destructive" : ""}`}
+                placeholder="Enter custom scan speed"
+              />
+            )}
+          </div>
           {hasSpeedLimit && !compliance.speedOk && (
             <p className="text-xs text-destructive mt-1">
               Exceeds maximum of {maxSpeed} {scanParams.maxSpeedManual.unit} per {standard}
@@ -627,18 +639,51 @@ export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E", 
         )}
 
         <FieldWithHelp
-          label="Pulse Repetition Rate (Hz)"
+          label="Pulse Repetition Rate (Hz) - Recommended"
           fieldKey="pulseRepetitionRate"
-          help={standard === "AMS-STD-2154E" ? "Per AMS-STD-2154E: 100-10000 Hz" : undefined}
+          help={
+            recommendedPrfRow
+              ? `For ${data.scanSpeed || 0} mm/s: recommended PRF is ${recommendedPrfRow.probe1InchPrf} Hz (1" probe) or ${recommendedPrfRow.probeHalfInchPrf} Hz (0.5" probe)`
+              : standard === "AMS-STD-2154E"
+                ? "Per AMS-STD-2154E: 100-10000 Hz"
+                : undefined
+          }
         >
-          <Input
-            type="number"
-            value={data.pulseRepetitionRate}
-            onChange={(e) => updateField("pulseRepetitionRate", parseFloat(e.target.value) || 0)}
-            min={100}
-            max={10000}
-            className="bg-background"
-          />
+          <div className="space-y-2">
+            <Input
+              type="number"
+              value={data.pulseRepetitionRate}
+              onChange={(e) => updateField("pulseRepetitionRate", parseFloat(e.target.value) || 0)}
+              min={100}
+              max={10000}
+              className="bg-background"
+            />
+
+            <div className="rounded border border-border overflow-hidden">
+              <table className="w-full text-[11px]">
+                <thead className="bg-muted/40">
+                  <tr>
+                    <th className="px-2 py-1 text-left">1" probe PRF</th>
+                    <th className="px-2 py-1 text-left">0.5" probe PRF</th>
+                    <th className="px-2 py-1 text-left">Scan speed (mm/s)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {prfRecommendationTable.map((row) => {
+                    const active =
+                      recommendedPrfRow?.maxScanSpeed === row.maxScanSpeed;
+                    return (
+                      <tr key={row.maxScanSpeed} className={active ? "bg-primary/10" : ""}>
+                        <td className="px-2 py-1">{row.probe1InchPrf} Hz</td>
+                        <td className="px-2 py-1">{row.probeHalfInchPrf} Hz</td>
+                        <td className="px-2 py-1">{"\u2264"} {row.maxScanSpeed}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </FieldWithHelp>
 
       </div>

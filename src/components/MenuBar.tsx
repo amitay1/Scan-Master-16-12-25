@@ -12,6 +12,7 @@ import { FileText, Save, Download, FolderOpen, Info, Book, LogOut, PackagePlus, 
 
 interface MenuBarProps {
   onSave: () => void;
+  onSaveAs?: () => void;
   onOpenSavedCards: () => void;
   onExport: () => void;
   onNew: () => void;
@@ -23,7 +24,7 @@ interface MenuBarProps {
   onOfflineUpdate?: () => void;
 }
 
-export const MenuBar = ({ onSave, onOpenSavedCards, onExport, onNew, onSignOut, onOpenDrawingEngine, onLoadSampleCards, onExportDiagnostics, onRunDiagnostics, onOfflineUpdate }: MenuBarProps) => {
+export const MenuBar = ({ onSave, onSaveAs, onOpenSavedCards, onExport, onNew, onSignOut, onOpenDrawingEngine, onLoadSampleCards, onExportDiagnostics, onRunDiagnostics, onOfflineUpdate }: MenuBarProps) => {
   return (
     <Menubar className="border-b-2 border-border bg-card rounded-none h-12 px-3 flex-shrink-0">
       <MenubarMenu>
@@ -51,6 +52,13 @@ export const MenuBar = ({ onSave, onOpenSavedCards, onExport, onNew, onSignOut, 
             Save
             <MenubarShortcut className="text-sm">Ctrl+S</MenubarShortcut>
           </MenubarItem>
+          {onSaveAs && (
+            <MenubarItem onClick={onSaveAs} className="text-base py-2">
+              <Save className="mr-3 h-5 w-5" />
+              Save As...
+              <MenubarShortcut className="text-sm">Ctrl+Shift+S</MenubarShortcut>
+            </MenubarItem>
+          )}
           <MenubarItem onClick={onExport} className="text-base py-2">
             <Download className="mr-3 h-5 w-5" />
             Export PDF

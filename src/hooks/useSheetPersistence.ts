@@ -274,6 +274,21 @@ export function useSheetPersistence({
     setIsSaveDialogOpen(true);
   }, [isSavingSheet, buildCardData, currentLocalCardId, getCard, updateCard, completionPercent, standard, currentData]);
 
+  const handleSaveAs = useCallback(() => {
+    const baseName =
+      currentSheetName ||
+      currentData.inspectionSetup.partName ||
+      currentData.inspectionSetup.partNumber ||
+      `Technique Card ${new Date().toLocaleDateString("he-IL")}`;
+
+    const suggestedCopyName = `${baseName} (copy)`;
+    setSheetNameInput(suggestedCopyName);
+    setCurrentLocalCardId(null);
+    setCurrentSheetId(null);
+    setCurrentSheetName("");
+    setIsSaveDialogOpen(true);
+  }, [currentSheetName, currentData]);
+
   // ── Handle loading local card ──────────────────────────────────────────
   const handleLoadLocalCard = useCallback((card: SavedCard) => {
     const data = (card as any).data;
@@ -332,6 +347,7 @@ export function useSheetPersistence({
     savedSheets,
     // Actions
     handleSave,
+    handleSaveAs,
     handleOpenSavedCards,
     handleLoadSheet,
     handleDeleteSheet,

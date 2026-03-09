@@ -104,6 +104,7 @@ function useUpdateStatus() {
 
 interface ToolbarProps {
   onSave: () => void;
+  onSaveAs?: () => void;
   onExport: () => void;
   onValidate: () => void;
   reportMode: "Technique" | "Report";
@@ -122,6 +123,7 @@ export type { SavedCard } from '@/contexts/SavedCardsContext';
 
 export const Toolbar = ({
   onSave,
+  onSaveAs,
   onExport,
   onValidate,
   reportMode,
@@ -145,6 +147,11 @@ export const Toolbar = ({
       <Button variant="ghost" size="icon" onClick={onSave} title="Save" className="h-10 w-10 md:h-11 md:w-11">
         <Save className="h-5 w-5 md:h-5 md:w-5" />
       </Button>
+      {onSaveAs && (
+        <Button variant="ghost" size="icon" onClick={onSaveAs} title="Save As" className="h-10 w-10 md:h-11 md:w-11">
+          <FileText className="h-5 w-5 md:h-5 md:w-5" />
+        </Button>
+      )}
 
       {/* Export Button */}
       <Button

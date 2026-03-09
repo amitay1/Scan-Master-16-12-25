@@ -54,6 +54,7 @@ import {
   formatBlockType,
   formatScanMethod,
   formatTransducerType,
+  formatTransducerShape,
   formatAcceptanceClass,
   getPartDimensionRows,
   getMaterialWarning,
@@ -1399,9 +1400,7 @@ export async function exportTechniqueSheetWord(
   const transducerTypeDisplay = equipment.transducerTypes?.length
     ? equipment.transducerTypes.map((type) => formatTransducerType(type)).join(', ')
     : formatTransducerType(equipment.transducerType);
-  const transducerShapeDisplay = equipment.transducerShapeAndSize
-    ? equipment.transducerShapeAndSize.replace(/_/g, ' ')
-    : '-';
+  const transducerShapeDisplay = formatTransducerShape(equipment.transducerShapeAndSize);
 
   children.push(createKeyValueTable([
     ['Frequency', equipment.frequency ? `${equipment.frequency} MHz` : '-'],

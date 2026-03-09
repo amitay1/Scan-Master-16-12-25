@@ -21,6 +21,13 @@ const STORAGE_KEY_INSPECTOR_LEVELS = 'scanmaster_custom_inspector_levels';
 // Using imported FieldWithHelp component
 
 const defaultInspectorLevels = ["Level I", "Level II", "Level III"];
+const certifyingOrganizationOptions = [
+  "ASNT",
+  "NAS 410",
+  "ACCP",
+  "EN 4179",
+  "ISO 9712",
+];
 
 export const DocumentationTab = ({ data, onChange }: DocumentationTabProps) => {
   const { currentProfile } = useInspectorProfile();
@@ -29,6 +36,7 @@ export const DocumentationTab = ({ data, onChange }: DocumentationTabProps) => {
   const [customInspectorLevels, setCustomInspectorLevels] = useState<string[]>([]);
   const [addingLevel, setAddingLevel] = useState(false);
   const [newItemValue, setNewItemValue] = useState("");
+  const [customCertOrg, setCustomCertOrg] = useState(false);
 
   // Load custom items from localStorage on mount
   useEffect(() => {
@@ -39,6 +47,14 @@ export const DocumentationTab = ({ data, onChange }: DocumentationTabProps) => {
       console.warn("Failed to load custom inspector levels from localStorage:", error);
     }
   }, []);
+
+  useEffect(() => {
+    if (!data.certifyingOrganization) {
+      setCustomCertOrg(false);
+      return;
+    }
+    setCustomCertOrg(!certifyingOrganizationOptions.includes(data.certifyingOrganization));
+  }, [data.certifyingOrganization]);
 
   // Helper to add custom inspector level
   const addCustomInspectorLevel = (name: string) => {
@@ -55,6 +71,11 @@ export const DocumentationTab = ({ data, onChange }: DocumentationTabProps) => {
 
   // Get all inspector levels (default + custom)
   const allInspectorLevels = [...defaultInspectorLevels, ...customInspectorLevels];
+  const selectedCertOrgValue = customCertOrg
+    ? "__custom__"
+    : certifyingOrganizationOptions.includes(data.certifyingOrganization)
+      ? data.certifyingOrganization
+      : "";
 
   const updateField = (field: keyof DocumentationData, value: any) => {
     onChange({ ...data, [field]: value });
@@ -189,12 +210,40 @@ export const DocumentationTab = ({ data, onChange }: DocumentationTabProps) => {
           label="Certifying Organization"
           fieldKey="inspectorName"
         >
-          <Input
-            value={data.certifyingOrganization}
-            onChange={(e) => updateField("certifyingOrganization", e.target.value)}
-            placeholder="ASNT, ACCP, etc."
-            className="bg-background"
-          />
+          <div className="space-y-2">
+            <Select
+              value={selectedCertOrgValue}
+              onValueChange={(value) => {
+                if (value === "__custom__") {
+                  setCustomCertOrg(true);
+                  return;
+                }
+                setCustomCertOrg(false);
+                updateField("certifyingOrganization", value);
+              }}
+            >
+              <SelectTrigger className="bg-background">
+                <SelectValue placeholder="Select organization..." />
+              </SelectTrigger>
+              <SelectContent className="bg-popover z-50">
+                {certifyingOrganizationOptions.map((org) => (
+                  <SelectItem key={org} value={org}>
+                    {org}
+                  </SelectItem>
+                ))}
+                <SelectItem value="__custom__">Custom</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {customCertOrg && (
+              <Input
+                value={data.certifyingOrganization}
+                onChange={(e) => updateField("certifyingOrganization", e.target.value)}
+                placeholder="Enter certifying organization..."
+                className="bg-background"
+              />
+            )}
+          </div>
         </FieldWithHelp>
 
         <FieldWithHelp

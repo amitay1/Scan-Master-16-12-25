@@ -281,7 +281,7 @@ export type CurrentReflectorUsed = 'FBH' | 'SDH' | 'Notch';
 export interface AngleBeamCalibrationRow {
   id: number;
   reflectorType: ReflectorType;
-  reflectorSizeInch: number;         // Reflector Size Required (inch) — required acceptance size
+  reflectorSizeInch: string;         // Reflector Size Required (inch fraction, e.g. "3/64")
   currentReflectorUsed: CurrentReflectorUsed; // What reflector is actually being used (FBH, SDH, Notch)
   currentReflectorSize: string;      // Descriptive text of current reflector size (editable)
   sizeDbCorrection: number;          // Size ΔdB (auto-calculated: 20*log10(A1/A2))
@@ -296,7 +296,7 @@ export const DEFAULT_ANGLE_BEAM_CALIBRATION_ROWS: AngleBeamCalibrationRow[] = [
   {
     id: 1,
     reflectorType: 'SDH',
-    reflectorSizeInch: 0.047,       // 3/64 inch
+    reflectorSizeInch: '3/64',
     currentReflectorUsed: 'SDH',
     currentReflectorSize: 'SDH 0.02" dia x 0.25"',
     sizeDbCorrection: 0,
@@ -308,7 +308,7 @@ export const DEFAULT_ANGLE_BEAM_CALIBRATION_ROWS: AngleBeamCalibrationRow[] = [
   {
     id: 2,
     reflectorType: 'SDH',
-    reflectorSizeInch: 0.047,       // 3/64 inch
+    reflectorSizeInch: '3/64',
     currentReflectorUsed: 'SDH',
     currentReflectorSize: 'SDH 0.02" dia x 0.25"',
     sizeDbCorrection: 0,
@@ -320,7 +320,7 @@ export const DEFAULT_ANGLE_BEAM_CALIBRATION_ROWS: AngleBeamCalibrationRow[] = [
   {
     id: 3,
     reflectorType: 'SDH',
-    reflectorSizeInch: 0.047,       // 3/64 inch
+    reflectorSizeInch: '3/64',
     currentReflectorUsed: 'SDH',
     currentReflectorSize: 'SDH 0.02" dia x 0.25"',
     sizeDbCorrection: 0,
@@ -484,22 +484,38 @@ function isCloseTo(value: number, target: number, tolerance = 0.005): boolean {
  */
 export function getAutoFilledReflectorSize(
   currentReflectorUsed: CurrentReflectorUsed,
-  reflectorSizeRequiredInch: number
+  reflectorSizeRequiredInch: number | string
 ): string | null {
+  const requiredInch = typeof reflectorSizeRequiredInch === 'number'
+    ? reflectorSizeRequiredInch
+    : (() => {
+        const cleaned = String(reflectorSizeRequiredInch || '').trim().replace(/"/g, '');
+        if (cleaned.includes('/')) {
+          const [num, den] = cleaned.split('/');
+          const n = Number(num);
+          const d = Number(den);
+          if (Number.isFinite(n) && Number.isFinite(d) && d !== 0) {
+            return n / d;
+          }
+        }
+        const parsed = Number(cleaned);
+        return Number.isFinite(parsed) ? parsed : 0;
+      })();
+
   if (currentReflectorUsed === 'SDH') {
-    if (isCloseTo(reflectorSizeRequiredInch, FBH_3_64_INCH)) {
+    if (isCloseTo(requiredInch, FBH_3_64_INCH)) {
       return 'SDH 0.02" dia x 0.25"';
     }
-    if (isCloseTo(reflectorSizeRequiredInch, FBH_5_64_INCH)) {
+    if (isCloseTo(requiredInch, FBH_5_64_INCH)) {
       return 'SDH 0.020" dia x 0.50"';
     }
   }
 
   if (currentReflectorUsed === 'Notch') {
-    if (isCloseTo(reflectorSizeRequiredInch, FBH_3_64_INCH)) {
+    if (isCloseTo(requiredInch, FBH_3_64_INCH)) {
       return 'Notch L:0.07" D:0.025"';
     }
-    if (isCloseTo(reflectorSizeRequiredInch, FBH_5_64_INCH)) {
+    if (isCloseTo(requiredInch, FBH_5_64_INCH)) {
       return 'Notch L:0.1" D:0.05"';
     }
   }

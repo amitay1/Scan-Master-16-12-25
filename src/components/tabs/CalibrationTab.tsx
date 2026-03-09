@@ -201,6 +201,41 @@ const getFBHDropdownStandard = (standard: StandardType): string => {
   return "All";
 };
 
+const REFERENCE_MATERIAL_OPTIONS = [
+  "Steel",
+  "Stainless Steel",
+  "Aluminum",
+  "Titanium",
+  "Nickel Alloy",
+  "Magnesium",
+] as const;
+
+type BlockDimensionsMode = NonNullable<CalibrationData["blockDimensionsMode"]>;
+
+const BLOCK_DIMENSIONS_MODE_OPTIONS: { value: BlockDimensionsMode; label: string }[] = [
+  { value: "flat", label: "Flat" },
+  { value: "curve", label: "Curve" },
+  { value: "custom", label: "Custom" },
+];
+
+const buildCurveBlockDimensionsSummary = (
+  idMm?: number,
+  odMm?: number,
+  thicknessMm?: number,
+) => {
+  const segments: string[] = [];
+  if (Number.isFinite(idMm) && (idMm as number) > 0) {
+    segments.push(`ID ${idMm} mm`);
+  }
+  if (Number.isFinite(odMm) && (odMm as number) > 0) {
+    segments.push(`OD ${odMm} mm`);
+  }
+  if (Number.isFinite(thicknessMm) && (thicknessMm as number) > 0) {
+    segments.push(`Thickness ${thicknessMm} mm`);
+  }
+  return segments.length > 0 ? `Curve (${segments.join(", ")})` : "Curve";
+};
+
 const hasPositiveNumber = (value?: number): value is number =>
   typeof value === "number" && Number.isFinite(value) && value > 0;
 
@@ -488,6 +523,84 @@ export const CalibrationTab = ({
 
   const updateField = (field: keyof CalibrationData, value: any) => {
     onChange({ ...data, [field]: value });
+  };
+
+  const selectedReferenceMaterial = useMemo(() => {
+    if (!data.referenceMaterial) return "";
+    return REFERENCE_MATERIAL_OPTIONS.includes(data.referenceMaterial as (typeof REFERENCE_MATERIAL_OPTIONS)[number])
+      ? data.referenceMaterial
+      : "__custom__";
+  }, [data.referenceMaterial]);
+
+  const blockDimensionsMode = useMemo<BlockDimensionsMode>(() => {
+    if (data.blockDimensionsMode) return data.blockDimensionsMode;
+    if ((data.blockDimensions || "").trim().toLowerCase().startsWith("curve")) {
+      return "curve";
+    }
+    return "flat";
+  }, [data.blockDimensionsMode, data.blockDimensions]);
+
+  const handleReferenceMaterialChange = (value: string) => {
+    if (value === "__custom__") {
+      if (
+        REFERENCE_MATERIAL_OPTIONS.includes(
+          data.referenceMaterial as (typeof REFERENCE_MATERIAL_OPTIONS)[number]
+        )
+      ) {
+        updateField("referenceMaterial", "");
+      }
+      return;
+    }
+    updateField("referenceMaterial", value);
+  };
+
+  const handleBlockDimensionsModeChange = (mode: BlockDimensionsMode) => {
+    if (mode === "curve") {
+      const inner = data.curveInnerDiameterMm ?? inspectionSetup.innerDiameter;
+      const outer = data.curveOuterDiameterMm ?? inspectionSetup.diameter;
+      const wall = data.curveWallThicknessMm ?? inspectionSetup.wallThickness;
+      onChange({
+        ...data,
+        blockDimensionsMode: "curve",
+        curveInnerDiameterMm: inner,
+        curveOuterDiameterMm: outer,
+        curveWallThicknessMm: wall,
+        blockDimensions: buildCurveBlockDimensionsSummary(inner, outer, wall),
+      });
+      return;
+    }
+
+    const nextBlockDimensions =
+      mode === "flat" && (data.blockDimensions || "").trim().toLowerCase().startsWith("curve")
+        ? ""
+        : data.blockDimensions;
+
+    onChange({
+      ...data,
+      blockDimensionsMode: mode,
+      blockDimensions: nextBlockDimensions,
+    });
+  };
+
+  const handleCurveDimensionChange = (
+    field: "curveInnerDiameterMm" | "curveOuterDiameterMm" | "curveWallThicknessMm",
+    rawValue: string
+  ) => {
+    const parsed = rawValue === "" ? undefined : Number(rawValue);
+    const nextValue = Number.isFinite(parsed) ? parsed : undefined;
+
+    const nextData = {
+      ...data,
+      blockDimensionsMode: "curve" as BlockDimensionsMode,
+      [field]: nextValue,
+    } as CalibrationData;
+
+    nextData.blockDimensions = buildCurveBlockDimensionsSummary(
+      nextData.curveInnerDiameterMm,
+      nextData.curveOuterDiameterMm,
+      nextData.curveWallThicknessMm,
+    );
+    onChange(nextData);
   };
 
   const fbhOptionStandard = useMemo(() => getFBHDropdownStandard(standard), [standard]);
@@ -1336,28 +1449,133 @@ export const CalibrationTab = ({
           fieldKey="referenceBlockMaterial"
           required
         >
-          <Input
-            value={data.referenceMaterial}
-            onChange={(e) => updateField("referenceMaterial", e.target.value)}
-            placeholder="Steel / Aluminum / Titanium"
-            className="bg-background"
-          />
+          <div className="space-y-2">
+            <Select
+              value={selectedReferenceMaterial}
+              onValueChange={handleReferenceMaterialChange}
+            >
+              <SelectTrigger className="bg-background">
+                <SelectValue placeholder="Select material..." />
+              </SelectTrigger>
+              <SelectContent>
+                {REFERENCE_MATERIAL_OPTIONS.map((material) => (
+                  <SelectItem key={material} value={material}>
+                    {material}
+                  </SelectItem>
+                ))}
+                <SelectItem value="__custom__">Custom</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {selectedReferenceMaterial === "__custom__" && (
+              <Input
+                value={data.referenceMaterial}
+                onChange={(e) => updateField("referenceMaterial", e.target.value)}
+                placeholder="Enter custom reference material..."
+                className="bg-background"
+              />
+            )}
+          </div>
         </FieldWithHelp>
 
         <FieldWithHelp
-          label="Block Dimensions (Lֳ—Wֳ—H mm)"
+          label="Block Dimensions Type"
           fieldKey="calibrationBlock"
         >
-          <Input
-            value={data.blockDimensions}
-            onChange={(e) => updateField("blockDimensions", e.target.value)}
-            placeholder="100 ֳ— 50 ֳ— 50"
-            className="bg-background"
-          />
+          <Select
+            value={blockDimensionsMode}
+            onValueChange={(value) => handleBlockDimensionsModeChange(value as BlockDimensionsMode)}
+          >
+            <SelectTrigger className="bg-background">
+              <SelectValue placeholder="Select block dimensions type..." />
+            </SelectTrigger>
+            <SelectContent>
+              {BLOCK_DIMENSIONS_MODE_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <div className="text-xs text-muted-foreground mt-1">
-            Updates 3D model view
+            Use curve mode for ID/OD/thickness based blocks.
           </div>
         </FieldWithHelp>
+
+        {blockDimensionsMode === "curve" ? (
+          <>
+            <FieldWithHelp
+              label="Curve Block ID (mm)"
+              fieldKey="calibrationBlock"
+            >
+              <Input
+                type="number"
+                value={data.curveInnerDiameterMm ?? ""}
+                onChange={(e) => handleCurveDimensionChange("curveInnerDiameterMm", e.target.value)}
+                min={0}
+                step={0.1}
+                placeholder="Inner diameter"
+                className="bg-background"
+              />
+            </FieldWithHelp>
+
+            <FieldWithHelp
+              label="Curve Block OD (mm)"
+              fieldKey="calibrationBlock"
+            >
+              <Input
+                type="number"
+                value={data.curveOuterDiameterMm ?? ""}
+                onChange={(e) => handleCurveDimensionChange("curveOuterDiameterMm", e.target.value)}
+                min={0}
+                step={0.1}
+                placeholder="Outer diameter"
+                className="bg-background"
+              />
+            </FieldWithHelp>
+
+            <FieldWithHelp
+              label="Curve Wall Thickness (mm)"
+              fieldKey="calibrationBlock"
+            >
+              <Input
+                type="number"
+                value={data.curveWallThicknessMm ?? ""}
+                onChange={(e) => handleCurveDimensionChange("curveWallThicknessMm", e.target.value)}
+                min={0}
+                step={0.1}
+                placeholder="Wall thickness"
+                className="bg-background"
+              />
+            </FieldWithHelp>
+
+            <FieldWithHelp
+              label="Block Dimensions Summary"
+              fieldKey="calibrationBlock"
+            >
+              <Input
+                value={data.blockDimensions}
+                readOnly
+                className="bg-muted"
+              />
+            </FieldWithHelp>
+          </>
+        ) : (
+          <FieldWithHelp
+            label={blockDimensionsMode === "custom" ? "Block Dimensions (Custom)" : "Block Dimensions (L x W x H mm)"}
+            fieldKey="calibrationBlock"
+          >
+            <Input
+              value={data.blockDimensions}
+              onChange={(e) => updateField("blockDimensions", e.target.value)}
+              placeholder={blockDimensionsMode === "custom" ? "Enter custom dimensions..." : "100 x 50 x 50"}
+              className="bg-background"
+            />
+            <div className="text-xs text-muted-foreground mt-1">
+              Updates 3D model view
+            </div>
+          </FieldWithHelp>
+        )}
 
         <FieldWithHelp
           label="Block Serial Number"

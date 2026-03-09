@@ -187,7 +187,11 @@ const Index = () => {
         switch (e.key.toLowerCase()) {
           case "s":
             e.preventDefault();
-            persistence.handleSave();
+            if (e.shiftKey) {
+              persistence.handleSaveAs();
+            } else {
+              persistence.handleSave();
+            }
             break;
           case "e":
             e.preventDefault();
@@ -202,7 +206,7 @@ const Index = () => {
     };
     window.addEventListener("keydown", handleKeyboard);
     return () => window.removeEventListener("keydown", handleKeyboard);
-  }, [persistence.handleSave]);
+  }, [persistence.handleSave, persistence.handleSaveAs]);
 
   const handleNewProject = useCallback(() => {
     if (confirm("Start a new project? Unsaved changes will be lost.")) {
@@ -326,6 +330,7 @@ const Index = () => {
         <div className="hidden md:block">
           <MenuBar
             onSave={persistence.handleSave}
+            onSaveAs={persistence.handleSaveAs}
             onOpenSavedCards={persistence.handleOpenSavedCards}
             onExport={() => setExportDialogOpen(true)}
             onNew={handleNewProject}
@@ -342,6 +347,7 @@ const Index = () => {
       {/* Toolbar */}
       <Toolbar
         onSave={persistence.handleSave}
+        onSaveAs={persistence.handleSaveAs}
         onExport={() => setExportDialogOpen(true)}
         onValidate={handleValidate}
         reportMode={reportMode}
