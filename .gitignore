@@ -68,6 +68,9 @@ marketing/frames*/
 marketing/clips*/
 marketing/verify_*/
 
+# Standards reference PDFs/docs (local only)
+standards/pdfs/*.docx
+
 # Large archives and unrelated content
 *.rar
 *.zip
