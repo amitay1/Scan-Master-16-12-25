@@ -335,7 +335,7 @@ if ($ghAvailable) {
         foreach ($file in $filesToUpload) {
             if (Test-Path $file.Path) {
                 Write-Info "  Uploading: $($file.Name)..."
-                gh release upload "v$newVersion" $file.Path --clobber 2>&1
+                gh release upload "v$newVersion" "$($file.Path)" --clobber 2>&1
                 if ($LASTEXITCODE -ne 0) {
                     Write-Err "  FAILED to upload $($file.Name)!"
                     $uploadFailed = $true
