@@ -1315,8 +1315,6 @@ class TechniqueSheetPDFBuilder {
     y = this.addSubsectionTitle('Performance Parameters', y);
 
     const perfInfo = buildTableRows([
-      ['Vertical Linearity', eq.verticalLinearity ? `${eq.verticalLinearity}%` : undefined],
-      ['Horizontal Linearity', eq.horizontalLinearity ? `${eq.horizontalLinearity}%` : undefined],
       ['Entry Surface Resolution', eq.entrySurfaceResolution ? formatNumber(eq.entrySurfaceResolution, 3, 'inches') : undefined],
       ['Back Surface Resolution', eq.backSurfaceResolution ? formatNumber(eq.backSurfaceResolution, 3, 'inches') : undefined],
     ], { showEmpty: true });
@@ -1804,7 +1802,6 @@ class TechniqueSheetPDFBuilder {
     const scanInfo = buildTableRows([
       ['Scan Method', scanMethodDisplay],
       ['Technique', formatTechnique(scan.technique)],
-      ['Frequency', this.data.equipment.frequency ? `${this.data.equipment.frequency} MHz` : undefined],
       ['Scan Type', formatValue(scan.scanType)],
       ['Scan Pattern', formatValue(scan.scanPattern)],
     ], { showEmpty: true });

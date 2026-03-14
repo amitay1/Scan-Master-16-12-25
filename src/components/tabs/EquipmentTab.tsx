@@ -778,7 +778,7 @@ export const EquipmentTab = ({ data, onChange, partThickness, standard = "AMS-ST
           <h4 className="text-sm font-semibold">Equipment Requirements for {standard}</h4>
         </div>
         <div className="p-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <div className="bg-primary/5 rounded-lg p-3">
               <div className="text-xs text-muted-foreground mb-1">Frequency Range</div>
               <div className="font-semibold text-sm">
@@ -786,12 +786,12 @@ export const EquipmentTab = ({ data, onChange, partThickness, standard = "AMS-ST
               </div>
             </div>
             <div className="bg-primary/5 rounded-lg p-3">
-              <div className="text-xs text-muted-foreground mb-1">Vertical Linearity</div>
+              <div className="text-xs text-muted-foreground mb-1">Reference</div>
               <div className="font-semibold text-sm">
-                {equipmentParams.verticalLinearity.min}-{equipmentParams.verticalLinearity.max}% FSH
+                {getStandardLabel(standard)}
               </div>
             </div>
-            <div className="bg-primary/5 rounded-lg p-3">
+            <div className="hidden">
               <div className="text-xs text-muted-foreground mb-1">Horizontal Linearity</div>
               <div className="font-semibold text-sm">
                 {equipmentParams.horizontalLinearity ? `≥${equipmentParams.horizontalLinearity.min}%` : 'N/A'}

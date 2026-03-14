@@ -451,11 +451,26 @@ const Index = () => {
                           totalFields={40}
                         />
                       </div>
-                      <Button
-                        onClick={() => {
-                          toast.loading("Generating Inspection Report PDF...", { id: "report-export" });
-                          setTimeout(() => {
-                            exportInspectionReportPDF(inspectionReport, {
+                        <Button
+                          onClick={() => {
+                            toast.loading("Generating Inspection Report PDF...", { id: "report-export" });
+                            setTimeout(() => {
+                            exportInspectionReportPDF({
+                              ...inspectionReport,
+                              acceptanceCriteria: {
+                                acceptanceClass: currentData.acceptanceCriteria.acceptanceClass || inspectionReport.acceptanceCriteria?.acceptanceClass || "",
+                                singleDiscontinuity: currentData.acceptanceCriteria.singleDiscontinuity || inspectionReport.acceptanceCriteria?.singleDiscontinuity || "",
+                                multipleDiscontinuities: currentData.acceptanceCriteria.multipleDiscontinuities || inspectionReport.acceptanceCriteria?.multipleDiscontinuities || "",
+                                linearDiscontinuity: currentData.acceptanceCriteria.linearDiscontinuity || inspectionReport.acceptanceCriteria?.linearDiscontinuity || "",
+                                backReflectionLoss: currentData.acceptanceCriteria.backReflectionLoss ?? inspectionReport.acceptanceCriteria?.backReflectionLoss ?? 0,
+                                noiseLevel: currentData.acceptanceCriteria.noiseLevel || inspectionReport.acceptanceCriteria?.noiseLevel || "",
+                                specialRequirements: currentData.acceptanceCriteria.specialRequirements || inspectionReport.acceptanceCriteria?.specialRequirements,
+                                standardNotes: currentData.acceptanceCriteria.standardNotes || inspectionReport.acceptanceCriteria?.standardNotes,
+                                includeStandardNotesInReport:
+                                  currentData.acceptanceCriteria.includeStandardNotesInReport ??
+                                  inspectionReport.acceptanceCriteria?.includeStandardNotesInReport,
+                              },
+                            }, {
                               companyName: "SCAN-MASTER",
                               includeAerospaceSection: true,
                             });

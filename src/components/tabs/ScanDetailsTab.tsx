@@ -137,7 +137,7 @@ const getDefaultScanDetailsForStandard = (standard: StandardType): ExtendedScanD
 export const ScanDetailsTab = ({ data, onChange, partType, standard = "AMS-STD-2154E", dimensions }: ScanDetailsTabProps) => {
   const frequencyOptions = getFrequencyOptionsForStandard(standard);
   const [highlightedDirection, setHighlightedDirection] = useState<string | null>(null);
-  const [expandedRow, setExpandedRow] = useState<string | null>(null);
+  const [expandedRows, setExpandedRows] = useState<string[]>([]);
 
   // Custom drawing state
   const [useCustomDrawing, setUseCustomDrawing] = useState<boolean>(!!data.customDrawingData?.image);
@@ -199,7 +199,11 @@ export const ScanDetailsTab = ({ data, onChange, partType, standard = "AMS-STD-2
     onChange({ ...data, scanDetails: newScanDetails });
     // When enabling a direction, auto-expand its details and keep it open
     if (!wasEnabled) {
-      setExpandedRow(newScanDetails[index].scanningDirection);
+      setExpandedRows((prev) =>
+        prev.includes(newScanDetails[index].scanningDirection)
+          ? prev
+          : [...prev, newScanDetails[index].scanningDirection]
+      );
     }
   };
 
@@ -227,7 +231,11 @@ export const ScanDetailsTab = ({ data, onChange, partType, standard = "AMS-STD-2
   };
 
   const toggleExpand = (direction: string) => {
-    setExpandedRow(expandedRow === direction ? null : direction);
+    setExpandedRows((prev) =>
+      prev.includes(direction)
+        ? prev.filter((item) => item !== direction)
+        : [...prev, direction]
+    );
   };
 
   const enabledScanDirections = scanDetails.filter(d => d.enabled).map(d => d.scanningDirection);
@@ -942,13 +950,13 @@ export const ScanDetailsTab = ({ data, onChange, partType, standard = "AMS-STD-2
                         detail.enabled
                           ? 'bg-blue-900/20 hover:bg-blue-800/30'
                           : 'hover:bg-slate-700/40'
-                      } ${expandedRow === detail.scanningDirection ? 'bg-slate-700/50' : ''}`}
+                      } ${expandedRows.includes(detail.scanningDirection) ? 'bg-slate-700/50' : ''}`}
                       onMouseEnter={() => setHighlightedDirection(detail.scanningDirection)}
                       onMouseLeave={() => setHighlightedDirection(null)}
                     >
                       {/* Expand Button */}
                       <td className="px-2 py-1.5 text-center" onClick={() => toggleExpand(detail.scanningDirection)}>
-                        {expandedRow === detail.scanningDirection ? (
+                        {expandedRows.includes(detail.scanningDirection) ? (
                           <ChevronDown className="h-4 w-4 text-slate-400" />
                         ) : (
                           <ChevronRight className="h-4 w-4 text-slate-500" />
@@ -1013,7 +1021,7 @@ export const ScanDetailsTab = ({ data, onChange, partType, standard = "AMS-STD-2
                     </tr>
 
                     {/* Expanded Details Row */}
-                    {expandedRow === detail.scanningDirection && renderExpandedDetails(detail, index)}
+                    {expandedRows.includes(detail.scanningDirection) && renderExpandedDetails(detail, index)}
                   </React.Fragment>
                 ))}
               </tbody>

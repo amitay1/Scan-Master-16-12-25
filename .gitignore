@@ -52,6 +52,8 @@ coverage/
 # Temp files
 *.tmp
 *.temp
+tmp/
+output/
 
 # User data (unified storage)
 data/

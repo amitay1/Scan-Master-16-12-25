@@ -58,6 +58,10 @@ export const AerospaceForgingTab = ({
   onScanCoverageChange,
   onZoningChange,
 }: AerospaceForgingTabProps) => {
+  void transferCorrection;
+  void bweMonitoring;
+  void onTransferChange;
+  void onBweChange;
 
   const forgingTypes: { value: ForgingType; label: string }[] = [
     { value: 'ring', label: 'Ring / Annular' },
@@ -70,6 +74,7 @@ export const AerospaceForgingTab = ({
   ];
 
   const fbhSizes = ['1/64"', '2/64"', '3/64"', '4/64"', '5/64"', '6/64"', '7/64"', '8/64"'];
+  const showLegacyForgingFields = false;
 
   return (
     <div className="space-y-4 p-2">
@@ -155,7 +160,7 @@ export const AerospaceForgingTab = ({
       {/* Environmental Conditions */}
       <Card className="p-4">
         <h3 className="text-sm font-semibold mb-3 border-b pb-2">Environmental Conditions</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-2 gap-3">
           <div>
             <Label className="text-xs">Ambient Temperature</Label>
             <Input
@@ -171,24 +176,6 @@ export const AerospaceForgingTab = ({
               value={environmentalConditions.partTemperature}
               onChange={(e) => onEnvironmentalChange({ ...environmentalConditions, partTemperature: e.target.value })}
               placeholder="20°C"
-              className="h-8 text-sm"
-            />
-          </div>
-          <div>
-            <Label className="text-xs">Humidity (%)</Label>
-            <Input
-              value={environmentalConditions.humidity}
-              onChange={(e) => onEnvironmentalChange({ ...environmentalConditions, humidity: e.target.value })}
-              placeholder="45%"
-              className="h-8 text-sm"
-            />
-          </div>
-          <div>
-            <Label className="text-xs">Lighting (lux)</Label>
-            <Input
-              value={environmentalConditions.lightingConditions}
-              onChange={(e) => onEnvironmentalChange({ ...environmentalConditions, lightingConditions: e.target.value })}
-              placeholder="500 lux"
               className="h-8 text-sm"
             />
           </div>
@@ -233,24 +220,6 @@ export const AerospaceForgingTab = ({
               value={couplantDetails.couplantBatchNumber || ''}
               onChange={(e) => onCouplantChange({ ...couplantDetails, couplantBatchNumber: e.target.value })}
               placeholder="Batch #"
-              className="h-8 text-sm"
-            />
-          </div>
-          <div>
-            <Label className="text-xs">Sulfur Content (Nickel Alloys)</Label>
-            <Input
-              value={couplantDetails.sulfurContent}
-              onChange={(e) => onCouplantChange({ ...couplantDetails, sulfurContent: e.target.value })}
-              placeholder="< 250 ppm"
-              className="h-8 text-sm"
-            />
-          </div>
-          <div>
-            <Label className="text-xs">Halide Content (Stainless)</Label>
-            <Input
-              value={couplantDetails.halideContent}
-              onChange={(e) => onCouplantChange({ ...couplantDetails, halideContent: e.target.value })}
-              placeholder="< 250 ppm"
               className="h-8 text-sm"
             />
           </div>
@@ -470,6 +439,8 @@ export const AerospaceForgingTab = ({
         </div>
       </Card>
 
+      {showLegacyForgingFields && (
+      <>
       {/* Transfer Correction */}
       <Card className="p-4">
         <h3 className="text-sm font-semibold mb-3 border-b pb-2">Transfer Correction (Critical for Forgings)</h3>
@@ -562,6 +533,9 @@ export const AerospaceForgingTab = ({
           </div>
         </div>
       </Card>
+
+      </>
+      )}
 
       {/* Scan Coverage */}
       <Card className="p-4">

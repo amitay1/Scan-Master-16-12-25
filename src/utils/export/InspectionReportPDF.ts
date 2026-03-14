@@ -203,6 +203,8 @@ export const exportInspectionReportPDF = (
   // PAGE HEADER (for non-cover pages)
   // ============================================================================
   const addHeader = (): number => {
+    const companyLogo = options.showLogoOnEveryPage !== false ? options.companyLogo : undefined;
+
     // Blue header bar
     doc.setFillColor(...COLORS.primary);
     doc.rect(0, 0, PAGE.width, PAGE.headerHeight, 'F');
@@ -211,11 +213,33 @@ export const exportInspectionReportPDF = (
     doc.setFillColor(...COLORS.accentGold);
     doc.rect(0, PAGE.headerHeight, PAGE.width, 0.8, 'F');
 
+    // Optional logo on left
+    let titleX = PAGE.marginLeft;
+    if (companyLogo) {
+      const logoBoxWidth = 18;
+      const logoBoxHeight = PAGE.headerHeight - 4;
+      const logoBoxX = PAGE.marginLeft;
+      const logoBoxY = 2;
+
+      doc.setFillColor(...COLORS.white);
+      doc.roundedRect(logoBoxX, logoBoxY, logoBoxWidth, logoBoxHeight, 1.5, 1.5, 'F');
+
+      try {
+        doc.addImage(companyLogo, 'PNG', logoBoxX + 2, logoBoxY + 1.5, logoBoxWidth - 4, logoBoxHeight - 3);
+      } catch {
+        doc.setFontSize(6);
+        doc.setTextColor(...COLORS.lightText);
+        doc.text('LOGO', logoBoxX + logoBoxWidth / 2, logoBoxY + logoBoxHeight / 2 + 1, { align: 'center' });
+      }
+
+      titleX = logoBoxX + logoBoxWidth + 4;
+    }
+
     // Title (left)
     doc.setFontSize(11);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(...COLORS.white);
-    doc.text('UT INSPECTION REPORT', PAGE.marginLeft, 10);
+    doc.text('UT INSPECTION REPORT', titleX, 10);
 
     // Document info (right)
     doc.setFontSize(8);
@@ -1030,6 +1054,16 @@ export const exportInspectionReportPDF = (
         yPos += reqLines.length * 3.5 + 3;
       }
 
+      if (acc.includeStandardNotesInReport && acc.standardNotes) {
+        yPos = checkPageBreak(20);
+        doc.setFontSize(7);
+        doc.setFont('helvetica', 'italic');
+        doc.setTextColor(...COLORS.lightText);
+        const standardNoteLines = doc.splitTextToSize(`Standard Notes: ${acc.standardNotes}`, PAGE.contentWidth - 6);
+        doc.text(standardNoteLines, PAGE.marginLeft + 3, yPos);
+        yPos += standardNoteLines.length * 3.5 + 3;
+      }
+
       yPos += 3;
     }
 
@@ -1291,17 +1325,19 @@ export const exportInspectionReportPDF = (
     doc.setFontSize(7);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(...COLORS.primary);
-    doc.text(title, x + 3, yPos + 5);
+    const titleLines = doc.splitTextToSize(title, sigWidth - 6);
+    doc.text(titleLines, x + 3, yPos + 5);
 
     // Divider line
     doc.setDrawColor(...COLORS.divider);
-    doc.line(x + 3, yPos + 8, x + sigWidth - 3, yPos + 8);
+    const dividerY = yPos + 5 + (titleLines.length * 2.8);
+    doc.line(x + 3, dividerY, x + sigWidth - 3, dividerY);
 
     // Name
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(...COLORS.text);
-    doc.text(name || '________________________', x + 3, yPos + 15);
+    doc.text(name || '________________________', x + 3, dividerY + 7);
 
     // Date label and value
     doc.setFontSize(7);
@@ -1313,7 +1349,12 @@ export const exportInspectionReportPDF = (
 
   drawSignatureBox(PAGE.marginLeft, 'REPORT ISSUED BY', signatures.preparedBy?.name, signatures.preparedBy?.date);
   drawSignatureBox(PAGE.marginLeft + sigWidth + sigGap, 'APPROVED BY', signatures.approvedBy?.name, signatures.approvedBy?.date);
-  drawSignatureBox(PAGE.marginLeft + (sigWidth + sigGap) * 2, 'AUTHORIZED BY', signatures.witness?.name, signatures.witness?.date);
+  drawSignatureBox(
+    PAGE.marginLeft + (sigWidth + sigGap) * 2,
+    'AUTHORIZED BY / CUSTOMER OR MANUFACTURER',
+    signatures.witness?.name,
+    signatures.witness?.date,
+  );
 
   addFooter(currentPage, totalPages);
 

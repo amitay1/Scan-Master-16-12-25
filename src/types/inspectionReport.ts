@@ -133,6 +133,8 @@ export interface AcceptanceCriteriaReport {
   backReflectionLoss: number; // Max allowed back reflection loss (%)
   noiseLevel: string; // Max allowed noise level
   specialRequirements?: string; // Additional requirements text
+  standardNotes?: string; // Standard notes to optionally print with the report
+  includeStandardNotesInReport?: boolean;
 }
 
 // Scan Index & Coverage (ASME V / ASTM E2375)

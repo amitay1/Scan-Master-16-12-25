@@ -612,6 +612,7 @@ export const InspectionSetupTab = ({
 
   // Get all heat treatments (default + custom)
   const allHeatTreatments = [...defaultHeatTreatments, ...customHeatTreatments];
+  const lastAutoDensityMaterialRef = useRef<string | null>(null);
 
   const updateField = (field: keyof InspectionSetupData, value: any) => {
     onChange({ ...data, [field]: value });
@@ -798,8 +799,23 @@ export const InspectionSetupTab = ({
   // Get material properties for info
   const materialProps = data.material ? materialDatabase[data.material as MaterialType] : null;
   const materialInfo = materialProps ? 
-    `Velocity: ${materialProps.velocity} mm/µs | Density: ${materialProps.density} g/cm³ | ${materialProps.surfaceCondition}` : 
+    `Density: ${materialProps.density} g/cm³ | ${materialProps.surfaceCondition}` : 
     undefined;
+
+  useEffect(() => {
+    if (!data.material || data.material === "custom" || !materialProps) {
+      lastAutoDensityMaterialRef.current = null;
+      return;
+    }
+
+    const densityKgM3 = Math.round(materialProps.density * 1000);
+    const materialChanged = lastAutoDensityMaterialRef.current !== data.material;
+
+    if (materialChanged || !data.materialDensity) {
+      lastAutoDensityMaterialRef.current = data.material;
+      updateField("materialDensity", densityKgM3);
+    }
+  }, [data.material, data.materialDensity, materialProps]);
 
   return (
     <div className="space-y-2 p-2">
@@ -907,7 +923,7 @@ export const InspectionSetupTab = ({
           )}
           {materialProps && (
             <div className="mt-2 p-2 bg-muted/50 rounded text-xs space-y-1">
-              <div><strong>Velocity:</strong> {materialProps.velocity} mm/µs (Long.) | {materialProps.velocityShear} mm/µs (Shear)</div>
+              <div><strong>Density:</strong> {materialProps.density} g/cm³ ({Math.round(materialProps.density * 1000)} kg/m³)</div>
               <div><strong>Impedance:</strong> {materialProps.acousticImpedance} MRayls</div>
             </div>
           )}

@@ -9,7 +9,8 @@
 param(
     [string]$BumpType = "patch",
     [string]$Message = "",
-    [switch]$SkipBuild = $false
+    [switch]$SkipBuild = $false,
+    [switch]$RequireClean = $false
 )
 
 # Stop on any error by default
@@ -35,17 +36,19 @@ if (-not (Test-Path "package.json")) {
     exit 1
 }
 
-# 2. Make sure git is clean (no uncommitted changes except what we are about to do)
+# 2. Make sure git is clean only when explicitly requested.
+# By default we continue and let the release commit capture current non-ignored changes.
 $gitStatus = git status --porcelain 2>&1
 if ($gitStatus) {
     Write-Warn "WARNING: You have uncommitted changes:"
     Write-Host $gitStatus
     Write-Host ""
-    $continue = Read-Host "Continue anyway? (y/N)"
-    if ($continue -ne "y" -and $continue -ne "Y") {
+    if ($RequireClean) {
         Write-Err "Aborted. Commit or stash your changes first."
         exit 1
     }
+    Write-Warn "Continuing with dirty working tree. The release commit will include all non-ignored changes."
+    Write-Host ""
 }
 
 # 3. Make sure we can reach the remote

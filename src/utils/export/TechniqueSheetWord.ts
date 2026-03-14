@@ -1356,21 +1356,15 @@ export async function exportTechniqueSheetWord(
     children.push(new Paragraph({ children: [], spacing: { after: 200 } }));
   }
 
-  // Material Properties subsection
-  if (inspectionSetup.acousticVelocity || inspectionSetup.materialDensity) {
-    const matProps: [string, string][] = [];
-    if (inspectionSetup.acousticVelocity) {
-      matProps.push(['Acoustic Velocity', formatNumber(inspectionSetup.acousticVelocity, 0, 'm/s')]);
-    }
-    if (inspectionSetup.materialDensity) {
-      matProps.push(['Material Density', formatNumber(inspectionSetup.materialDensity, 0, 'kg/m³')]);
-    }
-    if (matProps.length > 0) {
-      children.push(createSubsectionTitle('Material Properties'));
-      children.push(new Paragraph({ children: [], spacing: { after: 100 } }));
-      children.push(createKeyValueTable(matProps));
-      children.push(new Paragraph({ children: [], spacing: { after: 200 } }));
-    }
+  // Material Properties subsection (acoustic velocity removed per requirements)
+  if (inspectionSetup.materialDensity) {
+    const matProps: [string, string][] = [
+      ['Material Density', formatNumber(inspectionSetup.materialDensity, 0, 'kg/m³')],
+    ];
+    children.push(createSubsectionTitle('Material Properties'));
+    children.push(new Paragraph({ children: [], spacing: { after: 100 } }));
+    children.push(createKeyValueTable(matProps));
+    children.push(new Paragraph({ children: [], spacing: { after: 200 } }));
   }
 
   // Material Warning
@@ -1418,8 +1412,6 @@ export async function exportTechniqueSheetWord(
   children.push(new Paragraph({ children: [], spacing: { after: 100 } }));
 
   children.push(createKeyValueTable([
-    ['Vertical Linearity', equipment.verticalLinearity ? `${equipment.verticalLinearity}%` : '-'],
-    ['Horizontal Linearity', equipment.horizontalLinearity ? `${equipment.horizontalLinearity}%` : '-'],
     ['Entry Surface Resolution', equipment.entrySurfaceResolution ? formatNumber(equipment.entrySurfaceResolution, 3, 'inches') : '-'],
     ['Back Surface Resolution', equipment.backSurfaceResolution ? formatNumber(equipment.backSurfaceResolution, 3, 'inches') : '-'],
   ]));
@@ -1478,8 +1470,6 @@ export async function exportTechniqueSheetWord(
 
   children.push(createKeyValueTable([
     ['Pulse Repetition Rate (PRF)', scanParameters.pulseRepetitionRate ? `${scanParameters.pulseRepetitionRate} Hz` : '-'],
-    ['Gain Settings', formatValue(scanParameters.gainSettings)],
-    ['Alarm Gate Settings', formatValue(scanParameters.alarmGateSettings)],
   ]));
 
   children.push(new Paragraph({ children: [], spacing: { after: 200 } }));

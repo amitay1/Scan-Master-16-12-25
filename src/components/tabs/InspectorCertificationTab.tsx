@@ -75,8 +75,8 @@ export const InspectorCertificationTab = ({
       description: 'Level III or authorized person'
     },
     witness: {
-      title: 'Customer Witness / Supervisore',
-      description: 'Customer representative or third party'
+      title: 'Authorized By / Customer or Manufacturer',
+      description: 'Customer or manufacturer representative'
     },
   };
 
