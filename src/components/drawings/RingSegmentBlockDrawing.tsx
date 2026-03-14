@@ -71,6 +71,8 @@ interface RingSegmentBlockDrawingProps {
   initialTemplateId?: string;
   /** Part dimensions from technique sheet (if available) */
   partDimensions?: PartDimensionsOverride;
+  /** Preferred standards family for auto template selection */
+  preferredStandardFamily?: 'EN' | 'ASTM' | 'TUV';
   /** Canvas width */
   width?: number;
   /** Canvas height */
@@ -96,6 +98,7 @@ interface RingSegmentBlockDrawingProps {
 export function RingSegmentBlockDrawing({
   initialTemplateId = 'EN_10228_DAC_REF_BLOCK',
   partDimensions: initialPartDims,
+  preferredStandardFamily,
   width = 1400,
   height = 1000,
   showControls = true,
@@ -129,12 +132,12 @@ export function RingSegmentBlockDrawing({
   // Auto-select template when part dimensions change (if provided from technique sheet)
   useEffect(() => {
     if (initialPartDims && (initialPartDims.outerDiameterMm || initialPartDims.innerDiameterMm)) {
-      const { templateId, reasoning } = autoSelectTemplate(initialPartDims);
+      const { templateId, reasoning } = autoSelectTemplate(initialPartDims, preferredStandardFamily);
       console.log('[RingSegmentDraw] Auto-selecting template:', templateId, reasoning);
       setSelectedTemplateId(templateId);
       setAutoSelectReasoning(reasoning);
     }
-  }, [initialPartDims]);
+  }, [initialPartDims, preferredStandardFamily]);
 
   // Update partDims when initialPartDims changes
   useEffect(() => {
@@ -340,7 +343,7 @@ export function RingSegmentBlockDrawing({
         
         // Auto-select template based on new dimensions
         if (field === 'outerDiameterMm' || field === 'innerDiameterMm') {
-          const { templateId, reasoning } = autoSelectTemplate(newDims);
+          const { templateId, reasoning } = autoSelectTemplate(newDims, preferredStandardFamily);
           setSelectedTemplateId(templateId);
           setAutoSelectReasoning(reasoning);
         }
@@ -348,7 +351,7 @@ export function RingSegmentBlockDrawing({
         return newDims;
       });
     },
-    []
+    [preferredStandardFamily]
   );
 
   // Reset to template defaults

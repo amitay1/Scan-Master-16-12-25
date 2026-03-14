@@ -15,6 +15,7 @@ import { FBHHoleTableWithPreviews } from "../FBHHoleTableWithPreviews";
 import { PWCalibrationBlockDrawing } from "../drawings/PWCalibrationBlockDrawing";
 import { PWASIMCalibrationBlockDrawing } from "../drawings/PWASIMCalibrationBlockDrawing";
 import { DynamicCalibrationBlockDrawing } from "../drawings/DynamicCalibrationBlockDrawing";
+import { RingSegmentBlockDrawing } from "../drawings/RingSegmentBlockDrawing";
 import { V2500BoreScanDiagram } from "../V2500BoreScanDiagram";
 // StraightBeamConversionTable columns are now merged inline into FBHHoleTable
 // via the showSensitivityColumns prop (see FBHHoleTableWithPreviews).
@@ -356,6 +357,84 @@ export const CalibrationTab = ({
     inspectionSetup.partWidth,
     inspectionSetup.partThickness,
     inspectionSetup.wallThickness,
+  ]);
+
+  const derivedInnerDiameterForAngleBeam = useMemo(() => {
+    if (hasPositiveNumber(inspectionSetup.innerDiameter)) {
+      return inspectionSetup.innerDiameter;
+    }
+
+    if (hasPositiveNumber(inspectionSetup.diameter) && hasPositiveNumber(inspectionSetup.wallThickness)) {
+      const derivedInnerDiameter = inspectionSetup.diameter - inspectionSetup.wallThickness * 2;
+      return derivedInnerDiameter > 0 ? derivedInnerDiameter : undefined;
+    }
+
+    return undefined;
+  }, [
+    inspectionSetup.diameter,
+    inspectionSetup.innerDiameter,
+    inspectionSetup.wallThickness,
+  ]);
+
+  const preferredRingSegmentStandardFamily = useMemo<"EN" | "ASTM" | "TUV">(() => {
+    if (standard === "BS-EN-10228-3" || standard === "BS-EN-10228-4" || standard === "EN-ISO-16810") {
+      return "EN";
+    }
+
+    if (standard === "ASTM-A388" || standard === "ASTM-E164") {
+      return "ASTM";
+    }
+
+    return "TUV";
+  }, [standard]);
+
+  const preferredRingSegmentTemplateId = useMemo(() => {
+    if (preferredRingSegmentStandardFamily === "EN") {
+      return "EN_10228_DAC_REF_BLOCK";
+    }
+
+    if (preferredRingSegmentStandardFamily === "ASTM") {
+      return "ASTM_E428_FBH_BLOCK";
+    }
+
+    return "TUV_STYLE_REF_BLOCK";
+  }, [preferredRingSegmentStandardFamily]);
+
+  const shouldUseRingSegmentAngleBeam = useMemo(() => {
+    const partType = inspectionSetup.partType || "";
+    if (!hasPositiveNumber(inspectionSetup.diameter) || !hasPositiveNumber(derivedInnerDiameterForAngleBeam)) {
+      return false;
+    }
+
+    return [
+      "tube",
+      "pipe",
+      "ring",
+      "sleeve",
+      "bushing",
+      "hollow_cylinder",
+      "ring_forging",
+      "disk",
+      "disk_forging",
+      "hub",
+      "impeller",
+      "blisk",
+      "hpt_disk",
+    ].includes(partType);
+  }, [
+    inspectionSetup.diameter,
+    inspectionSetup.partType,
+    derivedInnerDiameterForAngleBeam,
+  ]);
+
+  const angleBeamPartDimensions = useMemo(() => ({
+    outerDiameterMm: inspectionSetup.diameter || undefined,
+    innerDiameterMm: derivedInnerDiameterForAngleBeam,
+    axialWidthMm: partDimensions.axialWidthMm,
+  }), [
+    inspectionSetup.diameter,
+    derivedInnerDiameterForAngleBeam,
+    partDimensions.axialWidthMm,
   ]);
 
   const effectiveInspectionThickness = useMemo(
@@ -1234,23 +1313,37 @@ export const CalibrationTab = ({
       );
     }
 
-    // Non-P&W Standard - Show generic angle beam content
+    // Non-P&W Standard - Show geometry-aware angle beam content
     return (
       <div className="space-y-4">
-        {/* Flat reference block drawing for angle beam calibration */}
-        <DynamicCalibrationBlockDrawing
-          partGeometry={mappedPartGeometry}
-          partDimensions={partDimensionsForDrawing}
-          standard={standard}
-          acceptanceClass={acceptanceClass || 'A'}
-          partMaterial={inspectionSetup.material || 'steel'}
-          forcedBlockType={"flat_fbh"}
-          width={950}
-          height={750}
-          showDimensions={true}
-          showSpecsTable={true}
-          title={`Calibration Block - ${standard} (Calculated for your part)`}
-        />
+        {shouldUseRingSegmentAngleBeam ? (
+          <RingSegmentBlockDrawing
+            initialTemplateId={preferredRingSegmentTemplateId}
+            preferredStandardFamily={preferredRingSegmentStandardFamily}
+            partDimensions={angleBeamPartDimensions}
+            width={950}
+            height={820}
+            showControls={false}
+            showTable={false}
+            showWarnings={true}
+            showExport={false}
+            title={`Angle Beam Calibration Block - ${standard} (Calculated for your part)`}
+          />
+        ) : (
+          <DynamicCalibrationBlockDrawing
+            partGeometry={mappedPartGeometry}
+            partDimensions={partDimensionsForDrawing}
+            standard={standard}
+            acceptanceClass={acceptanceClass || 'A'}
+            partMaterial={inspectionSetup.material || 'steel'}
+            forcedBlockType={straightBeamBlockOverride}
+            width={950}
+            height={750}
+            showDimensions={true}
+            showSpecsTable={true}
+            title={`Calibration Block - ${standard} (Calculated for your part)`}
+          />
+        )}
 
         {/* Angle Beam Calibration Table - dB corrections per reflector */}
         <div className="border-2 border-orange-200 rounded-xl p-4 bg-orange-50/30 mt-4">
@@ -1296,7 +1389,7 @@ export const CalibrationTab = ({
       // Disks (solid rounds, face inspection)
       'disk': 'disk',
       'disk_forging': 'disk',
-      'hpt_disk': 'disk',
+      'hpt_disk': 'hpt_disk',
       'impeller': 'impeller',
       'blisk': 'blisk',
 
@@ -1306,8 +1399,8 @@ export const CalibrationTab = ({
       'ring': 'ring',
       'sleeve': 'sleeve',
       'bushing': 'sleeve',
-      'rectangular_tube': 'tube',
-      'square_tube': 'tube',
+      'rectangular_tube': 'bar',
+      'square_tube': 'bar',
 
       // Hex shapes
       'hexagon': 'hex_bar',
