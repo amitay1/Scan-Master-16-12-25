@@ -1254,6 +1254,7 @@ export class ProfessionalRingSegmentDrawing {
 
     // 2b. Internal diameter guides based on reflector depths
     this.drawDepthDiameterGuides(cx, cy, scale, innerR, outerR, startAngle, endAngle);
+    this.drawCenterDiameterStack(cx, cy, scale);
 
     // 3. Segment angle extent (clean arc with centered label)
     this.drawCleanArcExtent(cx, cy, outerR, startAngle, endAngle);
@@ -1278,6 +1279,45 @@ export class ProfessionalRingSegmentDrawing {
     this.drawHoleRadialGuides(cx, cy, innerR, outerR, startAngle);
     // 7. Angular chain dimensions between datum and hole positions
     this.drawHoleAngularChainDimensions(cx, cy, innerR, outerR, startAngle, endAngle);
+  }
+
+  private drawCenterDiameterStack(
+    cx: number,
+    cy: number,
+    scale: number
+  ): void {
+    if (this.config.standardFamily !== 'TUV' || this.geometry.outerDiameterMm < 600) {
+      return;
+    }
+
+    const referenceDiameters = [this.geometry.outerDiameterMm, 613.03, 544.02, 486.21]
+      .filter((diameter) => diameter < this.geometry.outerDiameterMm + 0.5 && diameter > this.geometry.innerDiameterMm - 0.5);
+
+    referenceDiameters.forEach((diameter, index) => {
+      const radiusPx = (diameter / 2) * scale;
+      const topPoint = this.polarToCartesian(cx, cy, radiusPx, 0);
+      const leaderLength = index === 0 ? 42 : 32;
+      const line = new this.scope.Path.Line(
+        new this.scope.Point(cx, topPoint.y),
+        new this.scope.Point(cx + leaderLength, topPoint.y)
+      );
+      this.applyStyle(line, LINE_STYLES.dimension);
+
+      const tick = new this.scope.Path.Line(
+        new this.scope.Point(cx, topPoint.y - 5),
+        new this.scope.Point(cx, topPoint.y + 5)
+      );
+      this.applyStyle(tick, LINE_STYLES.dimension);
+
+      const label = new this.scope.PointText(
+        new this.scope.Point(cx + leaderLength + 4, topPoint.y + 3)
+      );
+      label.content = `\u00D8${diameter.toFixed(2)}`;
+      label.fontSize = this.getTopViewSmallFontSize();
+      label.fontFamily = FONT_SETTINGS.dimension.family;
+      label.fillColor = new this.scope.Color('#000000');
+      label.justification = 'left';
+    });
   }
 
   private drawHoleAngularChainDimensions(
@@ -1517,6 +1557,10 @@ export class ProfessionalRingSegmentDrawing {
 
     const sortedHoles = [...holes].sort((a, b) => a.axialPositionMm - b.axialPositionMm);
 
+    if (variant !== 'C') {
+      this.drawSectionStepProfile(rectX, rectY, actualWidth, actualHeight, fitScale, sortedHoles, variant);
+    }
+
     const holeMarkerHeight = variant === 'C'
       ? Math.max(20, Math.min(actualHeight * 0.5, 70))
       : Math.max(6, Math.min(16, actualHeight * 0.18));
@@ -1652,6 +1696,43 @@ export class ProfessionalRingSegmentDrawing {
     }
 
     group.clipped = true;
+  }
+
+  private drawSectionStepProfile(
+    rectX: number,
+    rectY: number,
+    actualWidth: number,
+    actualHeight: number,
+    scale: number,
+    holes: HoleData[],
+    variant: 'A' | 'B'
+  ): void {
+    const stepStarts = holes
+      .map((hole) => rectX + hole.axialPositionMm * scale)
+      .slice(0, 3);
+
+    if (stepStarts.length < 2) {
+      return;
+    }
+
+    const stepRatios = variant === 'A'
+      ? [0.18, 0.34, 0.5]
+      : [0.2, 0.36, 0.52];
+
+    stepStarts.forEach((stepStartX, index) => {
+      const stepHeight = actualHeight * stepRatios[Math.min(index, stepRatios.length - 1)];
+      const stepRect = new this.scope.Path.Rectangle(
+        new this.scope.Rectangle(
+          stepStartX,
+          rectY + actualHeight - stepHeight,
+          rectX + actualWidth - stepStartX,
+          stepHeight
+        )
+      );
+      stepRect.fillColor = new this.scope.Color('#FFFFFF');
+      stepRect.strokeColor = new this.scope.Color('#000000');
+      stepRect.strokeWidth = 0.8;
+    });
   }
 
   private drawOrdinateAxialDimensions(
@@ -2164,8 +2245,48 @@ export class ProfessionalRingSegmentDrawing {
     }
 
     if (this.shouldDrawReferenceLug()) {
+      this.drawReferenceEndFaceHoles(toIso, scale, startAngle);
       this.drawReferenceLugHoles(toIso, scale, startAngle);
     }
+  }
+
+  private drawReferenceEndFaceHoles(
+    toIso: (x: number, y: number, z: number) => { x: number; y: number },
+    scale: number,
+    startAngle: number
+  ): void {
+    const endAngle = this.geometry.segmentAngleDeg / 2;
+    const midRadius = this.meanRadius;
+    const holeRadius = Math.max(2.3, 2.9 * scale);
+    const rightEndRad = endAngle * Math.PI / 180;
+    const leftEndRad = startAngle * Math.PI / 180;
+
+    const rightEndZPositions = [this.geometry.axialWidthMm * 0.34, this.geometry.axialWidthMm * 0.62];
+    for (const z of rightEndZPositions) {
+      const holeX = midRadius * Math.cos(rightEndRad);
+      const holeY = midRadius * Math.sin(rightEndRad);
+      this.drawReferenceIsoHole(toIso(holeX, holeY, z), holeRadius);
+    }
+
+    const leftHoleX = midRadius * Math.cos(leftEndRad);
+    const leftHoleY = midRadius * Math.sin(leftEndRad);
+    this.drawReferenceIsoHole(
+      toIso(leftHoleX, leftHoleY, this.geometry.axialWidthMm * 0.86),
+      Math.max(1.8, holeRadius * 0.72)
+    );
+  }
+
+  private drawReferenceIsoHole(
+    point: { x: number; y: number },
+    radius: number
+  ): void {
+    const circle = new this.scope.Path.Circle(
+      new this.scope.Point(point.x, point.y),
+      radius
+    );
+    circle.strokeColor = new this.scope.Color('#000000');
+    circle.strokeWidth = LINE_STYLES.visible.strokeWidth;
+    circle.fillColor = new this.scope.Color('#FFFFFF');
   }
 
   // Keep old detailed methods for potential future use but rename them

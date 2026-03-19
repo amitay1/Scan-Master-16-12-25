@@ -21,6 +21,50 @@ function Write-Success { param($msg) Write-Host $msg -ForegroundColor Green }
 function Write-Info { param($msg) Write-Host $msg -ForegroundColor Cyan }
 function Write-Warn { param($msg) Write-Host $msg -ForegroundColor Yellow }
 function Write-Err { param($msg) Write-Host $msg -ForegroundColor Red }
+function Format-FileSize {
+    param([long]$Bytes)
+    if ($Bytes -ge 1GB) { return "{0:N1} GB" -f ($Bytes / 1GB) }
+    if ($Bytes -ge 1MB) { return "{0:N1} MB" -f ($Bytes / 1MB) }
+    if ($Bytes -ge 1KB) { return "{0:N1} KB" -f ($Bytes / 1KB) }
+    return "$Bytes B"
+}
+function Get-FileSha256 {
+    param([string]$Path)
+    try {
+        return (Get-FileHash -Path $Path -Algorithm SHA256).Hash.ToLowerInvariant()
+    } catch {
+        return $null
+    }
+}
+function Get-ReleaseAssetMap {
+    param(
+        [string]$TagName,
+        [string]$Repo
+    )
+
+    $assetMap = @{}
+    if (-not $TagName -or -not $Repo) {
+        return $assetMap
+    }
+
+    $assetsJson = gh release view $TagName --repo $Repo --json assets 2>$null
+    if ($LASTEXITCODE -ne 0 -or -not $assetsJson) {
+        return $assetMap
+    }
+
+    try {
+        $parsed = $assetsJson | ConvertFrom-Json
+        foreach ($asset in @($parsed.assets)) {
+            if ($asset.name) {
+                $assetMap[$asset.name] = $asset
+            }
+        }
+    } catch {
+        Write-Warn "  Could not parse GitHub release assets for verification."
+    }
+
+    return $assetMap
+}
 
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Magenta
@@ -66,6 +110,8 @@ if (-not $ghAvailable) {
     Write-Warn "Install: winget install GitHub.cli && gh auth login"
     Write-Host ""
 }
+
+$githubRepo = "amitay1/Scan-Master-16-12-25"
 
 # ── Version bump ─────────────────────────────────────────────────────
 
@@ -311,7 +357,7 @@ if ($ghAvailable) {
     $releaseNotes += "`n**Full Changelog**: https://github.com/amitay1/Scan-Master-16-12-25/compare/v$currentVersion...v$newVersion"
 
     # Create the release (handle "already exists" gracefully)
-    $releaseResult = gh release create "v$newVersion" --title "$releaseTitle" --notes "$releaseNotes" 2>&1
+    $releaseResult = gh release create "v$newVersion" --repo $githubRepo --title "$releaseTitle" --notes "$releaseNotes" 2>&1
     if ($LASTEXITCODE -ne 0) {
         if ($releaseResult -match "already exists") {
             Write-Warn "  Release v$newVersion already exists on GitHub – will upload files to existing release."
@@ -326,6 +372,8 @@ if ($ghAvailable) {
     # Upload installer files only if build validation passed
     if ($buildOK -and $freshOutputDir -and (Test-Path $freshOutputDir)) {
         Write-Info "Uploading installer files to release..."
+        $releaseTag = "v$newVersion"
+        $remoteAssets = Get-ReleaseAssetMap -TagName $releaseTag -Repo $githubRepo
 
         $filesToUpload = @(
             @{ Path = (Join-Path $freshOutputDir "latest.yml");                                 Name = "latest.yml" },
@@ -337,13 +385,72 @@ if ($ghAvailable) {
         $uploadFailed = $false
         foreach ($file in $filesToUpload) {
             if (Test-Path $file.Path) {
-                Write-Info "  Uploading: $($file.Name)..."
-                gh release upload "v$newVersion" "$($file.Path)" --clobber 2>&1
-                if ($LASTEXITCODE -ne 0) {
-                    Write-Err "  FAILED to upload $($file.Name)!"
+                $localFile = Get-Item $file.Path
+                $assetName = $localFile.Name
+                $sizeText = Format-FileSize $localFile.Length
+                $localHash = $null
+
+                $existingAsset = $null
+                if ($remoteAssets.ContainsKey($assetName)) {
+                    $existingAsset = $remoteAssets[$assetName]
+                }
+
+                if ($existingAsset) {
+                    $remoteDigest = "$($existingAsset.digest)" -replace '^sha256:', ''
+                    if ($remoteDigest) {
+                        Write-Info "  Checking existing asset: $assetName"
+                        $localHash = Get-FileSha256 -Path $file.Path
+                        if ($localHash -and ($localHash -eq $remoteDigest.ToLowerInvariant())) {
+                            Write-Success "  Already uploaded: $($file.Name) [$sizeText]"
+                            continue
+                        }
+                    } elseif ([int64]$existingAsset.size -eq $localFile.Length) {
+                        Write-Success "  Already uploaded: $($file.Name) [$sizeText]"
+                        continue
+                    }
+
+                    Write-Warn "  Existing asset differs; re-uploading $($file.Name) with --clobber."
+                }
+
+                Write-Info "  Uploading: $($file.Name) [$sizeText]"
+                $uploadStarted = Get-Date
+                & gh release upload $releaseTag $file.Path --repo $githubRepo --clobber
+                $uploadExitCode = $LASTEXITCODE
+                $elapsed = (Get-Date) - $uploadStarted
+                $elapsedText = "{0:mm\:ss}" -f $elapsed
+
+                if ($uploadExitCode -ne 0) {
+                    Write-Err "  FAILED to upload $($file.Name) after $elapsedText!"
                     $uploadFailed = $true
                 } else {
-                    Write-Success "  Uploaded: $($file.Name)"
+                    $remoteAssets = Get-ReleaseAssetMap -TagName $releaseTag -Repo $githubRepo
+                    $verifiedAsset = $null
+                    if ($remoteAssets.ContainsKey($assetName)) {
+                        $verifiedAsset = $remoteAssets[$assetName]
+                    }
+
+                    if ($verifiedAsset) {
+                        $verifiedDigest = "$($verifiedAsset.digest)" -replace '^sha256:', ''
+                        $verifiedSize = [int64]$verifiedAsset.size
+                        $verifiedOk = $false
+
+                        if ($verifiedDigest) {
+                            if (-not $localHash) {
+                                $localHash = Get-FileSha256 -Path $file.Path
+                            }
+                            $verifiedOk = $localHash -and ($localHash -eq $verifiedDigest.ToLowerInvariant())
+                        } else {
+                            $verifiedOk = $verifiedSize -eq $localFile.Length
+                        }
+
+                        if ($verifiedOk) {
+                            Write-Success "  Uploaded: $($file.Name) in $elapsedText"
+                        } else {
+                            Write-Warn "  Uploaded: $($file.Name) in $elapsedText, but verification did not fully match. Check the GitHub release asset."
+                        }
+                    } else {
+                        Write-Warn "  Upload command finished for $($file.Name) in $elapsedText, but GitHub did not return the asset yet."
+                    }
                 }
             } else {
                 Write-Warn "  Not found: $($file.Path) (skipping)"
@@ -353,8 +460,8 @@ if ($ghAvailable) {
         if ($uploadFailed) {
             Write-Host ""
             Write-Err "Some uploads failed. Retry manually:"
-            Write-Err "  gh release upload v$newVersion $freshOutputDir/latest.yml --clobber"
-            Write-Err "  gh release upload v$newVersion $freshOutputDir/ScanMaster-Setup-$newVersion.exe --clobber"
+            Write-Err "  gh release upload v$newVersion $freshOutputDir/latest.yml --repo $githubRepo --clobber"
+            Write-Err "  gh release upload v$newVersion $freshOutputDir/ScanMaster-Setup-$newVersion.exe --repo $githubRepo --clobber"
         } else {
             Write-Success "All files uploaded to GitHub Release!"
         }
@@ -366,17 +473,17 @@ if ($ghAvailable) {
         Write-Err "  The GitHub release was created but is EMPTY."
         Write-Err "  Fix the build and run: npm run dist:win"
         Write-Err "  Then manually upload files with:"
-        Write-Err "    gh release upload v$newVersion <build-dir>/latest.yml --clobber"
-        Write-Err "    gh release upload v$newVersion <build-dir>/ScanMaster-Setup-$newVersion.exe --clobber"
-        Write-Err "    gh release upload v$newVersion <build-dir>/ScanMaster-Setup-$newVersion.exe.blockmap --clobber"
-        Write-Err "    gh release upload v$newVersion <build-dir>/ScanMaster-Portable-$newVersion.exe --clobber"
+        Write-Err "    gh release upload v$newVersion <build-dir>/latest.yml --repo $githubRepo --clobber"
+        Write-Err "    gh release upload v$newVersion <build-dir>/ScanMaster-Setup-$newVersion.exe --repo $githubRepo --clobber"
+        Write-Err "    gh release upload v$newVersion <build-dir>/ScanMaster-Setup-$newVersion.exe.blockmap --repo $githubRepo --clobber"
+        Write-Err "    gh release upload v$newVersion <build-dir>/ScanMaster-Portable-$newVersion.exe --repo $githubRepo --clobber"
         Write-Err "================================================"
     } elseif ($SkipBuild) {
         Write-Warn "Build was skipped – no installer files uploaded."
         Write-Warn "Run the build manually and upload:"
         Write-Warn "  npm run dist:win"
-        Write-Warn "  gh release upload v$newVersion release-build/latest.yml --clobber"
-        Write-Warn "  gh release upload v$newVersion release-build/ScanMaster-Setup-$newVersion.exe --clobber"
+        Write-Warn "  gh release upload v$newVersion release-build/latest.yml --repo $githubRepo --clobber"
+        Write-Warn "  gh release upload v$newVersion release-build/ScanMaster-Setup-$newVersion.exe --repo $githubRepo --clobber"
     }
 } else {
     Write-Host ""
