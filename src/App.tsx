@@ -26,6 +26,7 @@ import { GaugeDemo } from "./pages/GaugeDemo";
 import TechnicalDrawingTest from "./pages/TechnicalDrawingTest";
 import BlockDesigner from "./pages/BlockDesigner";
 import LicenseDashboard from "./pages/LicenseDashboard";
+import RingSegmentReferenceTest from "./pages/RingSegmentReferenceTest";
 import SplashScreenDemo from "./demos/splash-screens/SplashScreenDemo";
 
 const queryClient = new QueryClient();
@@ -123,6 +124,7 @@ const AppContent = () => {
         <Route path="/my-standards" element={<MyStandards />} />
         <Route path="/gauge-demo" element={<GaugeDemo />} />
         <Route path="/drawing-test" element={<TechnicalDrawingTest />} />
+        <Route path="/ring-segment-test" element={<RingSegmentReferenceTest />} />
         <Route path="/block-designer" element={<BlockDesigner />} />
         <Route path="/license-dashboard" element={<LicenseDashboard />} />
         <Route path="/splash-demo" element={<SplashScreenDemo />} />

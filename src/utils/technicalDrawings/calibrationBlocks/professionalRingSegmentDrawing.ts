@@ -45,6 +45,10 @@ export interface DrawingConfig {
   showHatching: boolean;
   showHiddenLines: boolean;
   language: 'en' | 'fr' | 'he';
+  standardReference?: string;
+  templateName?: string;
+  standardFamily?: 'EN' | 'ASTM' | 'TUV' | 'CUSTOM';
+  noteLines?: string[];
 }
 
 export interface ViewPort {
@@ -54,6 +58,22 @@ export interface ViewPort {
   height: number;
   scale: number;
   label: string;
+}
+
+interface CalloutBox {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+interface ReferenceLayout {
+  topView: ViewPort;
+  sectionAA: ViewPort;
+  sectionBB: ViewPort;
+  sectionCE: ViewPort;
+  isometric: ViewPort;
+  reportCallout: CalloutBox;
 }
 
 // ============================================================================
@@ -143,6 +163,7 @@ const FONT_SETTINGS = {
   holeLabel: { size: 12, family: 'Arial', weight: 'bold' },
   title: { size: 14, family: 'Arial', weight: 'bold' },
   sectionLabel: { size: 15, family: 'Arial', weight: 'bold' },
+  callout: { size: 10, family: 'Arial', weight: 'normal' },
   note: { size: 9, family: 'Arial', weight: 'normal' },
 };
 
@@ -197,6 +218,10 @@ export class ProfessionalRingSegmentDrawing {
       showHatching: config.showHatching ?? true,
       showHiddenLines: config.showHiddenLines ?? true,
       language: config.language || 'en',
+      standardReference: config.standardReference,
+      templateName: config.templateName,
+      standardFamily: config.standardFamily,
+      noteLines: config.noteLines || [],
     };
 
     // Initialize Paper.js with robust setup
@@ -316,10 +341,6 @@ export class ProfessionalRingSegmentDrawing {
       this.drawSectionCE(viewports.sectionCE);
       this.drawIsometricView(viewports.isometric);
 
-      // Draw title block and border
-      this.drawTitleBlock();
-      this.drawBorderFrame();
-
       // Add drawing notes
       this.drawDrawingNotes(viewports);
 
@@ -337,14 +358,9 @@ export class ProfessionalRingSegmentDrawing {
   // TUV-17 STYLE LAYOUT
   // ============================================================================
 
-  private calculateTUV17Layout(): {
-    topView: ViewPort;
-    sectionAA: ViewPort;
-    sectionBB: ViewPort;
-    sectionCE: ViewPort;
-    isometric: ViewPort;
-  } {
-    const margin = 25;
+  private calculateTUV17Layout(): ReferenceLayout {
+    const margin = 26;
+    const gutter = 24;
     const w = this.config.canvasWidth;
     const h = this.config.canvasHeight;
     const isLargeBlock = this.geometry.outerDiameterMm >= 600;
@@ -360,59 +376,69 @@ export class ProfessionalRingSegmentDrawing {
     // │  Section C-C    │     ISOMETRIC                 │
     // └─────────────────┴───────────────────────────────┘
 
-    // Give more width to sections for clarity
-    const leftColWidth = w * (isLargeBlock ? 0.26 : 0.24);
-    const topViewWidth = w * (isLargeBlock ? 0.52 : 0.50);
-    const isoWidth = Math.max(
-      w - leftColWidth - topViewWidth,
-      w * (isLargeBlock ? 0.22 : 0.24)
-    );
-    // Reduced section heights to fit all 3 sections above NOTES area
-    const sectionHeight = h * (isLargeBlock ? 0.22 : 0.20);
+    const leftColWidth = w * (isLargeBlock ? 0.22 : 0.24);
+    const topViewX = margin + leftColWidth + gutter;
+    const topViewWidth = w - topViewX - margin;
+    const topViewHeight = h * (isLargeBlock ? 0.52 : 0.50);
+    const sectionAAHeight = h * (isLargeBlock ? 0.42 : 0.36);
+    const reportHeight = 26;
+    const sectionBBHeight = h * (isLargeBlock ? 0.25 : 0.24);
+    const lowerY = h * 0.62;
+    const sectionCEWidth = w * (isLargeBlock ? 0.22 : 0.24);
+    const sectionCEHeight = h * (isLargeBlock ? 0.32 : 0.30);
+    const isoWidth = w * (isLargeBlock ? 0.40 : 0.36);
+    const isoHeight = h * (isLargeBlock ? 0.26 : 0.24);
+    const reportY = margin + sectionAAHeight + 10;
 
     return {
       sectionAA: {
         x: margin,
         y: margin,
-        width: leftColWidth - margin,
-        height: sectionHeight,
-        scale: this.calculateSectionScale(leftColWidth - margin * 2, sectionHeight - 50),
-        label: 'A - A',
+        width: leftColWidth - 12,
+        height: sectionAAHeight,
+        scale: this.calculateSectionScale(leftColWidth - 36, sectionAAHeight - 60),
+        label: 'A-A',
       },
       sectionBB: {
         x: margin,
-        y: margin + sectionHeight + 15,
-        width: leftColWidth - margin,
-        height: sectionHeight,
-        scale: this.calculateSectionScale(leftColWidth - margin * 2, sectionHeight - 50),
-        label: 'B - B',
+        y: reportY + reportHeight + 12,
+        width: leftColWidth - 12,
+        height: sectionBBHeight,
+        scale: this.calculateSectionScale(leftColWidth - 36, sectionBBHeight - 46),
+        label: 'B-B',
       },
       sectionCE: {
-        x: margin,
-        y: margin + sectionHeight * 2 + 20,
-        width: leftColWidth - margin,
-        height: sectionHeight,
-        scale: this.calculateSectionScale(leftColWidth - margin * 2, sectionHeight - 30),
-        label: 'C - C',
+        x: margin + leftColWidth + 40,
+        y: lowerY,
+        width: sectionCEWidth,
+        height: sectionCEHeight,
+        scale: this.calculateSectionScale(sectionCEWidth - 30, sectionCEHeight - 42),
+        label: 'C-C',
       },
       topView: {
-        x: leftColWidth + margin,
+        x: topViewX,
         y: margin,
         width: topViewWidth,
-        height: h * (isLargeBlock ? 0.68 : 0.65),
+        height: topViewHeight,
         scale: this.calculateTopViewScale(
-          topViewWidth - margin,
-          h * (isLargeBlock ? 0.63 : 0.6)
+          topViewWidth - 30,
+          topViewHeight - 20
         ),
         label: '',
       },
       isometric: {
-        x: leftColWidth + topViewWidth + margin,
-        y: h * 0.5,
-        width: isoWidth - margin * 2,
-        height: h * 0.45,
-        scale: this.calculateIsometricScale(isoWidth - margin * 3, h * 0.4),
+        x: w - isoWidth - margin - 18,
+        y: lowerY + 8,
+        width: isoWidth,
+        height: isoHeight,
+        scale: this.calculateIsometricScale(isoWidth - 30, isoHeight - 24),
         label: '',
+      },
+      reportCallout: {
+        x: margin + 2,
+        y: reportY,
+        width: leftColWidth - 18,
+        height: reportHeight,
       },
     };
   }
@@ -432,16 +458,15 @@ export class ProfessionalRingSegmentDrawing {
 
   private calculateSectionScale(width: number, height: number): number {
     // More generous margins for clearer sections
-    const sectionWidth = this.geometry.axialWidthMm * 1.4;
-    const sectionHeight = this.wallThickness * 2.2;
+    const sectionWidth = this.geometry.axialWidthMm * 1.1;
+    const sectionHeight = this.wallThickness * 1.35;
     const baseScale = Math.min(width / sectionWidth, height / sectionHeight);
-    // Use larger scale for better visibility
-    return baseScale * (this.geometry.outerDiameterMm >= 600 ? 0.75 : 0.65);
+    return baseScale * (this.geometry.outerDiameterMm >= 600 ? 0.96 : 0.92);
   }
 
   private calculateIsometricScale(width: number, height: number): number {
-    const maxDim = this.geometry.outerDiameterMm * 1.3;
-    return Math.min(width / maxDim, height / maxDim) * 0.5;
+    const maxDim = this.geometry.outerDiameterMm * 1.05;
+    return Math.min(width / maxDim, height / maxDim) * 0.78;
   }
 
   // ============================================================================
@@ -910,27 +935,29 @@ export class ProfessionalRingSegmentDrawing {
     arrow.closed = true;
     arrow.fillColor = new this.scope.Color('#000000');
 
-    // Label (circled letter)
+    // Label (plain letter, closer to TUV Fig. 4 style)
     const labelX = headTipX + 15 * Math.cos(rad);
     const labelY = headTipY + 15 * Math.sin(rad);
 
-    // Circle around label
-    const labelCircle = new this.scope.Path.Circle(
-      new this.scope.Point(labelX, labelY),
-      10
-    );
-    labelCircle.strokeColor = new this.scope.Color('#000000');
-    labelCircle.strokeWidth = LINE_STYLES.dimension.strokeWidth;
-    labelCircle.fillColor = new this.scope.Color('#FFFFFF');
-
-    // Label text
-    const text = new this.scope.PointText(new this.scope.Point(labelX, labelY + 3));
+    const text = new this.scope.PointText(new this.scope.Point(labelX, labelY + 4));
     text.content = label;
     text.fontSize = FONT_SETTINGS.label.size;
     text.fontWeight = FONT_SETTINGS.label.weight;
     text.fontFamily = FONT_SETTINGS.label.family;
     text.fillColor = new this.scope.Color('#000000');
     text.justification = 'center';
+
+    const labelBg = new this.scope.Path.Rectangle(
+      new this.scope.Rectangle(
+        text.bounds.x - 3,
+        text.bounds.y - 2,
+        text.bounds.width + 6,
+        text.bounds.height + 4
+      )
+    );
+    labelBg.fillColor = new this.scope.Color('#FFFFFF');
+    labelBg.strokeColor = null;
+    labelBg.insertBelow(text);
   }
 
   private drawHolesOnTopView(
@@ -953,8 +980,31 @@ export class ProfessionalRingSegmentDrawing {
       const holeRadius = clampedRadius * scale;
       const pos = this.polarToCartesian(cx, cy, holeRadius, angle);
 
-      // Draw hole circle (visible from top) - use thicker line for visibility
-      const holeSize = Math.max((hole.diameterMm / 2) * scale, showBalloons ? 5 : 3);
+      if (!showBalloons) {
+        const markerWidth = Math.max(6, hole.diameterMm * scale * 1.8);
+        const markerHeight = Math.max(18, hole.diameterMm * scale * 5.5);
+        const slot = new this.scope.Path.Rectangle(
+          new this.scope.Rectangle(
+            pos.x - markerWidth / 2,
+            pos.y - markerHeight / 2,
+            markerWidth,
+            markerHeight
+          )
+        );
+        slot.strokeColor = new this.scope.Color('#000000');
+        slot.strokeWidth = LINE_STYLES.visible.strokeWidth;
+        slot.fillColor = new this.scope.Color('#FFFFFF');
+
+        const centerLine = new this.scope.Path.Line(
+          new this.scope.Point(pos.x, pos.y - markerHeight / 2 - 6),
+          new this.scope.Point(pos.x, pos.y + markerHeight / 2 + 6)
+        );
+        this.applyStyle(centerLine, LINE_STYLES.center);
+
+        continue;
+      }
+
+      const holeSize = Math.max((hole.diameterMm / 2) * scale, 5);
       const circle = new this.scope.Path.Circle(
         new this.scope.Point(pos.x, pos.y),
         holeSize
@@ -1068,8 +1118,12 @@ export class ProfessionalRingSegmentDrawing {
         candidatePoints.push(this.polarToCartesian(cx, cy, baseRadius, angle));
       }
 
+      if (isLarge) {
+        continue;
+      }
+
       const label = new this.scope.PointText(new this.scope.Point(0, 0));
-      label.content = `${hole.angleOnArcDeg.toFixed(0)} deg`;
+      label.content = `${hole.angleOnArcDeg.toFixed(0)}\u00B0`;
       label.fontSize = this.getTopViewSmallFontSize();
       label.fillColor = new this.scope.Color(LINE_STYLES.dimension.strokeColor);
       label.justification = 'center';
@@ -1156,7 +1210,7 @@ export class ProfessionalRingSegmentDrawing {
         cy,
         radiusPx,
         labelAngle,
-        `D ${formatMm(diameterMm)}`,
+        `\u00D8${formatMm(diameterMm)}`,
         offset
       );
     });
@@ -1184,7 +1238,7 @@ export class ProfessionalRingSegmentDrawing {
       cy,
       outerR,
       endAngle - 20,
-      `OD ${formatMm(this.geometry.outerDiameterMm)}`,
+      `\u00D8${formatMm(this.geometry.outerDiameterMm)}`,
       odOffset
     );
 
@@ -1194,7 +1248,7 @@ export class ProfessionalRingSegmentDrawing {
       cy,
       innerR,
       startAngle + 20,
-      `ID ${formatMm(this.geometry.innerDiameterMm)}`,
+      `\u00D8${formatMm(this.geometry.innerDiameterMm)}`,
       idOffset
     );
 
@@ -1222,6 +1276,51 @@ export class ProfessionalRingSegmentDrawing {
     this.drawHoleAngleMarkers(cx, cy, innerR, outerR, startAngle);
     // 6. Radial guide lines for hole angles
     this.drawHoleRadialGuides(cx, cy, innerR, outerR, startAngle);
+    // 7. Angular chain dimensions between datum and hole positions
+    this.drawHoleAngularChainDimensions(cx, cy, innerR, outerR, startAngle, endAngle);
+  }
+
+  private drawHoleAngularChainDimensions(
+    cx: number,
+    cy: number,
+    innerR: number,
+    outerR: number,
+    startAngle: number,
+    endAngle: number
+  ): void {
+    if (this.holes.length === 0) {
+      return;
+    }
+
+    const boundaries = [
+      startAngle,
+      ...this.holes.map((hole) => startAngle + hole.angleOnArcDeg),
+      endAngle,
+    ];
+
+    const intervalData = boundaries
+      .slice(0, -1)
+      .map((fromAngle, index) => ({
+        fromAngle,
+        toAngle: boundaries[index + 1],
+        span: Math.abs(boundaries[index + 1] - fromAngle),
+      }))
+      .filter((segment) => segment.span >= 6);
+
+    const baseRadius = innerR - Math.max(30, (outerR - innerR) * 0.32);
+
+    intervalData.forEach((segment, index) => {
+      const tier = index % 2;
+      const radius = baseRadius - tier * 18;
+      this.drawAngularDimension(
+        cx,
+        cy,
+        radius,
+        segment.fromAngle,
+        segment.toAngle,
+        `${segment.span.toFixed(segment.span % 1 === 0 ? 0 : 1)}\u00B0`
+      );
+    });
   }
 
   private getReferenceDepthsMm(): number[] {
@@ -1323,38 +1422,45 @@ export class ProfessionalRingSegmentDrawing {
   // ============================================================================
 
   private drawSectionAA(vp: ViewPort): void {
-    // Section A-A shows ALL holes (like TUV-17 reference)
-    const allHoles = [...this.holes].sort((a, b) => a.axialPositionMm - b.axialPositionMm);
-    this.drawDetailedSectionView(vp, allHoles, 'A - A');
+    this.drawDetailedSectionView(vp, this.getSectionHoles(this.sectionAngles.A, 0), 'A-A', 'A');
   }
 
   private drawSectionBB(vp: ViewPort): void {
-    // Section B-B shows ALL holes (like TUV-17 reference)
-    const allHoles = [...this.holes].sort((a, b) => a.axialPositionMm - b.axialPositionMm);
-    this.drawDetailedSectionView(vp, allHoles, 'B - B');
+    this.drawDetailedSectionView(vp, this.getSectionHoles(this.sectionAngles.B, 1), 'B-B', 'B');
   }
 
   private drawSectionCE(vp: ViewPort): void {
-    // Section C-C shows ALL holes (like TUV-17 reference)
-    const allHoles = [...this.holes].sort((a, b) => a.axialPositionMm - b.axialPositionMm);
-    this.drawDetailedSectionView(vp, allHoles, 'C - C');
+    this.drawDetailedSectionView(vp, this.getSectionHoles(this.sectionAngles.CE, 2), 'C-C', 'C');
   }
 
   private getSectionHoles(targetAngle: number, fallbackIndex: number): HoleData[] {
-    // Always return all holes sorted by axial position (like TUV-17 reference)
-    return [...this.holes].sort((a, b) => a.axialPositionMm - b.axialPositionMm);
+    const allHoles = [...this.holes].sort((a, b) => a.axialPositionMm - b.axialPositionMm);
+    if (allHoles.length <= 3) {
+      return allHoles;
+    }
+
+    if (fallbackIndex === 2) {
+      return [allHoles[0], allHoles[Math.floor(allHoles.length / 2)], allHoles[allHoles.length - 1]];
+    }
+
+    return allHoles;
   }
 
-  private drawDetailedSectionView(vp: ViewPort, holes: HoleData[], label: string): void {
+  private drawDetailedSectionView(
+    vp: ViewPort,
+    holes: HoleData[],
+    label: string,
+    variant: 'A' | 'B' | 'C'
+  ): void {
     const scale = vp.scale;
     const sectionWidth = this.geometry.axialWidthMm * scale;
     const sectionHeight = this.wallThickness * scale;
 
     // Increase spacing for better clarity
-    const topMargin = 35;
-    const bottomMargin = this.config.showDimensions ? 55 : 30;
-    const leftMargin = this.config.showDimensions ? 35 : 15;
-    const rightMargin = 15;
+    const topMargin = 24;
+    const bottomMargin = this.config.showDimensions ? 34 : 18;
+    const leftMargin = this.config.showDimensions ? 20 : 12;
+    const rightMargin = 10;
     
     const availableHeight = Math.max(1, vp.height - topMargin - bottomMargin);
     const availableWidth = Math.max(1, vp.width - leftMargin - rightMargin);
@@ -1362,7 +1468,7 @@ export class ProfessionalRingSegmentDrawing {
     // Scale down section to fit in available space with padding
     const fitScaleW = availableWidth / (this.geometry.axialWidthMm + 20);
     const fitScaleH = availableHeight / (this.wallThickness + 20);
-    const fitScale = Math.min(fitScaleW, fitScaleH, scale);
+    const fitScale = Math.min(fitScaleW, fitScaleH) * 0.94;
     
     const actualWidth = this.geometry.axialWidthMm * fitScale;
     const actualHeight = this.wallThickness * fitScale;
@@ -1370,8 +1476,7 @@ export class ProfessionalRingSegmentDrawing {
     const rectX = vp.x + leftMargin + (availableWidth - actualWidth) / 2;
     const rectY = vp.y + topMargin + (availableHeight - actualHeight) / 2;
 
-    // Draw section label with professional styling (ISO standard: "SECTION A-A")
-    const sectionLabelText = label.includes('-') ? `SECTION ${label}` : `SECTION ${label.charAt(0)}-${label.charAt(label.length - 1)}`;
+    const sectionLabelText = label;
     const labelText = new this.scope.PointText(
       new this.scope.Point(vp.x + vp.width / 2, vp.y + 18)
     );
@@ -1382,7 +1487,7 @@ export class ProfessionalRingSegmentDrawing {
     labelText.fillColor = new this.scope.Color('#000000');
     labelText.justification = 'center';
 
-    // Add underline to section label (professional touch like TUV-17)
+    // Add underline to section label
     const underlineY = vp.y + 22;
     const labelWidth = sectionLabelText.length * 5.5;
     const underlineLine = new this.scope.Path.Line(
@@ -1410,39 +1515,41 @@ export class ProfessionalRingSegmentDrawing {
       );
     }
 
-    // Draw holes in section - small rectangles at different depths (stair pattern)
-    // The hole depth represents how far from the TOP surface the hole bottom is
     const sortedHoles = [...holes].sort((a, b) => a.axialPositionMm - b.axialPositionMm);
-    
-    // Calculate the display height for each hole marker (small, fixed size)
-    const holeMarkerHeight = Math.max(3, Math.min(8, actualHeight * 0.15));
+
+    const holeMarkerHeight = variant === 'C'
+      ? Math.max(20, Math.min(actualHeight * 0.5, 70))
+      : Math.max(6, Math.min(16, actualHeight * 0.18));
     
     for (const hole of sortedHoles) {
       const holeCenterX = rectX + hole.axialPositionMm * fitScale;
-      const slotWidth = Math.max(hole.diameterMm * fitScale * 1.5, 4);
-      
-      // Hole depth from top surface - scale it to fit within section
+      const slotWidth = variant === 'C'
+        ? Math.max(hole.diameterMm * fitScale * 1.8, 7)
+        : Math.max(hole.diameterMm * fitScale * 1.5, 5);
       const depthFromTop = Math.min(hole.depthMm * fitScale, actualHeight - holeMarkerHeight - 2);
-      
       const slotX = holeCenterX - slotWidth / 2;
-      const slotY = rectY + depthFromTop; // Start at the depth position
+      const slotY = rectY + depthFromTop;
 
-      // Clear hatching behind the slot marker
       const slotClear = new this.scope.Path.Rectangle(
         new this.scope.Rectangle(slotX - 2, slotY - 1, slotWidth + 4, holeMarkerHeight + 2)
       );
       slotClear.fillColor = new this.scope.Color('#FFFFFF');
       slotClear.strokeColor = null;
 
-      // Small slot marker (red like TUV-17) - represents the FBH/SDH location
       const slot = new this.scope.Path.Rectangle(
         new this.scope.Rectangle(slotX, slotY, slotWidth, holeMarkerHeight)
       );
-      slot.strokeColor = new this.scope.Color('#CC0000');
-      slot.strokeWidth = 1.2;
-      slot.fillColor = new this.scope.Color('#FF4444');
+      slot.strokeColor = new this.scope.Color('#000000');
+      slot.strokeWidth = 0.9;
+      slot.fillColor = new this.scope.Color('#FFFFFF');
 
-      // Centerline from top surface to hole (dashed red)
+      const slotCenter = new this.scope.Path.Line(
+        new this.scope.Point(holeCenterX, slotY),
+        new this.scope.Point(holeCenterX, slotY + holeMarkerHeight)
+      );
+      slotCenter.strokeColor = new this.scope.Color('#CC0000');
+      slotCenter.strokeWidth = 0.7;
+
       const centerLine = new this.scope.Path.Line(
         new this.scope.Point(holeCenterX, rectY),
         new this.scope.Point(holeCenterX, slotY)
@@ -1450,6 +1557,15 @@ export class ProfessionalRingSegmentDrawing {
       centerLine.strokeColor = new this.scope.Color('#CC0000');
       centerLine.strokeWidth = 0.5;
       centerLine.dashArray = [3, 2];
+
+      const diaLabel = new this.scope.PointText(
+        new this.scope.Point(holeCenterX, slotY - 5)
+      );
+      diaLabel.content = `\u00D8${hole.diameterMm.toFixed(2)}`;
+      diaLabel.fontSize = Math.min(FONT_SETTINGS.dimension.size - 1, 8);
+      diaLabel.fontFamily = FONT_SETTINGS.dimension.family;
+      diaLabel.fillColor = new this.scope.Color('#000000');
+      diaLabel.justification = 'center';
     }
 
     // Draw dimensions
@@ -1478,6 +1594,7 @@ export class ProfessionalRingSegmentDrawing {
 
       // Ordinate dimensions for hole axial positions (bottom chain)
       this.drawOrdinateAxialDimensions(rectX, rectY, actualWidth, actualHeight, fitScale, holes);
+      this.drawSectionDepthDimensions(rectX, rectY, actualWidth, actualHeight, fitScale, holes, variant);
     }
 
     // Draw centerline through middle of section
@@ -1591,17 +1708,72 @@ export class ProfessionalRingSegmentDrawing {
     }
   }
 
+  private drawSectionDepthDimensions(
+    rectX: number,
+    rectY: number,
+    sectionWidth: number,
+    sectionHeight: number,
+    scale: number,
+    holes: HoleData[],
+    variant: 'A' | 'B' | 'C'
+  ): void {
+    const depthX = rectX - (variant === 'C' ? 26 : 22);
+    const depths = Array.from(
+      new Set(
+        holes.map((hole) => Math.min(hole.depthMm, this.wallThickness))
+      )
+    ).sort((a, b) => a - b);
+
+    if (depths.length === 0) {
+      return;
+    }
+
+    const baseLine = new this.scope.Path.Line(
+      new this.scope.Point(depthX, rectY),
+      new this.scope.Point(depthX, rectY + sectionHeight)
+    );
+    this.applyStyle(baseLine, LINE_STYLES.dimension);
+
+    const formatDepth = (value: number) => (
+      Number.isInteger(value) ? value.toFixed(0) : value.toFixed(1)
+    );
+
+    for (const depth of depths) {
+      const y = rectY + Math.min(depth * scale, sectionHeight);
+
+      const tick = new this.scope.Path.Line(
+        new this.scope.Point(depthX - 4, y),
+        new this.scope.Point(depthX + 4, y)
+      );
+      this.applyStyle(tick, LINE_STYLES.dimension);
+
+      const guide = new this.scope.Path.Line(
+        new this.scope.Point(depthX + 4, y),
+        new this.scope.Point(rectX + sectionWidth, y)
+      );
+      guide.strokeColor = new this.scope.Color('#BBBBBB');
+      guide.strokeWidth = 0.3;
+      guide.dashArray = [2, 3];
+
+      this.drawLabelWithBackground(
+        depthX - 7,
+        y + 3,
+        formatDepth(depth),
+        Math.min(FONT_SETTINGS.dimension.size - 1, 8),
+        'right'
+      );
+    }
+  }
+
   // ============================================================================
   // ISOMETRIC VIEW
   // ============================================================================
 
   private drawIsometricView(vp: ViewPort): void {
-    // Use larger scale to fill the viewport
-    const scale = vp.scale * 1.8;
+    const scale = vp.scale * (this.geometry.outerDiameterMm >= 600 ? 2.7 : 2.35);
 
-    // Center in viewport
-    const cx = vp.x + vp.width / 2;
-    const cy = vp.y + vp.height / 2;
+    const cx = vp.x + vp.width * 0.52;
+    const cy = vp.y + vp.height * 0.76;
 
     // Isometric projection angles (30° from horizontal) - standard isometric
     const isoAngleX = 30 * Math.PI / 180;
@@ -1860,63 +2032,9 @@ export class ProfessionalRingSegmentDrawing {
       this.applyStyle(bottomRadial, lineStyle);
     }
 
-    // ==================== INNER LUG (BLOCK) AT LEFT END ====================
-    // Lug dimensions relative to block
-    const lugDepthInward = this.wallThickness * 0.6;  // How far it protrudes inward
-    const lugLengthTangential = this.wallThickness * 0.8;  // Length into the part
-    const lugHeight = axialWidth * 0.5;  // Height along Z
-    const lugStartZ = 0;  // Start at bottom
-
-    // Lug position at left end face (startAngle)
-    const lugAngle = startAngle;
-    const lugAngleRad = lugAngle * Math.PI / 180;
-
-    // Lug corner positions
-    // The lug is attached at the inner radius of the left end face
-    // It extends inward (toward center) and tangentially into the part
-    const lugInnerRadius = this.innerRadius - lugDepthInward;
-
-    // Calculate lug vertices in 3D
-    // Front face of lug (at end face)
-    const lugFrontOuterX = this.innerRadius * Math.cos(lugAngleRad);
-    const lugFrontOuterY = this.innerRadius * Math.sin(lugAngleRad);
-    const lugFrontInnerX = lugInnerRadius * Math.cos(lugAngleRad);
-    const lugFrontInnerY = lugInnerRadius * Math.sin(lugAngleRad);
-
-    // Back face of lug (tangential offset into the part)
-    const lugBackAngle = startAngle + (lugLengthTangential / this.innerRadius) * (180 / Math.PI);
-    const lugBackAngleRad = lugBackAngle * Math.PI / 180;
-    const lugBackOuterX = this.innerRadius * Math.cos(lugBackAngleRad);
-    const lugBackOuterY = this.innerRadius * Math.sin(lugBackAngleRad);
-    const lugBackInnerX = lugInnerRadius * Math.cos(lugBackAngleRad);
-    const lugBackInnerY = lugInnerRadius * Math.sin(lugBackAngleRad);
-
-    // Draw lug - top edges (z = lugStartZ)
-    const lugTopFrontOuter = toIso(lugFrontOuterX, lugFrontOuterY, lugStartZ);
-    const lugTopFrontInner = toIso(lugFrontInnerX, lugFrontInnerY, lugStartZ);
-    const lugTopBackOuter = toIso(lugBackOuterX, lugBackOuterY, lugStartZ);
-    const lugTopBackInner = toIso(lugBackInnerX, lugBackInnerY, lugStartZ);
-
-    // Draw lug - bottom edges (z = lugStartZ + lugHeight)
-    const lugBottomFrontOuter = toIso(lugFrontOuterX, lugFrontOuterY, lugStartZ + lugHeight);
-    const lugBottomFrontInner = toIso(lugFrontInnerX, lugFrontInnerY, lugStartZ + lugHeight);
-    const lugBottomBackOuter = toIso(lugBackOuterX, lugBackOuterY, lugStartZ + lugHeight);
-    const lugBottomBackInner = toIso(lugBackInnerX, lugBackInnerY, lugStartZ + lugHeight);
-
-    // Lug top face
-    this.drawIsoLine(lugTopFrontOuter, lugTopFrontInner, lineStyle);
-    this.drawIsoLine(lugTopFrontInner, lugTopBackInner, lineStyle);
-    this.drawIsoLine(lugTopBackInner, lugTopBackOuter, lineStyle);
-
-    // Lug bottom face
-    this.drawIsoLine(lugBottomFrontOuter, lugBottomFrontInner, lineStyle);
-    this.drawIsoLine(lugBottomFrontInner, lugBottomBackInner, lineStyle);
-    this.drawIsoLine(lugBottomBackInner, lugBottomBackOuter, lineStyle);
-
-    // Lug vertical edges
-    this.drawIsoLine(lugTopFrontInner, lugBottomFrontInner, lineStyle);
-    this.drawIsoLine(lugTopBackInner, lugBottomBackInner, lineStyle);
-    this.drawIsoLine(lugTopBackOuter, lugBottomBackOuter, lineStyle);
+    if (this.shouldDrawReferenceLug()) {
+      this.drawReferenceLug(toIso, axialWidth, startAngle, lineStyle);
+    }
   }
 
   /**
@@ -1934,87 +2052,68 @@ export class ProfessionalRingSegmentDrawing {
     this.applyStyle(line, style);
   }
 
-  /**
-   * Draw isometric holes matching OpenSCAD model
-   * - 3 holes on curved outer face (radial, in vertical line)
-   * - 2 holes on right end face
-   * - 1 hole on left end face
-   * - 2 holes on lug face
-   */
-  private drawCompactIsometricHoles(
+  private shouldDrawReferenceLug(): boolean {
+    return this.config.standardFamily === 'TUV';
+  }
+
+  private drawReferenceLug(
     toIso: (x: number, y: number, z: number) => { x: number; y: number },
-    scale: number
+    axialWidth: number,
+    startAngle: number,
+    lineStyle: { strokeWidth: number; strokeColor: string; dashArray: number[] | null }
   ): void {
-    const startAngle = -this.geometry.segmentAngleDeg / 2;
-    const endAngle = this.geometry.segmentAngleDeg / 2;
-    const axialWidth = this.geometry.axialWidthMm;
-    const midRadius = this.meanRadius;
-    const holeRadius = Math.max(3, 5 * scale);
+    const lugDepthInward = this.wallThickness * 0.6;
+    const lugLengthTangential = this.wallThickness * 0.8;
+    const lugHeight = axialWidth * 0.5;
+    const lugStartZ = 0;
+    const lugAngleRad = startAngle * Math.PI / 180;
+    const lugInnerRadius = this.innerRadius - lugDepthInward;
 
-    // ==================== HOLES ON CURVED OUTER FACE ====================
-    // 3 holes in vertical line at center (theta = 0)
-    const outerHoleTheta = 0;  // Center of segment
-    const outerHoleZPositions = [
-      axialWidth * 0.28,  // ~35/125
-      axialWidth * 0.5,   // ~62.5/125
-      axialWidth * 0.72   // ~90/125
-    ];
+    const lugFrontOuterX = this.innerRadius * Math.cos(lugAngleRad);
+    const lugFrontOuterY = this.innerRadius * Math.sin(lugAngleRad);
+    const lugFrontInnerX = lugInnerRadius * Math.cos(lugAngleRad);
+    const lugFrontInnerY = lugInnerRadius * Math.sin(lugAngleRad);
 
-    for (const z of outerHoleZPositions) {
-      const rad = outerHoleTheta * Math.PI / 180;
-      const holeX = this.outerRadius * Math.cos(rad);
-      const holeY = this.outerRadius * Math.sin(rad);
-      const holePt = toIso(holeX, holeY, z);
+    const lugBackAngle = startAngle + (lugLengthTangential / this.innerRadius) * (180 / Math.PI);
+    const lugBackAngleRad = lugBackAngle * Math.PI / 180;
+    const lugBackOuterX = this.innerRadius * Math.cos(lugBackAngleRad);
+    const lugBackOuterY = this.innerRadius * Math.sin(lugBackAngleRad);
+    const lugBackInnerX = lugInnerRadius * Math.cos(lugBackAngleRad);
+    const lugBackInnerY = lugInnerRadius * Math.sin(lugBackAngleRad);
 
-      const circle = new this.scope.Path.Circle(
-        new this.scope.Point(holePt.x, holePt.y),
-        holeRadius
-      );
-      circle.strokeColor = new this.scope.Color('#000000');
-      circle.strokeWidth = LINE_STYLES.visible.strokeWidth;
-      circle.fillColor = new this.scope.Color('#FFFFFF');
-    }
+    const lugTopFrontOuter = toIso(lugFrontOuterX, lugFrontOuterY, lugStartZ);
+    const lugTopFrontInner = toIso(lugFrontInnerX, lugFrontInnerY, lugStartZ);
+    const lugTopBackOuter = toIso(lugBackOuterX, lugBackOuterY, lugStartZ);
+    const lugTopBackInner = toIso(lugBackInnerX, lugBackInnerY, lugStartZ);
 
-    // ==================== HOLES ON RIGHT END FACE ====================
-    // 2 holes on right end face (theta = +segmentAngle/2)
-    const rightEndZPositions = [axialWidth * 0.36, axialWidth * 0.64];
-    const rightEndRad = endAngle * Math.PI / 180;
+    const lugBottomFrontOuter = toIso(lugFrontOuterX, lugFrontOuterY, lugStartZ + lugHeight);
+    const lugBottomFrontInner = toIso(lugFrontInnerX, lugFrontInnerY, lugStartZ + lugHeight);
+    const lugBottomBackOuter = toIso(lugBackOuterX, lugBackOuterY, lugStartZ + lugHeight);
+    const lugBottomBackInner = toIso(lugBackInnerX, lugBackInnerY, lugStartZ + lugHeight);
 
-    for (const z of rightEndZPositions) {
-      const holeX = midRadius * Math.cos(rightEndRad);
-      const holeY = midRadius * Math.sin(rightEndRad);
-      const holePt = toIso(holeX, holeY, z);
+    this.drawIsoLine(lugTopFrontOuter, lugTopFrontInner, lineStyle);
+    this.drawIsoLine(lugTopFrontInner, lugTopBackInner, lineStyle);
+    this.drawIsoLine(lugTopBackInner, lugTopBackOuter, lineStyle);
 
-      const circle = new this.scope.Path.Circle(
-        new this.scope.Point(holePt.x, holePt.y),
-        holeRadius
-      );
-      circle.strokeColor = new this.scope.Color('#000000');
-      circle.strokeWidth = LINE_STYLES.visible.strokeWidth;
-      circle.fillColor = new this.scope.Color('#FFFFFF');
-    }
+    this.drawIsoLine(lugBottomFrontOuter, lugBottomFrontInner, lineStyle);
+    this.drawIsoLine(lugBottomFrontInner, lugBottomBackInner, lineStyle);
+    this.drawIsoLine(lugBottomBackInner, lugBottomBackOuter, lineStyle);
 
-    // ==================== HOLE ON LEFT END FACE ====================
-    // 1 hole on left end face (theta = -segmentAngle/2), near top
-    const leftEndZ = axialWidth * 0.88;
-    const leftEndRad = startAngle * Math.PI / 180;
-    const leftHoleX = midRadius * Math.cos(leftEndRad);
-    const leftHoleY = midRadius * Math.sin(leftEndRad);
-    const leftHolePt = toIso(leftHoleX, leftHoleY, leftEndZ);
+    this.drawIsoLine(lugTopFrontInner, lugBottomFrontInner, lineStyle);
+    this.drawIsoLine(lugTopBackInner, lugBottomBackInner, lineStyle);
+    this.drawIsoLine(lugTopBackOuter, lugBottomBackOuter, lineStyle);
+  }
 
-    const leftCircle = new this.scope.Path.Circle(
-      new this.scope.Point(leftHolePt.x, leftHolePt.y),
-      holeRadius * 0.7
-    );
-    leftCircle.strokeColor = new this.scope.Color('#000000');
-    leftCircle.strokeWidth = LINE_STYLES.visible.strokeWidth;
-    leftCircle.fillColor = new this.scope.Color('#FFFFFF');
-
-    // ==================== HOLES ON LUG FACE ====================
-    // 2 holes on the lug face
+  private drawReferenceLugHoles(
+    toIso: (x: number, y: number, z: number) => { x: number; y: number },
+    scale: number,
+    startAngle: number
+  ): void {
     const lugDepthInward = this.wallThickness * 0.6;
     const lugInnerRadius = this.innerRadius - lugDepthInward / 2;
-    const lugHoleZPositions = [axialWidth * 0.16, axialWidth * 0.32];
+    const lugHoleZPositions = [this.geometry.axialWidthMm * 0.16, this.geometry.axialWidthMm * 0.32];
+    const leftEndRad = startAngle * Math.PI / 180;
+    const holeRadius = Math.max(2.2, 2.8 * scale);
 
     for (const z of lugHoleZPositions) {
       const holeX = lugInnerRadius * Math.cos(leftEndRad);
@@ -2023,11 +2122,49 @@ export class ProfessionalRingSegmentDrawing {
 
       const circle = new this.scope.Path.Circle(
         new this.scope.Point(holePt.x, holePt.y),
-        holeRadius * 0.8
+        holeRadius
       );
       circle.strokeColor = new this.scope.Color('#000000');
       circle.strokeWidth = LINE_STYLES.visible.strokeWidth;
       circle.fillColor = new this.scope.Color('#FFFFFF');
+    }
+  }
+
+  private drawCompactIsometricHoles(
+    toIso: (x: number, y: number, z: number) => { x: number; y: number },
+    scale: number
+  ): void {
+    const startAngle = -this.geometry.segmentAngleDeg / 2;
+    const holeRadius = Math.max(2.4, 3.5 * scale);
+    const sortedHoles = [...this.holes].sort((a, b) => a.axialPositionMm - b.axialPositionMm);
+
+    for (const hole of sortedHoles) {
+      const angle = startAngle + hole.angleOnArcDeg;
+      const rad = angle * Math.PI / 180;
+      const holeX = this.outerRadius * Math.cos(rad);
+      const holeY = this.outerRadius * Math.sin(rad);
+      const holeZ = hole.axialPositionMm;
+      const holePt = toIso(holeX, holeY, holeZ);
+
+      const circle = new this.scope.Path.Circle(
+        new this.scope.Point(holePt.x, holePt.y),
+        Math.max(holeRadius, hole.diameterMm * scale * 0.45)
+      );
+      circle.strokeColor = new this.scope.Color('#000000');
+      circle.strokeWidth = LINE_STYLES.visible.strokeWidth;
+      circle.fillColor = new this.scope.Color('#FFFFFF');
+
+      const innerShadow = new this.scope.Path.Circle(
+        new this.scope.Point(holePt.x + 0.8, holePt.y + 0.8),
+        Math.max(holeRadius * 0.45, 1.2)
+      );
+      innerShadow.fillColor = new this.scope.Color('#666666');
+      innerShadow.strokeColor = null;
+      innerShadow.opacity = 0.35;
+    }
+
+    if (this.shouldDrawReferenceLug()) {
+      this.drawReferenceLugHoles(toIso, scale, startAngle);
     }
   }
 
@@ -2668,50 +2805,48 @@ export class ProfessionalRingSegmentDrawing {
     angleText.justification = 'center';
   }
 
-  private drawDrawingNotes(viewports: { sectionBB: ViewPort; topView: ViewPort }): void {
-    // Manufacturing notes section
-    const noteX = 30;
-    const noteY = viewports.sectionBB.y + viewports.sectionBB.height + 20;
+  private drawDrawingNotes(layout: ReferenceLayout): void {
+    const reportLine = this.config.noteLines?.find((line) => /rapport|report/i.test(line))
+      || 'See report for section A-A and B-B';
 
-    // Notes header
-    const notesHeader = new this.scope.PointText(new this.scope.Point(noteX, noteY));
-    notesHeader.content = 'NOTES:';
-    notesHeader.fontSize = 10;
-    notesHeader.fontWeight = 'bold';
-    notesHeader.fillColor = new this.scope.Color('#000000');
+    const calloutBox = new this.scope.Path.Rectangle(
+      new this.scope.Rectangle(
+        layout.reportCallout.x,
+        layout.reportCallout.y,
+        layout.reportCallout.width,
+        layout.reportCallout.height
+      )
+    );
+    calloutBox.strokeColor = new this.scope.Color('#666666');
+    calloutBox.strokeWidth = 0.8;
+    calloutBox.fillColor = new this.scope.Color('#FFFFFF');
 
-    // Note 1: General tolerances
-    const note1 = new this.scope.PointText(new this.scope.Point(noteX, noteY + 15));
-    note1.content = '1. GENERAL TOLERANCES: ISO 2768-mK';
-    note1.fontSize = 8;
-    note1.fillColor = new this.scope.Color('#000000');
+    const calloutText = new this.scope.PointText(
+      new this.scope.Point(
+        layout.reportCallout.x + layout.reportCallout.width / 2,
+        layout.reportCallout.y + layout.reportCallout.height / 2 + 3
+      )
+    );
+    calloutText.content = reportLine.toUpperCase();
+    calloutText.fontSize = FONT_SETTINGS.callout.size;
+    calloutText.fontFamily = FONT_SETTINGS.callout.family;
+    calloutText.fillColor = new this.scope.Color('#333333');
+    calloutText.justification = 'center';
 
-    // Note 2: Surface finish
-    const note2 = new this.scope.PointText(new this.scope.Point(noteX, noteY + 28));
-    note2.content = '2. SURFACE FINISH: Ra 3.2 UNLESS OTHERWISE SPECIFIED';
-    note2.fontSize = 8;
-    note2.fillColor = new this.scope.Color('#000000');
+    if (this.config.standardReference) {
+      const standardText = new this.scope.PointText(
+        new this.scope.Point(
+          layout.sectionCE.x + 8,
+          layout.sectionCE.y + layout.sectionCE.height + 14
+        )
+      );
+      standardText.content = `Ref: ${this.config.standardReference}`;
+      standardText.fontSize = FONT_SETTINGS.note.size;
+      standardText.fontFamily = FONT_SETTINGS.note.family;
+      standardText.fillColor = new this.scope.Color('#333333');
+    }
 
-    // Note 3: Edge break
-    const note3 = new this.scope.PointText(new this.scope.Point(noteX, noteY + 41));
-    note3.content = '3. BREAK ALL SHARP EDGES 0.3-0.5mm';
-    note3.fontSize = 8;
-    note3.fillColor = new this.scope.Color('#000000');
-
-    // Note 4: Reference standard
-    const note4 = new this.scope.PointText(new this.scope.Point(noteX, noteY + 54));
-    note4.content = '4. REF: ASTM E127 / EN 10228-3';
-    note4.fontSize = 8;
-    note4.fillColor = new this.scope.Color('#000000');
-
-    // Note 5: Report reference (matches TUV-17)
-    const note5 = new this.scope.PointText(new this.scope.Point(noteX, noteY + 67));
-    note5.content = '5. VOIR RAPPORT 5394 POUR COUPE A-A ET B-B';
-    note5.fontSize = 8;
-    note5.fillColor = new this.scope.Color('#000000');
-
-    // Draw surface finish symbol on top view (Ra symbol near outer surface)
-    this.drawSurfaceFinishSymbol(viewports.topView);
+    this.drawSurfaceFinishSymbol(layout.topView);
   }
 
   /**

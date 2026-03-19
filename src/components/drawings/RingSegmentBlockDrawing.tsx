@@ -52,6 +52,7 @@ import {
   getAvailableTemplates,
   validatePartDimensions,
   autoSelectTemplate,
+  getTemplate,
 } from '@/utils/ringSegmentBlock';
 
 import type {
@@ -288,6 +289,8 @@ export function RingSegmentBlockDrawing({
           reflectorType: h.reflectorType,
         }));
 
+        const templateMeta = getTemplate(resolvedBlock.templateId);
+
         const config: Partial<DrawingConfig> = {
           canvasWidth: canvasSize.width,
           canvasHeight: canvasSize.height,
@@ -295,6 +298,10 @@ export function RingSegmentBlockDrawing({
           showCenterlines: true,
           showHatching: true,
           showHiddenLines: true,
+          standardReference: resolvedBlock.standardReference,
+          templateName: resolvedBlock.templateName,
+          standardFamily: templateMeta?.standardFamily,
+          noteLines: templateMeta?.notes ?? [],
         };
 
         console.log('[RingSegmentDraw] Creating drawing...');
