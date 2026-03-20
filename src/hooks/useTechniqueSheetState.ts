@@ -395,16 +395,35 @@ export function useTechniqueSheetState({
     acceptanceCriteria: AcceptanceCriteriaData;
     documentation: DocumentationData;
     scanDetails: ScanDetailsData;
+    scanPlan?: ScanPlanData;
+    inspectionReport?: InspectionReportData;
   }) => {
+    const cloneData = <T,>(value: T): T => JSON.parse(JSON.stringify(value));
+
     setStandard(card.standard);
-    setInspectionSetup(card.inspectionSetup);
-    setEquipment(card.equipment);
-    setCalibration(card.calibration);
-    setScanParameters(card.scanParameters);
-    setAcceptanceCriteria(card.acceptanceCriteria);
-    setDocumentation(card.documentation);
-    setScanDetails(card.scanDetails);
-  }, [setStandard]);
+    setIsSplitMode(false);
+    setActivePart("A");
+    setActiveTab(reportMode === "Report" ? "cover" : "setup");
+
+    setInspectionSetup(cloneData(card.inspectionSetup));
+    setEquipment(cloneData(card.equipment));
+    setCalibration(cloneData(card.calibration));
+    setScanParameters(cloneData(card.scanParameters));
+    setAcceptanceCriteria(cloneData(card.acceptanceCriteria));
+    setDocumentation(cloneData(card.documentation));
+    setScanDetails(cloneData(card.scanDetails));
+    setScanPlan(cloneData(card.scanPlan || defaultScanPlan));
+    setInspectionReport(cloneData(card.inspectionReport || getDefaultInspectionReportData()));
+
+    setInspectionSetupB({ ...defaultInspectionSetup });
+    setEquipmentB({ ...defaultEquipment });
+    setCalibrationB({ ...defaultCalibration });
+    setScanParametersB({ ...defaultScanParameters });
+    setAcceptanceCriteriaB({ ...defaultAcceptanceCriteria });
+    setDocumentationB(defaultDocumentation());
+    setScanDetailsB({ ...defaultScanDetails });
+    setScanPlanB(cloneData(defaultScanPlan));
+  }, [reportMode, setStandard, setIsSplitMode, setActivePart, setActiveTab]);
 
   // ג”€ג”€ Apply sample card (from JSON) ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
   const applySampleCard = useCallback((card: any) => {

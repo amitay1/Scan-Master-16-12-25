@@ -57,6 +57,9 @@ output/
 
 # User data (unified storage)
 data/
+!src/data/
+src/data/**
+!src/data/quickFillPresets.ts
 
 # Large media files (prevent GitHub 100MB limit errors)
 *.mp4

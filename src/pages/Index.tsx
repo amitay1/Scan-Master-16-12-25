@@ -40,10 +40,10 @@ import { getResolutionValues } from "@/utils/frequencyUtils";
 import { useAuth } from "@/hooks/useAuth";
 import { logInfo } from "@/lib/logger";
 import { Button } from "@/components/ui/button";
-import { Loader2, FileText } from "lucide-react";
+import { Loader2, FileText, FlaskConical } from "lucide-react";
 import { useInspectorProfile } from "@/contexts/InspectorProfileContext";
 import { ProfileSelectionDialog } from "@/components/inspector";
-import { testCards } from "@/data/testCards";
+import { quickFillPresets } from "@/data/quickFillPresets";
 import { useLicense } from "@/contexts/LicenseContext";
 import { DiagnosticsExportDialog } from "@/components/support/DiagnosticsExportDialog";
 import { SelfDiagnosticPanel } from "@/components/diagnostics/SelfDiagnosticPanel";
@@ -231,13 +231,15 @@ const Index = () => {
   }, [inspectionSetup.partNumber, equipment.manufacturer, calibration.standardType, acceptanceCriteria.acceptanceClass, documentation.inspectorName]);
 
   const loadTestCard = useCallback((cardIndex: number) => {
-    const card = testCards[cardIndex - 1];
+    const card = quickFillPresets[cardIndex - 1];
     if (!card) {
       toast.error(`Test card ${cardIndex} not found`);
       return;
     }
     applyTestCard(card);
-    toast.success(`Loaded test card: ${card.name}`);
+    toast.success(`Loaded preset: ${card.name}`, {
+      description: `${card.buttonSubtitle} · ${card.standard}`,
+    });
     logInfo("Loaded test card", { cardId: card.id, cardName: card.name });
   }, [applyTestCard]);
 
@@ -287,6 +289,53 @@ const Index = () => {
       setExportDialogOpen(true);
     }
   }, [exportWorkflow.handleExportPDF]);
+
+  const quickFillAccentClasses = {
+    cyan: "border-cyan-200 bg-cyan-50/70 hover:border-cyan-300 hover:bg-cyan-100/70 text-cyan-950",
+    amber: "border-amber-200 bg-amber-50/80 hover:border-amber-300 hover:bg-amber-100/80 text-amber-950",
+    slate: "border-slate-300 bg-slate-50/85 hover:border-slate-400 hover:bg-slate-100/90 text-slate-900",
+  } as const;
+
+  const renderQuickFillPanel = (compact = false) => (
+    <div className={`rounded-xl border border-dashed border-border/80 bg-muted/30 ${compact ? "p-3" : "mt-6 p-3"}`}>
+      <div className="flex items-start justify-between gap-3 mb-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <FlaskConical className="h-4 w-4 text-primary" />
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Quick Fill</p>
+          </div>
+          <h3 className="text-sm font-semibold">Temporary QA Presets</h3>
+          <p className="text-xs text-muted-foreground">
+            One click fills a complete realistic card, including report sections.
+          </p>
+        </div>
+        <div className="rounded-full bg-background px-2 py-1 text-[10px] font-medium text-muted-foreground whitespace-nowrap">
+          Ctrl+Shift+1/2/3
+        </div>
+      </div>
+
+      <div className="grid gap-2">
+        {quickFillPresets.map((preset, index) => (
+          <Button
+            key={preset.id}
+            type="button"
+            variant="outline"
+            onClick={() => loadTestCard(index + 1)}
+            className={`h-auto justify-start px-3 py-3 text-left transition-colors ${quickFillAccentClasses[preset.accent]}`}
+            title={`${preset.name} (${preset.standard})`}
+          >
+            <div className="min-w-0">
+              <div className="text-sm font-semibold leading-tight">{preset.buttonLabel}</div>
+              <div className="text-xs leading-tight opacity-80">{preset.buttonSubtitle}</div>
+              <div className="mt-1 text-[11px] leading-tight text-slate-600">
+                {preset.standard} · {preset.name}
+              </div>
+            </div>
+          </Button>
+        ))}
+      </div>
+    </div>
+  );
 
   // ── Loading / auth guards ──────────────────────────────────────────────
   if (loading) {
@@ -385,6 +434,7 @@ const Index = () => {
                 />
               </div>
             )}
+            {renderQuickFillPanel(true)}
           </div>
         </div>
 
@@ -410,6 +460,7 @@ const Index = () => {
               />
             </div>
           )}
+          {renderQuickFillPanel()}
         </CollapsibleSidebar>
 
         {/* Center Panel: Main Form */}
