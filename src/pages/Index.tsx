@@ -80,6 +80,7 @@ const Index = () => {
   const [licenseWarningDismissed, setLicenseWarningDismissed] = useState(false);
   const [viewer3DOpen, setViewer3DOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [quickFillDialogOpen, setQuickFillDialogOpen] = useState(false);
 
   // ── Hook 1: Technique sheet state ──────────────────────────────────────
   const sheetState = useTechniqueSheetState({
@@ -408,6 +409,7 @@ const Index = () => {
         onCopyAToB={copyPartAToB}
         onOpenSavedCards={persistence.handleOpenSavedCards}
         onLoadLocalCard={persistence.handleLoadLocalCard}
+        onOpenQuickFill={() => setQuickFillDialogOpen(true)}
       />
 
       {/* Main Content Area */}
@@ -444,7 +446,7 @@ const Index = () => {
           onToggle={() => setSidebarOpen(!sidebarOpen)}
           title="Standard & Class"
         >
-          <StandardSelector value={standard} onChange={applyStandardChange} />
+          <StandardSelector value={standard} onChange={applyStandardChange} variant="compact" />
           {reportMode === "Technique" && (
             <div className="mt-6 pt-4 border-t border-border">
               <AcceptanceClassSelector
@@ -457,10 +459,10 @@ const Index = () => {
                   }
                 }}
                 standard={standard}
+                variant="compact"
               />
             </div>
           )}
-          {renderQuickFillPanel()}
         </CollapsibleSidebar>
 
         {/* Center Panel: Main Form */}
@@ -889,6 +891,18 @@ const Index = () => {
               Save Card
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={quickFillDialogOpen} onOpenChange={setQuickFillDialogOpen}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>QA Presets</DialogTitle>
+            <DialogDescription>
+              Temporary one-click cards for testing realistic inspection scenarios without filling the form manually.
+            </DialogDescription>
+          </DialogHeader>
+          {renderQuickFillPanel(true)}
         </DialogContent>
       </Dialog>
 

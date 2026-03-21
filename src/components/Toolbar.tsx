@@ -10,6 +10,7 @@ import {
   RefreshCw,
   FileDown,
   FolderOpen,
+  FlaskConical,
   Minus,
   Square,
   X,
@@ -116,6 +117,7 @@ interface ToolbarProps {
   onCopyAToB?: () => void;
   onOpenSavedCards?: () => void;
   onLoadLocalCard?: (card: SavedCard) => void;
+  onOpenQuickFill?: () => void;
 }
 
 // Re-export SavedCard type for consumers
@@ -134,7 +136,8 @@ export const Toolbar = ({
   onActivePartChange,
   onCopyAToB,
   onOpenSavedCards,
-  onLoadLocalCard
+  onLoadLocalCard,
+  onOpenQuickFill
 }: ToolbarProps) => {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [localSavedCardsOpen, setLocalSavedCardsOpen] = useState(false);
@@ -164,6 +167,19 @@ export const Toolbar = ({
         <FileDown className="h-5 w-5 md:h-5 md:w-5 md:mr-2" />
         <span className="hidden sm:inline">Export</span>
       </Button>
+
+      {onOpenQuickFill && (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onOpenQuickFill}
+          title="Open QA Presets"
+          className="hidden h-10 px-3 text-sm font-semibold text-cyan-300 hover:bg-cyan-500/10 hover:text-cyan-200 md:flex"
+        >
+          <FlaskConical className="mr-2 h-4 w-4" />
+          <span>QA Presets</span>
+        </Button>
+      )}
 
       <Separator orientation="vertical" className="h-8 md:h-10 mx-1 md:mx-2" />
 

@@ -26,25 +26,25 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
   return (
     <div
       className={cn(
-        'relative h-full transition-all duration-300 ease-in-out hidden md:flex flex-shrink-0',
-        isOpen ? 'w-[clamp(220px,25vw,350px)]' : 'w-12',
+        'relative hidden h-full flex-shrink-0 transition-all duration-300 ease-in-out md:flex',
+        isOpen ? 'w-[clamp(260px,22vw,320px)]' : 'w-12',
         className
       )}
     >
       {/* Sidebar Content */}
       <div
         className={cn(
-          'h-full w-full app-panel flex flex-col transition-opacity duration-200 overflow-hidden',
+          'app-panel flex h-full w-full min-w-0 flex-col overflow-hidden transition-opacity duration-200',
           isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none w-0'
         )}
       >
         {title && (
-          <div className="p-3 border-b border-border flex-shrink-0">
+          <div className="flex-shrink-0 border-b border-border p-3 pr-12">
             <h3 className="font-semibold text-sm mb-0">{title}</h3>
           </div>
         )}
-        <ScrollArea className="flex-1">
-          <div className="p-3">
+        <ScrollArea className="min-h-0 flex-1">
+          <div className="min-w-0 p-3 pr-4">
             {children}
           </div>
         </ScrollArea>

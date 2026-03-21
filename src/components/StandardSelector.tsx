@@ -44,6 +44,7 @@ interface StandardSelectorProps {
   value: StandardType;
   onChange: (value: StandardType) => void;
   showComparisonIndicator?: boolean;
+  variant?: "default" | "compact";
 }
 
 type StandardFamily = "Aerospace" | "ASTM" | "European" | "OEM";
@@ -184,14 +185,14 @@ const StandardCard = ({
     <Comp
       {...(interactive ? { type: "button", onClick } : {})}
       className={cn(
-        "group relative w-full overflow-hidden rounded-2xl border bg-card p-4 text-left transition-all",
+        "group relative w-full min-w-0 overflow-hidden rounded-2xl border bg-card p-4 text-left transition-all",
         current ? cn("border-2 shadow-sm ring-2 ring-primary/15", standard.borderColor) : "border-border",
         interactive && !current && "hover:border-border/90 hover:bg-muted/30",
         locked && "opacity-60"
       )}
     >
       <div className={cn("absolute inset-x-0 top-0 h-1", standard.iconBg, interactive && !current && "opacity-70 group-hover:opacity-100")} />
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex flex-col items-start gap-3 min-[360px]:flex-row min-[360px]:justify-between">
         <div className="min-w-0">
           <div className="flex items-center gap-3">
             <div className={cn("rounded-xl p-2 shadow-sm", standard.iconBg)}>
@@ -209,13 +210,13 @@ const StandardCard = ({
         </div>
         <Badge
           variant="outline"
-          className="shrink-0 font-medium"
+          className="max-w-full shrink-0 whitespace-normal font-medium"
           style={{ backgroundColor: standard.badgeBg, color: standard.badgeText, borderColor: standard.badgeBorder }}
         >
           {standard.badge}
         </Badge>
       </div>
-      <p className="mt-3 text-sm leading-relaxed text-foreground/80">{standard.description}</p>
+      <p className="mt-3 break-words text-sm leading-relaxed text-foreground/80">{standard.description}</p>
       <div className="mt-3 flex flex-wrap gap-2">
         {standard.features.slice(0, 3).map((feature) => (
           <span key={feature} className="rounded-full border border-border/70 bg-muted/50 px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
@@ -227,8 +228,14 @@ const StandardCard = ({
   );
 };
 
-export const StandardSelector = ({ value, onChange, showComparisonIndicator = false }: StandardSelectorProps) => {
+export const StandardSelector = ({
+  value,
+  onChange,
+  showComparisonIndicator = false,
+  variant = "default",
+}: StandardSelectorProps) => {
   const { canUseStandard, license, isElectron } = useLicense();
+  const isCompact = variant === "compact";
   const currentStandard = standards.find((standard) => standard.value === value) ?? standards[0];
   const [searchTerm, setSearchTerm] = useState("");
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
@@ -307,9 +314,9 @@ export const StandardSelector = ({ value, onChange, showComparisonIndicator = fa
 
   return (
     <TooltipProvider>
-      <div className="space-y-4">
-        <div className="flex items-center justify-between gap-3">
-          <label className="flex items-center gap-1 text-xs font-medium text-foreground whitespace-nowrap">
+      <div className="w-full min-w-0 space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <label className="flex min-w-0 items-center gap-1 text-xs font-medium text-foreground">
             Standard
             <Tooltip>
               <TooltipTrigger>
@@ -323,7 +330,7 @@ export const StandardSelector = ({ value, onChange, showComparisonIndicator = fa
           </label>
           <Badge
             variant="outline"
-            className="shrink-0 font-medium"
+            className="max-w-full shrink-0 whitespace-normal text-right font-medium"
             style={{ backgroundColor: currentStandard.badgeBg, color: currentStandard.badgeText, borderColor: currentStandard.badgeBorder }}
           >
             {currentStandard.stringency}
@@ -332,7 +339,7 @@ export const StandardSelector = ({ value, onChange, showComparisonIndicator = fa
 
         <div className="space-y-4 overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
           <div className={cn("h-1.5 w-full", currentStandard.iconBg)} />
-          <div className="p-4">
+          <div className="min-w-0 p-4">
             <div className="mb-2 flex items-center gap-2">
               <span className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">Active Standard</span>
               {!isStandardPurchased(value) && isElectron && (
@@ -341,26 +348,60 @@ export const StandardSelector = ({ value, onChange, showComparisonIndicator = fa
                 </Badge>
               )}
             </div>
-            <StandardCard standard={currentStandard} current interactive={false} />
-            <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
-              <div className="rounded-xl border border-border/70 bg-muted/30 px-3 py-2">
-                <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Family</div>
-                <div className="mt-1 font-medium text-foreground">{FAMILY_LABELS[getStandardFamily(currentStandard.value)]}</div>
-              </div>
-              <div className="rounded-xl border border-border/70 bg-muted/30 px-3 py-2">
-                <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Profile</div>
-                <div className="mt-1 font-medium text-foreground">{currentStandard.stringency}</div>
-              </div>
-            </div>
-            <div className="mt-4 flex items-center justify-between gap-3 border-t border-border pt-4">
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Info className="h-3.5 w-3.5" />
-                <span>Only open the full library when project requirements change.</span>
-              </div>
-              <Button type="button" size="sm" onClick={() => setIsLibraryOpen(true)} className="shrink-0">
-                Change Standard
-              </Button>
-            </div>
+            {isCompact ? (
+              <>
+                <div className="rounded-2xl border border-border/80 bg-muted/20 p-3">
+                  <div className="flex items-start gap-3">
+                    <div className={cn("rounded-xl p-2 shadow-sm", currentStandard.iconBg)}>
+                      <currentStandard.icon className="h-4 w-4 text-white" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <div className="min-w-0 text-sm font-semibold text-foreground break-words">
+                          {currentStandard.value}
+                        </div>
+                        <Check className="h-4 w-4 shrink-0 text-green-600" />
+                      </div>
+                      <p className="mt-1 break-words text-xs text-muted-foreground">{currentStandard.label}</p>
+                    </div>
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Badge variant="outline" className="max-w-full whitespace-normal">
+                      {FAMILY_LABELS[getStandardFamily(currentStandard.value)]}
+                    </Badge>
+                    <Badge variant="outline" className="max-w-full whitespace-normal">
+                      {currentStandard.stringency}
+                    </Badge>
+                  </div>
+                </div>
+                <Button type="button" size="sm" onClick={() => setIsLibraryOpen(true)} className="w-full">
+                  Change Standard
+                </Button>
+              </>
+            ) : (
+              <>
+                <StandardCard standard={currentStandard} current interactive={false} />
+                <div className="mt-4 grid grid-cols-1 gap-2 text-xs min-[340px]:grid-cols-2">
+                  <div className="rounded-xl border border-border/70 bg-muted/30 px-3 py-2">
+                    <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Family</div>
+                    <div className="mt-1 break-words font-medium text-foreground">{FAMILY_LABELS[getStandardFamily(currentStandard.value)]}</div>
+                  </div>
+                  <div className="rounded-xl border border-border/70 bg-muted/30 px-3 py-2">
+                    <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Profile</div>
+                    <div className="mt-1 break-words font-medium text-foreground">{currentStandard.stringency}</div>
+                  </div>
+                </div>
+                <div className="mt-4 flex flex-col gap-3 border-t border-border pt-4 min-[360px]:flex-row min-[360px]:items-center min-[360px]:justify-between">
+                  <div className="flex min-w-0 items-start gap-2 text-xs text-muted-foreground">
+                    <Info className="h-3.5 w-3.5" />
+                    <span className="break-words">Only open the full library when project requirements change.</span>
+                  </div>
+                  <Button type="button" size="sm" onClick={() => setIsLibraryOpen(true)} className="w-full shrink-0 min-[360px]:w-auto">
+                    Change Standard
+                  </Button>
+                </div>
+              </>
+            )}
           </div>
         </div>
 
@@ -584,7 +625,7 @@ export const StandardSelector = ({ value, onChange, showComparisonIndicator = fa
               ))}
             </div>
 
-            {oemRules.warnings?.length > 0 && (
+            {!isCompact && oemRules.warnings?.length > 0 && (
               <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-2">
                 <div className="mb-1 flex items-center gap-1">
                   <AlertTriangle className="h-3 w-3 text-red-500" />
@@ -601,7 +642,7 @@ export const StandardSelector = ({ value, onChange, showComparisonIndicator = fa
               </div>
             )}
 
-            {oemRules.notes?.length > 0 && (
+            {!isCompact && oemRules.notes?.length > 0 && (
               <div className="rounded-lg border border-slate-500/30 bg-slate-500/10 p-2">
                 <div className="mb-1 flex items-center gap-1">
                   <Info className="h-3 w-3 text-slate-500" />

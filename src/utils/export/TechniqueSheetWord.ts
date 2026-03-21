@@ -1,11 +1,11 @@
-// @ts-nocheck
+﻿// @ts-nocheck
 /**
  * TechniqueSheetWord - Professional Word Export for Technique Sheets
  *
  * Creates professional DOCX documents using the docx library.
  * SYNCHRONIZED WITH TechniqueSheetPDF.ts - Both exports must have identical content and styling.
  *
- * Design matches PDF: FRISA/TÜV professional style with:
+ * Design matches PDF: FRISA/TֳV professional style with:
  * - Blue header bars with gold accents
  * - Document info boxes
  * - Professional table styling
@@ -33,7 +33,6 @@ import {
   VerticalAlign,
   TableLayoutType,
 } from 'docx';
-import { saveAs } from 'file-saver';
 import type {
   StandardType,
   InspectionSetupData,
@@ -64,27 +63,27 @@ import {
 // COLORS - Matching PDF TUV-style blue theme (hex values for docx)
 // ============================================================================
 const WORD_COLORS = {
-  primary: '005293',         // TUV blue - headers
-  primaryDark: '003C6E',     // Darker blue
-  secondary: '4080B2',       // Medium blue - subheaders
-  accent: '007AC2',          // Light blue - highlights
-  accentGold: 'D4AF37',      // Gold accent
+  primary: '163A59',
+  primaryDark: '0F2740',
+  secondary: '3B6C93',
+  accent: 'D0872F',
+  accentGold: 'D0872F',
 
   // Background colors
-  headerBg: 'F0F5FA',        // Light gray-blue
-  sectionBg: 'F5F7FA',       // Section backgrounds
-  rowAlt: 'F8FAFC',          // Alternating row
-  labelBg: 'E6EBF0',         // Label cell background
+  headerBg: 'F4F7FA',
+  sectionBg: 'EEF3F7',
+  rowAlt: 'FAFBFD',
+  labelBg: 'F1F5F9',
   white: 'FFFFFF',
 
   // Border colors
-  tableBorder: 'C8D2DC',
-  divider: 'DCE1E6',
+  tableBorder: 'D5DEE8',
+  divider: 'E4EAF0',
 
   // Text colors
-  text: '1E1E1E',
-  lightText: '646464',
-  mutedText: '828282',
+  text: '17212B',
+  lightText: '5B6775',
+  mutedText: '7F8B98',
 };
 
 // ============================================================================
@@ -151,6 +150,71 @@ const base64ToArrayBuffer = (base64: string): ArrayBuffer => {
   return bytes.buffer;
 };
 
+const getPngDimensions = (bytes: Uint8Array): { width: number; height: number } | null => {
+  if (bytes.length < 24) return null;
+  const signature = [137, 80, 78, 71, 13, 10, 26, 10];
+  for (let i = 0; i < signature.length; i++) {
+    if (bytes[i] !== signature[i]) return null;
+  }
+
+  const width = (bytes[16] << 24) | (bytes[17] << 16) | (bytes[18] << 8) | bytes[19];
+  const height = (bytes[20] << 24) | (bytes[21] << 16) | (bytes[22] << 8) | bytes[23];
+  return width > 0 && height > 0 ? { width, height } : null;
+};
+
+const getJpegDimensions = (bytes: Uint8Array): { width: number; height: number } | null => {
+  if (bytes.length < 4 || bytes[0] !== 0xff || bytes[1] !== 0xd8) return null;
+
+  let offset = 2;
+  while (offset + 9 < bytes.length) {
+    if (bytes[offset] !== 0xff) {
+      offset += 1;
+      continue;
+    }
+
+    const marker = bytes[offset + 1];
+    const size = (bytes[offset + 2] << 8) | bytes[offset + 3];
+    if (size < 2) break;
+
+    const isStartOfFrame =
+      marker >= 0xc0 &&
+      marker <= 0xcf &&
+      ![0xc4, 0xc8, 0xcc].includes(marker);
+
+    if (isStartOfFrame && offset + 8 < bytes.length) {
+      const height = (bytes[offset + 5] << 8) | bytes[offset + 6];
+      const width = (bytes[offset + 7] << 8) | bytes[offset + 8];
+      return width > 0 && height > 0 ? { width, height } : null;
+    }
+
+    offset += 2 + size;
+  }
+
+  return null;
+};
+
+const getImageDimensions = (buffer: ArrayBuffer): { width: number; height: number } | null => {
+  const bytes = new Uint8Array(buffer);
+  return getPngDimensions(bytes) || getJpegDimensions(bytes);
+};
+
+const fitImageToBox = (
+  imageWidth: number | undefined,
+  imageHeight: number | undefined,
+  maxWidth: number,
+  maxHeight: number
+): { width: number; height: number } => {
+  if (!imageWidth || !imageHeight || imageWidth <= 0 || imageHeight <= 0) {
+    return { width: maxWidth, height: maxHeight };
+  }
+
+  const scale = Math.min(maxWidth / imageWidth, maxHeight / imageHeight);
+  return {
+    width: Math.max(1, Math.round(imageWidth * scale)),
+    height: Math.max(1, Math.round(imageHeight * scale)),
+  };
+};
+
 // ============================================================================
 // COVER PAGE HEADER BAR (matching PDF FRISA style)
 // ============================================================================
@@ -161,10 +225,8 @@ const createCoverHeader = (
   companyName?: string,
   companyLogo?: string
 ): Table => {
-  // Main header table with blue background
   const headerCells: TableCell[] = [];
 
-  // LOGO CELL (if logo provided) - Far left with white background
   if (companyLogo) {
     try {
       const logoBuffer = base64ToArrayBuffer(companyLogo);
@@ -184,38 +246,47 @@ const createCoverHeader = (
           ],
           shading: { fill: WORD_COLORS.white, type: ShadingType.CLEAR },
           borders: {
-            top: { style: BorderStyle.NONE },
-            bottom: { style: BorderStyle.NONE },
-            left: { style: BorderStyle.NONE },
-            right: { style: BorderStyle.SINGLE, size: 8, color: WORD_COLORS.accentGold },
+            top: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
+            bottom: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
+            left: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
+            right: { style: BorderStyle.NONE },
           },
-          width: { size: 15, type: WidthType.PERCENTAGE },
+          width: { size: 12, type: WidthType.PERCENTAGE },
           verticalAlign: VerticalAlign.CENTER,
           margins: {
-            top: convertInchesToTwip(0.05),
-            bottom: convertInchesToTwip(0.05),
-            left: convertInchesToTwip(0.1),
-            right: convertInchesToTwip(0.1),
+            top: convertInchesToTwip(0.12),
+            bottom: convertInchesToTwip(0.12),
+            left: convertInchesToTwip(0.12),
+            right: convertInchesToTwip(0.12),
           },
         })
       );
     } catch {
-      // If logo fails to load, skip it
+      // If logo fails to load, skip it.
     }
   }
 
-  // Title and company name section
   const leftContent: Paragraph[] = [
     new Paragraph({
       children: [
         new TextRun({
           text: 'UT TECHNIQUE SHEET',
           bold: true,
-          size: 28, // 14pt
-          color: 'FFFFFF',
+          size: 32,
+          color: WORD_COLORS.primaryDark,
         }),
       ],
-      spacing: { after: 60 },
+      spacing: { after: 80 },
+    }),
+    new Paragraph({
+      children: [
+        new TextRun({
+          text: 'Ultrasonic inspection procedure and execution data package',
+          size: 18,
+          color: WORD_COLORS.lightText,
+        }),
+      ],
+      spacing: { after: 40 },
     }),
   ];
 
@@ -225,111 +296,96 @@ const createCoverHeader = (
         children: [
           new TextRun({
             text: companyName,
-            size: 18, // 9pt
-            color: 'C8DCF0', // Light blue-gray
+            bold: true,
+            size: 18,
+            color: WORD_COLORS.secondary,
           }),
         ],
       })
     );
   }
 
-  // Calculate width based on whether logo is present
-  const titleWidth = companyLogo ? 40 : 55;
+  const titleWidth = companyLogo ? 50 : 58;
 
   headerCells.push(
     new TableCell({
       children: leftContent,
-      shading: { fill: WORD_COLORS.primary, type: ShadingType.CLEAR },
+      shading: { fill: WORD_COLORS.headerBg, type: ShadingType.CLEAR },
       borders: {
-        top: { style: BorderStyle.NONE },
-        bottom: { style: BorderStyle.NONE },
-        left: { style: BorderStyle.NONE },
+        top: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
+        bottom: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
+        left: { style: companyLogo ? BorderStyle.NONE : BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
         right: { style: BorderStyle.NONE },
       },
       width: { size: titleWidth, type: WidthType.PERCENTAGE },
       verticalAlign: VerticalAlign.CENTER,
       margins: {
-        left: convertInchesToTwip(0.15),
+        top: convertInchesToTwip(0.18),
+        bottom: convertInchesToTwip(0.18),
+        left: convertInchesToTwip(0.16),
+        right: convertInchesToTwip(0.12),
       },
     })
   );
 
-  // Right side: Document info box (white background)
   const infoBoxContent: Paragraph[] = [
     new Paragraph({
       children: [
-        new TextRun({ text: 'Document No:', size: 14, color: WORD_COLORS.lightText }),
-        new TextRun({ text: '  ', size: 14 }),
-        new TextRun({ text: docNum, bold: true, size: 16, color: WORD_COLORS.primaryDark }),
+        new TextRun({ text: 'Document No.', size: 14, color: WORD_COLORS.mutedText }),
       ],
-      spacing: { after: 40 },
+      spacing: { after: 20 },
     }),
     new Paragraph({
       children: [
-        new TextRun({ text: 'Revision:', size: 14, color: WORD_COLORS.lightText }),
-        new TextRun({ text: '  ', size: 14 }),
-        new TextRun({ text: revision, bold: true, size: 16, color: WORD_COLORS.primaryDark }),
+        new TextRun({ text: docNum, bold: true, size: 18, color: WORD_COLORS.primaryDark }),
       ],
-      spacing: { after: 40 },
+      spacing: { after: 70 },
     }),
     new Paragraph({
       children: [
-        new TextRun({ text: 'Date:', size: 14, color: WORD_COLORS.lightText }),
-        new TextRun({ text: '  ', size: 14 }),
-        new TextRun({ text: dateStr, bold: true, size: 16, color: WORD_COLORS.primaryDark }),
+        new TextRun({ text: 'Revision', size: 14, color: WORD_COLORS.mutedText }),
+      ],
+      spacing: { after: 20 },
+    }),
+    new Paragraph({
+      children: [
+        new TextRun({ text: revision, bold: true, size: 18, color: WORD_COLORS.primaryDark }),
+      ],
+      spacing: { after: 70 },
+    }),
+    new Paragraph({
+      children: [
+        new TextRun({ text: 'Inspection Date', size: 14, color: WORD_COLORS.mutedText }),
+      ],
+      spacing: { after: 20 },
+    }),
+    new Paragraph({
+      children: [
+        new TextRun({ text: dateStr, bold: true, size: 18, color: WORD_COLORS.primaryDark }),
       ],
     }),
   ];
 
   headerCells.push(
     new TableCell({
-      children: [
-        new Table({
-          width: { size: 100, type: WidthType.PERCENTAGE },
-          rows: [
-            new TableRow({
-              children: [
-                new TableCell({
-                  children: infoBoxContent,
-                  shading: { fill: WORD_COLORS.white, type: ShadingType.CLEAR },
-                  borders: {
-                    top: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
-                    bottom: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
-                    left: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
-                    right: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
-                  },
-                  margins: {
-                    top: convertInchesToTwip(0.08),
-                    bottom: convertInchesToTwip(0.08),
-                    left: convertInchesToTwip(0.1),
-                    right: convertInchesToTwip(0.1),
-                  },
-                }),
-              ],
-            }),
-          ],
-        }),
-      ],
-      shading: { fill: WORD_COLORS.primary, type: ShadingType.CLEAR },
+      children: infoBoxContent,
+      shading: { fill: WORD_COLORS.white, type: ShadingType.CLEAR },
       borders: {
-        top: { style: BorderStyle.NONE },
-        bottom: { style: BorderStyle.NONE },
+        top: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
+        bottom: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
         left: { style: BorderStyle.NONE },
-        right: { style: BorderStyle.NONE },
+        right: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
       },
-      width: { size: 45, type: WidthType.PERCENTAGE },
+      width: { size: companyLogo ? 38 : 42, type: WidthType.PERCENTAGE },
       verticalAlign: VerticalAlign.CENTER,
       margins: {
-        top: convertInchesToTwip(0.1),
-        bottom: convertInchesToTwip(0.1),
-        left: convertInchesToTwip(0.1),
-        right: convertInchesToTwip(0.15),
+        top: convertInchesToTwip(0.16),
+        bottom: convertInchesToTwip(0.16),
+        left: convertInchesToTwip(0.16),
+        right: convertInchesToTwip(0.16),
       },
     })
   );
-
-  // Calculate column span for gold line based on number of header cells
-  const goldLineColumnSpan = headerCells.length;
 
   return new Table({
     width: { size: 100, type: WidthType.PERCENTAGE },
@@ -337,24 +393,23 @@ const createCoverHeader = (
     rows: [
       new TableRow({
         children: headerCells,
-        height: { value: convertInchesToTwip(0.9), rule: 'atLeast' as const },
+        height: { value: convertInchesToTwip(1.15), rule: 'atLeast' as const },
       }),
-      // Gold accent line
       new TableRow({
         children: [
           new TableCell({
             children: [new Paragraph({ children: [] })],
-            shading: { fill: WORD_COLORS.accentGold, type: ShadingType.CLEAR },
+            shading: { fill: WORD_COLORS.accent, type: ShadingType.CLEAR },
             borders: {
               top: { style: BorderStyle.NONE },
               bottom: { style: BorderStyle.NONE },
               left: { style: BorderStyle.NONE },
               right: { style: BorderStyle.NONE },
             },
-            columnSpan: goldLineColumnSpan,
+            columnSpan: headerCells.length,
           }),
         ],
-        height: { value: convertInchesToTwip(0.04), rule: 'exact' as const },
+        height: { value: convertInchesToTwip(0.05), rule: 'exact' as const },
       }),
     ],
     borders: {
@@ -377,19 +432,17 @@ const createSectionTitle = (title: string): Table => {
     rows: [
       new TableRow({
         children: [
-          // Gold left accent bar
           new TableCell({
             children: [new Paragraph({ children: [] })],
-            shading: { fill: WORD_COLORS.accentGold, type: ShadingType.CLEAR },
+            shading: { fill: WORD_COLORS.accent, type: ShadingType.CLEAR },
             borders: {
               top: { style: BorderStyle.NONE },
               bottom: { style: BorderStyle.NONE },
               left: { style: BorderStyle.NONE },
               right: { style: BorderStyle.NONE },
             },
-            width: { size: 2, type: WidthType.PERCENTAGE },
+            width: { size: 1, type: WidthType.PERCENTAGE },
           }),
-          // Blue main bar with title
           new TableCell({
             children: [
               new Paragraph({
@@ -397,24 +450,24 @@ const createSectionTitle = (title: string): Table => {
                   new TextRun({
                     text: title,
                     bold: true,
-                    size: 24, // 12pt
-                    color: 'FFFFFF',
+                    size: 24,
+                    color: WORD_COLORS.primaryDark,
                   }),
                 ],
                 alignment: AlignmentType.LEFT,
               }),
             ],
-            shading: { fill: WORD_COLORS.primary, type: ShadingType.CLEAR },
+            shading: { fill: WORD_COLORS.sectionBg, type: ShadingType.CLEAR },
             borders: {
-              top: { style: BorderStyle.NONE },
-              bottom: { style: BorderStyle.NONE },
+              top: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
+              bottom: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
               left: { style: BorderStyle.NONE },
-              right: { style: BorderStyle.NONE },
+              right: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
             },
-            width: { size: 98, type: WidthType.PERCENTAGE },
+            width: { size: 99, type: WidthType.PERCENTAGE },
             margins: {
-              top: convertInchesToTwip(0.08),
-              bottom: convertInchesToTwip(0.08),
+              top: convertInchesToTwip(0.07),
+              bottom: convertInchesToTwip(0.07),
               left: convertInchesToTwip(0.15),
               right: convertInchesToTwip(0.1),
             },
@@ -442,10 +495,9 @@ const createSubsectionTitle = (title: string): Table => {
     rows: [
       new TableRow({
         children: [
-          // Blue accent bar
           new TableCell({
             children: [new Paragraph({ children: [] })],
-            shading: { fill: WORD_COLORS.primary, type: ShadingType.CLEAR },
+            shading: { fill: WORD_COLORS.secondary, type: ShadingType.CLEAR },
             borders: {
               top: { style: BorderStyle.NONE },
               bottom: { style: BorderStyle.NONE },
@@ -454,19 +506,6 @@ const createSubsectionTitle = (title: string): Table => {
             },
             width: { size: 1, type: WidthType.PERCENTAGE },
           }),
-          // Gold accent bar
-          new TableCell({
-            children: [new Paragraph({ children: [] })],
-            shading: { fill: WORD_COLORS.accentGold, type: ShadingType.CLEAR },
-            borders: {
-              top: { style: BorderStyle.NONE },
-              bottom: { style: BorderStyle.NONE },
-              left: { style: BorderStyle.NONE },
-              right: { style: BorderStyle.NONE },
-            },
-            width: { size: 1, type: WidthType.PERCENTAGE },
-          }),
-          // Light background with title
           new TableCell({
             children: [
               new Paragraph({
@@ -474,24 +513,24 @@ const createSubsectionTitle = (title: string): Table => {
                   new TextRun({
                     text: title,
                     bold: true,
-                    size: 20, // 10pt
-                    color: WORD_COLORS.primary,
+                    size: 18,
+                    color: WORD_COLORS.secondary,
                   }),
                 ],
               }),
             ],
-            shading: { fill: WORD_COLORS.sectionBg, type: ShadingType.CLEAR },
+            shading: { fill: WORD_COLORS.headerBg, type: ShadingType.CLEAR },
             borders: {
-              top: { style: BorderStyle.NONE },
-              bottom: { style: BorderStyle.NONE },
+              top: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.divider },
+              bottom: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.divider },
               left: { style: BorderStyle.NONE },
               right: { style: BorderStyle.NONE },
             },
-            width: { size: 98, type: WidthType.PERCENTAGE },
+            width: { size: 99, type: WidthType.PERCENTAGE },
             margins: {
               top: convertInchesToTwip(0.06),
               bottom: convertInchesToTwip(0.06),
-              left: convertInchesToTwip(0.1),
+              left: convertInchesToTwip(0.12),
               right: convertInchesToTwip(0.1),
             },
           }),
@@ -540,25 +579,25 @@ const createDocumentSummaryTable = (
                 new TextRun({
                   text: cell,
                   bold: isLabel || isAcceptanceClass,
-                  size: isAcceptanceClass ? 22 : (isLabel ? 15 : 18),
-                  color: isLabel ? WORD_COLORS.lightText : (isAcceptanceClass ? WORD_COLORS.primary : WORD_COLORS.text),
+                  size: isAcceptanceClass ? 22 : (isLabel ? 14 : 18),
+                  color: isLabel ? WORD_COLORS.mutedText : (isAcceptanceClass ? WORD_COLORS.primaryDark : WORD_COLORS.text),
                 }),
               ],
             }),
           ],
-          shading: isLabel ? { fill: WORD_COLORS.labelBg, type: ShadingType.CLEAR } : (rowIndex % 2 === 0 ? { fill: WORD_COLORS.rowAlt, type: ShadingType.CLEAR } : undefined),
+          shading: isLabel ? { fill: WORD_COLORS.labelBg, type: ShadingType.CLEAR } : { fill: rowIndex % 2 === 0 ? WORD_COLORS.white : WORD_COLORS.rowAlt, type: ShadingType.CLEAR },
           borders: {
             top: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
             bottom: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
             left: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
             right: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
           },
-          width: { size: isLabel ? 18 : 32, type: WidthType.PERCENTAGE },
+          width: { size: isLabel ? 16 : 34, type: WidthType.PERCENTAGE },
           margins: {
-            top: convertInchesToTwip(0.04),
-            bottom: convertInchesToTwip(0.04),
-            left: convertInchesToTwip(0.06),
-            right: convertInchesToTwip(0.06),
+            top: convertInchesToTwip(0.06),
+            bottom: convertInchesToTwip(0.06),
+            left: convertInchesToTwip(0.08),
+            right: convertInchesToTwip(0.08),
           },
         });
       }),
@@ -569,10 +608,10 @@ const createDocumentSummaryTable = (
     width: { size: 100, type: WidthType.PERCENTAGE },
     rows: tableRows,
     borders: {
-      top: { style: BorderStyle.SINGLE, size: 8, color: WORD_COLORS.primary },
-      bottom: { style: BorderStyle.SINGLE, size: 8, color: WORD_COLORS.primary },
-      left: { style: BorderStyle.SINGLE, size: 8, color: WORD_COLORS.primary },
-      right: { style: BorderStyle.SINGLE, size: 8, color: WORD_COLORS.primary },
+      top: { style: BorderStyle.SINGLE, size: 6, color: WORD_COLORS.tableBorder },
+      bottom: { style: BorderStyle.SINGLE, size: 6, color: WORD_COLORS.tableBorder },
+      left: { style: BorderStyle.SINGLE, size: 6, color: WORD_COLORS.tableBorder },
+      right: { style: BorderStyle.SINGLE, size: 6, color: WORD_COLORS.tableBorder },
       insideHorizontal: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
       insideVertical: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
     },
@@ -601,19 +640,25 @@ const createKeyValueTable = (
                   new TextRun({
                     text: 'Parameter',
                     bold: true,
-                    size: 18,
-                    color: 'FFFFFF',
+                    size: 17,
+                    color: WORD_COLORS.primaryDark,
                   }),
                 ],
               }),
             ],
-            shading: { fill: headerColor || WORD_COLORS.primary, type: ShadingType.CLEAR },
-            width: { size: 35, type: WidthType.PERCENTAGE },
+            shading: { fill: WORD_COLORS.headerBg, type: ShadingType.CLEAR },
+            width: { size: 32, type: WidthType.PERCENTAGE },
+            borders: {
+              top: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
+              bottom: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
+              left: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
+              right: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
+            },
             margins: {
-              top: convertInchesToTwip(0.04),
-              bottom: convertInchesToTwip(0.04),
-              left: convertInchesToTwip(0.08),
-              right: convertInchesToTwip(0.08),
+              top: convertInchesToTwip(0.05),
+              bottom: convertInchesToTwip(0.05),
+              left: convertInchesToTwip(0.1),
+              right: convertInchesToTwip(0.1),
             },
           }),
           new TableCell({
@@ -623,19 +668,25 @@ const createKeyValueTable = (
                   new TextRun({
                     text: 'Value',
                     bold: true,
-                    size: 18,
-                    color: 'FFFFFF',
+                    size: 17,
+                    color: headerColor || WORD_COLORS.primaryDark,
                   }),
                 ],
               }),
             ],
-            shading: { fill: headerColor || WORD_COLORS.primary, type: ShadingType.CLEAR },
-            width: { size: 65, type: WidthType.PERCENTAGE },
+            shading: { fill: WORD_COLORS.headerBg, type: ShadingType.CLEAR },
+            width: { size: 68, type: WidthType.PERCENTAGE },
+            borders: {
+              top: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
+              bottom: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
+              left: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
+              right: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
+            },
             margins: {
-              top: convertInchesToTwip(0.04),
-              bottom: convertInchesToTwip(0.04),
-              left: convertInchesToTwip(0.08),
-              right: convertInchesToTwip(0.08),
+              top: convertInchesToTwip(0.05),
+              bottom: convertInchesToTwip(0.05),
+              left: convertInchesToTwip(0.1),
+              right: convertInchesToTwip(0.1),
             },
           }),
         ],
@@ -655,8 +706,8 @@ const createKeyValueTable = (
                   new TextRun({
                     text: label,
                     bold: true,
-                    size: 18,
-                    color: WORD_COLORS.text,
+                    size: 16,
+                    color: WORD_COLORS.lightText,
                   }),
                 ],
               }),
@@ -668,12 +719,12 @@ const createKeyValueTable = (
               left: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
               right: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
             },
-            width: { size: 35, type: WidthType.PERCENTAGE },
+            width: { size: 32, type: WidthType.PERCENTAGE },
             margins: {
-              top: convertInchesToTwip(0.04),
-              bottom: convertInchesToTwip(0.04),
-              left: convertInchesToTwip(0.08),
-              right: convertInchesToTwip(0.08),
+              top: convertInchesToTwip(0.06),
+              bottom: convertInchesToTwip(0.06),
+              left: convertInchesToTwip(0.1),
+              right: convertInchesToTwip(0.1),
             },
           }),
           new TableCell({
@@ -688,19 +739,19 @@ const createKeyValueTable = (
                 ],
               }),
             ],
-            shading: index % 2 === 1 ? { fill: WORD_COLORS.rowAlt, type: ShadingType.CLEAR } : undefined,
+            shading: { fill: index % 2 === 1 ? WORD_COLORS.rowAlt : WORD_COLORS.white, type: ShadingType.CLEAR },
             borders: {
               top: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
               bottom: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
               left: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
               right: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
             },
-            width: { size: 65, type: WidthType.PERCENTAGE },
+            width: { size: 68, type: WidthType.PERCENTAGE },
             margins: {
-              top: convertInchesToTwip(0.04),
-              bottom: convertInchesToTwip(0.04),
-              left: convertInchesToTwip(0.08),
-              right: convertInchesToTwip(0.08),
+              top: convertInchesToTwip(0.06),
+              bottom: convertInchesToTwip(0.06),
+              left: convertInchesToTwip(0.1),
+              right: convertInchesToTwip(0.1),
             },
           }),
         ],
@@ -711,6 +762,14 @@ const createKeyValueTable = (
   return new Table({
     width: { size: 100, type: WidthType.PERCENTAGE },
     rows: tableRows,
+    borders: {
+      top: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
+      bottom: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
+      left: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
+      right: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
+      insideHorizontal: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
+      insideVertical: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
+    },
   });
 };
 
@@ -728,7 +787,7 @@ const createWarningBox = (text: string): Table => {
               new Paragraph({
                 children: [
                   new TextRun({
-                    text: `⚠️ ${text}`,
+                    text: `ג ן¸ ${text}`,
                     size: 18,
                     color: '856404',
                   }),
@@ -758,6 +817,124 @@ const createWarningBox = (text: string): Table => {
 // ============================================================================
 // PART SKETCH SECTION HEADER
 // ============================================================================
+const createNoticeBox = (text: string): Table => {
+  return new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    rows: [
+      new TableRow({
+        children: [
+          new TableCell({
+            children: [new Paragraph({ children: [] })],
+            shading: { fill: WORD_COLORS.secondary, type: ShadingType.CLEAR },
+            borders: {
+              top: { style: BorderStyle.NONE },
+              bottom: { style: BorderStyle.NONE },
+              left: { style: BorderStyle.NONE },
+              right: { style: BorderStyle.NONE },
+            },
+            width: { size: 1, type: WidthType.PERCENTAGE },
+          }),
+          new TableCell({
+            children: [
+              new Paragraph({
+                children: [new TextRun({ text, size: 16, color: WORD_COLORS.lightText })],
+              }),
+            ],
+            shading: { fill: WORD_COLORS.headerBg, type: ShadingType.CLEAR },
+            borders: {
+              top: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.divider },
+              bottom: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.divider },
+              left: { style: BorderStyle.NONE },
+              right: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.divider },
+            },
+            margins: {
+              top: convertInchesToTwip(0.08),
+              bottom: convertInchesToTwip(0.08),
+              left: convertInchesToTwip(0.1),
+              right: convertInchesToTwip(0.1),
+            },
+          }),
+        ],
+      }),
+    ],
+  });
+};
+
+const createImageSection = (
+  title: string,
+  subtitle: string | undefined,
+  imageBase64: string | undefined,
+  maxWidth: number,
+  maxHeight: number,
+  missingMessage: string
+): (Paragraph | Table)[] => {
+  const elements: (Paragraph | Table)[] = [];
+  elements.push(createSectionTitle(title));
+  elements.push(new Paragraph({
+    children: subtitle ? [new TextRun({ text: subtitle, size: 16, color: WORD_COLORS.lightText })] : [],
+    spacing: { after: subtitle ? 140 : 80 },
+  }));
+
+  if (imageBase64) {
+    try {
+      const imageBuffer = base64ToArrayBuffer(imageBase64);
+      const sourceSize = getImageDimensions(imageBuffer);
+      const fittedSize = fitImageToBox(
+        sourceSize?.width,
+        sourceSize?.height,
+        maxWidth,
+        maxHeight
+      );
+
+      elements.push(new Table({
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        rows: [
+          new TableRow({
+            children: [
+              new TableCell({
+                children: [
+                  new Paragraph({
+                    alignment: AlignmentType.CENTER,
+                    children: [
+                      new ImageRun({
+                        type: 'png',
+                        data: imageBuffer,
+                        transformation: fittedSize,
+                      }),
+                    ],
+                  }),
+                ],
+                shading: { fill: WORD_COLORS.white, type: ShadingType.CLEAR },
+                borders: {
+                  top: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
+                  bottom: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
+                  left: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
+                  right: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
+                },
+                margins: {
+                  top: convertInchesToTwip(0.12),
+                  bottom: convertInchesToTwip(0.12),
+                  left: convertInchesToTwip(0.12),
+                  right: convertInchesToTwip(0.12),
+                },
+              }),
+            ],
+          }),
+        ],
+      }));
+    } catch {
+      elements.push(new Paragraph({
+        children: [new TextRun({ text: missingMessage, italics: true, color: WORD_COLORS.lightText })],
+      }));
+    }
+  } else {
+    elements.push(createNoticeBox(missingMessage));
+  }
+
+  elements.push(new Paragraph({ children: [], spacing: { after: 180 } }));
+  return elements;
+};
+
 const createPartSketchSectionHeader = (): Table => {
   return new Table({
     width: { size: 100, type: WidthType.PERCENTAGE },
@@ -1050,7 +1227,7 @@ const buildApprovalsSection = (documentation: ExtendedDocumentationData, approva
   // Notice if approval required
   if (approvalRequired) {
     elements.push(new Paragraph({ children: [], spacing: { after: 100 } }));
-    elements.push(createWarningBox('NOTICE: This technique sheet requires Level III approval before use in production.'));
+    elements.push(createNoticeBox('Notice: This technique sheet requires Level III approval before use in production.'));
   }
 
   elements.push(new Paragraph({ children: [], spacing: { after: 200 } }));
@@ -1095,10 +1272,21 @@ const buildApprovalsSection = (documentation: ExtendedDocumentationData, approva
 // ============================================================================
 // MAIN EXPORT FUNCTION
 // ============================================================================
-export async function exportTechniqueSheetWord(
+export interface BuiltTechniqueSheetWordDocument {
+  document: Document;
+  filename: string;
+}
+
+export const getTechniqueSheetWordFilename = (partNumber?: string): string => {
+  const safePartNumber = partNumber || 'TechniqueSheet';
+  const date = new Date().toISOString().split('T')[0];
+  return `${safePartNumber}_TechniqueSheet_${date}.docx`;
+};
+
+export function buildTechniqueSheetWordDocument(
   data: TechniqueSheetWordExportData,
   options: WordExportOptions = {}
-): Promise<void> {
+): BuiltTechniqueSheetWordDocument {
   const { inspectionSetup, equipment, calibration, scanParameters, acceptanceCriteria, documentation, scanDetails } = data;
 
   const children: (Paragraph | Table)[] = [];
@@ -1114,203 +1302,23 @@ export async function exportTechniqueSheetWord(
   children.push(createCoverHeader(docNum, revision, dateStr, options.companyName, effectiveLogo));
   children.push(new Paragraph({ children: [], spacing: { after: 300 } }));
 
-  // Document Summary section header
-  children.push(new Table({
-    width: { size: 100, type: WidthType.PERCENTAGE },
-    rows: [
-      new TableRow({
-        children: [
-          new TableCell({
-            children: [new Paragraph({ children: [] })],
-            shading: { fill: WORD_COLORS.primary, type: ShadingType.CLEAR },
-            borders: {
-              top: { style: BorderStyle.NONE },
-              bottom: { style: BorderStyle.NONE },
-              left: { style: BorderStyle.NONE },
-              right: { style: BorderStyle.NONE },
-            },
-            width: { size: 2, type: WidthType.PERCENTAGE },
-          }),
-          new TableCell({
-            children: [
-              new Paragraph({
-                children: [
-                  new TextRun({
-                    text: 'DOCUMENT SUMMARY',
-                    bold: true,
-                    size: 22,
-                    color: WORD_COLORS.primary,
-                  }),
-                ],
-              }),
-            ],
-            shading: { fill: WORD_COLORS.sectionBg, type: ShadingType.CLEAR },
-            borders: {
-              top: { style: BorderStyle.NONE },
-              bottom: { style: BorderStyle.NONE },
-              left: { style: BorderStyle.NONE },
-              right: { style: BorderStyle.NONE },
-            },
-            width: { size: 98, type: WidthType.PERCENTAGE },
-            margins: {
-              top: convertInchesToTwip(0.08),
-              bottom: convertInchesToTwip(0.08),
-              left: convertInchesToTwip(0.15),
-              right: convertInchesToTwip(0.1),
-            },
-          }),
-        ],
-      }),
-    ],
-    borders: {
-      top: { style: BorderStyle.NONE },
-      bottom: { style: BorderStyle.NONE },
-      left: { style: BorderStyle.NONE },
-      right: { style: BorderStyle.NONE },
-      insideHorizontal: { style: BorderStyle.NONE },
-      insideVertical: { style: BorderStyle.NONE },
-    },
-  }));
+  children.push(createSectionTitle('DOCUMENT SUMMARY'));
   children.push(new Paragraph({ children: [], spacing: { after: 100 } }));
 
-  // Document Summary table
   children.push(createDocumentSummaryTable(data, data.standard));
   children.push(new Paragraph({ children: [], spacing: { after: 200 } }));
 
-  // Part Sketch section
-  children.push(createPartSketchSectionHeader());
-  children.push(new Paragraph({ children: [], spacing: { after: 100 } }));
-
-  // Part sketch area (with drawing or placeholder)
   if (data.capturedDrawing) {
-    try {
-      const imageBuffer = base64ToArrayBuffer(data.capturedDrawing);
-      children.push(new Table({
-        width: { size: 100, type: WidthType.PERCENTAGE },
-        rows: [
-          new TableRow({
-            children: [
-              new TableCell({
-                children: [
-                  new Paragraph({
-                    alignment: AlignmentType.CENTER,
-                    children: [
-                      new ImageRun({
-                        type: 'png',
-                        data: imageBuffer,
-                        transformation: { width: 500, height: 280 },
-                      }),
-                    ],
-                  }),
-                ],
-                borders: {
-                  top: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
-                  bottom: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
-                  left: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
-                  right: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
-                },
-                margins: {
-                  top: convertInchesToTwip(0.1),
-                  bottom: convertInchesToTwip(0.1),
-                  left: convertInchesToTwip(0.1),
-                  right: convertInchesToTwip(0.1),
-                },
-              }),
-            ],
-          }),
-        ],
-      }));
-    } catch {
-      // Placeholder if image fails
-      children.push(new Table({
-        width: { size: 100, type: WidthType.PERCENTAGE },
-        rows: [
-          new TableRow({
-            children: [
-              new TableCell({
-                children: [
-                  new Paragraph({
-                    alignment: AlignmentType.CENTER,
-                    children: [
-                      new TextRun({
-                        text: 'Part sketch will be generated from Technical Drawing tab',
-                        italics: true,
-                        size: 20,
-                        color: WORD_COLORS.lightText,
-                      }),
-                    ],
-                    spacing: { before: 400, after: 100 },
-                  }),
-                  new Paragraph({
-                    alignment: AlignmentType.CENTER,
-                    children: [
-                      new TextRun({
-                        text: 'Or attach custom drawing in Setup',
-                        size: 16,
-                        color: WORD_COLORS.mutedText,
-                      }),
-                    ],
-                    spacing: { after: 400 },
-                  }),
-                ],
-                borders: {
-                  top: { style: BorderStyle.DASHED, size: 4, color: WORD_COLORS.divider },
-                  bottom: { style: BorderStyle.DASHED, size: 4, color: WORD_COLORS.divider },
-                  left: { style: BorderStyle.DASHED, size: 4, color: WORD_COLORS.divider },
-                  right: { style: BorderStyle.DASHED, size: 4, color: WORD_COLORS.divider },
-                },
-              }),
-            ],
-            height: { value: convertInchesToTwip(2.5), rule: 'atLeast' as const },
-          }),
-        ],
-      }));
-    }
+    children.push(...createImageSection(
+      'PART SKETCH / DIMENSIONS',
+      'Captured drawing from the setup and technical drawing workspace.',
+      data.capturedDrawing,
+      560,
+      320,
+      'Part sketch could not be loaded.'
+    ));
   } else {
-    // Placeholder
-    children.push(new Table({
-      width: { size: 100, type: WidthType.PERCENTAGE },
-      rows: [
-        new TableRow({
-          children: [
-            new TableCell({
-              children: [
-                new Paragraph({
-                  alignment: AlignmentType.CENTER,
-                  children: [
-                    new TextRun({
-                      text: 'Part sketch will be generated from Technical Drawing tab',
-                      italics: true,
-                      size: 20,
-                      color: WORD_COLORS.lightText,
-                    }),
-                  ],
-                  spacing: { before: 400, after: 100 },
-                }),
-                new Paragraph({
-                  alignment: AlignmentType.CENTER,
-                  children: [
-                    new TextRun({
-                      text: 'Or attach custom drawing in Setup',
-                      size: 16,
-                      color: WORD_COLORS.mutedText,
-                    }),
-                  ],
-                  spacing: { after: 400 },
-                }),
-              ],
-              borders: {
-                top: { style: BorderStyle.DASHED, size: 4, color: WORD_COLORS.divider },
-                bottom: { style: BorderStyle.DASHED, size: 4, color: WORD_COLORS.divider },
-                left: { style: BorderStyle.DASHED, size: 4, color: WORD_COLORS.divider },
-                right: { style: BorderStyle.DASHED, size: 4, color: WORD_COLORS.divider },
-              },
-            }),
-          ],
-          height: { value: convertInchesToTwip(2.5), rule: 'atLeast' as const },
-        }),
-      ],
-    }));
+    children.push(createNoticeBox('Technical drawing is not attached. Export the drawing capture from the Setup / Technical Drawing workspace to include it in the Word document.'));
   }
 
   children.push(new Paragraph({ children: [], spacing: { after: 100 } }));
@@ -1323,13 +1331,6 @@ export async function exportTechniqueSheetWord(
 
   // Page break after cover
   children.push(new Paragraph({ children: [new PageBreak()] }));
-
-  // ========== TABLE OF CONTENTS ==========
-  children.push(...buildTableOfContents(
-    !!data.capturedDrawing,
-    !!scanDetails?.scanDetails?.some(d => d.enabled),
-    !!data.angleBeamDiagram
-  ));
 
   // ========== 1. PART INFORMATION ==========
   children.push(createSectionTitle('1. PART INFORMATION'));
@@ -1359,7 +1360,7 @@ export async function exportTechniqueSheetWord(
   // Material Properties subsection (acoustic velocity removed per requirements)
   if (inspectionSetup.materialDensity) {
     const matProps: [string, string][] = [
-      ['Material Density', formatNumber(inspectionSetup.materialDensity, 0, 'kg/m³')],
+      ['Material Density', formatNumber(inspectionSetup.materialDensity, 0, 'kg/m3')],
     ];
     children.push(createSubsectionTitle('Material Properties'));
     children.push(new Paragraph({ children: [], spacing: { after: 100 } }));
@@ -1370,11 +1371,9 @@ export async function exportTechniqueSheetWord(
   // Material Warning
   const materialWarning = getMaterialWarning(inspectionSetup.material, data.standard);
   if (materialWarning) {
-    children.push(createWarningBox(materialWarning));
+    children.push(createNoticeBox(`Material warning: ${materialWarning}`));
     children.push(new Paragraph({ children: [], spacing: { after: 200 } }));
   }
-
-  children.push(new Paragraph({ children: [new PageBreak()] }));
 
   // ========== 2. EQUIPMENT ==========
   children.push(createSectionTitle('2. EQUIPMENT'));
@@ -1435,8 +1434,6 @@ export async function exportTechniqueSheetWord(
     }
   }
 
-  children.push(new Paragraph({ children: [new PageBreak()] }));
-
   // ========== 3. SCAN PARAMETERS ==========
   children.push(createSectionTitle('3. SCAN PARAMETERS'));
   children.push(new Paragraph({ children: [], spacing: { after: 200 } }));
@@ -1478,8 +1475,8 @@ export async function exportTechniqueSheetWord(
   if (scanParameters.couplingMethod === 'phased_array' && scanParameters.phasedArray) {
     const pa = scanParameters.phasedArray;
     const paSettings: [string, string][] = [];
-    if (pa.refractedAngleStart) paSettings.push(['Refracted Angle Start', `${pa.refractedAngleStart}°`]);
-    if (pa.refractedAngleEnd) paSettings.push(['Refracted Angle End', `${pa.refractedAngleEnd}°`]);
+    if (pa.refractedAngleStart) paSettings.push(['Refracted Angle Start', `${pa.refractedAngleStart} deg`]);
+    if (pa.refractedAngleEnd) paSettings.push(['Refracted Angle End', `${pa.refractedAngleEnd} deg`]);
     if (pa.aperture) paSettings.push(['Aperture', String(pa.aperture)]);
     if (pa.focusLaws) paSettings.push(['Focus Laws', formatValue(pa.focusLaws)]);
 
@@ -1490,8 +1487,6 @@ export async function exportTechniqueSheetWord(
       children.push(new Paragraph({ children: [], spacing: { after: 200 } }));
     }
   }
-
-  children.push(new Paragraph({ children: [new PageBreak()] }));
 
   // ========== 4. ACCEPTANCE CRITERIA ==========
   children.push(createSectionTitle('4. ACCEPTANCE CRITERIA'));
@@ -1543,7 +1538,7 @@ export async function exportTechniqueSheetWord(
     acceptanceCriteria.includeStandardNotesInReport &&
     (data.standard === 'AMS-STD-2154E' || data.standard === 'MIL-STD-2154')
   ) {
-    children.push(createSubsectionTitle('Table 6 — Ultrasonic Classes — Notes'));
+    children.push(createSubsectionTitle('Table 6 - Ultrasonic Classes - Notes'));
     children.push(new Paragraph({ children: [], spacing: { after: 100 } }));
     const table6Notes = [
       '1/ Any discontinuity with an indication greater than the response from a reference flat-bottom hole or equivalent notch at the estimated discontinuity depth of the size given (inches diameter) is not acceptable.',
@@ -1565,14 +1560,13 @@ export async function exportTechniqueSheetWord(
 
   // Material Warning in Acceptance section
   if (materialWarning) {
-    children.push(createWarningBox(`MATERIAL WARNING: ${materialWarning}`));
+    children.push(createNoticeBox(`Material warning: ${materialWarning}`));
     children.push(new Paragraph({ children: [], spacing: { after: 200 } }));
   }
 
-  children.push(new Paragraph({ children: [new PageBreak()] }));
-
   // ========== 5. SCAN DETAILS (if available) ==========
   if (scanDetails?.scanDetails && scanDetails.scanDetails.some(d => d.enabled)) {
+    children.push(new Paragraph({ children: [], spacing: { before: 120, after: 20 } }));
     children.push(createSectionTitle('5. SCAN DETAILS & DIRECTIONS'));
     children.push(new Paragraph({ children: [], spacing: { after: 200 } }));
 
@@ -1603,7 +1597,7 @@ export async function exportTechniqueSheetWord(
       children: [
         detail.scanningDirection,
         detail.waveMode || '-',
-        detail.angle !== undefined ? `${detail.angle}°` : '-',
+        detail.angle !== undefined ? `${detail.angle} deg` : '-',
         detail.frequency ? `${detail.frequency} MHz` : '-',
         detail.make || '-',
         detail.probe || '-',
@@ -1813,7 +1807,7 @@ export async function exportTechniqueSheetWord(
     children.push(createSubsectionTitle('Flat Bottom Holes (FBH)'));
     children.push(new Paragraph({ children: [], spacing: { after: 100 } }));
 
-    const fbhHeaders = ['P/N', 'Δ Type', 'Ø FBH (inch)', 'Ø FBH (mm)', 'E (mm)', 'H (mm)'];
+    const fbhHeaders = ['P/N', 'Delta Type', 'FBH (inch)', 'FBH (mm)', 'E (mm)', 'H (mm)'];
     const fbhHeaderRow = new TableRow({
       children: fbhHeaders.map(text => new TableCell({
         children: [new Paragraph({
@@ -1871,165 +1865,75 @@ export async function exportTechniqueSheetWord(
   // Calibration Block Diagram
   if (data.calibrationBlockDiagram) {
     children.push(new Paragraph({ children: [new PageBreak()] }));
-    children.push(createSubsectionTitle('Calibration Block Diagram'));
-    children.push(new Paragraph({ children: [], spacing: { after: 100 } }));
-
-    try {
-      const imageBuffer = base64ToArrayBuffer(data.calibrationBlockDiagram);
-      children.push(new Paragraph({
-        alignment: AlignmentType.CENTER,
-        children: [
-          new ImageRun({
-            type: 'png',
-            data: imageBuffer,
-            transformation: { width: 500, height: 300 },
-          }),
-        ],
-      }));
-    } catch {
-      children.push(new Paragraph({
-        children: [new TextRun({ text: 'Calibration block diagram could not be loaded.', italics: true, color: WORD_COLORS.lightText })],
-      }));
-    }
-
-    children.push(new Paragraph({ children: [], spacing: { after: 200 } }));
+    children.push(...createImageSection(
+      'CALIBRATION BLOCK DIAGRAM',
+      'Reference block geometry used for sensitivity setup and verification.',
+      data.calibrationBlockDiagram,
+      560,
+      360,
+      'Calibration block diagram could not be loaded.'
+    ));
   }
 
   // Angle Beam Diagram
   if (data.angleBeamDiagram) {
     children.push(new Paragraph({ children: [new PageBreak()] }));
-    children.push(createSubsectionTitle('Angle Beam Calibration Block'));
-    children.push(new Paragraph({
-      children: [new TextRun({ text: 'Shear Wave / Circumferential Inspection Reference Block', size: 16, color: WORD_COLORS.lightText })],
-      spacing: { after: 200 },
-    }));
-
-    try {
-      const imageBuffer = base64ToArrayBuffer(data.angleBeamDiagram);
-      children.push(new Paragraph({
-        alignment: AlignmentType.CENTER,
-        children: [
-          new ImageRun({
-            type: 'png',
-            data: imageBuffer,
-            transformation: { width: 500, height: 300 },
-          }),
-        ],
-      }));
-    } catch {
-      children.push(new Paragraph({
-        children: [new TextRun({ text: 'Angle beam calibration block diagram could not be loaded.', italics: true, color: WORD_COLORS.lightText })],
-      }));
-    }
-
-    children.push(new Paragraph({ children: [], spacing: { after: 200 } }));
+    children.push(...createImageSection(
+      'ANGLE BEAM CALIBRATION BLOCK',
+      'Shear wave and circumferential inspection reference block.',
+      data.angleBeamDiagram,
+      560,
+      390,
+      'Angle beam calibration block diagram could not be loaded.'
+    ));
   }
 
   // Technical Drawing (full page)
   if (data.capturedDrawing) {
     children.push(new Paragraph({ children: [new PageBreak()] }));
-    children.push(createSectionTitle('TECHNICAL DRAWING'));
-    children.push(new Paragraph({ children: [], spacing: { after: 200 } }));
-
-    try {
-      const imageBuffer = base64ToArrayBuffer(data.capturedDrawing);
-      children.push(new Paragraph({
-        alignment: AlignmentType.CENTER,
-        children: [
-          new ImageRun({
-            type: 'png',
-            data: imageBuffer,
-            transformation: { width: 550, height: 400 },
-          }),
-        ],
-      }));
-    } catch {
-      children.push(new Paragraph({
-        children: [new TextRun({ text: 'Technical drawing could not be loaded.', italics: true, color: WORD_COLORS.lightText })],
-      }));
-    }
-
-    children.push(new Paragraph({ children: [], spacing: { after: 200 } }));
+    children.push(...createImageSection(
+      'TECHNICAL DRAWING',
+      'Captured technical drawing view exported from the application canvas.',
+      data.capturedDrawing,
+      580,
+      430,
+      'Technical drawing could not be loaded.'
+    ));
   }
 
   // E2375 Diagram
   if (data.e2375Diagram) {
     children.push(new Paragraph({ children: [new PageBreak()] }));
-    children.push(createSectionTitle('ASTM E2375 SCAN DIRECTIONS DIAGRAM'));
+    children.push(...createImageSection(
+      'ASTM E2375 SCAN DIRECTIONS DIAGRAM',
+      `Standard practice reference for ${formatPartType(inspectionSetup.partType)} geometry.`,
+      data.e2375Diagram,
+      580,
+      430,
+      'E2375 scan directions diagram could not be loaded.'
+    ));
     children.push(new Paragraph({
       children: [new TextRun({
-        text: `Standard Practice for Ultrasonic Testing of Wrought Products - ${formatPartType(inspectionSetup.partType)}`,
-        size: 16,
+        text: 'Reference: ASTM E2375 "Standard Practice for Ultrasonic Testing of Wrought Products"',
+        size: 14,
         color: WORD_COLORS.lightText,
+        italics: true,
       })],
-      spacing: { after: 200 },
+      spacing: { before: 60, after: 120 },
     }));
-
-    try {
-      const imageBuffer = base64ToArrayBuffer(data.e2375Diagram);
-      children.push(new Paragraph({
-        alignment: AlignmentType.CENTER,
-        children: [
-          new ImageRun({
-            type: 'png',
-            data: imageBuffer,
-            transformation: { width: 550, height: 400 },
-          }),
-        ],
-      }));
-      children.push(new Paragraph({
-        children: [new TextRun({
-          text: 'Reference: ASTM E2375-16 "Standard Practice for Ultrasonic Testing of Wrought Products"',
-          size: 14,
-          color: WORD_COLORS.lightText,
-          italics: true,
-        })],
-        spacing: { before: 100 },
-      }));
-    } catch {
-      children.push(new Paragraph({
-        children: [new TextRun({ text: 'E2375 scan directions diagram could not be loaded.', italics: true, color: WORD_COLORS.lightText })],
-      }));
-    }
-
-    children.push(new Paragraph({ children: [], spacing: { after: 200 } }));
   }
 
   // Scan Directions Drawing
   if (data.scanDirectionsDrawing) {
     children.push(new Paragraph({ children: [new PageBreak()] }));
-    children.push(createSectionTitle('SCAN DIRECTIONS - INSPECTION PLAN'));
-    children.push(new Paragraph({ children: [], spacing: { after: 200 } }));
-
-    try {
-      const imageBuffer = base64ToArrayBuffer(data.scanDirectionsDrawing);
-      children.push(new Paragraph({
-        alignment: AlignmentType.CENTER,
-        children: [
-          new ImageRun({
-            type: 'png',
-            data: imageBuffer,
-            transformation: { width: 550, height: 400 },
-          }),
-        ],
-      }));
-      children.push(new Paragraph({
-        alignment: AlignmentType.CENTER,
-        children: [new TextRun({
-          text: 'Figure: Inspection plan showing selected scanning directions with entry surfaces and beam paths.',
-          size: 16,
-          color: WORD_COLORS.lightText,
-          italics: true,
-        })],
-        spacing: { before: 100 },
-      }));
-    } catch {
-      children.push(new Paragraph({
-        children: [new TextRun({ text: 'Scan directions drawing could not be loaded.', italics: true, color: WORD_COLORS.lightText })],
-      }));
-    }
-
-    children.push(new Paragraph({ children: [], spacing: { after: 200 } }));
+    children.push(...createImageSection(
+      'SCAN DIRECTIONS - INSPECTION PLAN',
+      'Inspection plan showing selected scan directions, entry surfaces, and beam paths.',
+      data.scanDirectionsDrawing,
+      580,
+      430,
+      'Scan directions drawing could not be loaded.'
+    ));
   }
 
   // ========== 8. APPROVALS & SIGNATURES ==========
@@ -2037,13 +1941,13 @@ export async function exportTechniqueSheetWord(
   children.push(...buildApprovalsSection(documentation as ExtendedDocumentationData, documentation.approvalRequired));
 
   // ========== CREATE DOCUMENT ==========
-  const doc = new Document({
+  const document = new Document({
     styles: {
       default: {
         document: {
           run: {
-            font: 'Arial',
-            size: 20,
+            font: 'Calibri',
+            size: 21,
           },
           paragraph: {
             spacing: { line: 276 },
@@ -2055,10 +1959,10 @@ export async function exportTechniqueSheetWord(
       properties: {
         page: {
           margin: {
-            top: convertInchesToTwip(0.6),
-            bottom: convertInchesToTwip(0.6),
-            left: convertInchesToTwip(0.6),
-            right: convertInchesToTwip(0.6),
+            top: convertInchesToTwip(0.7),
+            bottom: convertInchesToTwip(0.65),
+            left: convertInchesToTwip(0.7),
+            right: convertInchesToTwip(0.7),
           },
           size: {
             width: convertInchesToTwip(8.27),
@@ -2091,7 +1995,7 @@ export async function exportTechniqueSheetWord(
                       },
                       children: [new Paragraph({
                         children: [
-                          new TextRun({ text: 'UT TECHNIQUE SHEET', bold: true, size: 18, color: WORD_COLORS.primary }),
+                          new TextRun({ text: 'UT TECHNIQUE SHEET', bold: true, size: 17, color: WORD_COLORS.primaryDark }),
                         ],
                       })],
                       width: { size: 50, type: WidthType.PERCENTAGE },
@@ -2125,7 +2029,7 @@ export async function exportTechniqueSheetWord(
             new Table({
               width: { size: 100, type: WidthType.PERCENTAGE },
               borders: {
-                top: { style: BorderStyle.SINGLE, size: 6, color: WORD_COLORS.accentGold },
+                top: { style: BorderStyle.SINGLE, size: 6, color: WORD_COLORS.divider },
                 bottom: { style: BorderStyle.NONE },
                 left: { style: BorderStyle.NONE },
                 right: { style: BorderStyle.NONE },
@@ -2159,7 +2063,7 @@ export async function exportTechniqueSheetWord(
                       children: [new Paragraph({
                         alignment: AlignmentType.CENTER,
                         children: [
-                          new TextRun({ text: 'CONFIDENTIAL', size: 12, color: WORD_COLORS.mutedText }),
+                          new TextRun({ text: 'CONTROLLED DOCUMENT', size: 12, color: WORD_COLORS.mutedText }),
                         ],
                       })],
                       width: { size: 34, type: WidthType.PERCENTAGE },
@@ -2203,14 +2107,31 @@ export async function exportTechniqueSheetWord(
     }],
   });
 
-  // Generate filename
-  const partNumber = inspectionSetup.partNumber || 'TechniqueSheet';
-  const date = new Date().toISOString().split('T')[0];
-  const filename = `${partNumber}_TechniqueSheet_${date}.docx`;
+  return {
+    document,
+    filename: getTechniqueSheetWordFilename(inspectionSetup.partNumber),
+  };
+}
 
-  // Export
-  const blob = await Packer.toBlob(doc);
-  saveAs(blob, filename);
+export async function exportTechniqueSheetWord(
+  data: TechniqueSheetWordExportData,
+  options: WordExportOptions = {}
+): Promise<void> {
+  const { document, filename } = buildTechniqueSheetWordDocument(data, options);
+  const blob = await Packer.toBlob(document);
+
+  const fileSaverModule = await import('file-saver');
+  const saveAsFn =
+    (fileSaverModule as any).saveAs ??
+    (fileSaverModule as any).default?.saveAs ??
+    (fileSaverModule as any).default;
+
+  if (typeof saveAsFn !== 'function') {
+    throw new Error('file-saver saveAs function is unavailable');
+  }
+
+  saveAsFn(blob, filename);
 }
 
 export default exportTechniqueSheetWord;
+

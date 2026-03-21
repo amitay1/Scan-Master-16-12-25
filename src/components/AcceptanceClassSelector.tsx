@@ -27,6 +27,7 @@ interface AcceptanceClassSelectorProps {
   onChange: (value: AcceptanceClass | string) => void;
   standard: StandardType;
   disabled?: boolean;
+  variant?: "default" | "compact";
 }
 
 // Color schemes for each stringency level
@@ -96,8 +97,10 @@ export const AcceptanceClassSelector = ({
   value,
   onChange,
   standard,
-  disabled = false
+  disabled = false,
+  variant = "default",
 }: AcceptanceClassSelectorProps) => {
+  const isCompact = variant === "compact";
   const [isOpen, setIsOpen] = useState(false);
   const [hoveredClass, setHoveredClass] = useState<string | null>(null);
 
@@ -149,7 +152,7 @@ export const AcceptanceClassSelector = ({
     <TooltipProvider>
       <div className="acceptance-class-selector space-y-3">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <label className="text-xs font-medium text-foreground flex items-center gap-1.5">
             <Sparkles className="h-3.5 w-3.5 text-amber-500" />
             Acceptance Class
@@ -174,7 +177,7 @@ export const AcceptanceClassSelector = ({
           {selectedOption && (
             <Badge
               variant="outline"
-              className={cn("shrink-0 font-medium text-[10px]", selectedColors.badge)}
+              className={cn("max-w-full shrink-0 whitespace-normal font-medium text-[10px]", selectedColors.badge)}
             >
               {stringencyLabels[selectedOption.stringency].en}
             </Badge>
@@ -187,7 +190,8 @@ export const AcceptanceClassSelector = ({
             onClick={() => !disabled && setIsOpen(!isOpen)}
             disabled={disabled}
             className={cn(
-              "w-full p-3 rounded-xl border-2 transition-all duration-300",
+              "w-full rounded-xl border-2 transition-all duration-300",
+              isCompact ? "p-2.5" : "p-3",
               "flex items-center justify-between gap-3",
               "shadow-lg",
               selectedColors.bg,
@@ -199,21 +203,22 @@ export const AcceptanceClassSelector = ({
               isOpen && selectedColors.ring
             )}
           >
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
-                <SelectedIcon className={cn("h-5 w-5", selectedColors.text)} />
+            <div className="flex min-w-0 items-center gap-3">
+              <div className={cn("bg-white/20 rounded-lg backdrop-blur-sm", isCompact ? "p-1.5" : "p-2")}>
+                <SelectedIcon className={cn(isCompact ? "h-4 w-4" : "h-5 w-5", selectedColors.text)} />
               </div>
-              <div className="text-left">
-                <div className={cn("font-bold text-base", selectedColors.text)}>
+              <div className="min-w-0 text-left">
+                <div className={cn(isCompact ? "text-sm" : "text-base", "font-bold truncate", selectedColors.text)}>
                   {selectedOption?.label || "Select Class"}
                 </div>
-                <div className={cn("text-xs opacity-80", selectedColors.text)}>
+                <div className={cn("text-xs opacity-80 truncate", selectedColors.text)}>
                   {selectedOption?.description.split(' - ')[0] || "No class selected"}
                 </div>
               </div>
             </div>
             <ChevronDown className={cn(
-              "h-5 w-5 transition-transform duration-200",
+              isCompact ? "h-4 w-4" : "h-5 w-5",
+              "shrink-0 transition-transform duration-200",
               selectedColors.text,
               isOpen && "rotate-180"
             )} />
@@ -306,7 +311,7 @@ export const AcceptanceClassSelector = ({
         </div>
 
         {/* Current Selection Display Card */}
-        {selectedOption && (
+        {!isCompact && selectedOption && (
           <div className={cn(
             "p-3 rounded-xl border-2 transition-all duration-300",
             "bg-gradient-to-br from-slate-800 to-slate-900",
