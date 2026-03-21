@@ -1,5 +1,7 @@
 /// <reference types="vite/client" />
 
+declare const __APP_VERSION__: string;
+
 // Electron IPC Bridge Types
 interface ElectronAPI {
   getAppVersion: () => Promise<string>;

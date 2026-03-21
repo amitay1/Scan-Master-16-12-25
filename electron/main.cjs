@@ -103,6 +103,74 @@ const UPDATE_SETTINGS = {
 };
 
 let updateRetryCount = 0;
+let updateCheckInProgress = false;
+let updateDownloadInProgress = false;
+let lastDownloadPercent = 0;
+
+function buildUpdateState(extra = {}) {
+  return {
+    updateAvailable,
+    updateDownloaded,
+    updateVersion,
+    currentVersion: app.getVersion(),
+    ...extra,
+  };
+}
+
+async function safeCheckForUpdates(force = false) {
+  if (isDev || !autoUpdater) {
+    return { updateAvailable: false, isDev: true };
+  }
+
+  if (updateCheckInProgress) {
+    return buildUpdateState({ checking: true, alreadyInProgress: true });
+  }
+
+  if (updateDownloadInProgress) {
+    return buildUpdateState({ downloading: true, alreadyInProgress: true });
+  }
+
+  try {
+    if (force) {
+      updateRetryCount = 0;
+    }
+
+    updateCheckInProgress = true;
+    await autoUpdater.checkForUpdates();
+    return buildUpdateState({ checking: true });
+  } catch (error) {
+    updateCheckInProgress = false;
+    console.error(`${force ? 'Force check' : 'Check'} for updates error:`, error.message);
+    return { error: error.message, updateAvailable: false };
+  }
+}
+
+async function safeStartUpdateDownload(reason = 'manual') {
+  if (!autoUpdater) {
+    return { error: 'No auto updater available' };
+  }
+
+  if (updateDownloaded) {
+    return buildUpdateState({ alreadyDownloaded: true });
+  }
+
+  if (updateDownloadInProgress) {
+    console.log(`Update download already in progress (${reason})`);
+    return buildUpdateState({ downloading: true, alreadyInProgress: true });
+  }
+
+  try {
+    updateDownloadInProgress = true;
+    lastDownloadPercent = 0;
+    console.log(`Starting update download (${reason})...`);
+    await autoUpdater.downloadUpdate();
+    return buildUpdateState({ downloading: true, started: true });
+  } catch (error) {
+    updateDownloadInProgress = false;
+    console.error(`Download update error (${reason}):`, error.message);
+    return { error: error.message };
+  }
+}
 
 // Initialize autoUpdater after app is ready
 function initAutoUpdater() {
@@ -110,9 +178,10 @@ function initAutoUpdater() {
   autoUpdater = updater;
 
   // Auto-updater configuration for seamless updates
-  autoUpdater.autoDownload = true;              // Download automatically
+  autoUpdater.autoDownload = false;             // Start downloads explicitly to avoid duplicate loops
   autoUpdater.autoInstallOnAppQuit = true;      // Install when user quits
-  autoUpdater.disableWebInstaller = false;      // Use delta updates when available
+  autoUpdater.disableWebInstaller = true;       // We ship full NSIS installers, not web installers
+  autoUpdater.disableDifferentialDownload = true; // Differential path is unstable for current release flow
   autoUpdater.allowDowngrade = false;           // Never downgrade
   autoUpdater.allowPrerelease = false;          // Only stable releases
   
@@ -142,9 +211,9 @@ function setupPeriodicUpdateChecks() {
   
   // Check for updates periodically
   updateCheckInterval = setInterval(() => {
-    if (autoUpdater && !updateDownloaded) {
+    if (autoUpdater && !updateDownloaded && !updateCheckInProgress && !updateDownloadInProgress) {
       console.log('🔄 Periodic update check...');
-      autoUpdater.checkForUpdates().catch(err => {
+      safeCheckForUpdates().catch(err => {
         console.log('Periodic update check failed:', err.message);
       });
     }
@@ -154,57 +223,57 @@ function setupPeriodicUpdateChecks() {
 // Auto-updater event handlers
 function setupAutoUpdaterHandlers() {
   autoUpdater.on('checking-for-update', () => {
-    console.log('🔍 Checking for updates...');
+    updateCheckInProgress = true;
+    console.log('Checking for updates...');
     if (mainWindow) {
       mainWindow.webContents.send('update-status', { status: 'checking', silent: UPDATE_SETTINGS.silentMode });
     }
   });
 
   autoUpdater.on('update-available', (info) => {
-    console.log('✅ Update available:', info.version);
+    updateCheckInProgress = false;
+    console.log('Update available:', info.version);
     updateAvailable = true;
+    updateDownloaded = false;
     updateVersion = info.version;
     updateInfo = info;
-    updateRetryCount = 0; // Reset retry count for new update
-    updateMenu(); // Refresh menu to show update indicator
-    
+    updateRetryCount = 0;
+    updateMenu();
+
     if (mainWindow) {
-      mainWindow.webContents.send('update-status', { 
-        status: 'available', 
+      mainWindow.webContents.send('update-status', {
+        status: 'available',
         version: info.version,
         releaseNotes: info.releaseNotes,
         releaseDate: info.releaseDate,
         silent: UPDATE_SETTINGS.silentMode
       });
     }
-    
-    // Force download if autoDownload didn't trigger automatically
-    // This ensures the update is downloaded even if there are network issues
-    setTimeout(() => {
-      if (!updateDownloaded && autoUpdater) {
-        console.log('🔄 Forcing update download...');
-        autoUpdater.downloadUpdate().catch(err => {
-          console.error('Failed to download update:', err.message);
-        });
-      }
-    }, 2000);
+
+    safeStartUpdateDownload('auto').catch(err => {
+      console.error('Failed to start automatic update download:', err.message);
+    });
   });
 
   autoUpdater.on('update-not-available', (info) => {
-    console.log('👍 App is up to date:', info.version);
+    updateCheckInProgress = false;
+    updateAvailable = false;
+    console.log('App is up to date:', info.version);
     if (mainWindow) {
       mainWindow.webContents.send('update-status', { status: 'not-available', silent: UPDATE_SETTINGS.silentMode });
     }
   });
 
   autoUpdater.on('download-progress', (progress) => {
+    updateDownloadInProgress = true;
+    lastDownloadPercent = progress.percent;
     const percent = progress.percent.toFixed(1);
     const speed = (progress.bytesPerSecond / 1024 / 1024).toFixed(2);
     const transferred = (progress.transferred / 1024 / 1024).toFixed(2);
     const total = (progress.total / 1024 / 1024).toFixed(2);
-    
-    console.log(`📥 Download: ${percent}% (${transferred}/${total} MB @ ${speed} MB/s)`);
-    
+
+    console.log('Download: ' + percent + '% (' + transferred + '/' + total + ' MB @ ' + speed + ' MB/s)');
+
     if (mainWindow) {
       mainWindow.webContents.send('update-status', {
         status: 'downloading',
@@ -217,68 +286,86 @@ function setupAutoUpdaterHandlers() {
   });
 
   autoUpdater.on('update-downloaded', (info) => {
-    console.log('✅ Update downloaded:', info.version);
+    updateCheckInProgress = false;
+    updateDownloadInProgress = false;
+    lastDownloadPercent = 100;
+    console.log('Update downloaded:', info.version);
     updateDownloaded = true;
     updateVersion = info.version;
     updateInfo = info;
-    updateMenu(); // Refresh menu to show "Install Update" option
-    
+    updateMenu();
+
     if (mainWindow) {
-      mainWindow.webContents.send('update-status', { 
-        status: 'downloaded', 
+      mainWindow.webContents.send('update-status', {
+        status: 'downloaded',
         version: info.version,
         releaseNotes: info.releaseNotes,
         autoInstallOnQuit: UPDATE_SETTINGS.installOnQuit
       });
     }
-    
-    // If auto-restart is enabled, schedule restart
+
     if (UPDATE_SETTINGS.autoRestartDelay > 0) {
       scheduleAutoRestart(UPDATE_SETTINGS.autoRestartDelay);
     }
   });
 
   autoUpdater.on('error', (error) => {
-    console.error('❌ Auto-updater error:', error.message);
+    const failedDuringDownload = updateDownloadInProgress || lastDownloadPercent > 0;
+    updateCheckInProgress = false;
+    updateDownloadInProgress = false;
+
+    console.error('Auto-updater error:', error.message);
     console.error('Full error details:', JSON.stringify({
       message: error.message,
       stack: error.stack,
       code: error.code,
       name: error.name
     }, null, 2));
-    
-    // Enhanced error info for debugging
+
     const errorInfo = {
       message: error.message,
       code: error.code || 'UNKNOWN',
       isNetworkError: error.message?.includes('net::') || error.message?.includes('ENOTFOUND') || error.message?.includes('ETIMEDOUT'),
       isSha512Error: error.message?.includes('sha512') || error.message?.includes('checksum'),
       isFileError: error.message?.includes('ENOENT') || error.message?.includes('file'),
+      failedDuringDownload,
+      lastDownloadPercent,
       timestamp: new Date().toISOString()
     };
     console.error('Error analysis:', JSON.stringify(errorInfo, null, 2));
-    
-    // Retry logic
-    if (updateRetryCount < UPDATE_SETTINGS.maxRetries) {
+
+    const shouldAutoRetry =
+      errorInfo.isNetworkError &&
+      !errorInfo.isSha512Error &&
+      !failedDuringDownload &&
+      updateRetryCount < UPDATE_SETTINGS.maxRetries;
+
+    if (shouldAutoRetry) {
       updateRetryCount++;
-      console.log(`🔄 Retrying update check (${updateRetryCount}/${UPDATE_SETTINGS.maxRetries})...`);
+      console.log('Retrying update check (' + updateRetryCount + '/' + UPDATE_SETTINGS.maxRetries + ')...');
       setTimeout(() => {
-        autoUpdater.checkForUpdates().catch(err => {
+        safeCheckForUpdates().catch(err => {
           console.error('Retry failed:', err.message);
         });
       }, UPDATE_SETTINGS.retryDelay);
-    } else if (mainWindow) {
-      mainWindow.webContents.send('update-status', { 
-        status: 'error', 
-        error: error.message,
+      return;
+    }
+
+    const userMessage = errorInfo.isSha512Error
+      ? 'Update package validation failed. Re-publish this release before trying again.'
+      : error.message;
+
+    if (mainWindow) {
+      mainWindow.webContents.send('update-status', {
+        status: 'error',
+        error: userMessage,
         errorCode: error.code,
         errorDetails: errorInfo,
-        canRetry: true 
+        canRetry: true
       });
     }
   });
 }
-
 // Schedule automatic restart for update installation
 function scheduleAutoRestart(delaySeconds) {
   if (silentUpdateTimer) {
@@ -352,36 +439,11 @@ function setupIPCHandlers() {
 
   // IPC handlers for manual update control
   ipcMain.handle('check-for-updates', async () => {
-    if (!isDev && autoUpdater) {
-      try {
-        await autoUpdater.checkForUpdates();
-        // Return current state - the actual update info comes via events
-        return { 
-          checking: true,
-          updateAvailable,
-          updateDownloaded,
-          updateVersion,
-          currentVersion: app.getVersion()
-        };
-      } catch (error) {
-        console.error('Check for updates error:', error.message);
-        return { error: error.message, updateAvailable: false };
-      }
-    }
-    return { updateAvailable: false, isDev: true };
+    return safeCheckForUpdates(false);
   });
 
   ipcMain.handle('download-update', async () => {
-    if (autoUpdater) {
-      try {
-        await autoUpdater.downloadUpdate();
-        return { downloading: true };
-      } catch (error) {
-        console.error('Download update error:', error.message);
-        return { error: error.message };
-      }
-    }
-    return { error: 'No auto updater available' };
+    return safeStartUpdateDownload('manual');
   });
 
   ipcMain.handle('install-update', (event, silent = true) => {
@@ -437,23 +499,7 @@ function setupIPCHandlers() {
   
   // New: Force check for updates (bypass cache)
   ipcMain.handle('force-check-updates', async () => {
-    if (!isDev && autoUpdater) {
-      try {
-        updateRetryCount = 0;
-        await autoUpdater.checkForUpdates();
-        return { 
-          checking: true,
-          updateAvailable,
-          updateDownloaded,
-          updateVersion,
-          currentVersion: app.getVersion()
-        };
-      } catch (error) {
-        console.error('Force check updates error:', error.message);
-        return { error: error.message, updateAvailable: false };
-      }
-    }
-    return { updateAvailable: false, isDev: true };
+    return safeCheckForUpdates(true);
   });
 
   // PDF/File Save IPC Handler - more reliable than blob downloads
@@ -954,7 +1000,9 @@ function buildMenuTemplate() {
       label: '🟡 Download Update (v' + updateVersion + ')',
       click: () => {
         if (autoUpdater) {
-          autoUpdater.downloadUpdate();
+          safeStartUpdateDownload('menu').catch(err => {
+            console.error('Menu-triggered download failed:', err.message);
+          });
         }
       }
     };
@@ -963,7 +1011,9 @@ function buildMenuTemplate() {
       label: 'Check for Updates',
       click: () => {
         if (!isDev && autoUpdater) {
-          autoUpdater.checkForUpdates();
+          safeCheckForUpdates().catch(err => {
+            console.error('Menu-triggered update check failed:', err.message);
+          });
         } else {
           dialog.showMessageBox(mainWindow, {
             type: 'info',
@@ -1605,7 +1655,7 @@ app.whenReady().then(async () => {
   if (!isDev) {
     setTimeout(() => {
       console.log('🚀 Initial update check on startup...');
-      autoUpdater.checkForUpdates().catch(err => {
+      safeCheckForUpdates().catch(err => {
         console.error('Initial update check failed:', err.message);
       });
     }, 3000);

@@ -38,6 +38,7 @@ export interface InspectorProfileStorage {
   profiles: InspectorProfile[];
   currentProfileId: string | null;
   rememberSelection: boolean;
+  lastUsedProfileId?: string | null;
 }
 
 export const CERTIFICATION_LEVELS: CertificationLevel[] = ['Level I', 'Level II', 'Level III'];

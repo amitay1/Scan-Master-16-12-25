@@ -19,6 +19,7 @@ export const StatusBar = ({
   lastSaved
 }: StatusBarProps) => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [appVersion, setAppVersion] = useState(`v${__APP_VERSION__}`);
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -30,6 +31,24 @@ export const StatusBar = ({
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+
+    window.electron?.getAppVersion?.()
+      .then((version) => {
+        if (mounted && version) {
+          setAppVersion(`v${version}`);
+        }
+      })
+      .catch(() => {
+        // Keep the build-time fallback when Electron is unavailable.
+      });
+
+    return () => {
+      mounted = false;
     };
   }, []);
 
@@ -112,7 +131,7 @@ export const StatusBar = ({
       <div className="flex-1" />
 
       {/* Version Info */}
-      <span className="font-mono text-base font-semibold">v1.0.0</span>
+      <span className="font-mono text-base font-semibold">{appVersion}</span>
     </div>
   );
 };

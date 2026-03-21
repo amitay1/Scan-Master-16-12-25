@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -28,13 +28,28 @@ export function ProfileSelectionDialog({
   const {
     profiles,
     currentProfile,
+    preferredProfileId,
     rememberSelection,
     selectProfile,
     setRememberSelection,
   } = useInspectorProfile();
 
-  const [selectedId, setSelectedId] = useState<string | null>(currentProfile?.id || null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showManager, setShowManager] = useState(false);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    const suggestedProfile =
+      (preferredProfileId && profiles.find((profile) => profile.id === preferredProfileId)) ||
+      profiles.find((profile) => profile.isDefault) ||
+      profiles[0] ||
+      null;
+
+    setSelectedId(currentProfile?.id || suggestedProfile?.id || null);
+  }, [open, profiles, currentProfile?.id, preferredProfileId]);
 
   const handleSelect = (profile: InspectorProfile) => {
     setSelectedId(profile.id);
@@ -80,10 +95,10 @@ export function ProfileSelectionDialog({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <User className="h-5 w-5" />
-              Select Your Profile
+              Choose Session Profile
             </DialogTitle>
             <DialogDescription>
-              Choose your inspector profile to continue. Your credentials will be used for documentation.
+              Pick the inspector profile for this session. The system will ask again next time you open the app.
             </DialogDescription>
           </DialogHeader>
 
@@ -125,6 +140,11 @@ export function ProfileSelectionDialog({
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             <span className="font-medium truncate">{profile.name}</span>
+                            {preferredProfileId === profile.id && (
+                              <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
+                                Suggested
+                              </span>
+                            )}
                             {profile.isDefault && (
                               <Star className="h-3.5 w-3.5 text-yellow-500 fill-yellow-500 flex-shrink-0" />
                             )}
@@ -167,7 +187,7 @@ export function ProfileSelectionDialog({
                     htmlFor="remember"
                     className="text-sm text-muted-foreground cursor-pointer select-none"
                   >
-                    Remember my selection
+                    Suggest this profile next time
                   </label>
                 </div>
 

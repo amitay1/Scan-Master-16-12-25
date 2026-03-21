@@ -75,7 +75,6 @@ export function UpdateNotification() {
     };
 
     electron.onUpdateStatus?.(handleUpdateStatus);
-    electron.checkForUpdates?.();
 
     return () => {
       electron.removeUpdateListener?.(handleUpdateStatus);

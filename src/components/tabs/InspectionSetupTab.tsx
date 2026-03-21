@@ -1499,7 +1499,7 @@ export const InspectionSetupTab = ({
       {data.partType && (
         <Card className="p-4 mt-4">
           <h3 className="text-sm font-semibold mb-3">Part Drawing with Dimensions</h3>
-          <div className="h-[480px] w-full overflow-hidden">
+          <div className="h-[520px] w-full overflow-visible">
             <RealTimeTechnicalDrawing
               partType={data.partType}
               material={data.material as MaterialType}

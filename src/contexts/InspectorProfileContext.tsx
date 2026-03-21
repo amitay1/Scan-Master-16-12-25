@@ -14,6 +14,7 @@ const API_BASE_URL = '/api/inspector-profiles';
 interface InspectorProfileContextValue {
   profiles: InspectorProfile[];
   currentProfile: InspectorProfile | null;
+  preferredProfileId: string | null;
   rememberSelection: boolean;
   isLoading: boolean;
   needsProfileSelection: boolean;
@@ -42,6 +43,7 @@ const defaultStorage: InspectorProfileStorage = {
   profiles: [],
   currentProfileId: null,
   rememberSelection: false,
+  lastUsedProfileId: null,
 };
 
 async function loadFromStorage(): Promise<InspectorProfileStorage> {
@@ -109,6 +111,7 @@ interface InspectorProfileProviderProps {
 export function InspectorProfileProvider({ children }: InspectorProfileProviderProps) {
   const [profiles, setProfiles] = useState<InspectorProfile[]>([]);
   const [currentProfileId, setCurrentProfileId] = useState<string | null>(null);
+  const [lastUsedProfileId, setLastUsedProfileId] = useState<string | null>(null);
   const [rememberSelection, setRememberSelectionState] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const initialLoadDone = useRef(false);
@@ -153,20 +156,21 @@ export function InspectorProfileProvider({ children }: InspectorProfileProviderP
           // Load remember selection from unified storage
           const stored = await loadFromStorage();
           setRememberSelectionState(stored.rememberSelection);
-
-          // Only auto-select if remember is enabled
-          if (stored.rememberSelection && stored.currentProfileId) {
-            const profileExists = serverProfiles.some((p: InspectorProfile) => p.id === stored.currentProfileId);
-            if (profileExists) {
-              setCurrentProfileId(stored.currentProfileId);
-            }
-          }
+          const suggestedId = stored.rememberSelection
+            ? (stored.lastUsedProfileId || stored.currentProfileId)
+            : null;
+          const suggestedExists = suggestedId
+            ? serverProfiles.some((p: InspectorProfile) => p.id === suggestedId)
+            : false;
+          setCurrentProfileId(null);
+          setLastUsedProfileId(suggestedExists ? suggestedId : null);
 
           // Also save to unified storage as backup
           await saveToStorage({
             profiles: serverProfiles,
-            currentProfileId: stored.currentProfileId,
+            currentProfileId: null,
             rememberSelection: stored.rememberSelection,
+            lastUsedProfileId: suggestedExists ? suggestedId : null,
           });
         } else {
           // Fallback to unified storage if server fails
@@ -174,26 +178,28 @@ export function InspectorProfileProvider({ children }: InspectorProfileProviderP
           const stored = await loadFromStorage();
           setProfiles(stored.profiles);
           setRememberSelectionState(stored.rememberSelection);
-
-          if (stored.rememberSelection && stored.currentProfileId) {
-            const profileExists = stored.profiles.some(p => p.id === stored.currentProfileId);
-            if (profileExists) {
-              setCurrentProfileId(stored.currentProfileId);
-            }
-          }
+          const suggestedId = stored.rememberSelection
+            ? (stored.lastUsedProfileId || stored.currentProfileId)
+            : null;
+          const suggestedExists = suggestedId
+            ? stored.profiles.some(p => p.id === suggestedId)
+            : false;
+          setCurrentProfileId(null);
+          setLastUsedProfileId(suggestedExists ? suggestedId : null);
         }
       } else {
         // Use unified storage only
         const stored = await loadFromStorage();
         setProfiles(stored.profiles);
         setRememberSelectionState(stored.rememberSelection);
-
-        if (stored.rememberSelection && stored.currentProfileId) {
-          const profileExists = stored.profiles.some(p => p.id === stored.currentProfileId);
-          if (profileExists) {
-            setCurrentProfileId(stored.currentProfileId);
-          }
-        }
+        const suggestedId = stored.rememberSelection
+          ? (stored.lastUsedProfileId || stored.currentProfileId)
+          : null;
+        const suggestedExists = suggestedId
+          ? stored.profiles.some(p => p.id === suggestedId)
+          : false;
+        setCurrentProfileId(null);
+        setLastUsedProfileId(suggestedExists ? suggestedId : null);
       }
 
       setIsLoading(false);
@@ -210,11 +216,13 @@ export function InspectorProfileProvider({ children }: InspectorProfileProviderP
         profiles,
         currentProfileId,
         rememberSelection,
+        lastUsedProfileId,
       });
     }
-  }, [profiles, currentProfileId, rememberSelection, isLoading]);
+  }, [profiles, currentProfileId, rememberSelection, lastUsedProfileId, isLoading]);
 
   const currentProfile = profiles.find(p => p.id === currentProfileId) || null;
+  const preferredProfileId = rememberSelection ? lastUsedProfileId : null;
 
   // Show profile selection if no profile is selected and we have profiles OR no profiles at all
   const needsProfileSelection = !isLoading && !currentProfile;
@@ -223,8 +231,11 @@ export function InspectorProfileProvider({ children }: InspectorProfileProviderP
     const profile = profiles.find(p => p.id === id);
     if (profile) {
       setCurrentProfileId(id);
+      if (rememberSelection) {
+        setLastUsedProfileId(id);
+      }
     }
-  }, [profiles]);
+  }, [profiles, rememberSelection]);
 
   const createProfile = useCallback((data: InspectorProfileFormData): InspectorProfile => {
     const now = new Date().toISOString();
@@ -367,7 +378,8 @@ export function InspectorProfileProvider({ children }: InspectorProfileProviderP
 
   const setRememberSelection = useCallback((remember: boolean) => {
     setRememberSelectionState(remember);
-  }, []);
+    setLastUsedProfileId(remember ? (currentProfileId || lastUsedProfileId) : null);
+  }, [currentProfileId, lastUsedProfileId]);
 
   const clearCurrentProfile = useCallback(() => {
     setCurrentProfileId(null);
@@ -376,6 +388,7 @@ export function InspectorProfileProvider({ children }: InspectorProfileProviderP
   const value: InspectorProfileContextValue = {
     profiles,
     currentProfile,
+    preferredProfileId,
     rememberSelection,
     isLoading,
     needsProfileSelection,

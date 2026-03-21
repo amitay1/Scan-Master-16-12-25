@@ -575,9 +575,9 @@ export class TechnicalDrawingGenerator {
   ) {
     const width = 180;
     const height = 80;
-    // Increased right margin from 20 to 50 to prevent clipping
+    // Keep the title block away from the canvas edge so metadata rows never clip.
     const x = this.canvas.width - width - 50;
-    const y = this.canvas.height - height - 15;
+    const y = this.canvas.height - height - 28;
 
     // Main border
     this.drawRectangle(x, y, width, height, 'visible');

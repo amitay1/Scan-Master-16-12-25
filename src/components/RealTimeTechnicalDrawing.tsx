@@ -90,6 +90,8 @@ export const RealTimeTechnicalDrawing = ({
 }: RealTimeTechnicalDrawingProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const generatorRef = useRef<TechnicalDrawingGenerator | null>(null);
+  const CANVAS_WIDTH = 800;
+  const CANVAS_HEIGHT = 500;
 
   // Debounce to prevent flickering during rapid input changes
   const debouncedDimensions = useDebounce(dimensions, 150);
@@ -162,8 +164,8 @@ export const RealTimeTechnicalDrawing = ({
     if (!canvas) return;
 
     // Set canvas size to fit container
-    canvas.width = 800;
-    canvas.height = 450;
+    canvas.width = CANVAS_WIDTH;
+    canvas.height = CANVAS_HEIGHT;
 
     // ALWAYS re-initialize generator to ensure clean slate
     // This fixes issues where the canvas doesn't update properly
@@ -407,7 +409,7 @@ export const RealTimeTechnicalDrawing = ({
   }, [partType, drawingDimensions, layout, showGrid, material, standardType, partNumberProp, showScanCoverage, scanType, coverageDimensions]);
 
   return (
-    <div className="w-full h-full flex items-center justify-center bg-[#D4D4D4]">
+    <div className="w-full h-full flex items-center justify-center bg-[#D4D4D4] p-3">
       <canvas
         id="technical-drawing-canvas"
         ref={canvasRef}
@@ -415,6 +417,9 @@ export const RealTimeTechnicalDrawing = ({
         style={{
           maxWidth: '100%',
           maxHeight: '100%',
+          width: '100%',
+          height: 'auto',
+          display: 'block',
           imageRendering: 'crisp-edges',
           backgroundColor: '#D4D4D4'
         }}

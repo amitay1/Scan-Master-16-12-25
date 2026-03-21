@@ -1,7 +1,12 @@
 import { defineConfig, Plugin } from "vite";
 import react from "@vitejs/plugin-react-swc";
+import fs from "fs";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
+
+const appPackageVersion =
+  process.env.npm_package_version ||
+  JSON.parse(fs.readFileSync(path.resolve(__dirname, "package.json"), "utf8")).version;
 
 // Plugin to stub out @mediapipe/tasks-vision imports
 const mediapipeStubPlugin = (): Plugin => ({
@@ -26,6 +31,9 @@ const mediapipeStubPlugin = (): Plugin => ({
 export default defineConfig(({ mode }) => ({
   // Use relative paths for Electron file:// protocol
   base: './',
+  define: {
+    __APP_VERSION__: JSON.stringify(appPackageVersion),
+  },
   server: {
     host: "0.0.0.0",
     allowedHosts: true, // Allow all Replit preview URLs

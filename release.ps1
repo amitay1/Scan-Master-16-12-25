@@ -410,10 +410,10 @@ if ($ghAvailable) {
         $remoteAssets = Get-ReleaseAssetMap -TagName $releaseTag -Repo $githubRepo
 
         $filesToUpload = @(
-            @{ Path = (Join-Path $freshOutputDir "latest.yml");                                 Name = "latest.yml" },
             @{ Path = (Join-Path $freshOutputDir "ScanMaster-Setup-$newVersion.exe");           Name = "Setup EXE" },
             @{ Path = (Join-Path $freshOutputDir "ScanMaster-Setup-$newVersion.exe.blockmap");  Name = "Blockmap" },
-            @{ Path = (Join-Path $freshOutputDir "ScanMaster-Portable-$newVersion.exe");        Name = "Portable EXE" }
+            @{ Path = (Join-Path $freshOutputDir "ScanMaster-Portable-$newVersion.exe");        Name = "Portable EXE" },
+            @{ Path = (Join-Path $freshOutputDir "latest.yml");                                 Name = "latest.yml" }
         )
 
         $uploadFailed = $false
