@@ -7,6 +7,9 @@ interface ElectronAPI {
   installUpdate: () => void;
   onUpdateStatus: (callback: (event: any, status: UpdateStatusEvent) => void) => void;
   removeUpdateListener: (callback: (event: any, status: UpdateStatusEvent) => void) => void;
+  confirmAppClose?: () => Promise<{ success: boolean }>;
+  onAppCloseRequested?: (callback: () => void) => void;
+  removeAppCloseRequested?: (callback: () => void) => void;
 }
 
 interface UpdateStatusEvent {

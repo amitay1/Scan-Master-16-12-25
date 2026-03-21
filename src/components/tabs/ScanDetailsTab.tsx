@@ -98,6 +98,7 @@ interface ScanDetailsTabProps {
   onChange: (data: ScanDetailsData) => void;
   partType?: PartGeometry | "";
   standard?: StandardType;
+  equipmentFrequency?: string;
   dimensions?: {
     diameter?: number;
     length?: number;
@@ -134,7 +135,14 @@ const getDefaultScanDetailsForStandard = (standard: StandardType): ExtendedScanD
   return (getV2500ScanDetailDefaults(standard) as ExtendedScanDetail[] | null) ?? FIXED_SCAN_DETAILS;
 };
 
-export const ScanDetailsTab = ({ data, onChange, partType, standard = "AMS-STD-2154E", dimensions }: ScanDetailsTabProps) => {
+export const ScanDetailsTab = ({
+  data,
+  onChange,
+  partType,
+  standard = "AMS-STD-2154E",
+  equipmentFrequency,
+  dimensions,
+}: ScanDetailsTabProps) => {
   const frequencyOptions = getFrequencyOptionsForStandard(standard);
   const [highlightedDirection, setHighlightedDirection] = useState<string | null>(null);
   const [expandedRows, setExpandedRows] = useState<string[]>([]);
@@ -186,6 +194,24 @@ export const ScanDetailsTab = ({ data, onChange, partType, standard = "AMS-STD-2
 
     onChange({ ...data, scanDetails: normalizedScanDetails });
   }, [currentDirectionKey, data, defaultDirectionKey, defaultScanDetails, onChange]);
+
+  useEffect(() => {
+    const fallbackFrequency = equipmentFrequency?.trim();
+    if (!fallbackFrequency) return;
+
+    const existingScanDetails = data.scanDetails ?? [];
+    if (existingScanDetails.length === 0) return;
+
+    let hasChanges = false;
+    const normalizedScanDetails = existingScanDetails.map((detail) => {
+      if (detail.frequency?.trim()) return detail;
+      hasChanges = true;
+      return { ...detail, frequency: fallbackFrequency };
+    });
+
+    if (!hasChanges) return;
+    onChange({ ...data, scanDetails: normalizedScanDetails });
+  }, [data, equipmentFrequency, onChange]);
 
   const scanDetails = defaultScanDetails.map(fixed => {
     const existing = data.scanDetails?.find(d => d.scanningDirection === fixed.scanningDirection);
@@ -352,13 +378,19 @@ export const ScanDetailsTab = ({ data, onChange, partType, standard = "AMS-STD-2
     }
   }, [data.customDrawingData]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const getEffectiveFrequencyMHz = (detail: ExtendedScanDetail): number | null => {
+    const frequencyText = detail.frequency?.trim() || equipmentFrequency?.trim() || "";
+    const frequencyMHz = Number.parseFloat(frequencyText);
+    return Number.isFinite(frequencyMHz) && frequencyMHz > 0 ? frequencyMHz : null;
+  };
+
   const getComputedNearField = (detail: ExtendedScanDetail): number | null => {
     const diameterMm = Number(detail.activeElementDiameter);
-    const frequencyMHz = Number.parseFloat(detail.frequency || "");
+    const frequencyMHz = getEffectiveFrequencyMHz(detail);
     const velocityMs = Number(detail.velocity || 5920);
 
     if (!Number.isFinite(diameterMm) || diameterMm <= 0) return null;
-    if (!Number.isFinite(frequencyMHz) || frequencyMHz <= 0) return null;
+    if (frequencyMHz === null) return null;
     if (!Number.isFinite(velocityMs) || velocityMs <= 0) return null;
 
     return calculateNearField(diameterMm, frequencyMHz, velocityMs);
@@ -461,7 +493,7 @@ export const ScanDetailsTab = ({ data, onChange, partType, standard = "AMS-STD-2
                           <p className="mt-1 text-emerald-300">= {nf.toFixed(2)} mm</p>
                         )}
                         {nf === null && (
-                          <p className="mt-1 text-amber-400">Enter Diameter, Frequency & Velocity</p>
+                          <p className="mt-1 text-amber-400">Enter Diameter and Velocity. Frequency falls back to Equipment.</p>
                         )}
                       </div>
                     </div>

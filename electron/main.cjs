@@ -75,6 +75,7 @@ app.commandLine.appendSwitch('force-device-scale-factor', '1');
 
 let mainWindow;
 let embeddedServer;
+let closeApproved = false;
 let updateAvailable = false;
 let updateVersion = null;
 let updateDownloaded = false;
@@ -329,7 +330,24 @@ function setupIPCHandlers() {
   });
 
   ipcMain.handle('app-quit', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.close();
+      return;
+    }
+
     app.quit();
+  });
+
+  ipcMain.handle('confirm-app-close', () => {
+    closeApproved = true;
+
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.close();
+      return { success: true };
+    }
+
+    app.quit();
+    return { success: true };
   });
 
   // IPC handlers for manual update control
@@ -981,6 +999,11 @@ function buildMenuTemplate() {
           label: 'Quit',
           accelerator: process.platform === 'darwin' ? 'Cmd+Q' : 'Ctrl+Q',
           click: () => {
+            if (mainWindow && !mainWindow.isDestroyed()) {
+              mainWindow.close();
+              return;
+            }
+
             app.quit();
           }
         }
@@ -1053,6 +1076,8 @@ function updateMenu() {
 }
 
 async function createWindow() {
+  closeApproved = false;
+
   // Get the primary display to calculate proper dimensions
   const primaryDisplay = screen.getPrimaryDisplay();
   const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize;
@@ -1224,8 +1249,21 @@ async function createWindow() {
     }
   }
 
+  mainWindow.on('close', (event) => {
+    if (closeApproved) {
+      return;
+    }
+
+    event.preventDefault();
+
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('app-close-requested');
+    }
+  });
+
   // Handle window closed
   mainWindow.on('closed', () => {
+    closeApproved = false;
     mainWindow = null;
   });
 

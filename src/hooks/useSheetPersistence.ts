@@ -31,6 +31,14 @@ interface UseSheetPersistenceParams {
   documentationB: any;
 }
 
+interface SaveResult {
+  saved: boolean;
+  storage?: "local" | "database";
+  mode?: "created" | "updated";
+  name?: string;
+  requiresName?: boolean;
+}
+
 export function useSheetPersistence({
   user,
   standard,
@@ -65,6 +73,55 @@ export function useSheetPersistence({
   const [isLoadingSheets, setIsLoadingSheets] = useState(false);
   const [loadingSheetId, setLoadingSheetId] = useState<string | null>(null);
   const [deletingSheetId, setDeletingSheetId] = useState<string | null>(null);
+
+  const buildSuggestedCardName = useCallback(() => (
+    currentSheetName ||
+    currentData.inspectionSetup.partName ||
+    currentData.inspectionSetup.partNumber ||
+    `Technique Card ${new Date().toLocaleDateString("he-IL")}`
+  ), [currentSheetName, currentData]);
+
+  const buildLocalCardPayload = useCallback((name: string, existingCard?: Partial<SavedCard>) => {
+    const cardData = buildCardData();
+
+    return {
+      name,
+      description: `${currentData.inspectionSetup.partName || ""} - ${standard}`,
+      type: reportMode === "Report" ? "report" : "technique",
+      standard,
+      completionPercent,
+      tags: existingCard?.tags || [],
+      isFavorite: existingCard?.isFavorite || false,
+      isArchived: existingCard?.isArchived || false,
+      isSplitMode,
+      inspectionSetup: currentData.inspectionSetup,
+      equipment: currentData.equipment,
+      calibration: currentData.calibration,
+      scanParameters: currentData.scanParameters,
+      acceptanceCriteria: currentData.acceptanceCriteria,
+      documentation: currentData.documentation,
+      inspectionSetupB: isSplitMode ? inspectionSetupB : undefined,
+      equipmentB: isSplitMode ? equipmentB : undefined,
+      calibrationB: isSplitMode ? calibrationB : undefined,
+      scanParametersB: isSplitMode ? scanParametersB : undefined,
+      acceptanceCriteriaB: isSplitMode ? acceptanceCriteriaB : undefined,
+      documentationB: isSplitMode ? documentationB : undefined,
+      data: cardData,
+    } as any;
+  }, [
+    buildCardData,
+    currentData,
+    standard,
+    reportMode,
+    completionPercent,
+    isSplitMode,
+    inspectionSetupB,
+    equipmentB,
+    calibrationB,
+    scanParametersB,
+    acceptanceCriteriaB,
+    documentationB,
+  ]);
 
   // ── Organization loading ───────────────────────────────────────────────
   useEffect(() => {
@@ -142,9 +199,11 @@ export function useSheetPersistence({
       setSheetNameInput(sheet.sheetName);
       setIsSavedCardsDialogOpen(false);
       toast.success(`Loaded card "${sheet.sheetName}"`);
+      return sheet;
     } catch (error) {
       logError("Failed to load technique card", error);
       toast.error("Unable to load the selected card.");
+      return null;
     } finally {
       setLoadingSheetId(null);
     }
@@ -175,7 +234,7 @@ export function useSheetPersistence({
   const performSave = useCallback(async (name: string, sheetId?: string) => {
     if (!user || !organizationId) {
       toast.error("You must be signed in to save.");
-      return;
+      return null;
     }
     setIsSavingSheet(true);
     try {
@@ -194,9 +253,11 @@ export function useSheetPersistence({
       setIsSaveDialogOpen(false);
       await refreshSavedSheets();
       toast.success(sheetId ? "Technique card updated." : "Technique card saved.");
+      return saved;
     } catch (error) {
       logError("Failed to save technique card", error);
       toast.error("Unable to save the technique card.");
+      return null;
     } finally {
       setIsSavingSheet(false);
     }
@@ -204,75 +265,125 @@ export function useSheetPersistence({
 
   // ── Local save (localStorage via SavedCards context) ───────────────────
   const performLocalSave = useCallback((name: string) => {
-    const cardData = buildCardData();
-    const savedCard = saveCard({
-      name,
-      description: `${currentData.inspectionSetup.partName || ""} - ${standard}`,
-      type: reportMode === "Report" ? "report" : "technique",
-      standard,
-      completionPercent,
-      tags: [],
-      isFavorite: false,
-      isArchived: false,
-      isSplitMode,
-      inspectionSetup: currentData.inspectionSetup,
-      equipment: currentData.equipment,
-      calibration: currentData.calibration,
-      scanParameters: currentData.scanParameters,
-      acceptanceCriteria: currentData.acceptanceCriteria,
-      documentation: currentData.documentation,
-      inspectionSetupB: isSplitMode ? inspectionSetupB : undefined,
-      equipmentB: isSplitMode ? equipmentB : undefined,
-      calibrationB: isSplitMode ? calibrationB : undefined,
-      scanParametersB: isSplitMode ? scanParametersB : undefined,
-      acceptanceCriteriaB: isSplitMode ? acceptanceCriteriaB : undefined,
-      documentationB: isSplitMode ? documentationB : undefined,
-      data: cardData,
-    } as any);
+    const savedCard = saveCard(buildLocalCardPayload(name));
     setCurrentLocalCardId(savedCard.id);
     setCurrentSheetName(name);
     toast.success(`Card "${name}" saved successfully!`);
     setIsSaveDialogOpen(false);
-  }, [
-    buildCardData, saveCard, currentData, standard, reportMode, completionPercent,
-    isSplitMode, inspectionSetupB, equipmentB, calibrationB, scanParametersB, acceptanceCriteriaB, documentationB,
-  ]);
+    return savedCard;
+  }, [buildLocalCardPayload, saveCard]);
+
+  const updateExistingLocalCard = useCallback((existingCard: SavedCard): SaveResult => {
+    updateCard(existingCard.id, buildLocalCardPayload(existingCard.name, existingCard));
+    setCurrentSheetName(existingCard.name);
+    toast.success(`Card "${existingCard.name}" updated successfully!`);
+
+    return {
+      saved: true,
+      storage: "local",
+      mode: "updated",
+      name: existingCard.name,
+    };
+  }, [buildLocalCardPayload, updateCard]);
 
   // ── Save dialog confirm ────────────────────────────────────────────────
-  const handleSaveDialogConfirm = useCallback(() => {
+  const handleSaveDialogConfirm = useCallback(async (): Promise<SaveResult> => {
     const trimmedName = sheetNameInput.trim();
     if (!trimmedName) {
       toast.error("Please enter a name for the card.");
-      return;
+      return { saved: false };
     }
-    performLocalSave(trimmedName);
+    const savedCard = performLocalSave(trimmedName);
+    return {
+      saved: true,
+      storage: "local",
+      mode: "created",
+      name: savedCard.name,
+    };
   }, [sheetNameInput, performLocalSave]);
 
   // ── handleSave (Ctrl+S / toolbar) ─────────────────────────────────────
-  const handleSave = useCallback(async () => {
-    if (isSavingSheet) return;
-    const cardData = buildCardData();
+  const handleSave = useCallback(async (): Promise<SaveResult> => {
+    if (isSavingSheet) return { saved: false };
 
     if (currentLocalCardId) {
       const existingCard = getCard(currentLocalCardId);
       if (existingCard) {
-        updateCard(currentLocalCardId, {
-          data: cardData,
-          completionPercent,
-          standard,
-        } as any);
-        toast.success(`Card "${existingCard.name}" updated successfully!`);
-        return;
+        return updateExistingLocalCard(existingCard);
       }
     }
 
-    const suggestedName =
-      currentData.inspectionSetup.partName ||
-      currentData.inspectionSetup.partNumber ||
-      `Technique Card ${new Date().toLocaleDateString("he-IL")}`;
+    if (currentSheetId && currentSheetName.trim()) {
+      const savedSheet = await performSave(currentSheetName, currentSheetId);
+      if (savedSheet) {
+        return {
+          saved: true,
+          storage: "database",
+          mode: "updated",
+          name: savedSheet.sheetName,
+        };
+      }
+
+      return { saved: false };
+    }
+
+    const suggestedName = buildSuggestedCardName();
     setSheetNameInput(suggestedName);
     setIsSaveDialogOpen(true);
-  }, [isSavingSheet, buildCardData, currentLocalCardId, getCard, updateCard, completionPercent, standard, currentData]);
+    return { saved: false, requiresName: true, name: suggestedName };
+  }, [
+    isSavingSheet,
+    currentLocalCardId,
+    getCard,
+    currentSheetId,
+    currentSheetName,
+    performSave,
+    buildSuggestedCardName,
+    updateExistingLocalCard,
+  ]);
+
+  const saveCurrentCardSilently = useCallback(async (): Promise<SaveResult> => {
+    if (isSavingSheet) return { saved: false };
+
+    if (currentLocalCardId) {
+      const existingCard = getCard(currentLocalCardId);
+      if (existingCard) {
+        return updateExistingLocalCard(existingCard);
+      }
+    }
+
+    if (currentSheetId && currentSheetName.trim()) {
+      const savedSheet = await performSave(currentSheetName, currentSheetId);
+      if (savedSheet) {
+        return {
+          saved: true,
+          storage: "database",
+          mode: "updated",
+          name: savedSheet.sheetName,
+        };
+      }
+
+      return { saved: false };
+    }
+
+    const savedCard = performLocalSave(buildSuggestedCardName());
+    return {
+      saved: true,
+      storage: "local",
+      mode: "created",
+      name: savedCard.name,
+    };
+  }, [
+    isSavingSheet,
+    currentLocalCardId,
+    getCard,
+    currentSheetId,
+    currentSheetName,
+    performSave,
+    performLocalSave,
+    buildSuggestedCardName,
+    updateExistingLocalCard,
+  ]);
 
   const handleSaveAs = useCallback(() => {
     const baseName =
@@ -294,12 +405,13 @@ export function useSheetPersistence({
     const data = (card as any).data;
     if (!data) {
       toast.error("Saved card is missing data.");
-      return;
+      return null;
     }
     setCurrentLocalCardId(card.id);
     setCurrentSheetName(card.name);
     applyLocalCard(data);
     toast.success(`Loaded card: ${card.name}`);
+    return card;
   }, [applyLocalCard]);
 
   // ── Auto-save hook ─────────────────────────────────────────────────────
@@ -355,6 +467,7 @@ export function useSheetPersistence({
     handleLoadLocalCard,
     performSave,
     performLocalSave,
+    saveCurrentCardSilently,
     refreshSavedSheets,
     // Auto-save
     autoSaveStatus,

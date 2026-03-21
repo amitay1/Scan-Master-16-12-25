@@ -51,6 +51,7 @@ import { OfflineUpdateDialog } from "@/components/updates/OfflineUpdateDialog";
 import { LicenseWarningBanner } from "@/components/LicenseWarningBanner";
 import { requiresAngleBeam } from "@/utils/beamTypeClassification";
 import { exportInspectionReportPDF } from "@/utils/export/InspectionReportPDF";
+import type { SavedCard } from "@/contexts/SavedCardsContext";
 
 import { StandardProvider } from "@/contexts/StandardContext";
 
@@ -81,6 +82,11 @@ const Index = () => {
   const [viewer3DOpen, setViewer3DOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [quickFillDialogOpen, setQuickFillDialogOpen] = useState(false);
+  const [unsavedCloseDialogOpen, setUnsavedCloseDialogOpen] = useState(false);
+  const [isClosingAfterSave, setIsClosingAfterSave] = useState(false);
+  const [lastSavedSnapshot, setLastSavedSnapshot] = useState<string | null>(null);
+  const hasInitializedSavedSnapshotRef = useRef(false);
+  const suppressClosePromptRef = useRef(false);
 
   // ── Hook 1: Technique sheet state ──────────────────────────────────────
   const sheetState = useTechniqueSheetState({
@@ -148,6 +154,13 @@ const Index = () => {
     isSplitMode, activePart, inspectionSetup, inspectionSetupB,
   });
 
+  const currentCardSnapshot = useMemo(() => JSON.stringify(buildCardData()), [buildCardData]);
+  const isDirty = lastSavedSnapshot !== null && currentCardSnapshot !== lastSavedSnapshot;
+
+  const markCurrentAsSaved = useCallback((snapshot = currentCardSnapshot) => {
+    setLastSavedSnapshot(snapshot);
+  }, [currentCardSnapshot]);
+
   // ── localStorage draft save ────────────────────────────────────────────
   useEffect(() => {
     const data = {
@@ -181,7 +194,131 @@ const Index = () => {
     loadDraftFromLocalStorage();
   }, []);
 
+  useEffect(() => {
+    if (!sheetState.hasHydratedInitialDraft || hasInitializedSavedSnapshotRef.current) {
+      return;
+    }
+
+    hasInitializedSavedSnapshotRef.current = true;
+    setLastSavedSnapshot(currentCardSnapshot);
+  }, [sheetState.hasHydratedInitialDraft, currentCardSnapshot]);
+
   // ── Keyboard shortcuts ─────────────────────────────────────────────────
+  const confirmAppClose = useCallback(async () => {
+    try {
+      if (window.electron?.confirmAppClose) {
+        await window.electron.confirmAppClose();
+        return;
+      }
+
+      window.close();
+    } catch (error) {
+      suppressClosePromptRef.current = false;
+      toast.error("Unable to close the window right now.");
+    }
+  }, []);
+
+  const continueClosing = useCallback(async () => {
+    suppressClosePromptRef.current = true;
+    setUnsavedCloseDialogOpen(false);
+    await confirmAppClose();
+  }, [confirmAppClose]);
+
+  const handleSaveCard = useCallback(async () => {
+    const result = await persistence.handleSave();
+    if (result?.saved) {
+      markCurrentAsSaved();
+    }
+  }, [persistence.handleSave, markCurrentAsSaved]);
+
+  const handleSaveDialogConfirm = useCallback(async () => {
+    const result = await persistence.handleSaveDialogConfirm();
+    if (result?.saved) {
+      markCurrentAsSaved();
+    }
+  }, [persistence.handleSaveDialogConfirm, markCurrentAsSaved]);
+
+  const handleLoadLocalSavedCard = useCallback((card: SavedCard) => {
+    const loadedCard = persistence.handleLoadLocalCard(card);
+    if (loadedCard?.data) {
+      setLastSavedSnapshot(JSON.stringify(loadedCard.data));
+    }
+  }, [persistence.handleLoadLocalCard]);
+
+  const handleLoadSavedSheet = useCallback(async (sheetId: string) => {
+    const loadedSheet = await persistence.handleLoadSheet(sheetId);
+    if (loadedSheet?.data) {
+      setLastSavedSnapshot(JSON.stringify(loadedSheet.data));
+    }
+  }, [persistence.handleLoadSheet]);
+
+  const handleCloseRequest = useCallback(async () => {
+    if (suppressClosePromptRef.current) {
+      return;
+    }
+
+    if (!isDirty) {
+      await continueClosing();
+      return;
+    }
+
+    setUnsavedCloseDialogOpen(true);
+  }, [isDirty, continueClosing]);
+
+  const handleSaveAndClose = useCallback(async () => {
+    setIsClosingAfterSave(true);
+
+    try {
+      const result = await persistence.saveCurrentCardSilently();
+      if (!result?.saved) {
+        toast.error("Unable to save the latest changes before closing.");
+        return;
+      }
+
+      markCurrentAsSaved();
+      await continueClosing();
+    } finally {
+      setIsClosingAfterSave(false);
+    }
+  }, [persistence.saveCurrentCardSilently, markCurrentAsSaved, continueClosing]);
+
+  useEffect(() => {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (suppressClosePromptRef.current || !isDirty) {
+        return;
+      }
+
+      event.preventDefault();
+      event.returnValue = "";
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [isDirty]);
+
+  useEffect(() => {
+    if (!window.electron?.onAppCloseRequested) {
+      return;
+    }
+
+    const onAppCloseRequested = () => {
+      void handleCloseRequest();
+    };
+
+    window.electron.onAppCloseRequested(onAppCloseRequested);
+    return () => {
+      window.electron?.removeAppCloseRequested?.(onAppCloseRequested);
+    };
+  }, [handleCloseRequest]);
+
+  const handleNewProject = useCallback(() => {
+    if (confirm("Start a new project? Unsaved changes will be lost.")) {
+      persistence.setCurrentLocalCardId(null);
+      persistence.setCurrentSheetName("");
+      window.location.reload();
+    }
+  }, []);
+
   useEffect(() => {
     const handleKeyboard = (e: KeyboardEvent) => {
       if (e.ctrlKey || e.metaKey) {
@@ -191,7 +328,7 @@ const Index = () => {
             if (e.shiftKey) {
               persistence.handleSaveAs();
             } else {
-              persistence.handleSave();
+              void handleSaveCard();
             }
             break;
           case "e":
@@ -205,17 +342,10 @@ const Index = () => {
         }
       }
     };
+
     window.addEventListener("keydown", handleKeyboard);
     return () => window.removeEventListener("keydown", handleKeyboard);
-  }, [persistence.handleSave, persistence.handleSaveAs]);
-
-  const handleNewProject = useCallback(() => {
-    if (confirm("Start a new project? Unsaved changes will be lost.")) {
-      persistence.setCurrentLocalCardId(null);
-      persistence.setCurrentSheetName("");
-      window.location.reload();
-    }
-  }, []);
+  }, [handleNewProject, handleSaveCard, persistence.handleSaveAs]);
 
   const handleValidate = useCallback(() => {
     const missing = [];
@@ -379,7 +509,7 @@ const Index = () => {
       {!isElectron && (
         <div className="hidden md:block">
           <MenuBar
-            onSave={persistence.handleSave}
+            onSave={handleSaveCard}
             onSaveAs={persistence.handleSaveAs}
             onOpenSavedCards={persistence.handleOpenSavedCards}
             onExport={() => setExportDialogOpen(true)}
@@ -396,7 +526,7 @@ const Index = () => {
 
       {/* Toolbar */}
       <Toolbar
-        onSave={persistence.handleSave}
+        onSave={handleSaveCard}
         onSaveAs={persistence.handleSaveAs}
         onExport={() => setExportDialogOpen(true)}
         onValidate={handleValidate}
@@ -408,7 +538,7 @@ const Index = () => {
         onActivePartChange={setActivePart}
         onCopyAToB={copyPartAToB}
         onOpenSavedCards={persistence.handleOpenSavedCards}
-        onLoadLocalCard={persistence.handleLoadLocalCard}
+        onLoadLocalCard={handleLoadLocalSavedCard}
         onOpenQuickFill={() => setQuickFillDialogOpen(true)}
       />
 
@@ -593,6 +723,7 @@ const Index = () => {
                           onChange={currentData.setScanDetails}
                           partType={currentData.inspectionSetup.partType}
                           standard={standard}
+                          equipmentFrequency={currentData.equipment.frequency}
                           dimensions={{
                             diameter: currentData.inspectionSetup.diameter,
                             length: currentData.inspectionSetup.partLength,
@@ -886,9 +1017,35 @@ const Index = () => {
             <Button variant="outline" onClick={() => persistence.setIsSaveDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={persistence.handleSaveDialogConfirm} disabled={!persistence.sheetNameInput.trim() || persistence.isSavingSheet}>
+            <Button onClick={handleSaveDialogConfirm} disabled={!persistence.sheetNameInput.trim() || persistence.isSavingSheet}>
               {persistence.isSavingSheet && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Save Card
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={unsavedCloseDialogOpen} onOpenChange={setUnsavedCloseDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Save your latest changes before closing?</DialogTitle>
+            <DialogDescription>
+              You made updates to this card that have not been saved yet. We can save them into the current card before Scan Master closes.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-sm text-amber-100">
+            Current card: {persistence.currentSheetName || currentData.inspectionSetup.partName || currentData.inspectionSetup.partNumber || "Unsaved card"}
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setUnsavedCloseDialogOpen(false)} disabled={isClosingAfterSave}>
+              Cancel
+            </Button>
+            <Button variant="secondary" onClick={() => void continueClosing()} disabled={isClosingAfterSave}>
+              Close Without Saving
+            </Button>
+            <Button onClick={() => void handleSaveAndClose()} disabled={isClosingAfterSave}>
+              {isClosingAfterSave && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Save and Close
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -938,7 +1095,7 @@ const Index = () => {
                     <Button
                       size="sm"
                       variant="secondary"
-                      onClick={() => persistence.handleLoadSheet(sheet.id)}
+                      onClick={() => handleLoadSavedSheet(sheet.id)}
                       disabled={persistence.loadingSheetId === sheet.id}
                     >
                       {persistence.loadingSheetId === sheet.id && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

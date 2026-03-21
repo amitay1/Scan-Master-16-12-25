@@ -186,6 +186,8 @@ export function useTechniqueSheetState({
   setIsSplitMode,
   setActivePart,
 }: UseTechniqueSheetStateParams) {
+  const [hasHydratedInitialDraft, setHasHydratedInitialDraft] = useState(false);
+
   // ג”€ג”€ Part A state ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
   const [inspectionSetup, setInspectionSetup] = useState<InspectionSetupData>({ ...defaultInspectionSetup });
   const [equipment, setEquipment] = useState<EquipmentData>({ ...defaultEquipment });
@@ -360,7 +362,10 @@ export function useTechniqueSheetState({
   // ג”€ג”€ Load / save draft from localStorage ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
   const loadDraftFromLocalStorage = useCallback(() => {
     const saved = localStorage.getItem("techniqueSheet_draft");
-    if (!saved) return;
+    if (!saved) {
+      setHasHydratedInitialDraft(true);
+      return;
+    }
     try {
       const data = JSON.parse(saved);
       setStandard(data.standard || "AMS-STD-2154E");
@@ -382,6 +387,8 @@ export function useTechniqueSheetState({
       if (data.scanDetailsB) setScanDetailsB(data.scanDetailsB);
     } catch (error) {
       logError("Failed to load draft data", error);
+    } finally {
+      setHasHydratedInitialDraft(true);
     }
   }, [setStandard, setIsSplitMode, setActivePart]);
 
@@ -678,6 +685,7 @@ export function useTechniqueSheetState({
     applyLoadedSheet,
     applyLocalCard,
     loadDraftFromLocalStorage,
+    hasHydratedInitialDraft,
     applyTestCard,    applySampleCard,
     applyStandardChange,
   };

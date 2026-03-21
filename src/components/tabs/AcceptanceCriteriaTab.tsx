@@ -80,6 +80,38 @@ const getStringencyColor = (stringency: string): string => {
   }
 };
 
+const is2154TableStandard = (standard: StandardType): boolean =>
+  standard === "AMS-STD-2154E" || standard === "MIL-STD-2154";
+
+const sanitize2154TableValue = (value: string): string =>
+  value
+    .replace(/\s*\(see[^)]*\)/gi, "")
+    .replace(/\s*\(centers <1" apart\)/gi, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+
+const getQuickReferenceHeaders = (standard: StandardType) => {
+  if (!is2154TableStandard(standard)) {
+    return [
+      { label: "Class" },
+      { label: "Single Discontinuity" },
+      { label: "Multiple Discontinuities" },
+      { label: "Linear Discontinuity" },
+      { label: "Back Reflection Loss" },
+      { label: "Noise" },
+    ];
+  }
+
+  return [
+    { label: "Class" },
+    { label: "Single Discontinuity Response", notes: "1/, 6/" },
+    { label: "Multiple Discontinuities", notes: "2/, 5/, 7/" },
+    { label: "Linear Discontinuity - Length and Response", notes: "3/, 7/" },
+    { label: "Loss of Back Reflection - Percent", notes: "4/" },
+    { label: "Noise" },
+  ];
+};
+
 export const AcceptanceCriteriaTab = ({
   data,
   onChange,
@@ -172,6 +204,11 @@ export const AcceptanceCriteriaTab = ({
 
     return rows;
   }, [acceptanceClasses, standard]);
+
+  const quickReferenceHeaders = useMemo(
+    () => getQuickReferenceHeaders(standard),
+    [standard]
+  );
 
   return (
     <div className="space-y-2 p-2">
@@ -366,25 +403,47 @@ export const AcceptanceCriteriaTab = ({
             <table className="w-full text-xs">
               <thead className="bg-muted/30">
                 <tr>
-                  <th className="px-3 py-2 text-left">Class</th>
-                  <th className="px-3 py-2 text-left">Single Discontinuity</th>
-                  <th className="px-3 py-2 text-left">Multiple Discontinuities</th>
-                  <th className="px-3 py-2 text-left">Linear Discontinuity</th>
-                  <th className="px-3 py-2 text-left">Back Reflection Loss</th>
-                  <th className="px-3 py-2 text-left">Noise</th>
+                  {quickReferenceHeaders.map((header) => (
+                    <th
+                      key={header.label}
+                      className={`px-3 py-2 ${is2154TableStandard(standard) ? "text-center" : "text-left"}`}
+                    >
+                      <div className="leading-tight">
+                        <div>{header.label}</div>
+                        {header.notes && (
+                          <div className="mt-1 text-[10px] font-normal text-muted-foreground">
+                            {header.notes}
+                          </div>
+                        )}
+                      </div>
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
                 {quickReferenceRows.map((row) => {
                   const isSelected = data.acceptanceClass === row.classId;
+                  const rowValues = [
+                    row.criteria.singleDiscontinuity,
+                    row.criteria.multipleDiscontinuities,
+                    row.criteria.linearDiscontinuity,
+                    row.criteria.backReflectionLoss,
+                    row.criteria.noiseLevel,
+                  ].map((value) =>
+                    is2154TableStandard(standard) ? sanitize2154TableValue(value) : value
+                  );
+
                   return (
                     <tr key={row.classId} className={isSelected ? "bg-primary/10" : ""}>
                       <td className="px-3 py-2 font-medium">{row.classLabel}</td>
-                      <td className="px-3 py-2">{row.criteria.singleDiscontinuity}</td>
-                      <td className="px-3 py-2">{row.criteria.multipleDiscontinuities}</td>
-                      <td className="px-3 py-2">{row.criteria.linearDiscontinuity}</td>
-                      <td className="px-3 py-2">{row.criteria.backReflectionLoss}</td>
-                      <td className="px-3 py-2">{row.criteria.noiseLevel}</td>
+                      {rowValues.map((value, valueIndex) => (
+                        <td
+                          key={`${row.classId}-${valueIndex}`}
+                          className={`px-3 py-2 ${is2154TableStandard(standard) ? "text-center" : ""}`}
+                        >
+                          {value}
+                        </td>
+                      ))}
                     </tr>
                   );
                 })}

@@ -180,6 +180,12 @@ declare global {
       cancelScheduledRestart: () => Promise<any>;
       onUpdateStatus: (callback: (event: any, status: any) => void) => void;
       removeUpdateListener: (callback: (event: any, status: any) => void) => void;
+      minimize?: () => Promise<void>;
+      maximize?: () => Promise<void>;
+      quit?: () => Promise<void>;
+      confirmAppClose?: () => Promise<{ success: boolean }>;
+      onAppCloseRequested?: (callback: () => void) => void;
+      removeAppCloseRequested?: (callback: () => void) => void;
       license: {
         check: () => Promise<LicenseInfo>;
         activate: (licenseKey: string) => Promise<{ success: boolean; error?: string; license?: LicenseInfo }>;

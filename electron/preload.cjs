@@ -2,10 +2,15 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 // Store update status listeners
 const updateListeners = new Set();
+const appCloseRequestListeners = new Set();
 
 // Listen for update status from main process
 ipcRenderer.on('update-status', (event, status) => {
   updateListeners.forEach(callback => callback(event, status));
+});
+
+ipcRenderer.on('app-close-requested', () => {
+  appCloseRequestListeners.forEach(callback => callback());
 });
 
 // Expose protected methods that allow the renderer process to use
@@ -45,6 +50,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
   minimize: () => ipcRenderer.invoke('window-minimize'),
   maximize: () => ipcRenderer.invoke('window-maximize'),
   quit: () => ipcRenderer.invoke('app-quit'),
+  confirmAppClose: () => ipcRenderer.invoke('confirm-app-close'),
+  onAppCloseRequested: (callback) => {
+    appCloseRequestListeners.add(callback);
+  },
+  removeAppCloseRequested: (callback) => {
+    appCloseRequestListeners.delete(callback);
+  },
 
   // Platform information
   platform: process.platform
@@ -104,6 +116,13 @@ contextBridge.exposeInMainWorld('electron', {
   minimize: () => ipcRenderer.invoke('window-minimize'),
   maximize: () => ipcRenderer.invoke('window-maximize'),
   quit: () => ipcRenderer.invoke('app-quit'),
+  confirmAppClose: () => ipcRenderer.invoke('confirm-app-close'),
+  onAppCloseRequested: (callback) => {
+    appCloseRequestListeners.add(callback);
+  },
+  removeAppCloseRequested: (callback) => {
+    appCloseRequestListeners.delete(callback);
+  },
 
   // File operations - for PDF export etc.
   savePDF: (data, filename) => ipcRenderer.invoke('save-pdf', { data, filename }),
