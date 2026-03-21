@@ -286,6 +286,7 @@ export function RingSegmentBlockDrawing({
           axialPositionMm: h.axialPositionMm,
           depthMm: h.depthMm,
           diameterMm: h.diameterMm,
+          depthDefinition: h.depthDefinition,
           reflectorType: h.reflectorType,
         }));
 

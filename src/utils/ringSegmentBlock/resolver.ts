@@ -25,8 +25,6 @@ import type {
 import {
   calculateDerivedGeometry,
   calculateHole3DPosition,
-  polarToCartesian,
-  calculateMeanRadius,
   calculateWallThickness,
   resolveAxialPosition,
 } from './geometry';
@@ -280,19 +278,26 @@ function mergeToResolvedHoles(
     // Calculate 3D position
     const cartesian = calculateHole3DPosition(position, geometry, adjustedFeature);
 
-    // Calculate top view position
-    const calc = calculateDerivedGeometry(geometry);
-    const topViewPosition = polarToCartesian(0, 0, calc.meanRadiusMm, position.angleOnArcDeg);
+    // Calculate top-view position from the resolved 3D point
+    const topViewPosition = {
+      x: cartesian.z,
+      y: -cartesian.x,
+    };
 
-    // Calculate section view position (radial-axial plane)
+    // Calculate section-view position using the documented convention:
+    // x = radial position measured from ID, y = axial position.
     const resolvedAxialPos = resolveAxialPosition(
       position.axialPositionMm,
       geometry.axialWidthMm,
       axialOrigin
     );
+    const wallThicknessMm = calculateWallThickness(
+      geometry.outerDiameterMm,
+      geometry.innerDiameterMm
+    );
     const sectionViewPosition = {
-      x: adjustedFeature.depthMm, // Depth becomes X in section view
-      y: resolvedAxialPos, // Axial position becomes Y
+      x: wallThicknessMm - adjustedFeature.depthMm,
+      y: resolvedAxialPos,
     };
 
     resolvedHoles.push({
@@ -429,7 +434,7 @@ export function autoSelectTemplate(
   preferredStandard?: 'EN' | 'ASTM' | 'TUV'
 ): { templateId: string; reasoning: string } {
   const od = partDims?.outerDiameterMm;
-  const id = partDims?.innerDiameter;
+  const id = partDims?.innerDiameterMm;
   const wallThickness = od && id ? (od - id) / 2 : undefined;
   
   // If no dimensions provided, use default EN template
@@ -446,7 +451,9 @@ export function autoSelectTemplate(
   if (od > 500) {
     return {
       templateId: 'TUV_STYLE_REF_BLOCK',
-      reasoning: `Large OD (${od}mm > 500mm): Surface curvature negligible. Using TUV-style flat reference block.`,
+      reasoning: wallThickness
+        ? `Large OD (${od}mm > 500mm), wall ${wallThickness.toFixed(1)}mm: surface curvature is low. Using TUV-style reference block.`
+        : `Large OD (${od}mm > 500mm): surface curvature is low. Using TUV-style reference block.`,
     };
   }
   
@@ -454,14 +461,18 @@ export function autoSelectTemplate(
   if (preferredStandard === 'ASTM') {
     return {
       templateId: 'ASTM_E428_FBH_BLOCK',
-      reasoning: `ASTM standard preferred. Using ASTM E428 FBH block for OD=${od}mm.`,
+      reasoning: wallThickness
+        ? `ASTM standard preferred. Using ASTM E428 FBH block for OD=${od}mm and wall ${wallThickness.toFixed(1)}mm.`
+        : `ASTM standard preferred. Using ASTM E428 FBH block for OD=${od}mm.`,
     };
   }
   
   // Default: EN 10228-3 DAC for curved parts
   return {
     templateId: 'EN_10228_DAC_REF_BLOCK',
-    reasoning: `Curved part (OD=${od}mm). Using EN 10228-3 DAC block with SDH reflectors.`,
+    reasoning: wallThickness
+      ? `Curved part (OD=${od}mm, wall ${wallThickness.toFixed(1)}mm). Using EN 10228-3 DAC block with SDH reflectors.`
+      : `Curved part (OD=${od}mm). Using EN 10228-3 DAC block with SDH reflectors.`,
   };
 }
 

@@ -80,6 +80,7 @@ const SCAN_DIRECTIONS_SELECTORS = [
 
 // Angle beam calibration block selectors
 const ANGLE_BEAM_SELECTORS = [
+  '[data-testid="angle-beam-export-capture"]',
   '[data-testid="angle-beam-image-capture"]',  // New - image capture container
   '.angle-beam-image-capture',                  // New - class selector
   '.angle-beam-calibration-image',              // New - direct image selector
@@ -108,6 +109,53 @@ export function useExportCaptures(): UseExportCapturesReturn {
   const [isCapturing, setIsCapturing] = useState(false);
   const [lastCaptureTime, setLastCaptureTime] = useState<number | null>(null);
   const captureTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const waitForCaptureTarget = useCallback(async (selectors: string[], timeoutMs = 4000): Promise<void> => {
+    const start = Date.now();
+
+    const isReadyElement = (element: Element | null): boolean => {
+      if (!element) return false;
+
+      if (element instanceof HTMLCanvasElement) {
+        return element.width > 0 && element.height > 0;
+      }
+
+      if (element instanceof SVGElement) {
+        const box = element.getBoundingClientRect();
+        return box.width > 0 && box.height > 0;
+      }
+
+      if (element instanceof HTMLImageElement) {
+        return element.complete && element.naturalWidth > 0;
+      }
+
+      if (element instanceof HTMLElement) {
+        const nested =
+          element.querySelector('canvas') ||
+          element.querySelector('svg') ||
+          element.querySelector('img');
+
+        if (nested) {
+          return isReadyElement(nested);
+        }
+
+        const box = element.getBoundingClientRect();
+        return box.width > 0 && box.height > 0;
+      }
+
+      return false;
+    };
+
+    while (Date.now() - start < timeoutMs) {
+      for (const selector of selectors) {
+        if (isReadyElement(document.querySelector(selector))) {
+          return;
+        }
+      }
+
+      await new Promise(resolve => setTimeout(resolve, 200));
+    }
+  }, []);
 
   // Capture technical drawing
   const captureTechnicalDrawing = useCallback(async (): Promise<boolean> => {
@@ -203,16 +251,24 @@ export function useExportCaptures(): UseExportCapturesReturn {
     setIsCapturing(true);
 
     try {
-      // Wait for image to render
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await waitForCaptureTarget(ANGLE_BEAM_SELECTORS, 5000);
 
-      const result = await smartCapture(ANGLE_BEAM_SELECTORS, {
-        scale: 3,
-        quality: 1.0,
-        backgroundColor: 'white',
-        maxWidth: 1800,
-        maxHeight: 1200,
-      });
+      let result: CaptureResult = { success: false, error: 'Angle beam target not ready' };
+      for (let attempt = 0; attempt < 4; attempt++) {
+        result = await smartCapture(ANGLE_BEAM_SELECTORS, {
+          scale: 3,
+          quality: 1.0,
+          backgroundColor: 'white',
+          maxWidth: 1800,
+          maxHeight: 1200,
+        });
+
+        if (result.success && result.data) {
+          break;
+        }
+
+        await new Promise(resolve => setTimeout(resolve, 250));
+      }
 
       if (result.success && result.data) {
         console.log('Angle beam calibration block captured successfully');
@@ -229,7 +285,7 @@ export function useExportCaptures(): UseExportCapturesReturn {
     } finally {
       setIsCapturing(false);
     }
-  }, []);
+  }, [waitForCaptureTarget]);
 
   // Capture E2375 scan directions diagram
   const captureE2375Diagram = useCallback(async (): Promise<boolean> => {

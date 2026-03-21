@@ -44,6 +44,30 @@ export function useExportWorkflow({
     isCapturing: isCaptureInProgress,
   } = useExportCaptures();
 
+  useEffect(() => {
+    if (exportCaptures.technicalDrawing) {
+      setCapturedDrawing(exportCaptures.technicalDrawing);
+    }
+    if (exportCaptures.calibrationBlockDiagram) {
+      setCalibrationBlockDiagram(exportCaptures.calibrationBlockDiagram);
+    }
+    if (exportCaptures.angleBeamCalibrationDiagram) {
+      setAngleBeamDiagram(exportCaptures.angleBeamCalibrationDiagram);
+    }
+    if (exportCaptures.e2375Diagram) {
+      setE2375Diagram(exportCaptures.e2375Diagram);
+    }
+    if (exportCaptures.scanDirectionsView) {
+      setCapturedScanDirections(exportCaptures.scanDirectionsView);
+    }
+  }, [
+    exportCaptures.technicalDrawing,
+    exportCaptures.calibrationBlockDiagram,
+    exportCaptures.angleBeamCalibrationDiagram,
+    exportCaptures.e2375Diagram,
+    exportCaptures.scanDirectionsView,
+  ]);
+
   // ── Auto-capture technical drawing on setup tab ────────────────────────
   useEffect(() => {
     if (activeTab === "setup" && reportMode === "Technique") {
@@ -232,10 +256,48 @@ export function useExportWorkflow({
           }
           await new Promise(resolve => setTimeout(resolve, 300));
         }
-        const angleBeamResult = await smartCapture([
+        const angleBeamSelectors = [
+          '[data-testid="angle-beam-export-capture"]',
           '[data-testid="angle-beam-image-capture"]', ".angle-beam-image-capture",
           ".angle-beam-calibration-image", '[data-testid="angle-beam-calibration-block"]',
-        ], { scale: 3, quality: 1.0, backgroundColor: "white", maxWidth: 1800, maxHeight: 1200 });
+        ];
+
+        const waitForAngleBeamTarget = async () => {
+          const start = Date.now();
+          while (Date.now() - start < 5000) {
+            for (const selector of angleBeamSelectors) {
+              const element = document.querySelector(selector);
+              if (!element) continue;
+
+              const nested =
+                element instanceof HTMLCanvasElement || element instanceof SVGElement || element instanceof HTMLImageElement
+                  ? element
+                  : element.querySelector('canvas, svg, img');
+
+              if (nested instanceof HTMLCanvasElement && nested.width > 0 && nested.height > 0) {
+                return;
+              }
+              if (nested instanceof SVGElement) {
+                const box = nested.getBoundingClientRect();
+                if (box.width > 0 && box.height > 0) {
+                  return;
+                }
+              }
+              if (nested instanceof HTMLImageElement && nested.complete && nested.naturalWidth > 0) {
+                return;
+              }
+            }
+
+            await new Promise(resolve => setTimeout(resolve, 200));
+          }
+        };
+
+        await waitForAngleBeamTarget();
+
+        const angleBeamResult = await smartCapture(
+          angleBeamSelectors,
+          { scale: 3, quality: 1.0, backgroundColor: "white", maxWidth: 1800, maxHeight: 1200 }
+        );
         if (angleBeamResult.success && angleBeamResult.data) {
           capturedAngleBeam = angleBeamResult.data;
         }

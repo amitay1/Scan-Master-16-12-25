@@ -1316,34 +1316,39 @@ export const CalibrationTab = ({
     // Non-P&W Standard - Show geometry-aware angle beam content
     return (
       <div className="space-y-4">
-        {shouldUseRingSegmentAngleBeam ? (
-          <RingSegmentBlockDrawing
-            initialTemplateId={preferredRingSegmentTemplateId}
-            preferredStandardFamily={preferredRingSegmentStandardFamily}
-            partDimensions={angleBeamPartDimensions}
-            width={950}
-            height={820}
-            showControls={false}
-            showTable={false}
-            showWarnings={true}
-            showExport={false}
-            title={`Angle Beam Calibration Block - ${standard} (Calculated for your part)`}
-          />
-        ) : (
-          <DynamicCalibrationBlockDrawing
-            partGeometry={mappedPartGeometry}
-            partDimensions={partDimensionsForDrawing}
-            standard={standard}
-            acceptanceClass={acceptanceClass || 'A'}
-            partMaterial={inspectionSetup.material || 'steel'}
-            forcedBlockType={straightBeamBlockOverride}
-            width={950}
-            height={750}
-            showDimensions={true}
-            showSpecsTable={true}
-            title={`Calibration Block - ${standard} (Calculated for your part)`}
-          />
-        )}
+        <div
+          data-testid="angle-beam-export-capture"
+          className="angle-beam-image-capture"
+        >
+          {shouldUseRingSegmentAngleBeam ? (
+            <RingSegmentBlockDrawing
+              initialTemplateId={preferredRingSegmentTemplateId}
+              preferredStandardFamily={preferredRingSegmentStandardFamily}
+              partDimensions={angleBeamPartDimensions}
+              width={950}
+              height={820}
+              showControls={false}
+              showTable={false}
+              showWarnings={true}
+              showExport={false}
+              title={`Angle Beam Calibration Block - ${standard} (Calculated for your part)`}
+            />
+          ) : (
+            <DynamicCalibrationBlockDrawing
+              partGeometry={mappedPartGeometry}
+              partDimensions={partDimensionsForDrawing}
+              standard={standard}
+              acceptanceClass={acceptanceClass || 'A'}
+              partMaterial={inspectionSetup.material || 'steel'}
+              forcedBlockType={straightBeamBlockOverride}
+              width={950}
+              height={750}
+              showDimensions={true}
+              showSpecsTable={true}
+              title={`Calibration Block - ${standard} (Calculated for your part)`}
+            />
+          )}
+        </div>
 
         {/* Angle Beam Calibration Table - dB corrections per reflector */}
         <div className="border-2 border-orange-200 rounded-xl p-4 bg-orange-50/30 mt-4">

@@ -15,6 +15,7 @@
 
 import paper from 'paper';
 import { calculateArcBoundingBox } from '@/utils/ringSegmentBlock/geometry';
+import type { DepthDefinition } from '@/types/ringSegmentBlock.types';
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -33,6 +34,7 @@ export interface HoleData {
   axialPositionMm: number;
   depthMm: number;
   diameterMm: number;
+  depthDefinition?: DepthDefinition;
   reflectorType?: 'SDH' | 'FBH';
 }
 
@@ -74,6 +76,15 @@ interface ReferenceLayout {
   sectionCE: ViewPort;
   isometric: ViewPort;
   reportCallout: CalloutBox;
+}
+
+interface ProjectedBounds {
+  minX: number;
+  maxX: number;
+  minY: number;
+  maxY: number;
+  width: number;
+  height: number;
 }
 
 // ============================================================================
@@ -335,11 +346,11 @@ export class ProfessionalRingSegmentDrawing {
       const viewports = this.calculateTUV17Layout();
 
       // Draw each view in correct order
-      this.drawTopView(viewports.topView);
-      this.drawSectionAA(viewports.sectionAA);
-      this.drawSectionBB(viewports.sectionBB);
-      this.drawSectionCE(viewports.sectionCE);
-      this.drawIsometricView(viewports.isometric);
+      this.drawClippedViewport(viewports.topView, () => this.drawTopView(viewports.topView));
+      this.drawClippedViewport(viewports.sectionAA, () => this.drawSectionAA(viewports.sectionAA));
+      this.drawClippedViewport(viewports.sectionBB, () => this.drawSectionBB(viewports.sectionBB));
+      this.drawClippedViewport(viewports.sectionCE, () => this.drawSectionCE(viewports.sectionCE));
+      this.drawClippedViewport(viewports.isometric, () => this.drawIsometricView(viewports.isometric));
 
       // Add drawing notes
       this.drawDrawingNotes(viewports);
@@ -465,8 +476,142 @@ export class ProfessionalRingSegmentDrawing {
   }
 
   private calculateIsometricScale(width: number, height: number): number {
-    const maxDim = this.geometry.outerDiameterMm * 1.05;
-    return Math.min(width / maxDim, height / maxDim) * 0.78;
+    const bounds = this.calculateProjectedIsometricBounds(1);
+    const padding = this.geometry.outerDiameterMm >= 600 ? 18 : 14;
+    const availableWidth = Math.max(1, width - padding * 2);
+    const availableHeight = Math.max(1, height - padding * 2);
+    return Math.min(availableWidth / bounds.width, availableHeight / bounds.height);
+  }
+
+  private drawClippedViewport(vp: ViewPort, drawFn: () => void): void {
+    const activeLayer = this.scope.project.activeLayer;
+    if (!activeLayer) {
+      drawFn();
+      return;
+    }
+
+    const startIndex = activeLayer.children.length;
+    drawFn();
+
+    const newItems = activeLayer.children.slice(startIndex);
+    if (newItems.length === 0) {
+      return;
+    }
+
+    const clipRect = new this.scope.Path.Rectangle(
+      new this.scope.Rectangle(vp.x, vp.y, vp.width, vp.height)
+    );
+    clipRect.fillColor = new this.scope.Color('#FFFFFF');
+    clipRect.strokeColor = null;
+    clipRect.clipMask = true;
+
+    const group = new this.scope.Group([clipRect]);
+    newItems.forEach((item) => group.addChild(item));
+    group.clipped = true;
+    activeLayer.addChild(group);
+  }
+
+  private getIsometricZScaleFactor(): number {
+    const minHeightRatio = 0.15;
+    const actualRatio = this.geometry.axialWidthMm / Math.max(this.geometry.outerDiameterMm, 1);
+    return actualRatio < minHeightRatio ? (minHeightRatio / Math.max(actualRatio, 0.001)) : 1;
+  }
+
+  private projectIsometricPoint(
+    x: number,
+    y: number,
+    z: number,
+    scale: number,
+    centerX: number = 0,
+    centerY: number = 0
+  ): { x: number; y: number } {
+    const isoAngleX = 30 * Math.PI / 180;
+    const isoAngleY = 150 * Math.PI / 180;
+    const zScaleFactor = this.getIsometricZScaleFactor();
+
+    return {
+      x: centerX + (x * Math.cos(isoAngleX) + y * Math.cos(isoAngleY)) * scale,
+      y: centerY - (x * Math.sin(isoAngleX) + y * Math.sin(isoAngleY)) * scale - z * scale * zScaleFactor,
+    };
+  }
+
+  private calculateProjectedIsometricBounds(scale: number): ProjectedBounds {
+    const points = this.getIsometricReferencePoints()
+      .map(({ x, y, z }) => this.projectIsometricPoint(x, y, z, scale));
+
+    let minX = Number.POSITIVE_INFINITY;
+    let minY = Number.POSITIVE_INFINITY;
+    let maxX = Number.NEGATIVE_INFINITY;
+    let maxY = Number.NEGATIVE_INFINITY;
+
+    points.forEach((point) => {
+      minX = Math.min(minX, point.x);
+      minY = Math.min(minY, point.y);
+      maxX = Math.max(maxX, point.x);
+      maxY = Math.max(maxY, point.y);
+    });
+
+    return {
+      minX,
+      maxX,
+      minY,
+      maxY,
+      width: Math.max(1, maxX - minX),
+      height: Math.max(1, maxY - minY),
+    };
+  }
+
+  private getIsometricReferencePoints(): Array<{ x: number; y: number; z: number }> {
+    const startAngle = -this.geometry.segmentAngleDeg / 2;
+    const endAngle = this.geometry.segmentAngleDeg / 2;
+    const axialWidth = this.geometry.axialWidthMm;
+    const points: Array<{ x: number; y: number; z: number }> = [];
+    const numPoints = Math.max(36, Math.ceil(this.geometry.segmentAngleDeg / 3));
+
+    const addPoint = (x: number, y: number, z: number) => {
+      points.push({ x, y, z });
+    };
+
+    const addPolarPoint = (radius: number, angleDeg: number, z: number) => {
+      const angleRad = angleDeg * Math.PI / 180;
+      addPoint(radius * Math.cos(angleRad), radius * Math.sin(angleRad), z);
+    };
+
+    [0, axialWidth].forEach((z) => {
+      [this.outerRadius, this.innerRadius].forEach((radius) => {
+        for (let i = 0; i <= numPoints; i++) {
+          const angle = startAngle + ((endAngle - startAngle) * i) / numPoints;
+          addPolarPoint(radius, angle, z);
+        }
+      });
+
+      [startAngle, endAngle].forEach((angle) => {
+        addPolarPoint(this.outerRadius, angle, z);
+        addPolarPoint(this.innerRadius, angle, z);
+      });
+    });
+
+    this.holes.forEach((hole) => {
+      const angle = startAngle + hole.angleOnArcDeg;
+      addPolarPoint(this.outerRadius, angle, hole.axialPositionMm);
+    });
+
+    if (this.shouldDrawReferenceLug()) {
+      const lugDepthInward = this.wallThickness * 0.6;
+      const lugLengthTangential = this.wallThickness * 0.8;
+      const lugHeight = axialWidth * 0.5;
+      const lugInnerRadius = Math.max(0, this.innerRadius - lugDepthInward);
+      const lugBackAngle = startAngle + (lugLengthTangential / Math.max(this.innerRadius, 1)) * (180 / Math.PI);
+
+      [0, lugHeight].forEach((z) => {
+        addPolarPoint(this.innerRadius, startAngle, z);
+        addPolarPoint(lugInnerRadius, startAngle, z);
+        addPolarPoint(this.innerRadius, lugBackAngle, z);
+        addPolarPoint(lugInnerRadius, lugBackAngle, z);
+      });
+    }
+
+    return points;
   }
 
   // ============================================================================
@@ -973,8 +1118,8 @@ export class ProfessionalRingSegmentDrawing {
       const hole = this.holes[i];
       const angle = startAngle + hole.angleOnArcDeg;
 
-      // Hole position (radial depth for SDH, outer surface for FBH)
-      const isRadial = hole.reflectorType !== 'FBH';
+      // Hole position is controlled by how the depth is defined, not just by reflector type.
+      const isRadial = this.usesRadialDepth(hole);
       const rawRadius = isRadial ? (this.outerRadius - hole.depthMm) : this.outerRadius;
       const clampedRadius = Math.min(Math.max(rawRadius, this.innerRadius), this.outerRadius);
       const holeRadius = clampedRadius * scale;
@@ -1367,7 +1512,7 @@ export class ProfessionalRingSegmentDrawing {
     const depths = new Set<number>();
 
     for (const hole of this.holes) {
-      if (hole.reflectorType === 'FBH') {
+      if (!this.usesRadialDepth(hole)) {
         continue;
       }
       depths.add(Math.round(hole.depthMm * 100) / 100);
@@ -1851,28 +1996,15 @@ export class ProfessionalRingSegmentDrawing {
   // ============================================================================
 
   private drawIsometricView(vp: ViewPort): void {
-    const scale = vp.scale * (this.geometry.outerDiameterMm >= 600 ? 2.7 : 2.35);
+    const scale = vp.scale;
+    const bounds = this.calculateProjectedIsometricBounds(scale);
+    const cx = vp.x + vp.width / 2 - (bounds.minX + bounds.maxX) / 2;
+    const cy = vp.y + vp.height / 2 - (bounds.minY + bounds.maxY) / 2;
 
-    const cx = vp.x + vp.width * 0.52;
-    const cy = vp.y + vp.height * 0.76;
 
     // Isometric projection angles (30° from horizontal) - standard isometric
-    const isoAngleX = 30 * Math.PI / 180;
-    const isoAngleY = 150 * Math.PI / 180;
-
-    // Calculate Z scale factor to ensure visible height
-    // If axialWidth is too small relative to OD, scale it up for visibility
-    const minHeightRatio = 0.15; // Minimum visual height ratio
-    const actualRatio = this.geometry.axialWidthMm / this.geometry.outerDiameterMm;
-    const zScaleFactor = actualRatio < minHeightRatio ? (minHeightRatio / actualRatio) : 1;
-
-    // Transform function for isometric projection
-    const toIso = (x: number, y: number, z: number): { x: number; y: number } => {
-      return {
-        x: cx + (x * Math.cos(isoAngleX) + y * Math.cos(isoAngleY)) * scale,
-        y: cy - (x * Math.sin(isoAngleX) + y * Math.sin(isoAngleY)) * scale - z * scale * zScaleFactor,
-      };
-    };
+    const toIso = (x: number, y: number, z: number): { x: number; y: number } =>
+      this.projectIsometricPoint(x, y, z, scale, cx, cy);
 
     // Draw isometric arc segment
     this.drawCompactIsometricBlock(toIso, scale);
@@ -2922,7 +3054,7 @@ export class ProfessionalRingSegmentDrawing {
     const angleText = new this.scope.PointText(new this.scope.Point(x + width / 2, y + 82));
     angleText.content = `Segment: ${this.geometry.segmentAngleDeg}° | Holes: ${this.holes.length}`;
     angleText.fontSize = 8;
-    angleText.fillColor = new this.scope.Color('#666666');
+    angleText.fillColor = new this.scope.Color('#374151');
     angleText.justification = 'center';
   }
 
@@ -3159,6 +3291,14 @@ export class ProfessionalRingSegmentDrawing {
       x: cx + radius * Math.cos(angleRad),
       y: cy + radius * Math.sin(angleRad),
     };
+  }
+
+  private usesRadialDepth(hole: HoleData): boolean {
+    if (hole.depthDefinition) {
+      return hole.depthDefinition === 'radial_depth';
+    }
+
+    return hole.reflectorType !== 'FBH';
   }
 
   private applyStyle(

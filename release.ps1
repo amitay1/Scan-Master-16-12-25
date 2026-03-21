@@ -65,6 +65,40 @@ function Get-ReleaseAssetMap {
 
     return $assetMap
 }
+function Test-ReleaseAssetMatchesLocal {
+    param(
+        [object]$Asset,
+        [string]$LocalPath,
+        [string]$KnownLocalHash = $null
+    )
+
+    if (-not $Asset -or -not (Test-Path $LocalPath)) {
+        return [PSCustomObject]@{
+            Matches = $false
+            LocalHash = $KnownLocalHash
+        }
+    }
+
+    $localFile = Get-Item $LocalPath
+    $localHash = $KnownLocalHash
+    $remoteDigest = "$($Asset.digest)" -replace '^sha256:', ''
+
+    if ($remoteDigest) {
+        if (-not $localHash) {
+            $localHash = Get-FileSha256 -Path $LocalPath
+        }
+
+        return [PSCustomObject]@{
+            Matches = ($localHash -and ($localHash -eq $remoteDigest.ToLowerInvariant()))
+            LocalHash = $localHash
+        }
+    }
+
+    return [PSCustomObject]@{
+        Matches = ([int64]$Asset.size -eq $localFile.Length)
+        LocalHash = $localHash
+    }
+}
 
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Magenta
@@ -383,6 +417,7 @@ if ($ghAvailable) {
         )
 
         $uploadFailed = $false
+        $failedUploads = @()
         foreach ($file in $filesToUpload) {
             if (Test-Path $file.Path) {
                 $localFile = Get-Item $file.Path
@@ -412,17 +447,20 @@ if ($ghAvailable) {
                     Write-Warn "  Existing asset differs; re-uploading $($file.Name) with --clobber."
                 }
 
-                Write-Info "  Uploading: $($file.Name) [$sizeText]"
-                $uploadStarted = Get-Date
-                & gh release upload $releaseTag $file.Path --repo $githubRepo --clobber
-                $uploadExitCode = $LASTEXITCODE
-                $elapsed = (Get-Date) - $uploadStarted
-                $elapsedText = "{0:mm\:ss}" -f $elapsed
+                $uploadSucceeded = $false
+                $maxUploadAttempts = 2
+                for ($attempt = 1; $attempt -le $maxUploadAttempts; $attempt++) {
+                    if ($attempt -gt 1) {
+                        Write-Warn "  Retrying $($file.Name) (attempt $attempt of $maxUploadAttempts)..."
+                    }
 
-                if ($uploadExitCode -ne 0) {
-                    Write-Err "  FAILED to upload $($file.Name) after $elapsedText!"
-                    $uploadFailed = $true
-                } else {
+                    Write-Info "  Uploading: $($file.Name) [$sizeText]"
+                    $uploadStarted = Get-Date
+                    & gh release upload $releaseTag $file.Path --repo $githubRepo --clobber
+                    $uploadExitCode = $LASTEXITCODE
+                    $elapsed = (Get-Date) - $uploadStarted
+                    $elapsedText = "{0:mm\:ss}" -f $elapsed
+
                     $remoteAssets = Get-ReleaseAssetMap -TagName $releaseTag -Repo $githubRepo
                     $verifiedAsset = $null
                     if ($remoteAssets.ContainsKey($assetName)) {
@@ -430,27 +468,48 @@ if ($ghAvailable) {
                     }
 
                     if ($verifiedAsset) {
-                        $verifiedDigest = "$($verifiedAsset.digest)" -replace '^sha256:', ''
-                        $verifiedSize = [int64]$verifiedAsset.size
-                        $verifiedOk = $false
+                        $verification = Test-ReleaseAssetMatchesLocal -Asset $verifiedAsset -LocalPath $file.Path -KnownLocalHash $localHash
+                        $localHash = $verification.LocalHash
 
-                        if ($verifiedDigest) {
-                            if (-not $localHash) {
-                                $localHash = Get-FileSha256 -Path $file.Path
+                        if ($verification.Matches) {
+                            if ($uploadExitCode -ne 0) {
+                                Write-Warn "  gh reported failure after $elapsedText, but GitHub shows a matching asset for $($file.Name). Treating as success."
+                            } else {
+                                Write-Success "  Uploaded: $($file.Name) in $elapsedText"
                             }
-                            $verifiedOk = $localHash -and ($localHash -eq $verifiedDigest.ToLowerInvariant())
-                        } else {
-                            $verifiedOk = $verifiedSize -eq $localFile.Length
+                            $uploadSucceeded = $true
+                            break
                         }
 
-                        if ($verifiedOk) {
-                            Write-Success "  Uploaded: $($file.Name) in $elapsedText"
+                        if ($uploadExitCode -eq 0) {
+                            Write-Warn "  Upload command finished for $($file.Name) in $elapsedText, but GitHub asset verification did not match yet."
+                        } elseif ($attempt -lt $maxUploadAttempts) {
+                            Write-Warn "  Upload attempt $attempt for $($file.Name) failed after $elapsedText and GitHub asset did not verify."
                         } else {
-                            Write-Warn "  Uploaded: $($file.Name) in $elapsedText, but verification did not fully match. Check the GitHub release asset."
+                            Write-Err "  FAILED to upload $($file.Name) after $elapsedText!"
                         }
                     } else {
-                        Write-Warn "  Upload command finished for $($file.Name) in $elapsedText, but GitHub did not return the asset yet."
+                        if ($uploadExitCode -eq 0) {
+                            Write-Warn "  Upload command finished for $($file.Name) in $elapsedText, but GitHub did not return the asset yet."
+                        } elseif ($attempt -lt $maxUploadAttempts) {
+                            Write-Warn "  Upload attempt $attempt for $($file.Name) failed after $elapsedText and no asset was returned by GitHub."
+                        } else {
+                            Write-Err "  FAILED to upload $($file.Name) after $elapsedText!"
+                        }
                     }
+
+                    if ($uploadExitCode -eq 0 -and $attempt -eq 1) {
+                        Start-Sleep -Seconds 2
+                    }
+
+                    if ($attempt -lt $maxUploadAttempts) {
+                        Start-Sleep -Seconds 3
+                    }
+                }
+
+                if (-not $uploadSucceeded) {
+                    $uploadFailed = $true
+                    $failedUploads += $file
                 }
             } else {
                 Write-Warn "  Not found: $($file.Path) (skipping)"
@@ -460,8 +519,9 @@ if ($ghAvailable) {
         if ($uploadFailed) {
             Write-Host ""
             Write-Err "Some uploads failed. Retry manually:"
-            Write-Err "  gh release upload v$newVersion $freshOutputDir/latest.yml --repo $githubRepo --clobber"
-            Write-Err "  gh release upload v$newVersion $freshOutputDir/ScanMaster-Setup-$newVersion.exe --repo $githubRepo --clobber"
+            foreach ($failedFile in $failedUploads) {
+                Write-Err "  gh release upload v$newVersion `"$($failedFile.Path)`" --repo $githubRepo --clobber"
+            }
         } else {
             Write-Success "All files uploaded to GitHub Release!"
         }

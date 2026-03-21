@@ -23,13 +23,13 @@ All colors MUST be HSL.
   :root {
     /* Dark professional desktop application color system */
     --background: 220 25% 10%;
-    --foreground: 220 10% 90%;
+    --foreground: 220 12% 95%;
 
     --card: 220 22% 13%;
-    --card-foreground: 220 10% 90%;
+    --card-foreground: 220 12% 95%;
 
     --popover: 220 22% 13%;
-    --popover-foreground: 220 10% 90%;
+    --popover-foreground: 220 12% 95%;
 
     /* Professional blue primary */
     --primary: 217 91% 55%;
@@ -38,11 +38,12 @@ All colors MUST be HSL.
 
     /* Neutral secondary for toolbars/panels */
     --secondary: 220 20% 18%;
-    --secondary-foreground: 220 10% 85%;
+    --secondary-foreground: 220 12% 90%;
 
     /* Muted tones for backgrounds */
     --muted: 220 20% 16%;
-    --muted-foreground: 220 10% 60%;
+    --muted-foreground: 215 16% 72%;
+    --placeholder-foreground: 215 14% 68%;
 
     /* Status colors */
     --success: 145 70% 45%;
@@ -74,23 +75,24 @@ All colors MUST be HSL.
   .dark {
     /* Professional dark theme for desktop apps */
     --background: 220 25% 9%;
-    --foreground: 220 10% 92%;
+    --foreground: 220 12% 96%;
 
     --card: 220 22% 12%;
-    --card-foreground: 220 10% 92%;
+    --card-foreground: 220 12% 96%;
 
     --popover: 220 22% 12%;
-    --popover-foreground: 220 10% 92%;
+    --popover-foreground: 220 12% 96%;
 
     --primary: 217 91% 55%;
     --primary-foreground: 0 0% 100%;
     --primary-hover: 217 91% 60%;
 
     --secondary: 220 20% 18%;
-    --secondary-foreground: 220 10% 85%;
+    --secondary-foreground: 220 12% 91%;
 
     --muted: 220 20% 16%;
-    --muted-foreground: 220 10% 60%;
+    --muted-foreground: 215 16% 74%;
+    --placeholder-foreground: 215 14% 70%;
 
     --success: 145 70% 48%;
     --success-foreground: 0 0% 100%;
@@ -205,6 +207,12 @@ All colors MUST be HSL.
     font-size: 1rem !important; /* 16px */
     padding: 0.625rem 0.75rem !important; /* 10px 12px */
     min-height: 2.5rem; /* 40px minimum height */
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: hsl(var(--placeholder-foreground));
+    opacity: 1;
   }
 
   /* Larger button text */
@@ -328,6 +336,44 @@ All colors MUST be HSL.
 }
 
 @layer utilities {
+  /* Global contrast lift for repeated low-visibility text utilities */
+  [class~="text-muted-foreground"] {
+    color: hsl(var(--muted-foreground)) !important;
+  }
+
+  [class~="text-slate-400"] {
+    color: rgb(178 190 205) !important;
+  }
+
+  [class~="text-slate-500"] {
+    color: rgb(160 174 192) !important;
+  }
+
+  [class~="text-slate-600"] {
+    color: rgb(146 163 184) !important;
+  }
+
+  [class~="text-white/40"] {
+    color: rgb(255 255 255 / 0.68) !important;
+  }
+
+  [class~="text-white/60"] {
+    color: rgb(255 255 255 / 0.82) !important;
+  }
+
+  [class~="text-white/80"] {
+    color: rgb(255 255 255 / 0.94) !important;
+  }
+
+  [class*="placeholder:text-slate-500"]::placeholder {
+    color: rgb(160 174 192 / 0.96) !important;
+    opacity: 1;
+  }
+
+  [class*="placeholder:text-muted-foreground"]::placeholder {
+    color: hsl(var(--placeholder-foreground)) !important;
+    opacity: 1;
+  }
   /* ═══════════════════════════════════════════════════════════════════
      DESKTOP RESPONSIVE & SCALING UTILITIES
      Handle Windows DPI scaling and different screen sizes

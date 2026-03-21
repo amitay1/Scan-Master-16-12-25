@@ -174,8 +174,9 @@ export function calculateHole3DPosition(
   const calc = calculateDerivedGeometry(geometry);
   const angleRad = degreesToRadians(holePosition.angleOnArcDeg);
 
-  // Hole is drilled from OD surface, at mean radius for SDH
-  // For FBH, hole is typically at a specific depth from surface
+  // Depth is measured from the OD surface into the wall.
+  // For the supported ring-segment blocks, an OD-normal drill axis is
+  // equivalent to the local radial direction on the curved surface.
   const holeRadiusMm = calc.outerRadiusMm - holeFeature.depthMm;
 
   return {
@@ -204,15 +205,12 @@ export function projectToTopView(
   geometry: RingSegmentGeometry,
   viewConfig: { centerX: number; centerY: number; scale: number }
 ): { x: number; y: number } {
-  const calc = calculateDerivedGeometry(geometry);
-  const angleRad = degreesToRadians(hole.angleOnArcDeg);
+  void geometry;
 
-  // Position on mean radius for top view
-  const radius = calc.meanRadiusMm * viewConfig.scale;
-
-  // Project to 2D (X-Z plane, Z maps to Y in view)
-  const x = viewConfig.centerX + radius * Math.sin(angleRad);
-  const y = viewConfig.centerY - radius * Math.cos(angleRad);
+  // Project the resolved 3D point to the drawing convention used by the
+  // top view: +Z maps to +X on the page, and +X maps upward.
+  const x = viewConfig.centerX + hole.cartesian.z * viewConfig.scale;
+  const y = viewConfig.centerY - hole.cartesian.x * viewConfig.scale;
 
   return { x, y };
 }
