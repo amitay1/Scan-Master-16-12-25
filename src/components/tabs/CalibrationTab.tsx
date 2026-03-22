@@ -2,7 +2,7 @@
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { CalibrationData, InspectionSetupData, AcceptanceClass, CalibrationBlockType, StandardType, CalibrationSensitivityRow, StraightBeamConversionRow } from "@/types/techniqueSheet";
-import { Target, Info, Sparkles, AlertTriangle, Plus, X, Upload } from "lucide-react";
+import { Target, Info, Sparkles, AlertTriangle, Plus, X, Upload, ChevronDown, ChevronUp } from "lucide-react";
 import { CalibrationCatalog } from "../CalibrationCatalog";
 import { toast } from "sonner";
 import { FieldWithHelp } from "@/components/FieldWithHelp";
@@ -20,9 +20,10 @@ import { V2500BoreScanDiagram } from "../V2500BoreScanDiagram";
 // StraightBeamConversionTable columns are now merged inline into FBHHoleTable
 // via the showSensitivityColumns prop (see FBHHoleTableWithPreviews).
 import { AngleBeamCalibrationTable } from "../AngleBeamCalibrationTable";
-import type {
-  PartGeometry as CalcPartGeometry,
-  CalculatedBlockType,
+import {
+  calculateCalibrationBlockSpec,
+  type PartGeometry as CalcPartGeometry,
+  type CalculatedBlockType,
 } from "@/rules/calibrationBlockDimensions";
 import {
   DEFAULT_FBH_HOLES,
@@ -275,6 +276,7 @@ export const CalibrationTab = ({
   const [fbhHoles, setFbhHoles] = useState<FBHHoleRowData[]>(DEFAULT_FBH_HOLES);
   const [selectedModelId, setSelectedModelId] = useState<CalibrationBlockType | null>(null);
   const [activeBeamTab, setActiveBeamTab] = useState<"straight" | "angle">("straight");
+  const [showReferenceBlockPreview, setShowReferenceBlockPreview] = useState(false);
   // Track if FBH table was auto-filled from standards
   const [fbhAutoFilled, setFbhAutoFilled] = useState(false);
   const [fbhAutoFillReason, setFbhAutoFillReason] = useState<string>("");
@@ -526,6 +528,39 @@ export const CalibrationTab = ({
     () => selectedBlockOverride || scanAwareBlockTypeOverride || autoCalculatedBlockType,
     [selectedBlockOverride, scanAwareBlockTypeOverride, autoCalculatedBlockType]
   );
+
+  const referenceBlockPreviewSpec = useMemo(() => {
+    try {
+      return calculateCalibrationBlockSpec(
+        mappedPartGeometry,
+        partDimensionsForDrawing,
+        standard,
+        acceptanceClass || "A",
+        inspectionSetup.material || "steel",
+        straightBeamBlockOverride,
+      );
+    } catch {
+      return null;
+    }
+  }, [
+    mappedPartGeometry,
+    partDimensionsForDrawing,
+    standard,
+    acceptanceClass,
+    inspectionSetup.material,
+    straightBeamBlockOverride,
+  ]);
+
+  const referenceBlockTypeLabel = useMemo(() => {
+    const labels: Record<CalculatedBlockType, string> = {
+      flat_fbh: "Flat FBH",
+      cylinder_notched: "Notched Cylinder",
+      cylinder_fbh: "Cylinder FBH",
+      curved_fbh: "Curved FBH",
+      custom: "Custom Block",
+    };
+    return labels[straightBeamBlockOverride] || "Reference Block";
+  }, [straightBeamBlockOverride]);
 
   const missingCalibrationModelInputs = useMemo(() => {
     const missing: string[] = [];
@@ -985,24 +1020,65 @@ export const CalibrationTab = ({
         </div>
       )}
 
-      {/* Live straight-beam calibration model (auto-updates from Setup dimensions). */}
-      <div className="space-y-2">
-        <div className="text-sm text-muted-foreground">
-          Live model sync: OD / ID / Length / Width / Thickness
+      {/* Compact reference block preview driven by Setup dimensions. */}
+      <div className="rounded-xl border border-border bg-muted/25">
+        <div className="flex flex-col gap-3 p-4 md:flex-row md:items-center md:justify-between">
+          <div className="space-y-2">
+            <div>
+              <h4 className="text-sm font-semibold text-foreground">Reference Block Preview</h4>
+              <p className="text-xs text-muted-foreground">
+                Calculated from the current Setup dimensions and selected standard.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="secondary">{referenceBlockTypeLabel}</Badge>
+              {referenceBlockPreviewSpec?.figureReference && (
+                <Badge variant="outline">{referenceBlockPreviewSpec.figureReference}</Badge>
+              )}
+              <Badge variant="outline">{getStandardLabel(standard)}</Badge>
+            </div>
+            <div className="text-xs text-muted-foreground">
+              Syncs from Setup: OD, ID, length, width, thickness
+            </div>
+          </div>
+
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setShowReferenceBlockPreview((prev) => !prev)}
+            className="self-start md:self-center"
+          >
+            {showReferenceBlockPreview ? (
+              <>
+                <ChevronUp className="mr-2 h-4 w-4" />
+                Hide Preview
+              </>
+            ) : (
+              <>
+                <ChevronDown className="mr-2 h-4 w-4" />
+                Show Preview
+              </>
+            )}
+          </Button>
         </div>
-        <DynamicCalibrationBlockDrawing
-          partGeometry={mappedPartGeometry}
-          partDimensions={partDimensionsForDrawing}
-          standard={standard}
-          acceptanceClass={acceptanceClass || 'A'}
-          partMaterial={inspectionSetup.material || 'steel'}
-          forcedBlockType={straightBeamBlockOverride}
-          width={950}
-          height={740}
-          showDimensions={true}
-          showSpecsTable={true}
-          title={`Straight Beam Calibration Block - ${standard} (Live)`}
-        />
+
+        {showReferenceBlockPreview && (
+          <div className="border-t border-border p-4 pt-3">
+            <DynamicCalibrationBlockDrawing
+              partGeometry={mappedPartGeometry}
+              partDimensions={partDimensionsForDrawing}
+              standard={standard}
+              acceptanceClass={acceptanceClass || 'A'}
+              partMaterial={inspectionSetup.material || 'steel'}
+              forcedBlockType={straightBeamBlockOverride}
+              width={950}
+              height={640}
+              showDimensions={true}
+              showSpecsTable={false}
+              title={`Reference Block Preview - ${getStandardLabel(standard)}`}
+            />
+          </div>
+        )}
       </div>
     </>
   );
