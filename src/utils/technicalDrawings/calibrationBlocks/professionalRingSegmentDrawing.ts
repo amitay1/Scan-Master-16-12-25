@@ -2150,99 +2150,80 @@ export class ProfessionalRingSegmentDrawing {
   ): void {
     const startAngle = -this.geometry.segmentAngleDeg / 2;
     const endAngle = this.geometry.segmentAngleDeg / 2;
-    const numPoints = 30;
+    const numPoints = Math.max(42, Math.ceil(this.geometry.segmentAngleDeg / 2));
     const axialWidth = this.geometry.axialWidthMm;
     const lineStyle = LINE_STYLES.visible;
+    const silhouetteStyle = LINE_STYLES.visibleThick;
 
-    // ==================== MAIN RING SEGMENT ====================
+    const sampleArc = (radius: number, z: number) => {
+      const points: Array<{ x: number; y: number }> = [];
+      for (let i = 0; i <= numPoints; i++) {
+        const angle = startAngle + (endAngle - startAngle) * (i / numPoints);
+        const rad = angle * Math.PI / 180;
+        points.push(toIso(radius * Math.cos(rad), radius * Math.sin(rad), z));
+      }
+      return points;
+    };
 
-    // Top face (z = 0) - outer arc
-    const topOuterPath = new this.scope.Path();
-    for (let i = 0; i <= numPoints; i++) {
-      const angle = startAngle + (endAngle - startAngle) * (i / numPoints);
-      const rad = angle * Math.PI / 180;
-      const x = this.outerRadius * Math.cos(rad);
-      const y = this.outerRadius * Math.sin(rad);
-      const pt = toIso(x, y, 0);
-      topOuterPath.add(new this.scope.Point(pt.x, pt.y));
-    }
-    this.applyStyle(topOuterPath, lineStyle);
+    const topOuterPoints = sampleArc(this.outerRadius, 0);
+    const topInnerPoints = sampleArc(this.innerRadius, 0);
+    const bottomOuterPoints = sampleArc(this.outerRadius, axialWidth);
+    const bottomInnerPoints = sampleArc(this.innerRadius, axialWidth);
 
-    // Top face (z = 0) - inner arc
-    const topInnerPath = new this.scope.Path();
-    for (let i = 0; i <= numPoints; i++) {
-      const angle = startAngle + (endAngle - startAngle) * (i / numPoints);
-      const rad = angle * Math.PI / 180;
-      const x = this.innerRadius * Math.cos(rad);
-      const y = this.innerRadius * Math.sin(rad);
-      const pt = toIso(x, y, 0);
-      topInnerPath.add(new this.scope.Point(pt.x, pt.y));
-    }
+    const startOuterTop = topOuterPoints[0];
+    const startInnerTop = topInnerPoints[0];
+    const endOuterTop = topOuterPoints[topOuterPoints.length - 1];
+    const endInnerTop = topInnerPoints[topInnerPoints.length - 1];
+    const startOuterBottom = bottomOuterPoints[0];
+    const startInnerBottom = bottomInnerPoints[0];
+    const endOuterBottom = bottomOuterPoints[bottomOuterPoints.length - 1];
+    const endInnerBottom = bottomInnerPoints[bottomInnerPoints.length - 1];
+
+    // Face shading first for a more engineered, less wireframe-only look.
+    this.drawFilledIsometricFace(
+      [...topOuterPoints, ...[...topInnerPoints].reverse()],
+      '#f8fafc',
+      0.98
+    );
+    this.drawFilledIsometricFace(
+      [...topOuterPoints, ...[...bottomOuterPoints].reverse()],
+      '#dce4ec',
+      0.78
+    );
+    this.drawFilledIsometricFace(
+      [startOuterTop, startInnerTop, startInnerBottom, startOuterBottom],
+      '#e6ebf0',
+      0.84
+    );
+    this.drawFilledIsometricFace(
+      [endOuterTop, endInnerTop, endInnerBottom, endOuterBottom],
+      '#cdd7e1',
+      0.9
+    );
+
+    const topOuterPath = this.createPolyline(topOuterPoints);
+    this.applyStyle(topOuterPath, silhouetteStyle);
+
+    const topInnerPath = this.createPolyline(topInnerPoints);
     this.applyStyle(topInnerPath, lineStyle);
 
-    // Bottom face (z = axialWidth) - outer arc
-    const bottomOuterPath = new this.scope.Path();
-    for (let i = 0; i <= numPoints; i++) {
-      const angle = startAngle + (endAngle - startAngle) * (i / numPoints);
-      const rad = angle * Math.PI / 180;
-      const x = this.outerRadius * Math.cos(rad);
-      const y = this.outerRadius * Math.sin(rad);
-      const pt = toIso(x, y, axialWidth);
-      bottomOuterPath.add(new this.scope.Point(pt.x, pt.y));
-    }
-    this.applyStyle(bottomOuterPath, lineStyle);
+    const bottomOuterPath = this.createPolyline(bottomOuterPoints);
+    this.applyStyle(bottomOuterPath, silhouetteStyle);
 
-    // Bottom face (z = axialWidth) - inner arc (hidden line)
-    const bottomInnerPath = new this.scope.Path();
-    for (let i = 0; i <= numPoints; i++) {
-      const angle = startAngle + (endAngle - startAngle) * (i / numPoints);
-      const rad = angle * Math.PI / 180;
-      const x = this.innerRadius * Math.cos(rad);
-      const y = this.innerRadius * Math.sin(rad);
-      const pt = toIso(x, y, axialWidth);
-      bottomInnerPath.add(new this.scope.Point(pt.x, pt.y));
-    }
+    const bottomInnerPath = this.createPolyline(bottomInnerPoints);
     this.applyStyle(bottomInnerPath, LINE_STYLES.hidden);
 
-    // Vertical edges at both end faces
-    for (const angle of [startAngle, endAngle]) {
-      const rad = angle * Math.PI / 180;
-
-      // Outer vertical edge
-      const outerX = this.outerRadius * Math.cos(rad);
-      const outerY = this.outerRadius * Math.sin(rad);
-      const outer0 = toIso(outerX, outerY, 0);
-      const outer1 = toIso(outerX, outerY, axialWidth);
-      const outerEdge = new this.scope.Path.Line(
-        new this.scope.Point(outer0.x, outer0.y),
-        new this.scope.Point(outer1.x, outer1.y)
-      );
-      this.applyStyle(outerEdge, lineStyle);
-
-      // Inner vertical edge
-      const innerX = this.innerRadius * Math.cos(rad);
-      const innerY = this.innerRadius * Math.sin(rad);
-      const inner0 = toIso(innerX, innerY, 0);
-      const inner1 = toIso(innerX, innerY, axialWidth);
-      const innerEdge = new this.scope.Path.Line(
-        new this.scope.Point(inner0.x, inner0.y),
-        new this.scope.Point(inner1.x, inner1.y)
-      );
-      this.applyStyle(innerEdge, lineStyle);
-
-      // Radial edge on top face (connecting OD to ID)
-      const topRadial = new this.scope.Path.Line(
-        new this.scope.Point(outer0.x, outer0.y),
-        new this.scope.Point(inner0.x, inner0.y)
-      );
-      this.applyStyle(topRadial, lineStyle);
-
-      // Radial edge on bottom face
-      const bottomRadial = new this.scope.Path.Line(
-        new this.scope.Point(outer1.x, outer1.y),
-        new this.scope.Point(inner1.x, inner1.y)
-      );
-      this.applyStyle(bottomRadial, lineStyle);
+    for (const edge of [
+      [startOuterTop, startOuterBottom, silhouetteStyle],
+      [startInnerTop, startInnerBottom, lineStyle],
+      [endOuterTop, endOuterBottom, silhouetteStyle],
+      [endInnerTop, endInnerBottom, lineStyle],
+      [startOuterTop, startInnerTop, lineStyle],
+      [endOuterTop, endInnerTop, lineStyle],
+      [startOuterBottom, startInnerBottom, lineStyle],
+      [endOuterBottom, endInnerBottom, lineStyle],
+    ] as Array<[{ x: number; y: number }, { x: number; y: number }, typeof LINE_STYLES.visible]>) {
+      this.drawIsoLine(edge[0], edge[1], edge[2]);
     }
 
     if (this.shouldDrawReferenceLug()) {
@@ -2304,14 +2285,38 @@ export class ProfessionalRingSegmentDrawing {
     const lugBottomBackOuter = toIso(lugBackOuterX, lugBackOuterY, lugStartZ + lugHeight);
     const lugBottomBackInner = toIso(lugBackInnerX, lugBackInnerY, lugStartZ + lugHeight);
 
+    this.drawFilledIsometricFace(
+      [lugTopFrontOuter, lugTopFrontInner, lugTopBackInner, lugTopBackOuter],
+      '#edf2f7',
+      0.98
+    );
+    this.drawFilledIsometricFace(
+      [lugTopFrontOuter, lugTopFrontInner, lugBottomFrontInner, lugBottomFrontOuter],
+      '#dbe5ee',
+      0.9
+    );
+    this.drawFilledIsometricFace(
+      [lugTopBackOuter, lugTopBackInner, lugBottomBackInner, lugBottomBackOuter],
+      '#c7d2de',
+      0.92
+    );
+    this.drawFilledIsometricFace(
+      [lugTopFrontOuter, lugTopBackOuter, lugBottomBackOuter, lugBottomFrontOuter],
+      '#d2dbe5',
+      0.82
+    );
+
+    this.drawIsoLine(lugTopFrontOuter, lugTopBackOuter, lineStyle);
     this.drawIsoLine(lugTopFrontOuter, lugTopFrontInner, lineStyle);
     this.drawIsoLine(lugTopFrontInner, lugTopBackInner, lineStyle);
     this.drawIsoLine(lugTopBackInner, lugTopBackOuter, lineStyle);
 
+    this.drawIsoLine(lugBottomFrontOuter, lugBottomBackOuter, lineStyle);
     this.drawIsoLine(lugBottomFrontOuter, lugBottomFrontInner, lineStyle);
     this.drawIsoLine(lugBottomFrontInner, lugBottomBackInner, lineStyle);
     this.drawIsoLine(lugBottomBackInner, lugBottomBackOuter, lineStyle);
 
+    this.drawIsoLine(lugTopFrontOuter, lugBottomFrontOuter, lineStyle);
     this.drawIsoLine(lugTopFrontInner, lugBottomFrontInner, lineStyle);
     this.drawIsoLine(lugTopBackInner, lugBottomBackInner, lineStyle);
     this.drawIsoLine(lugTopBackOuter, lugBottomBackOuter, lineStyle);
@@ -2332,14 +2337,7 @@ export class ProfessionalRingSegmentDrawing {
       const holeX = lugInnerRadius * Math.cos(leftEndRad);
       const holeY = lugInnerRadius * Math.sin(leftEndRad);
       const holePt = toIso(holeX, holeY, z);
-
-      const circle = new this.scope.Path.Circle(
-        new this.scope.Point(holePt.x, holePt.y),
-        holeRadius
-      );
-      circle.strokeColor = new this.scope.Color('#000000');
-      circle.strokeWidth = LINE_STYLES.visible.strokeWidth;
-      circle.fillColor = new this.scope.Color('#FFFFFF');
+      this.drawIsometricHoleGlyph(holePt, holeRadius, holeRadius * 0.72, 68);
     }
   }
 
@@ -2348,7 +2346,7 @@ export class ProfessionalRingSegmentDrawing {
     scale: number
   ): void {
     const startAngle = -this.geometry.segmentAngleDeg / 2;
-    const holeRadius = Math.max(2.4, 3.5 * scale);
+    const holeRadius = Math.max(2.4, 3.4 * scale);
     const sortedHoles = [...this.holes].sort((a, b) => a.axialPositionMm - b.axialPositionMm);
 
     for (const hole of sortedHoles) {
@@ -2358,22 +2356,10 @@ export class ProfessionalRingSegmentDrawing {
       const holeY = this.outerRadius * Math.sin(rad);
       const holeZ = hole.axialPositionMm;
       const holePt = toIso(holeX, holeY, holeZ);
-
-      const circle = new this.scope.Path.Circle(
-        new this.scope.Point(holePt.x, holePt.y),
-        Math.max(holeRadius, hole.diameterMm * scale * 0.45)
-      );
-      circle.strokeColor = new this.scope.Color('#000000');
-      circle.strokeWidth = LINE_STYLES.visible.strokeWidth;
-      circle.fillColor = new this.scope.Color('#FFFFFF');
-
-      const innerShadow = new this.scope.Path.Circle(
-        new this.scope.Point(holePt.x + 0.8, holePt.y + 0.8),
-        Math.max(holeRadius * 0.45, 1.2)
-      );
-      innerShadow.fillColor = new this.scope.Color('#666666');
-      innerShadow.strokeColor = null;
-      innerShadow.opacity = 0.35;
+      const radiusX = Math.max(holeRadius, hole.diameterMm * scale * 0.48);
+      const radiusY = Math.max(radiusX * 0.62, 1.7);
+      const rotation = -20 + Math.sin(rad) * 14;
+      this.drawIsometricHoleGlyph(holePt, radiusX, radiusY, rotation);
     }
 
     if (this.shouldDrawReferenceLug()) {
@@ -2412,13 +2398,60 @@ export class ProfessionalRingSegmentDrawing {
     point: { x: number; y: number },
     radius: number
   ): void {
-    const circle = new this.scope.Path.Circle(
+    this.drawIsometricHoleGlyph(point, radius, radius * 0.78, 34);
+  }
+
+  private drawFilledIsometricFace(
+    points: Array<{ x: number; y: number }>,
+    fillColor: string,
+    opacity: number = 1
+  ): void {
+    const face = new this.scope.Path();
+    points.forEach((point) => {
+      face.add(new this.scope.Point(point.x, point.y));
+    });
+    face.closed = true;
+    face.fillColor = new this.scope.Color(fillColor);
+    face.strokeColor = null;
+    face.opacity = opacity;
+  }
+
+  private createPolyline(points: Array<{ x: number; y: number }>): paper.Path {
+    const path = new this.scope.Path();
+    points.forEach((point) => {
+      path.add(new this.scope.Point(point.x, point.y));
+    });
+    return path;
+  }
+
+  private drawIsometricHoleGlyph(
+    point: { x: number; y: number },
+    radiusX: number,
+    radiusY: number,
+    rotationDeg: number
+  ): void {
+    const safeRadiusX = Math.max(radiusX, 1.2);
+    const safeRadiusY = Math.max(radiusY, 1.0);
+
+    const hole = new this.scope.Path.Circle(
       new this.scope.Point(point.x, point.y),
-      radius
+      safeRadiusX
     );
-    circle.strokeColor = new this.scope.Color('#000000');
-    circle.strokeWidth = LINE_STYLES.visible.strokeWidth;
-    circle.fillColor = new this.scope.Color('#FFFFFF');
+    hole.scale(1, safeRadiusY / safeRadiusX);
+    hole.rotate(rotationDeg);
+    hole.strokeColor = new this.scope.Color('#000000');
+    hole.strokeWidth = LINE_STYLES.visible.strokeWidth;
+    hole.fillColor = new this.scope.Color('#FFFFFF');
+
+    const recess = new this.scope.Path.Circle(
+      new this.scope.Point(point.x + 0.9, point.y + 0.9),
+      Math.max(safeRadiusX * 0.46, 0.8)
+    );
+    recess.scale(1, Math.max((safeRadiusY / safeRadiusX) * 0.82, 0.4));
+    recess.rotate(rotationDeg);
+    recess.fillColor = new this.scope.Color('#5f6b79');
+    recess.strokeColor = null;
+    recess.opacity = 0.34;
   }
 
   // Keep old detailed methods for potential future use but rename them
