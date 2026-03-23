@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
@@ -32,7 +32,10 @@ import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
+  SelectSeparator,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
@@ -52,7 +55,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
-import { APP_FONT_OPTIONS } from '@/lib/appFonts';
+import { APP_FONT_OPTIONS, AppFontOption, getAvailableAppFonts, normalizeAppFontValue } from '@/lib/appFonts';
 
 // ============================================================================
 // TYPES
@@ -318,7 +321,36 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
 
 function GeneralSettings() {
   const { settings, updateSettings } = useSettings();
-  const selectedFont = APP_FONT_OPTIONS.find((font) => font.value === settings.general.uiFont) ?? APP_FONT_OPTIONS[0];
+  const [availableFonts, setAvailableFonts] = useState<AppFontOption[]>(APP_FONT_OPTIONS);
+  const normalizedUiFont = normalizeAppFontValue(settings.general.uiFont);
+
+  useEffect(() => {
+    let mounted = true;
+
+    getAvailableAppFonts().then((fonts) => {
+      if (mounted && fonts.length > 0) {
+        setAvailableFonts(fonts);
+      }
+    });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (settings.general.uiFont !== normalizedUiFont) {
+      updateSettings('general', { uiFont: normalizedUiFont });
+    }
+  }, [normalizedUiFont, settings.general.uiFont, updateSettings]);
+
+  const selectedFont =
+    availableFonts.find((font) => font.value === normalizedUiFont) ??
+    APP_FONT_OPTIONS.find((font) => font.value === normalizedUiFont) ??
+    availableFonts[0] ??
+    APP_FONT_OPTIONS[0];
+  const curatedFonts = availableFonts.filter((font) => font.source === 'curated');
+  const systemFonts = availableFonts.filter((font) => font.source === 'system');
 
   return (
     <div className="space-y-6">
@@ -354,18 +386,34 @@ function GeneralSettings() {
         >
           <div className="space-y-3">
             <Select
-              value={settings.general.uiFont}
+              value={normalizedUiFont}
               onValueChange={(value) => updateSettings('general', { uiFont: value as AppSettings['general']['uiFont'] })}
             >
-              <SelectTrigger className="w-[280px]">
+              <SelectTrigger className="w-[340px] max-w-full">
                 <SelectValue placeholder="Select interface font" />
               </SelectTrigger>
-              <SelectContent>
-                {APP_FONT_OPTIONS.map((font) => (
-                  <SelectItem key={font.value} value={font.value}>
-                    {font.label}
-                  </SelectItem>
-                ))}
+              <SelectContent className="max-h-[360px]">
+                <SelectGroup>
+                  <SelectLabel>Recommended</SelectLabel>
+                  {curatedFonts.map((font) => (
+                    <SelectItem key={font.value} value={font.value}>
+                      {font.label}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+                {systemFonts.length > 0 && (
+                  <>
+                    <SelectSeparator />
+                    <SelectGroup>
+                      <SelectLabel>Detected On This Computer</SelectLabel>
+                      {systemFonts.map((font) => (
+                        <SelectItem key={font.value} value={font.value}>
+                          {font.label}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </>
+                )}
               </SelectContent>
             </Select>
 
@@ -382,6 +430,12 @@ function GeneralSettings() {
               <div className="text-xs text-slate-400">
                 {selectedFont.sample}
               </div>
+            </div>
+
+            <div className="text-xs text-slate-400">
+              {systemFonts.length > 0
+                ? `${availableFonts.length} fonts available, including ${systemFonts.length} detected from this workstation.`
+                : `${availableFonts.length} fonts available in the selector.`}
             </div>
           </div>
         </SettingsRow>

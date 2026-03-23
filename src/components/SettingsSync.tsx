@@ -6,7 +6,7 @@
 import { useEffect } from 'react';
 import { useSettings } from '@/hooks/useSettings';
 import { useTheme } from 'next-themes';
-import { APP_FONT_STACKS } from '@/lib/appFonts';
+import { normalizeAppFontValue, resolveAppFontStacks } from '@/lib/appFonts';
 
 export function SettingsSync() {
   const { settings } = useSettings();
@@ -27,7 +27,8 @@ export function SettingsSync() {
 
   useEffect(() => {
     const root = document.documentElement;
-    const fontConfig = APP_FONT_STACKS[settings.general.uiFont] || APP_FONT_STACKS['ibm-plex-sans'];
+    const normalizedFont = normalizeAppFontValue(settings.general.uiFont);
+    const fontConfig = resolveAppFontStacks(normalizedFont);
     root.style.setProperty('--app-font-family', fontConfig.body);
     root.style.setProperty('--app-heading-font-family', fontConfig.heading);
   }, [settings.general.uiFont]);
