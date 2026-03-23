@@ -22,6 +22,7 @@ import { ImpellerScanDiagram } from "@/components/ImpellerScanDiagram";
 import { BliskScanDiagram } from "@/components/BliskScanDiagram";
 import { getFrequencyOptionsForStandard } from "@/utils/frequencyUtils";
 import { calculateNearField } from "@/utils/coverageCalculator";
+import { equipmentParametersByStandard } from "@/data/standardsDifferences";
 import { CustomDrawingUpload, ArrowOverlay, GeometrySelector } from "@/components/scan-overlay";
 import { useOllamaVision } from "@/components/scan-overlay/hooks/useOllamaVision";
 import { generateArrowsForGeometry, syncArrowsWithScanDetails } from "@/utils/scanArrowPlacement";
@@ -144,6 +145,7 @@ export const ScanDetailsTab = ({
   dimensions,
 }: ScanDetailsTabProps) => {
   const frequencyOptions = getFrequencyOptionsForStandard(standard);
+  const standardEquipmentParams = equipmentParametersByStandard[standard] || equipmentParametersByStandard["AMS-STD-2154E"];
   const [highlightedDirection, setHighlightedDirection] = useState<string | null>(null);
   const [expandedRows, setExpandedRows] = useState<string[]>([]);
 
@@ -196,7 +198,25 @@ export const ScanDetailsTab = ({
   }, [currentDirectionKey, data, defaultDirectionKey, defaultScanDetails, onChange]);
 
   useEffect(() => {
-    const fallbackFrequency = equipmentFrequency?.trim();
+    const parseFrequencyMHz = (value?: string | number | null): number | null => {
+      if (typeof value === "number") {
+        return Number.isFinite(value) && value > 0 ? value : null;
+      }
+      if (typeof value !== "string") return null;
+      const match = value.match(/(\d+(?:\.\d+)?)/);
+      if (!match) return null;
+      const parsed = Number.parseFloat(match[1]);
+      return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+    };
+
+    const equipmentFrequencyMHz = parseFrequencyMHz(equipmentFrequency);
+    const standardFrequencyMHz =
+      Number.isFinite(standardEquipmentParams?.frequencyRange?.typical)
+        ? standardEquipmentParams.frequencyRange.typical
+        : parseFrequencyMHz(frequencyOptions[0]);
+
+    const resolvedFrequencyMHz = equipmentFrequencyMHz ?? standardFrequencyMHz;
+    const fallbackFrequency = resolvedFrequencyMHz !== null ? String(resolvedFrequencyMHz) : "";
     if (!fallbackFrequency) return;
 
     const existingScanDetails = data.scanDetails ?? [];
@@ -211,7 +231,7 @@ export const ScanDetailsTab = ({
 
     if (!hasChanges) return;
     onChange({ ...data, scanDetails: normalizedScanDetails });
-  }, [data, equipmentFrequency, onChange]);
+  }, [data, equipmentFrequency, frequencyOptions, onChange, standardEquipmentParams]);
 
   const scanDetails = defaultScanDetails.map(fixed => {
     const existing = data.scanDetails?.find(d => d.scanningDirection === fixed.scanningDirection);
@@ -378,10 +398,32 @@ export const ScanDetailsTab = ({
     }
   }, [data.customDrawingData]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const parseFrequencyMHz = (value?: string | number | null): number | null => {
+    if (typeof value === "number") {
+      return Number.isFinite(value) && value > 0 ? value : null;
+    }
+    if (typeof value !== "string") return null;
+    const match = value.match(/(\d+(?:\.\d+)?)/);
+    if (!match) return null;
+    const parsed = Number.parseFloat(match[1]);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+  };
+
+  const fallbackFrequencyMHz = useMemo(() => {
+    const fromEquipment = parseFrequencyMHz(equipmentFrequency);
+    if (fromEquipment !== null) return fromEquipment;
+
+    const standardTypical = standardEquipmentParams?.frequencyRange?.typical;
+    if (Number.isFinite(standardTypical) && standardTypical > 0) {
+      return standardTypical;
+    }
+
+    return parseFrequencyMHz(frequencyOptions[0]);
+  }, [equipmentFrequency, frequencyOptions, standardEquipmentParams]);
+
   const getEffectiveFrequencyMHz = (detail: ExtendedScanDetail): number | null => {
-    const frequencyText = detail.frequency?.trim() || equipmentFrequency?.trim() || "";
-    const frequencyMHz = Number.parseFloat(frequencyText);
-    return Number.isFinite(frequencyMHz) && frequencyMHz > 0 ? frequencyMHz : null;
+    const fromDetail = parseFrequencyMHz(detail.frequency);
+    return fromDetail ?? fallbackFrequencyMHz ?? null;
   };
 
   const getComputedNearField = (detail: ExtendedScanDetail): number | null => {
@@ -493,7 +535,7 @@ export const ScanDetailsTab = ({
                           <p className="mt-1 text-emerald-300">= {nf.toFixed(2)} mm</p>
                         )}
                         {nf === null && (
-                          <p className="mt-1 text-amber-400">Enter Diameter and Velocity. Frequency falls back to Equipment.</p>
+                          <p className="mt-1 text-amber-400">Enter Diameter and Velocity. Frequency falls back to Equipment, then to the standard default.</p>
                         )}
                       </div>
                     </div>

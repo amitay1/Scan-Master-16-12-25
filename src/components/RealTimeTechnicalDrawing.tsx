@@ -92,6 +92,7 @@ export const RealTimeTechnicalDrawing = ({
   const generatorRef = useRef<TechnicalDrawingGenerator | null>(null);
   const CANVAS_WIDTH = 800;
   const CANVAS_HEIGHT = 500;
+  const CANVAS_ASPECT_RATIO = `${CANVAS_WIDTH} / ${CANVAS_HEIGHT}`;
 
   // Debounce to prevent flickering during rapid input changes
   const debouncedDimensions = useDebounce(dimensions, 150);
@@ -409,17 +410,20 @@ export const RealTimeTechnicalDrawing = ({
   }, [partType, drawingDimensions, layout, showGrid, material, standardType, partNumberProp, showScanCoverage, scanType, coverageDimensions]);
 
   return (
-    <div className="w-full h-full flex items-center justify-center bg-[#D4D4D4] p-3">
+    <div className="w-full h-full flex items-start justify-center overflow-hidden bg-[#D4D4D4] p-3">
       <canvas
         id="technical-drawing-canvas"
         ref={canvasRef}
+        width={CANVAS_WIDTH}
+        height={CANVAS_HEIGHT}
         className="border border-gray-400 rounded-lg shadow-lg"
         style={{
-          maxWidth: '100%',
-          maxHeight: '100%',
           width: '100%',
+          maxWidth: `${CANVAS_WIDTH}px`,
           height: 'auto',
+          aspectRatio: CANVAS_ASPECT_RATIO,
           display: 'block',
+          flex: '0 0 auto',
           imageRendering: 'crisp-edges',
           backgroundColor: '#D4D4D4'
         }}
