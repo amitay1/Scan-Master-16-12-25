@@ -269,7 +269,7 @@ export const ThreeDViewer = memo(function ThreeDViewer(props: ThreeDViewerProps)
   }
 
   return (
-    <div className="relative w-full h-full bg-gradient-to-br from-muted/30 to-muted/10 rounded-lg border border-border overflow-hidden transition-opacity duration-200">
+    <div className="relative h-full w-full overflow-hidden rounded-[1.1rem] border border-border bg-gradient-to-br from-slate-900/95 via-slate-900/90 to-slate-950 transition-opacity duration-200">
       {isLoading && <CanvasLoader />}
       <Canvas
         key={viewerKey}
@@ -284,6 +284,8 @@ export const ThreeDViewer = memo(function ThreeDViewer(props: ThreeDViewerProps)
         frameloop="demand"
         onCreated={() => setIsLoading(false)}
       >
+        <color attach="background" args={["#0b1220"]} />
+        <fog attach="fog" args={["#0b1220", 6, 14]} />
         <PerspectiveCamera makeDefault position={[3, 2, 3]} />
         <OrbitControls 
           ref={controlsRef}
@@ -293,23 +295,33 @@ export const ThreeDViewer = memo(function ThreeDViewer(props: ThreeDViewerProps)
           maxDistance={10}
         />
         
-        {/* Lighting - Enhanced for better visibility */}
-        <ambientLight intensity={0.7} />
+        {/* Lighting - shifted from generic preview to studio-style rig */}
+        <ambientLight intensity={0.45} />
+        <hemisphereLight args={["#dbeafe", "#0f172a", 0.65]} />
         <directionalLight
           position={[10, 10, 10]}
-          intensity={1.5}
+          intensity={1.2}
           castShadow
           shadow-mapSize-width={2048}
           shadow-mapSize-height={2048}
         />
-        <directionalLight position={[-10, 10, 10]} intensity={1.0} />
-        <directionalLight position={[0, -10, -10]} intensity={0.6} />
-        <directionalLight position={[0, 10, -10]} intensity={0.8} />
-        <directionalLight position={[-5, -5, 10]} intensity={0.5} />
-        
-        {/* Grid */}
-        <gridHelper args={[10, 10, "#3b82f6", "#94a3b8"]} position={[0, -1, 0]} />
-        
+        <spotLight
+          position={[4, 6, 3]}
+          angle={0.45}
+          penumbra={0.7}
+          intensity={1.7}
+          castShadow
+          shadow-mapSize-width={2048}
+          shadow-mapSize-height={2048}
+        />
+        <directionalLight position={[-6, 4, 5]} intensity={0.75} />
+        <directionalLight position={[0, 3, -6]} intensity={0.45} />
+
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1.02, 0]} receiveShadow>
+          <planeGeometry args={[18, 18]} />
+          <meshStandardMaterial color="#111827" metalness={0.08} roughness={0.92} />
+        </mesh>
+        <gridHelper args={[12, 24, "#2563eb", "#334155"]} position={[0, -1, 0]} />
         {/* Part */}
         <Part {...props} />
       </Canvas>
@@ -320,7 +332,7 @@ export const ThreeDViewer = memo(function ThreeDViewer(props: ThreeDViewerProps)
           size="sm"
           variant="secondary"
           onClick={handleReset}
-          className="shadow-lg backdrop-blur-sm"
+          className="border border-white/10 bg-slate-900/80 shadow-lg backdrop-blur-md"
         >
           <RotateCcw className="h-4 w-4 mr-1" />
           Reset View
@@ -328,7 +340,7 @@ export const ThreeDViewer = memo(function ThreeDViewer(props: ThreeDViewerProps)
       </div>
 
       {/* Info overlay */}
-      <div className="absolute top-4 left-4 bg-card/90 backdrop-blur-sm rounded-md p-3 border border-border shadow-lg animate-fade-in transition-all duration-200">
+      <div className="absolute left-4 top-4 max-w-[210px] rounded-2xl border border-white/10 bg-slate-900/82 p-3 shadow-lg backdrop-blur-md animate-fade-in transition-all duration-200">
         <p className="text-xs font-medium text-foreground mb-1 flex items-center gap-2">
           <Navigation className="h-3 w-3" />
           Part Visualization

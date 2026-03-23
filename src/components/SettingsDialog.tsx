@@ -142,15 +142,23 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl h-[80vh] p-0 gap-0 bg-slate-900 border border-slate-700 shadow-2xl overflow-hidden">
+      <DialogContent className="max-w-5xl h-[84vh] p-0 gap-0 overflow-hidden border border-white/10 bg-[linear-gradient(180deg,rgba(10,14,22,0.98),rgba(12,18,28,0.98))] shadow-[0_32px_80px_rgba(0,0,0,0.45)]">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700 bg-slate-950">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-white/8 bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.18),transparent_40%),linear-gradient(180deg,rgba(15,23,42,0.98),rgba(12,18,28,0.96))]">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 shadow-lg shadow-blue-500/25">
+            <div className="p-3 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-500 shadow-[0_18px_30px_rgba(37,99,235,0.35)]">
               <Settings className="w-5 h-5 text-white" />
             </div>
             <div>
-              <DialogTitle className="text-lg font-bold text-white">Settings</DialogTitle>
+              <div className="mb-2 flex flex-wrap items-center gap-2">
+                <span className="rounded-full border border-blue-400/20 bg-blue-500/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-blue-200">
+                  Workstation Preferences
+                </span>
+                <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-medium text-slate-300">
+                  8 sections
+                </span>
+              </div>
+              <DialogTitle className="text-xl font-bold text-white">Settings</DialogTitle>
               <DialogDescription className="text-sm text-slate-400">
                 Configure your ScanMaster preferences
               </DialogDescription>
@@ -166,7 +174,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                     variant="ghost"
                     size="sm"
                     onClick={handleExportSettings}
-                    className="text-slate-400 hover:text-white hover:bg-slate-800"
+                    className="rounded-2xl text-slate-400 hover:text-white hover:bg-white/[0.05]"
                   >
                     <Download className="w-4 h-4" />
                   </Button>
@@ -182,7 +190,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                     variant="ghost"
                     size="sm"
                     onClick={handleImportSettings}
-                    className="text-slate-400 hover:text-white hover:bg-slate-800"
+                    className="rounded-2xl text-slate-400 hover:text-white hover:bg-white/[0.05]"
                   >
                     <Upload className="w-4 h-4" />
                   </Button>
@@ -191,7 +199,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
               </Tooltip>
             </TooltipProvider>
 
-            <Separator orientation="vertical" className="h-5 bg-slate-700 mx-2" />
+            <Separator orientation="vertical" className="h-5 bg-white/10 mx-2" />
 
             <TooltipProvider>
               <Tooltip>
@@ -200,7 +208,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                     variant="ghost"
                     size="sm"
                     onClick={handleResetAll}
-                    className="text-slate-400 hover:text-red-400 hover:bg-red-500/10"
+                    className="rounded-2xl text-slate-400 hover:text-red-300 hover:bg-red-500/10"
                   >
                     <RotateCcw className="w-4 h-4" />
                   </Button>
@@ -214,16 +222,16 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
         {/* Content */}
         <div className="flex flex-1 overflow-hidden">
           {/* Sidebar */}
-          <div className="w-56 border-r border-slate-700 bg-slate-950 flex-shrink-0">
+          <div className="w-64 border-r border-white/8 bg-black/15 flex-shrink-0">
             <ScrollArea className="h-full py-3">
               {settingsTabs.map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`w-full flex items-center gap-3 px-4 py-3.5 text-left transition-all duration-200 ${
+                  className={`mx-3 mb-1 flex w-[calc(100%-24px)] items-center gap-3 rounded-2xl px-4 py-3.5 text-left transition-all duration-200 ${
                     activeTab === tab.id
-                      ? 'bg-blue-600/20 text-blue-400 border-l-3 border-blue-500 ml-0.5'
-                      : 'text-slate-400 hover:bg-slate-800 hover:text-white border-l-3 border-transparent'
+                      ? 'bg-blue-500/12 text-blue-300 ring-1 ring-blue-400/20 shadow-[0_14px_30px_rgba(37,99,235,0.12)]'
+                      : 'text-slate-400 hover:bg-white/[0.05] hover:text-white'
                   }`}
                 >
                   <span className={activeTab === tab.id ? 'text-blue-400' : 'text-slate-500'}>
@@ -241,7 +249,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
           {/* Main Content */}
           <div className="flex-1 flex flex-col overflow-hidden">
             {/* Tab Header */}
-            <div className="px-6 py-4 border-b border-slate-700 bg-slate-800/50">
+            <div className="px-6 py-4 border-b border-white/8 bg-white/[0.03]">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-lg font-semibold text-white">
@@ -251,20 +259,20 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                     {settingsTabs.find(t => t.id === activeTab)?.description}
                   </p>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleResetCategory}
-                  className="text-slate-300 border-slate-600 hover:bg-slate-700 hover:text-white"
-                >
-                  <RotateCcw className="w-4 h-4 mr-2" />
-                  Reset
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleResetCategory}
+                    className="rounded-2xl text-slate-300 border-white/10 bg-white/[0.03] hover:bg-white/[0.06] hover:text-white"
+                  >
+                    <RotateCcw className="w-4 h-4 mr-2" />
+                    Reset
                 </Button>
               </div>
             </div>
 
             {/* Tab Content */}
-            <ScrollArea className="flex-1 px-6 py-5">
+            <ScrollArea className="flex-1 px-6 py-5 bg-black/10">
               <AnimatePresence mode="wait">
                 <motion.div
                   key={activeTab}
@@ -288,12 +296,12 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-6 py-4 border-t border-slate-700 bg-slate-950">
+        <div className="flex items-center justify-between px-6 py-4 border-t border-white/8 bg-black/15">
           <p className="text-sm text-slate-400 flex items-center gap-2">
             <Save className="w-4 h-4" />
             Settings are saved automatically
           </p>
-          <Button onClick={() => onOpenChange(false)} className="bg-blue-600 hover:bg-blue-700 px-6">
+          <Button onClick={() => onOpenChange(false)} className="rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 px-6">
             <Check className="w-4 h-4 mr-2" />
             Done
           </Button>
@@ -1088,8 +1096,8 @@ function AdvancedSettings() {
 
 function SettingsSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="space-y-4 mb-8">
-      <h4 className="text-xs font-bold text-blue-400 uppercase tracking-widest border-b border-slate-700 pb-2">{title}</h4>
+    <div className="space-y-4 mb-8 rounded-[28px] border border-white/8 bg-white/[0.03] p-5">
+      <h4 className="text-xs font-bold text-blue-300 uppercase tracking-widest border-b border-white/8 pb-2">{title}</h4>
       <div className="space-y-2">{children}</div>
     </div>
   );
@@ -1105,12 +1113,12 @@ function SettingsRow({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center justify-between py-3.5 px-4 rounded-lg bg-slate-800/70 hover:bg-slate-800 border border-slate-700/50 transition-colors">
+    <div className="flex items-center justify-between py-4 px-4 rounded-[22px] bg-black/15 hover:bg-black/20 border border-white/8 transition-colors">
       <div className="flex-1 pr-6 min-w-0">
         <Label className="text-sm font-medium text-white block">{label}</Label>
         <p className="text-xs text-slate-400 mt-1 leading-relaxed">{description}</p>
       </div>
-      <div className="flex-shrink-0 [&_input]:bg-slate-900 [&_input]:border-slate-600 [&_input]:text-white [&_input]:placeholder:text-slate-500 [&_button]:border-slate-600 [&_button]:bg-slate-900 [&_button]:text-white [&_textarea]:bg-slate-900 [&_textarea]:border-slate-600 [&_textarea]:text-white">{children}</div>
+      <div className="flex-shrink-0 [&_input]:rounded-2xl [&_input]:border-white/10 [&_input]:bg-slate-950/80 [&_input]:text-white [&_input]:placeholder:text-slate-500 [&_button]:rounded-2xl [&_button]:border-white/10 [&_button]:bg-slate-950/80 [&_button]:text-white [&_textarea]:rounded-2xl [&_textarea]:border-white/10 [&_textarea]:bg-slate-950/80 [&_textarea]:text-white">{children}</div>
     </div>
   );
 }

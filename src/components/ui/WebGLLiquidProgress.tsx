@@ -14,16 +14,17 @@ function isWebGLSupported(): boolean {
 }
 
 // CSS-based fallback progress bar
-const CSSFallbackProgress = ({ progress, completedFields, totalFields, className = '' }: {
+const CSSFallbackProgress = ({ progress, completedFields, totalFields, className = '', compact = false }: {
   progress: number;
   completedFields: number;
   totalFields: number;
   className?: string;
+  compact?: boolean;
 }) => (
   <div className={`w-full bg-slate-950 border-y border-slate-800 shadow-xl ${className}`}>
-    <div className="max-w-full mx-auto px-3 py-2">
+    <div className={`max-w-full mx-auto ${compact ? 'px-2 py-1.5' : 'px-3 py-2'}`}>
       {/* Header */}
-      <div className="flex justify-between items-center mb-2">
+      <div className={`flex justify-between items-center ${compact ? 'mb-1' : 'mb-2'}`}>
         <div className="flex items-center gap-4">
           <span className="text-xs font-bold text-slate-300 tracking-widest">PROGRESS</span>
           <span className="text-xs text-slate-500">{completedFields}/{totalFields} fields</span>
@@ -43,7 +44,7 @@ const CSSFallbackProgress = ({ progress, completedFields, totalFields, className
       </div>
 
       {/* CSS Progress Bar */}
-      <div className="relative h-20 md:h-24 rounded-md overflow-hidden bg-slate-900 border-2 border-slate-700">
+      <div className={`relative rounded-md overflow-hidden bg-slate-900 border-2 border-slate-700 ${compact ? 'h-9 md:h-10' : 'h-20 md:h-24'}`}>
         {/* Progress fill */}
         <div 
           className="absolute inset-y-0 left-0 transition-all duration-500 ease-out"
@@ -62,8 +63,8 @@ const CSSFallbackProgress = ({ progress, completedFields, totalFields, className
         </div>
 
         {/* Percentage badge */}
-        <div className="absolute right-3 top-1/2 -translate-y-1/2 z-20 bg-slate-900/90 backdrop-blur px-4 py-2 rounded border border-slate-700">
-          <span className={`text-2xl font-bold font-mono ${
+        <div className={`absolute right-3 top-1/2 -translate-y-1/2 z-20 bg-slate-900/90 backdrop-blur rounded border border-slate-700 ${compact ? 'px-2.5 py-1' : 'px-4 py-2'}`}>
+          <span className={`${compact ? 'text-base' : 'text-2xl'} font-bold font-mono ${
             progress === 100 ? 'text-green-400' : 'text-white'
           }`}>
             {Math.round(progress)}%
@@ -71,11 +72,11 @@ const CSSFallbackProgress = ({ progress, completedFields, totalFields, className
         </div>
 
         {/* Scale */}
-        <div className="absolute bottom-2 left-3 right-20 flex justify-between z-20">
+        <div className={`absolute left-3 right-20 flex justify-between z-20 ${compact ? 'bottom-1' : 'bottom-2'}`}>
           {[0, 25, 50, 75, 100].map((mark) => (
             <div key={mark} className="flex flex-col items-center">
-              <div className="w-px h-2 bg-slate-600" />
-              <span className="text-[9px] text-slate-500 font-mono">{mark}</span>
+              <div className={`w-px bg-slate-600 ${compact ? 'h-1.5' : 'h-2'}`} />
+              <span className={`${compact ? 'text-[8px]' : 'text-[9px]'} text-slate-500 font-mono`}>{mark}</span>
             </div>
           ))}
         </div>
@@ -357,6 +358,7 @@ interface WebGLLiquidProgressProps {
   completedFields: number;
   totalFields: number;
   className?: string;
+  compact?: boolean;
 }
 
 export const WebGLLiquidProgress = ({
@@ -364,20 +366,21 @@ export const WebGLLiquidProgress = ({
   completedFields,
   totalFields,
   className = '',
+  compact = false,
 }: WebGLLiquidProgressProps) => {
   const progress = Math.max(0, Math.min(100, value));
   const [webglSupported] = useState(() => isWebGLSupported());
 
   // If WebGL is not supported, use CSS fallback
   if (!webglSupported) {
-    return <CSSFallbackProgress progress={progress} completedFields={completedFields} totalFields={totalFields} className={className} />;
+    return <CSSFallbackProgress progress={progress} completedFields={completedFields} totalFields={totalFields} className={className} compact={compact} />;
   }
 
   return (
     <div className={`w-full bg-slate-950 border-y border-slate-800 shadow-xl ${className}`}>
-      <div className="max-w-full mx-auto px-2 py-1">
+      <div className={`max-w-full mx-auto ${compact ? 'px-2 py-1' : 'px-2 py-1'}`}>
         {/* Header */}
-        <div className="flex justify-between items-center mb-1">
+        <div className={`flex justify-between items-center ${compact ? 'mb-0.5' : 'mb-1'}`}>
           <div className="flex items-center gap-2">
             <span className="text-[10px] font-bold text-slate-300 tracking-wider">PROGRESS</span>
             <span className="text-[10px] text-slate-500">{completedFields}/{totalFields}</span>
@@ -394,7 +397,7 @@ export const WebGLLiquidProgress = ({
         </div>
 
         {/* Tank container */}
-        <div className="relative h-10 rounded-md overflow-hidden bg-slate-950 border border-slate-700">
+        <div className={`relative rounded-md overflow-hidden bg-slate-950 border border-slate-700 ${compact ? 'h-8 md:h-9' : 'h-10'}`}>
           {/* Glass effect overlay */}
           <div className="absolute inset-0 pointer-events-none z-10">
             {/* Top reflection */}
@@ -416,8 +419,8 @@ export const WebGLLiquidProgress = ({
           </Canvas>
 
           {/* Percentage badge */}
-          <div className="absolute right-3 top-1/2 -translate-y-1/2 z-20 bg-slate-900/90 backdrop-blur px-4 py-2 rounded border border-slate-700">
-            <span className={`text-2xl font-bold font-mono ${
+          <div className={`absolute right-3 top-1/2 -translate-y-1/2 z-20 bg-slate-900/90 backdrop-blur rounded border border-slate-700 ${compact ? 'px-2 py-0.5' : 'px-4 py-2'}`}>
+            <span className={`${compact ? 'text-sm' : 'text-2xl'} font-bold font-mono ${
               progress === 100 ? 'text-green-400' : 'text-white'
             }`}>
               {Math.round(progress)}%
@@ -425,11 +428,11 @@ export const WebGLLiquidProgress = ({
           </div>
 
           {/* Scale */}
-          <div className="absolute bottom-2 left-3 right-20 flex justify-between z-20">
+          <div className={`absolute left-3 right-20 flex justify-between z-20 ${compact ? 'bottom-1' : 'bottom-2'}`}>
             {[0, 25, 50, 75, 100].map((mark) => (
               <div key={mark} className="flex flex-col items-center">
-                <div className="w-px h-2 bg-slate-600" />
-                <span className="text-[9px] text-slate-500 font-mono">{mark}</span>
+                <div className={`w-px bg-slate-600 ${compact ? 'h-1.5' : 'h-2'}`} />
+                <span className={`${compact ? 'text-[8px]' : 'text-[9px]'} text-slate-500 font-mono`}>{mark}</span>
               </div>
             ))}
           </div>

@@ -818,8 +818,8 @@ export const InspectionSetupTab = ({
   }, [data.material, data.materialDensity, materialProps]);
 
   return (
-    <div className="space-y-2 p-2">
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2">
+    <div className="space-y-4 p-3 md:p-4">
+      <div className="grid grid-cols-2 items-start gap-x-4 gap-y-5 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
         <FieldWithHelp
           label="Technique Card ID"
           fieldKey="techniqueCardId"
@@ -862,7 +862,6 @@ export const InspectionSetupTab = ({
           label="Material"
           fieldKey="material"
           required
-          materialInfo={materialInfo}
         >
           {addingMaterial ? (
             <div className="flex gap-1">
@@ -922,7 +921,7 @@ export const InspectionSetupTab = ({
             />
           )}
           {materialProps && (
-            <div className="mt-2 p-2 bg-muted/50 rounded text-xs space-y-1">
+            <div className="hidden">
               <div><strong>Density:</strong> {materialProps.density} g/cm³ ({Math.round(materialProps.density * 1000)} kg/m³)</div>
               <div><strong>Impedance:</strong> {materialProps.acousticImpedance} MRayls</div>
             </div>
@@ -1045,7 +1044,7 @@ export const InspectionSetupTab = ({
         </FieldWithHelp>
 
 
-        <div className="col-span-2 bg-primary/10 border-2 border-primary/30 rounded-xl p-3 shadow-sm">
+        <div className="md:col-span-2">
           <FieldWithHelp
             label="Part Type"
             fieldKey="partType"
@@ -1497,9 +1496,17 @@ export const InspectionSetupTab = ({
 
       {/* Technical Drawing with Dimensions */}
       {data.partType && (
-        <Card className="p-4 mt-4">
-          <h3 className="text-sm font-semibold mb-3">Part Drawing with Dimensions</h3>
-          <div className="h-[520px] w-full overflow-visible">
+        <Card className="workstation-card mt-5 overflow-hidden border-0 p-5">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h3 className="text-base font-semibold">Part Drawing with Dimensions</h3>
+              <p className="text-xs text-muted-foreground">Live engineering sheet generated directly from the setup values.</p>
+            </div>
+            <Badge variant="outline" className="border-primary/30 bg-primary/10 text-primary">
+              Live Drawing
+            </Badge>
+          </div>
+          <div className="technical-stage h-[520px] w-full overflow-visible">
             <RealTimeTechnicalDrawing
               partType={data.partType}
               material={data.material as MaterialType}

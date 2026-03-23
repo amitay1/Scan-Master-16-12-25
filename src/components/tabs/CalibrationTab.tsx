@@ -1527,9 +1527,9 @@ export const CalibrationTab = ({
   }
 
   return (
-    <div className="space-y-2 p-2">
+    <div className="space-y-4 p-3 md:p-4">
       {/* Calibration Model Section - Dynamic based on geometry */}
-      <div className="space-y-2">
+      <div className="workstation-card space-y-4 border-0 p-5">
         <h3 className="text-lg font-semibold flex items-center gap-2">
           <Target className="h-5 w-5" />
           Calibration Block
@@ -1587,11 +1587,11 @@ export const CalibrationTab = ({
             onValueChange={(v) => setActiveBeamTab(v as "straight" | "angle")}
             className="w-full"
           >
-            <TabsList className="grid w-full grid-cols-2 mb-4">
-              <TabsTrigger value="straight" className="data-[state=active]:bg-blue-100 data-[state=active]:text-blue-900">
+            <TabsList className="grid w-full grid-cols-2 mb-4 rounded-2xl border border-border/70 bg-black/10 p-1.5">
+              <TabsTrigger value="straight" className="rounded-xl data-[state=active]:bg-primary/15 data-[state=active]:text-foreground">
                 {BEAM_TYPE_LABELS.straight.short}
               </TabsTrigger>
-              <TabsTrigger value="angle" className="data-[state=active]:bg-orange-100 data-[state=active]:text-orange-900">
+              <TabsTrigger value="angle" className="rounded-xl data-[state=active]:bg-accent/20 data-[state=active]:text-foreground">
                 {BEAM_TYPE_LABELS.angle.short}
               </TabsTrigger>
             </TabsList>
@@ -1617,7 +1617,7 @@ export const CalibrationTab = ({
       </div>
 
       {/* Block Settings */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="workstation-card grid grid-cols-1 gap-6 border-0 p-5 md:grid-cols-2">
         <FieldWithHelp
           label="Reference Standard Material"
           fieldKey="referenceBlockMaterial"

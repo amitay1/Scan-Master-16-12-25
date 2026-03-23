@@ -957,10 +957,10 @@ export const ScanDetailsTab = ({
   };
 
   return (
-    <div className="h-full flex flex-col overflow-hidden">
-      <div className="flex-1 flex gap-2 min-h-0 p-1">
+    <div className="h-full flex flex-col overflow-hidden p-3 md:p-4">
+      <div className="flex-1 flex gap-3 min-h-0">
         {/* LEFT: Diagram / Custom Drawing */}
-        <div className="w-2/5 min-h-0 flex-shrink-0 flex flex-col" data-testid="e2375-diagram">
+        <div className="workstation-card w-2/5 min-h-0 flex-shrink-0 flex flex-col border-0 p-3" data-testid="e2375-diagram">
           {/* Toggle between predefined and custom drawing */}
           <div className="flex items-center justify-between mb-2 px-1">
             <div className="flex items-center gap-2">
@@ -992,7 +992,7 @@ export const ScanDetailsTab = ({
         </div>
 
         {/* RIGHT: Compact Table with Expandable Rows */}
-        <div className="flex-1 flex flex-col min-h-0">
+        <div className="workstation-card flex-1 flex flex-col min-h-0 border-0 p-3">
           <div className="flex items-center justify-between mb-1 px-1">
             <div className="flex items-center gap-2">
               <span className="text-xs font-medium text-slate-300">Scan Details</span>
@@ -1003,7 +1003,7 @@ export const ScanDetailsTab = ({
             </Badge>
           </div>
 
-          <div className="flex-1 overflow-auto border border-slate-700 rounded-lg">
+          <div className="flex-1 overflow-auto rounded-2xl border border-slate-700/70 bg-slate-950/30">
             <table className="w-full border-collapse text-xs">
               <thead className="sticky top-0 bg-slate-800 z-10">
                 <tr className="border-b border-slate-600">

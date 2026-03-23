@@ -1,4 +1,5 @@
 import React, { useState, useRef, Suspense } from "react";
+import { createPortal } from "react-dom";
 import { PartGeometry } from "@/types/techniqueSheet";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -127,7 +128,7 @@ function Inline3DPreview({
   fallbackIcon?: string;
 }) {
   return (
-    <div className="w-8 h-8 relative">
+    <div className="relative h-6 w-6 flex-shrink-0">
       {show3D ? (
         <Canvas
           camera={{ position: [0, 0, 3.5], fov: 40 }}
@@ -271,6 +272,9 @@ export const PartTypeVisualSelector: React.FC<PartTypeVisualSelectorProps> = ({
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [hoveredOption, setHoveredOption] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const dropdownMenuRef = useRef<HTMLDivElement>(null);
+  const triggerButtonRef = useRef<HTMLButtonElement>(null);
+  const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
   const selectedType = allPartTypes.find(t => t.value === value);
 
   const handleSelect = (partType: PartGeometry) => {
@@ -283,7 +287,10 @@ export const PartTypeVisualSelector: React.FC<PartTypeVisualSelectorProps> = ({
   // Close dropdown when clicking outside
   React.useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      const clickedInsideTrigger = dropdownRef.current?.contains(target);
+      const clickedInsideMenu = dropdownMenuRef.current?.contains(target);
+      if (!clickedInsideTrigger && !clickedInsideMenu) {
         setDropdownOpen(false);
         setHoveredOption(null);
       }
@@ -291,6 +298,42 @@ export const PartTypeVisualSelector: React.FC<PartTypeVisualSelectorProps> = ({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  React.useEffect(() => {
+    if (!dropdownOpen) return;
+
+    const updateDropdownPosition = () => {
+      const triggerRect = triggerButtonRef.current?.getBoundingClientRect();
+      if (!triggerRect) return;
+
+      const viewportPadding = 16;
+      const availableBelow = window.innerHeight - triggerRect.bottom - viewportPadding;
+      const availableAbove = triggerRect.top - viewportPadding;
+      const shouldOpenUpward = availableBelow < 260 && availableAbove > availableBelow;
+      const maxHeight = Math.max(
+        220,
+        Math.min(shouldOpenUpward ? availableAbove - 8 : availableBelow - 8, 420)
+      );
+
+      setDropdownStyle({
+        position: "fixed",
+        left: triggerRect.left,
+        top: shouldOpenUpward ? Math.max(viewportPadding, triggerRect.top - maxHeight - 8) : triggerRect.bottom + 8,
+        width: triggerRect.width,
+        maxHeight,
+        zIndex: 200,
+      });
+    };
+
+    updateDropdownPosition();
+    window.addEventListener("resize", updateDropdownPosition);
+    window.addEventListener("scroll", updateDropdownPosition, true);
+
+    return () => {
+      window.removeEventListener("resize", updateDropdownPosition);
+      window.removeEventListener("scroll", updateDropdownPosition, true);
+    };
+  }, [dropdownOpen]);
 
   // Preload preview geometries in small idle chunks so first dropdown open is instant.
   React.useEffect(() => {
@@ -337,13 +380,14 @@ export const PartTypeVisualSelector: React.FC<PartTypeVisualSelectorProps> = ({
   }, []);
 
   return (
-    <div className="flex items-center gap-1.5" ref={dropdownRef}>
+    <div className="flex items-center gap-2" ref={dropdownRef}>
       {/* Premium custom dropdown */}
       <div className="relative flex-1">
         <motion.button
+          ref={triggerButtonRef}
           type="button"
           className={cn(
-            "w-full flex items-center gap-2 px-3 py-2 rounded-lg",
+            "flex h-9 w-full items-center gap-2 rounded-lg px-3 py-0",
             "bg-background border border-input",
             "hover:border-primary/50 hover:bg-muted/50",
             "transition-all duration-200",
@@ -387,50 +431,50 @@ export const PartTypeVisualSelector: React.FC<PartTypeVisualSelectorProps> = ({
         </motion.button>
 
         {/* Dropdown menu */}
-        {dropdownOpen && (
+        {dropdownOpen && typeof document !== "undefined" && createPortal(
           <motion.div
+            ref={dropdownMenuRef}
             initial={false}
             animate={{
               opacity: dropdownOpen ? 1 : 0,
               y: dropdownOpen ? 0 : -10,
-              scale: dropdownOpen ? 1 : 0.95,
+              scale: dropdownOpen ? 1 : 0.97,
             }}
             transition={{ type: "spring", stiffness: 400, damping: 25 }}
             style={{
+              ...dropdownStyle,
               pointerEvents: dropdownOpen ? "auto" : "none",
               visibility: dropdownOpen ? "visible" : "hidden",
             }}
             className={cn(
-              "absolute z-50 top-full left-0 right-0 mt-1.5",
-              "bg-popover border border-border rounded-xl shadow-xl",
-              "max-h-[320px] overflow-y-auto",
+              "bg-popover border border-border rounded-xl shadow-2xl",
+              "overflow-y-auto overflow-x-hidden",
               "backdrop-blur-xl"
             )}
           >
-            {/* Header */}
             <div className="sticky top-0 bg-popover/95 backdrop-blur-sm px-3 py-2 border-b border-border/50">
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <Sparkles className="h-3 w-3" />
                 <span>Select geometry type</span>
               </div>
             </div>
-            
-            {/* Options */}
+
             <div className="p-1.5 space-y-0.5">
               {allPartTypes.map((option) => (
-                  <ShapeOption
-                    key={option.value}
-                    option={option}
-                    isSelected={value === option.value}
-                    isHovered={hoveredOption === option.value}
-                    show3DPreview={true}
-                    animatePreview={true}
-                    onHover={() => setHoveredOption(option.value)}
-                    onClick={() => handleSelect(option.value)}
-                  />
+                <ShapeOption
+                  key={option.value}
+                  option={option}
+                  isSelected={value === option.value}
+                  isHovered={hoveredOption === option.value}
+                  show3DPreview={true}
+                  animatePreview={true}
+                  onHover={() => setHoveredOption(option.value)}
+                  onClick={() => handleSelect(option.value)}
+                />
               ))}
             </div>
-          </motion.div>
+          </motion.div>,
+          document.body
         )}
       </div>
 
@@ -444,7 +488,7 @@ export const PartTypeVisualSelector: React.FC<PartTypeVisualSelectorProps> = ({
                   variant="outline"
                   size="icon"
                   className={cn(
-                    "h-9 w-9 flex-shrink-0 relative overflow-hidden",
+                    "relative h-9 w-9 flex-shrink-0 overflow-hidden rounded-lg",
                     "hover:border-primary/50 hover:bg-primary/5",
                     "transition-all duration-200"
                   )}

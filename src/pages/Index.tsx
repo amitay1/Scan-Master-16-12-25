@@ -31,10 +31,8 @@ import { InspectorCertificationTab } from "@/components/tabs/InspectorCertificat
 import { AerospaceForgingTab } from "@/components/tabs/AerospaceForgingTab";
 import { ScanDetailsTab } from "@/components/tabs/ScanDetailsTab";
 import { ScanPlanTab } from "@/components/tabs/ScanPlanTab";
-import { WebGLLiquidProgress } from "@/components/ui/WebGLLiquidProgress";
 import { Collapsible3DPanel } from "@/components/ui/ResizablePanel";
 import { CollapsibleSidebar } from "@/components/CollapsibleSidebar";
-import { CurrentShapeHeader } from "@/components/CurrentShapeHeader";
 import type { StandardType, MaterialType } from "@/types/techniqueSheet";
 import { getResolutionValues } from "@/utils/frequencyUtils";
 import { useAuth } from "@/hooks/useAuth";
@@ -468,6 +466,8 @@ const Index = () => {
     </div>
   );
 
+  const workbenchTabTriggerClass = "flex-shrink-0 px-3 py-2";
+
   // ── Loading / auth guards ──────────────────────────────────────────────
   if (loading) {
     return (
@@ -493,7 +493,7 @@ const Index = () => {
 
   return (
     <StandardProvider standard={standard}>
-      <div className="h-screen w-screen flex flex-col overflow-hidden bg-background fixed inset-0">
+      <div className="workbench-shell h-screen w-screen flex flex-col overflow-hidden bg-background fixed inset-0">
       {/* Profile Selection Dialog */}
       <ProfileSelectionDialog
         open={needsProfileSelection && !profileLoading}
@@ -527,7 +527,6 @@ const Index = () => {
       {/* Toolbar */}
       <Toolbar
         onSave={handleSaveCard}
-        onSaveAs={persistence.handleSaveAs}
         onExport={() => setExportDialogOpen(true)}
         onValidate={handleValidate}
         reportMode={reportMode}
@@ -540,12 +539,13 @@ const Index = () => {
         onOpenSavedCards={persistence.handleOpenSavedCards}
         onLoadLocalCard={handleLoadLocalSavedCard}
         onOpenQuickFill={() => setQuickFillDialogOpen(true)}
+        partType={currentData.inspectionSetup.partType}
       />
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col md:flex-row overflow-hidden min-h-0">
+      <div className="flex-1 flex flex-col md:flex-row overflow-hidden min-h-0 px-2 pb-2 md:px-3 md:pb-3">
         {/* Mobile: Compact Header with Standard & Class */}
-        <div className="md:hidden border-b border-border bg-card p-3">
+        <div className="md:hidden border border-border/80 bg-card/90 rounded-[1.35rem] p-3 mb-2">
           <div className="flex flex-col gap-4">
             <div className="flex-1">
               <h3 className="font-semibold text-xs mb-2">Standard</h3>
@@ -596,44 +596,34 @@ const Index = () => {
         </CollapsibleSidebar>
 
         {/* Center Panel: Main Form */}
-        <div className="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden">
+          <div className="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0 overflow-hidden">
-            <div className="p-2 md:p-4 flex-shrink-0">
+            <div className="px-1 pb-1.5 pt-1 md:px-3 md:pb-2 md:pt-1.5 flex-shrink-0">
                 {reportMode === "Technique" ? (
                   <>
-                    <div className="flex items-center gap-2 mb-2 flex-wrap">
-                      <CurrentShapeHeader partType={currentData.inspectionSetup.partType} className="flex-shrink-0 max-w-[180px]" />
-                      <div className="flex-1 min-w-[200px] max-w-full">
-                        <WebGLLiquidProgress
-                          value={completionPercent}
-                          completedFields={completedFieldsCount}
-                          totalFields={reportMode === "Technique" ? 50 : 40}
-                        />
+                    <div className="workbench-header">
+                      <div className="workbench-tabstrip workbench-tabstrip-compact w-full overflow-x-auto scrollbar-hide md:overflow-visible sticky top-0 z-10">
+                        <TabsList className="inline-flex flex-nowrap h-auto items-center justify-start w-max md:w-full">
+                          <TabsTrigger value="setup" className={workbenchTabTriggerClass}>Setup</TabsTrigger>
+                          <TabsTrigger value="equipment" className={workbenchTabTriggerClass}>Equipment</TabsTrigger>
+                          <TabsTrigger value="scan" className={`${workbenchTabTriggerClass} whitespace-nowrap`}>Scan Params</TabsTrigger>
+                          <TabsTrigger value="calibration" className={`${workbenchTabTriggerClass} whitespace-nowrap`}>Reference Standard</TabsTrigger>
+                          <TabsTrigger value="acceptance" className={workbenchTabTriggerClass}>Acceptance</TabsTrigger>
+                          <TabsTrigger value="scandetails" className={`${workbenchTabTriggerClass} whitespace-nowrap`}>Scan Details</TabsTrigger>
+                          <TabsTrigger value="docs" className={workbenchTabTriggerClass}>Documentation</TabsTrigger>
+                          <TabsTrigger value="scanplan" className={`${workbenchTabTriggerClass} whitespace-nowrap`}>Scan Plan</TabsTrigger>
+                        </TabsList>
                       </div>
-                    </div>
-                    <div className="w-full overflow-x-auto scrollbar-hide md:overflow-visible sticky top-0 bg-background z-10 pb-2">
-                      <TabsList className="inline-flex flex-nowrap h-10 items-center justify-start md:justify-center rounded-md bg-muted p-1 text-muted-foreground w-max md:w-full">
-                        <TabsTrigger value="setup" className="flex-shrink-0 px-3">Setup</TabsTrigger>
-                        <TabsTrigger value="equipment" className="flex-shrink-0 px-3">Equipment</TabsTrigger>
-                        <TabsTrigger value="scan" className="flex-shrink-0 px-3 whitespace-nowrap">Scan Params</TabsTrigger>
-                        <TabsTrigger value="calibration" className="flex-shrink-0 px-3 whitespace-nowrap">Reference Standard</TabsTrigger>
-                        <TabsTrigger value="acceptance" className="flex-shrink-0 px-3">Acceptance</TabsTrigger>
-                        <TabsTrigger value="scandetails" className="flex-shrink-0 px-3 whitespace-nowrap">Scan Details</TabsTrigger>
-                        <TabsTrigger value="docs" className="flex-shrink-0 px-3">Documentation</TabsTrigger>
-                        <TabsTrigger value="scanplan" className="flex-shrink-0 px-3 whitespace-nowrap">Scan Plan</TabsTrigger>
-                      </TabsList>
                     </div>
                   </>
                 ) : (
                   <>
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="flex-1 min-w-0">
-                        <WebGLLiquidProgress
-                          value={completionPercent}
-                          completedFields={completedFieldsCount}
-                          totalFields={40}
-                        />
-                      </div>
+                    <div className="workbench-header">
+                      <div className="border-b border-border/70 px-3 py-2 md:px-4 md:py-2.5">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <div className="min-w-0 flex-1 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                            Report Workspace
+                          </div>
                         <Button
                           onClick={() => {
                             toast.loading("Generating Inspection Report PDF...", { id: "report-export" });
@@ -662,34 +652,36 @@ const Index = () => {
                           }, 500);
                         }}
                         size="sm"
-                        className="bg-blue-600 hover:bg-blue-700 text-white flex-shrink-0"
+                        className="h-10 min-h-0 rounded-[1rem] border border-primary/25 bg-primary/12 px-5 text-primary shadow-none hover:bg-primary/18"
                       >
-                        <FileText className="h-4 w-4 mr-1" />
+                        <FileText className="h-4 w-4 mr-2" />
                         Export Report PDF
                       </Button>
-                    </div>
-                    <div className="w-full overflow-x-auto scrollbar-hide md:overflow-visible sticky top-0 bg-background z-10 pb-2">
-                      <TabsList className="inline-flex flex-nowrap h-10 items-center justify-start md:justify-center rounded-md bg-muted p-1 text-muted-foreground w-max md:w-full">
-                        <TabsTrigger value="cover" className="flex-shrink-0 px-3 whitespace-nowrap">Cover Page</TabsTrigger>
-                        <TabsTrigger value="equipment-report" className="flex-shrink-0 px-3 whitespace-nowrap">Equipment</TabsTrigger>
-                        <TabsTrigger value="diagram" className="flex-shrink-0 px-3 whitespace-nowrap">Part Diagram</TabsTrigger>
-                        <TabsTrigger value="indications" className="flex-shrink-0 px-3 whitespace-nowrap">Indications</TabsTrigger>
-                        <TabsTrigger value="probe" className="flex-shrink-0 px-3 whitespace-nowrap">Probes</TabsTrigger>
-                        <TabsTrigger value="scans" className="flex-shrink-0 px-3">Scans</TabsTrigger>
-                        <TabsTrigger value="results" className="flex-shrink-0 px-3 whitespace-nowrap">Results</TabsTrigger>
-                        <TabsTrigger value="certification" className="flex-shrink-0 px-3 whitespace-nowrap">Certification</TabsTrigger>
-                        <TabsTrigger value="aerospace" className="flex-shrink-0 px-3 whitespace-nowrap">Aerospace</TabsTrigger>
-                        <TabsTrigger value="remarks" className="flex-shrink-0 px-3">Remarks</TabsTrigger>
-                      </TabsList>
+                      </div>
+                      </div>
+                      <div className="workbench-tabstrip workbench-tabstrip-compact w-full overflow-x-auto scrollbar-hide md:overflow-visible sticky top-0 z-10">
+                        <TabsList className="inline-flex flex-nowrap h-auto items-center justify-start w-max md:w-full">
+                          <TabsTrigger value="cover" className={`${workbenchTabTriggerClass} whitespace-nowrap`}>Cover Page</TabsTrigger>
+                          <TabsTrigger value="equipment-report" className={`${workbenchTabTriggerClass} whitespace-nowrap`}>Equipment</TabsTrigger>
+                          <TabsTrigger value="diagram" className={`${workbenchTabTriggerClass} whitespace-nowrap`}>Part Diagram</TabsTrigger>
+                          <TabsTrigger value="indications" className={`${workbenchTabTriggerClass} whitespace-nowrap`}>Indications</TabsTrigger>
+                          <TabsTrigger value="probe" className={`${workbenchTabTriggerClass} whitespace-nowrap`}>Probes</TabsTrigger>
+                          <TabsTrigger value="scans" className={workbenchTabTriggerClass}>Scans</TabsTrigger>
+                          <TabsTrigger value="results" className={`${workbenchTabTriggerClass} whitespace-nowrap`}>Results</TabsTrigger>
+                          <TabsTrigger value="certification" className={`${workbenchTabTriggerClass} whitespace-nowrap`}>Certification</TabsTrigger>
+                          <TabsTrigger value="aerospace" className={`${workbenchTabTriggerClass} whitespace-nowrap`}>Aerospace</TabsTrigger>
+                          <TabsTrigger value="remarks" className={workbenchTabTriggerClass}>Remarks</TabsTrigger>
+                        </TabsList>
+                      </div>
                     </div>
                   </>
                 )}
             </div>
 
-            <div className="flex-1 overflow-y-auto overflow-x-hidden px-2 md:px-4 pb-4 min-h-0">
+            <div className="flex-1 overflow-y-auto overflow-x-hidden px-1 md:px-3 pb-3 min-h-0">
                 {reportMode === "Technique" ? (
                   <>
-                    <div className="app-panel rounded-md max-w-full">
+                    <div className="app-panel workbench-surface rounded-[1.5rem] max-w-full">
                       <TabsContent value="setup" className="m-0">
                         <InspectionSetupTab
                           data={currentData.inspectionSetup}
@@ -806,7 +798,7 @@ const Index = () => {
                   </>
                 ) : (
                   <>
-                    <div className="app-panel rounded-md">
+                    <div className="app-panel workbench-surface rounded-[1.5rem]">
                       <TabsContent value="cover" className="m-0">
                         <CoverPageTab
                           data={inspectionReport}
@@ -910,7 +902,7 @@ const Index = () => {
 
           {/* 3D Viewer Panel */}
           {(activeTab === "setup" || (typeof localStorage !== "undefined" && localStorage.getItem("viewer3DFloating") === "true")) && (
-            <div className={localStorage.getItem("viewer3DFloating") === "true" ? "" : "hidden lg:block px-4 pb-4"}>
+            <div className={localStorage.getItem("viewer3DFloating") === "true" ? "" : "hidden lg:block px-3 pb-3"}>
               <Collapsible3DPanel
                 title="3D Part Viewer"
                 isOpen={viewer3DOpen}

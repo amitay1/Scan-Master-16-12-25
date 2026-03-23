@@ -3,7 +3,7 @@
  * Export Dialog - Professional & Complete
  */
 
-import React, { useState, useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -172,6 +172,12 @@ export const UnifiedExportDialog: React.FC<UnifiedExportDialogProps> = ({
 
   // Run compliance check
   const complianceReport = useMemo(() => runComplianceCheck(complianceData), [complianceData]);
+
+  useEffect(() => {
+    if (isReportMode && exportFormat === "word") {
+      setExportFormat("pdf");
+    }
+  }, [isReportMode, exportFormat]);
 
   // Handle logo file upload
   const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -396,25 +402,100 @@ export const UnifiedExportDialog: React.FC<UnifiedExportDialogProps> = ({
     return "bg-red-500";
   };
 
+  const selectedSectionCount = readinessData.sections.filter((section) =>
+    section.fields.every((field) => field.value && field.value !== "")
+  ).length;
+
+  const exportOptions: Array<{
+    id: "pdf" | "word" | "csi";
+    label: string;
+    subtitle: string;
+    helper: string;
+    icon: typeof FileText;
+    iconClassName: string;
+    accentClassName: string;
+    borderClassName: string;
+    disabled?: boolean;
+    disabledReason?: string;
+  }> = [
+    {
+      id: "pdf",
+      label: "PDF",
+      subtitle: isReportMode ? "Inspection report layout" : "Controlled release document",
+      helper: isReportMode ? "Best for signed reports and print release" : "Best for formal approval and archive",
+      icon: FileText,
+      iconClassName: "bg-red-500/15 text-red-300 ring-1 ring-red-400/20",
+      accentClassName: "from-red-500/90 to-orange-400/80",
+      borderClassName: "border-red-400/30",
+    },
+    {
+      id: "word",
+      label: "Word",
+      subtitle: "Editable technique sheet",
+      helper: isReportMode ? "Word export is available for technique sheets only" : "Best for internal review and markup",
+      icon: FileIcon,
+      iconClassName: "bg-blue-500/15 text-blue-300 ring-1 ring-blue-400/20",
+      accentClassName: "from-blue-500/90 to-cyan-400/80",
+      borderClassName: "border-blue-400/30",
+      disabled: Boolean(isReportMode),
+      disabledReason: isReportMode ? "Technique mode only" : undefined,
+    },
+    {
+      id: "csi",
+      label: "CSI",
+      subtitle: "ScanMaster structured package",
+      helper: "Best for downstream system integration",
+      icon: Cpu,
+      iconClassName: "bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-400/20",
+      accentClassName: "from-emerald-500/90 to-teal-400/80",
+      borderClassName: "border-emerald-400/30",
+    },
+  ];
+
+  const activeExportOption = exportOptions.find((option) => option.id === exportFormat) ?? exportOptions[0];
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md p-0 gap-0 overflow-hidden border-0 shadow-2xl" hideCloseButton>
+      <DialogContent className="max-w-4xl p-0 gap-0 overflow-hidden border border-border/70 bg-[linear-gradient(180deg,rgba(10,14,22,0.98),rgba(12,18,28,0.98))] shadow-[0_32px_80px_rgba(0,0,0,0.45)]" hideCloseButton>
         {/* Header */}
-        <div className="relative bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 px-6 py-5">
+        <div className="relative border-b border-white/8 bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.24),transparent_42%),linear-gradient(135deg,rgba(12,19,31,0.98),rgba(10,14,22,0.98))] px-6 py-5">
           <button
             onClick={() => onOpenChange(false)}
-            className="absolute right-4 top-4 rounded-full p-1.5 text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+            className="absolute right-4 top-4 rounded-full border border-white/10 bg-white/5 p-1.5 text-slate-400 transition-colors hover:bg-white/10 hover:text-white"
           >
             <X className="w-4 h-4" />
           </button>
 
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg">
-              <FileText className="w-6 h-6 text-white" />
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center shadow-[0_18px_30px_rgba(37,99,235,0.35)]">
+                <FileText className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <div className="mb-2 flex flex-wrap items-center gap-2">
+                  <span className="rounded-full border border-blue-400/20 bg-blue-500/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-blue-200">
+                    {isReportMode ? "Inspection Report" : "Technique Sheet"}
+                  </span>
+                  <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-medium text-slate-300">
+                    {standard}
+                  </span>
+                </div>
+                <h2 className="text-xl font-semibold text-white">Export Document</h2>
+                <p className="text-sm text-slate-400">
+                  Release a branded {isReportMode ? "inspection report" : "technique sheet"} package.
+                </p>
+              </div>
             </div>
-            <div>
-              <h2 className="text-lg font-semibold text-white">Export Document</h2>
-              <p className="text-sm text-slate-400">Professional technique sheet</p>
+
+            <div className="flex gap-3">
+              <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2.5">
+                <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">Readiness</div>
+                <div className={cn("mt-1 text-2xl font-semibold", getStatusColor(readinessData.percentage))}>{readinessData.percentage}%</div>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2.5">
+                <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">Selected</div>
+                <div className="mt-1 text-2xl font-semibold text-white">{activeExportOption.label}</div>
+              </div>
             </div>
           </div>
         </div>
@@ -426,51 +507,51 @@ export const UnifiedExportDialog: React.FC<UnifiedExportDialogProps> = ({
           <button
             onClick={() => setShowComplianceDialog(true)}
             className={cn(
-              "w-full flex items-center justify-between p-4 rounded-xl border-2 transition-all",
+              "w-full flex items-center justify-between p-4 rounded-2xl border transition-all",
               complianceReport.status === "pass"
-                ? "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800 hover:border-emerald-400"
+                ? "bg-emerald-500/10 border-emerald-400/20 hover:bg-emerald-500/12"
                 : complianceReport.status === "warning"
-                ? "bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 hover:border-amber-400"
-                : "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 hover:border-red-400"
+                ? "bg-amber-500/10 border-amber-400/20 hover:bg-amber-500/12"
+                : "bg-red-500/10 border-red-400/20 hover:bg-red-500/12"
             )}
           >
             <div className="flex items-center gap-3">
               {complianceReport.status === "pass" ? (
-                <Shield className="w-5 h-5 text-emerald-500" />
+                <Shield className="w-5 h-5 text-emerald-300" />
               ) : complianceReport.status === "warning" ? (
-                <AlertTriangle className="w-5 h-5 text-amber-500" />
+                <AlertTriangle className="w-5 h-5 text-amber-300" />
               ) : (
-                <Shield className="w-5 h-5 text-red-500" />
+                <Shield className="w-5 h-5 text-red-300" />
               )}
               <div className="text-left">
-                <div className="font-medium text-sm">
+                <div className="font-medium text-sm text-white">
                   {complianceReport.status === "pass"
                     ? "Compliance Check Passed"
                     : complianceReport.status === "warning"
                     ? `${complianceReport.warnings.length} Warning(s)`
                     : `${complianceReport.criticalIssues.length} Critical Issue(s)`}
                 </div>
-                <div className="text-xs text-slate-500">
+                <div className="text-xs text-slate-400">
                   Click to view detailed compliance report
                 </div>
               </div>
             </div>
             <div className={cn(
               "text-2xl font-bold",
-              complianceReport.status === "pass" ? "text-emerald-600" :
-              complianceReport.status === "warning" ? "text-amber-500" : "text-red-500"
+              complianceReport.status === "pass" ? "text-emerald-300" :
+              complianceReport.status === "warning" ? "text-amber-300" : "text-red-300"
             )}>
               {complianceReport.overallScore}%
             </div>
           </button>
 
           {/* Document Info */}
-          <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-900 rounded-xl">
+          <div className="flex items-center justify-between p-4 rounded-2xl border border-white/8 bg-white/[0.03]">
             <div className="flex items-center gap-3">
-              <Sparkles className="w-5 h-5 text-blue-500" />
+              <Sparkles className="w-5 h-5 text-blue-300" />
               <div>
-                <div className="font-medium text-sm">Professional Format</div>
-                <div className="text-xs text-slate-500">10+ pages, A4, all sections included</div>
+                <div className="font-medium text-sm text-white">Professional Format</div>
+                <div className="text-xs text-slate-400">A4 output with all mapped sections included</div>
               </div>
             </div>
             <div className={cn("text-2xl font-bold", getStatusColor(readinessData.percentage))}>
@@ -481,10 +562,10 @@ export const UnifiedExportDialog: React.FC<UnifiedExportDialogProps> = ({
           {/* Progress Bar */}
           <div className="space-y-2">
             <div className="flex justify-between text-xs">
-              <span className="text-slate-500">Document completeness</span>
-              <span className="font-medium">{readinessData.filled} / {readinessData.total} fields</span>
+              <span className="text-slate-400">Document completeness</span>
+              <span className="font-medium text-slate-200">{readinessData.filled} / {readinessData.total} fields</span>
             </div>
-            <div className="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+            <div className="h-2 bg-white/8 rounded-full overflow-hidden">
               <div
                 className={cn("h-full rounded-full transition-all duration-500", getStatusBg(readinessData.percentage))}
                 style={{ width: `${readinessData.percentage}%` }}
@@ -503,21 +584,21 @@ export const UnifiedExportDialog: React.FC<UnifiedExportDialogProps> = ({
                 <div
                   key={section.name}
                   className={cn(
-                    "text-center p-2 rounded-lg border transition-colors",
+                    "text-center p-2 rounded-xl border transition-colors",
                     isComplete
-                      ? "bg-emerald-50 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800"
-                      : "bg-slate-50 border-slate-200 dark:bg-slate-900 dark:border-slate-700"
+                      ? "bg-emerald-500/10 border-emerald-400/20"
+                      : "bg-white/[0.03] border-white/8"
                   )}
                 >
                   {isComplete ? (
-                    <CheckCircle2 className="w-4 h-4 mx-auto text-emerald-500 mb-1" />
+                    <CheckCircle2 className="w-4 h-4 mx-auto text-emerald-300 mb-1" />
                   ) : (
                     <FileWarning className="w-4 h-4 mx-auto text-slate-400 mb-1" />
                   )}
-                  <div className="text-[10px] font-medium text-slate-600 dark:text-slate-400 truncate">
+                  <div className="text-[10px] font-medium text-slate-200 truncate">
                     {section.name}
                   </div>
-                  <div className="text-[9px] text-slate-400">
+                  <div className="text-[9px] text-slate-500">
                     {sectionFilled}/{sectionTotal}
                   </div>
                 </div>
@@ -527,125 +608,164 @@ export const UnifiedExportDialog: React.FC<UnifiedExportDialogProps> = ({
 
           {/* Export Format Selection */}
           <div className="space-y-3">
-            <div className="text-sm font-medium text-slate-700 dark:text-slate-300">Export Format</div>
+            <div className="flex items-center justify-between gap-3">
+              <div className="text-sm font-medium text-slate-100">Export Format</div>
+              <div className="rounded-full border border-emerald-400/10 bg-emerald-500/10 px-3 py-1 text-[11px] font-medium text-emerald-200">
+                Primary action exports {activeExportOption.label}
+              </div>
+            </div>
             <div className="grid grid-cols-3 gap-3">
               {/* PDF Option */}
               <button
-                onClick={() => !isExporting && handleExport("pdf")}
+                onClick={() => !isExporting && setExportFormat("pdf")}
                 disabled={isExporting}
                 className={cn(
-                  "relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all",
-                  "hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20",
-                  isExporting && exportFormat === "pdf"
-                    ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
-                    : "border-slate-200 dark:border-slate-700"
+                  "relative flex flex-col items-center gap-2 p-4 rounded-2xl border transition-all",
+                  exportFormat === "pdf"
+                    ? "border-red-400/30 bg-red-500/10 ring-1 ring-red-400/20"
+                    : "border-white/10 bg-white/[0.03] hover:border-white/20 hover:bg-white/[0.05]"
                 )}
               >
                 {isExporting && exportFormat === "pdf" ? (
-                  <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+                  <Loader2 className="w-8 h-8 text-red-300 animate-spin" />
                 ) : (
-                  <div className="w-10 h-10 rounded-lg bg-red-500 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-xl bg-red-500/15 text-red-300 flex items-center justify-center ring-1 ring-red-400/20">
                     <FileText className="w-5 h-5 text-white" />
                   </div>
                 )}
                 <div>
-                  <div className="font-semibold text-sm">PDF</div>
-                  <div className="text-[10px] text-slate-500">Ready to export</div>
+                  <div className="font-semibold text-sm text-white">PDF</div>
+                  <div className="text-[10px] text-slate-400">Controlled release</div>
                 </div>
               </button>
 
               {/* Word Option */}
               <button
-                onClick={() => !isExporting && handleExport("word")}
-                disabled={isExporting}
+                onClick={() => !isExporting && !isReportMode && setExportFormat("word")}
+                disabled={isExporting || isReportMode}
                 className={cn(
-                  "relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all",
-                  "hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20",
-                  isExporting && exportFormat === "word"
-                    ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
-                    : "border-slate-200 dark:border-slate-700"
+                  "relative flex flex-col items-center gap-2 p-4 rounded-2xl border transition-all",
+                  isReportMode && "cursor-not-allowed opacity-50",
+                  exportFormat === "word"
+                    ? "border-blue-400/30 bg-blue-500/10 ring-1 ring-blue-400/20"
+                    : "border-white/10 bg-white/[0.03] hover:border-white/20 hover:bg-white/[0.05]"
                 )}
               >
                 {isExporting && exportFormat === "word" ? (
-                  <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+                  <Loader2 className="w-8 h-8 text-blue-300 animate-spin" />
                 ) : (
-                  <div className="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-xl bg-blue-500/15 text-blue-300 flex items-center justify-center ring-1 ring-blue-400/20">
                     <FileIcon className="w-5 h-5 text-white" />
                   </div>
                 )}
                 <div>
-                  <div className="font-semibold text-sm">Word</div>
-                  <div className="text-[10px] text-slate-500">Ready to export</div>
+                  <div className="font-semibold text-sm text-white">Word</div>
+                  <div className="text-[10px] text-slate-400">
+                    {isReportMode ? "Technique only" : "Editable sheet"}
+                  </div>
                 </div>
               </button>
 
               {/* CSI Option - ScanMaster Integration */}
               <button
-                onClick={() => !isExporting && handleExport("csi")}
+                onClick={() => !isExporting && setExportFormat("csi")}
                 disabled={isExporting}
                 className={cn(
-                  "relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all",
-                  "hover:border-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20",
-                  isExporting && exportFormat === "csi"
-                    ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20"
-                    : "border-slate-200 dark:border-slate-700"
+                  "relative flex flex-col items-center gap-2 p-4 rounded-2xl border transition-all",
+                  exportFormat === "csi"
+                    ? "border-emerald-400/30 bg-emerald-500/10 ring-1 ring-emerald-400/20"
+                    : "border-white/10 bg-white/[0.03] hover:border-white/20 hover:bg-white/[0.05]"
                 )}
               >
                 {isExporting && exportFormat === "csi" ? (
-                  <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
+                  <Loader2 className="w-8 h-8 text-emerald-300 animate-spin" />
                 ) : (
-                  <div className="w-10 h-10 rounded-lg bg-emerald-600 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-500/15 text-emerald-300 flex items-center justify-center ring-1 ring-emerald-400/20">
                     <Cpu className="w-5 h-5 text-white" />
                   </div>
                 )}
                 <div>
-                  <div className="font-semibold text-sm">CSI</div>
-                  <div className="text-[10px] text-slate-500">ScanMaster</div>
+                  <div className="font-semibold text-sm text-white">CSI</div>
+                  <div className="text-[10px] text-slate-400">System package</div>
                 </div>
               </button>
             </div>
 
             {/* Preview Button */}
-            <button
-              onClick={handlePreview}
-              disabled={isExporting}
-              className="w-full flex items-center justify-center gap-2 p-2.5 mt-2 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-200 transition-colors"
-            >
-              <Eye className="w-4 h-4" />
-              <span className="text-sm">Preview PDF in New Tab</span>
-            </button>
+            {!isReportMode ? (
+              <button
+                onClick={handlePreview}
+                disabled={isExporting}
+                className="w-full flex items-center justify-center gap-2 p-3 mt-2 rounded-2xl border border-white/10 bg-white/[0.03] text-slate-300 hover:bg-white/[0.05] hover:text-white transition-colors"
+              >
+                <Eye className="w-4 h-4" />
+                <span className="text-sm">Preview PDF in New Tab</span>
+              </button>
+            ) : (
+              <div className="rounded-2xl border border-white/8 bg-black/10 px-4 py-3 text-sm text-slate-400">
+                Live preview is currently available for technique sheet PDF only.
+              </div>
+            )}
           </div>
 
           {/* Company Logo Upload */}
           <div className="space-y-3">
-            <div className="text-sm font-medium text-slate-700 dark:text-slate-300">Company Logo</div>
+            <div className="space-y-3 rounded-[24px] border border-white/8 bg-white/[0.03] p-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-blue-500/12 text-blue-200">
+                  <Building2 className="h-4 w-4" />
+                </div>
+                <div>
+                  <div className="text-sm font-medium text-slate-100">Branding</div>
+                  <div className="text-xs text-slate-400">Company name and logo for exported pages</div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="company-name" className="text-xs font-medium uppercase tracking-[0.2em] text-slate-500">
+                  Company Name
+                </label>
+                <Input
+                  id="company-name"
+                  value={companyName}
+                  onChange={(event) => setCompanyName(event.target.value)}
+                  placeholder="ScanMaster NDT Lab"
+                  className="h-11 rounded-2xl border-white/10 bg-black/15 text-slate-100 placeholder:text-slate-500"
+                />
+              </div>
+
+              <div className="text-sm font-medium text-slate-100">Company Logo</div>
             <div className="flex items-center gap-3">
               {companyLogo ? (
-                <div className="flex items-center gap-3 flex-1 p-3 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg">
+                <div className="flex items-center gap-3 flex-1 p-3 rounded-2xl border border-emerald-400/20 bg-emerald-500/10">
                   <img src={companyLogo} alt="Logo" className="h-10 w-10 object-contain rounded" />
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-emerald-700 dark:text-emerald-300 truncate">
+                    <div className="text-sm font-medium text-emerald-100 truncate">
                       {logoFileName || "Logo uploaded"}
                     </div>
-                    <div className="text-xs text-emerald-600 dark:text-emerald-400">
-                      {showLogoOnEveryPage ? "Will appear on all pages" : "Logo hidden from export"}
+                    <div className="text-xs text-emerald-200/80">
+                      {showLogoOnEveryPage ? "Applied to all pages" : "Stored but hidden from output"}
                     </div>
                   </div>
-                  <button onClick={removeLogo} className="p-1.5 text-emerald-600 hover:text-red-500 hover:bg-red-50 rounded transition-colors" title="Remove logo">
-                    <X className="w-4 h-4" />
+                  <button
+                    onClick={removeLogo}
+                    className="rounded-xl border border-red-400/20 bg-red-500/10 p-2 text-red-200 transition-colors hover:bg-red-500/15"
+                    title="Remove logo"
+                  >
+                    <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
               ) : (
-                <label className="flex-1 flex items-center justify-center gap-2 p-4 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-lg cursor-pointer hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors">
+                <label className="flex-1 flex items-center justify-center gap-2 p-4 rounded-2xl border border-dashed border-white/12 bg-black/10 cursor-pointer hover:border-blue-400/30 hover:bg-blue-500/6 transition-colors">
                   <input type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
-                  <FileText className="w-5 h-5 text-slate-400" />
-                  <span className="text-sm text-slate-500">Click to upload company logo</span>
+                  <Upload className="w-5 h-5 text-slate-400" />
+                  <span className="text-sm text-slate-300">Click to upload company logo</span>
                 </label>
               )}
             </div>
             {companyLogo && (
-              <div className="flex items-center justify-between px-1">
-                <label htmlFor="logo-toggle" className="text-xs text-slate-500 dark:text-slate-400 cursor-pointer">
+              <div className="flex items-center justify-between rounded-2xl border border-white/8 bg-black/10 px-4 py-3">
+                <label htmlFor="logo-toggle" className="text-xs text-slate-400 cursor-pointer">
                   Show logo on every page
                 </label>
                 <Switch
@@ -655,15 +775,16 @@ export const UnifiedExportDialog: React.FC<UnifiedExportDialogProps> = ({
                 />
               </div>
             )}
+            </div>
           </div>
 
           {/* Info for low completion - but export still works */}
           {readinessData.percentage < 50 && (
-            <div className="flex items-start gap-3 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-              <FileText className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
+            <div className="flex items-start gap-3 p-4 rounded-2xl border border-blue-400/15 bg-blue-500/10">
+              <Sparkles className="w-5 h-5 text-blue-200 flex-shrink-0 mt-0.5" />
               <div className="text-sm">
-                <div className="font-medium text-blue-700 dark:text-blue-300">Partial data - Export available</div>
-                <div className="text-xs text-blue-600 dark:text-blue-400 mt-0.5">
+                <div className="font-medium text-blue-100">Partial data, export still allowed</div>
+                <div className="text-xs text-blue-200/80 mt-0.5">
                   Empty fields will show "-" in the exported document. You can fill in more details later.
                 </div>
               </div>
@@ -672,35 +793,35 @@ export const UnifiedExportDialog: React.FC<UnifiedExportDialogProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800">
+        <div className="px-6 py-4 border-t border-white/8 bg-black/15">
           <div className="flex items-center justify-between">
             <button
               onClick={() => onOpenChange(false)}
               disabled={isExporting}
-              className="text-sm text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors"
+              className="rounded-2xl border border-white/10 px-4 py-3 text-sm font-medium text-slate-300 transition-colors hover:bg-white/[0.05] hover:text-white"
             >
               Cancel
             </button>
 
             <Button
               size="lg"
-              onClick={() => handleExport("pdf")}
-              disabled={isExporting}
+              onClick={() => handleExport(exportFormat)}
+              disabled={isExporting || activeExportOption.disabled}
               className={cn(
-                "px-6 font-medium rounded-xl",
-                "bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600",
-                "shadow-lg shadow-blue-500/20"
+                "px-6 font-semibold rounded-2xl",
+                "bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600",
+                "shadow-[0_18px_30px_rgba(37,99,235,0.25)]"
               )}
             >
               {isExporting ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Exporting...
+                  Exporting {activeExportOption.label}...
                 </>
               ) : (
                 <>
                   <Download className="w-4 h-4 mr-2" />
-                  Export PDF
+                  Export {activeExportOption.label}
                 </>
               )}
             </Button>

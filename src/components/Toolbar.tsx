@@ -22,6 +22,8 @@ import { SavedCardsDialog } from "@/components/SavedCardsDialog";
 import { ProfileIndicator } from "@/components/inspector";
 import { useSavedCards } from "@/hooks/useSavedCards";
 import type { SavedCard } from "@/contexts/SavedCardsContext";
+import { CurrentShapeHeader } from "@/components/CurrentShapeHeader";
+import type { PartGeometry } from "@/types/techniqueSheet";
 
 // Safe access to electron API
 const getElectron = (): any => {
@@ -105,7 +107,6 @@ function useUpdateStatus() {
 
 interface ToolbarProps {
   onSave: () => void;
-  onSaveAs?: () => void;
   onExport: () => void;
   onValidate: () => void;
   reportMode: "Technique" | "Report";
@@ -118,6 +119,7 @@ interface ToolbarProps {
   onOpenSavedCards?: () => void;
   onLoadLocalCard?: (card: SavedCard) => void;
   onOpenQuickFill?: () => void;
+  partType?: PartGeometry | "";
 }
 
 // Re-export SavedCard type for consumers
@@ -125,7 +127,6 @@ export type { SavedCard } from '@/contexts/SavedCardsContext';
 
 export const Toolbar = ({
   onSave,
-  onSaveAs,
   onExport,
   onValidate,
   reportMode,
@@ -137,7 +138,8 @@ export const Toolbar = ({
   onCopyAToB,
   onOpenSavedCards,
   onLoadLocalCard,
-  onOpenQuickFill
+  onOpenQuickFill,
+  partType
 }: ToolbarProps) => {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [localSavedCardsOpen, setLocalSavedCardsOpen] = useState(false);
@@ -145,51 +147,42 @@ export const Toolbar = ({
   const { state: updateState, version: updateVersion, percent: updatePercent, checkForUpdates, installUpdate } = useUpdateStatus();
   
   return (
-    <div className="h-14 border-b-2 border-border bg-card flex items-center px-3 md:px-4 gap-2 md:gap-3 overflow-x-auto overflow-y-hidden flex-shrink-0">
-      {/* Quick Actions - Compact on mobile */}
-      <Button variant="ghost" size="icon" onClick={onSave} title="Save" className="h-10 w-10 md:h-11 md:w-11">
-        <Save className="h-5 w-5 md:h-5 md:w-5" />
-      </Button>
-      {onSaveAs && (
-        <Button variant="ghost" size="icon" onClick={onSaveAs} title="Save As" className="h-10 w-10 md:h-11 md:w-11">
-          <FileText className="h-5 w-5 md:h-5 md:w-5" />
+    <div className="workbench-toolbar h-16 md:h-[72px] flex items-center px-3 md:px-5 gap-3 overflow-x-auto overflow-y-hidden flex-shrink-0">
+      <div className="flex items-center gap-2 rounded-2xl border border-border/80 bg-black/10 px-2 py-1.5 backdrop-blur-xl">
+        <Button variant="ghost" size="icon" onClick={onSave} title="Save" className="h-10 w-10 rounded-xl border border-transparent hover:border-primary/25 hover:bg-primary/10">
+          <Save className="h-5 w-5 md:h-5 md:w-5" />
         </Button>
-      )}
-
-      {/* Export Button */}
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={onExport}
-        title="Export PDF"
-        className="h-10 px-3 md:px-4 text-sm md:text-base bg-primary/10 hover:bg-primary/20 text-primary font-semibold"
-      >
-        <FileDown className="h-5 w-5 md:h-5 md:w-5 md:mr-2" />
-        <span className="hidden sm:inline">Export</span>
-      </Button>
-
-      {onOpenQuickFill && (
         <Button
           variant="ghost"
           size="sm"
-          onClick={onOpenQuickFill}
-          title="Open QA Presets"
-          className="hidden h-10 px-3 text-sm font-semibold text-cyan-300 hover:bg-cyan-500/10 hover:text-cyan-200 md:flex"
+          onClick={onExport}
+          title="Export PDF"
+          className="h-10 rounded-xl border border-primary/25 bg-primary/12 px-3 md:px-4 text-sm md:text-base text-primary font-semibold hover:bg-primary/18"
         >
-          <FlaskConical className="mr-2 h-4 w-4" />
-          <span>QA Presets</span>
+          <FileDown className="h-5 w-5 md:h-5 md:w-5 md:mr-2" />
+          <span className="hidden sm:inline">Export</span>
         </Button>
-      )}
 
-      <Separator orientation="vertical" className="h-8 md:h-10 mx-1 md:mx-2" />
+        {onOpenQuickFill && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onOpenQuickFill}
+            title="Open QA Presets"
+            className="hidden h-10 rounded-xl border border-cyan-400/20 px-3 text-sm font-semibold text-cyan-300 hover:bg-cyan-500/10 hover:text-cyan-200 md:flex"
+          >
+            <FlaskConical className="mr-2 h-4 w-4" />
+            <span>QA Presets</span>
+          </Button>
+        )}
+      </div>
 
-      {/* Mode Selection - Compact on mobile */}
-      <div className="flex gap-1 md:gap-2 bg-muted p-1 md:p-1.5 rounded-lg">
+      <div className="flex gap-1 rounded-2xl border border-border/80 bg-black/10 p-1.5 backdrop-blur-xl">
         <Button
           variant={reportMode === "Technique" ? "secondary" : "ghost"}
           size="sm"
           onClick={() => onReportModeChange("Technique")}
-          className="h-9 md:h-10 text-sm md:text-base font-semibold px-3"
+          className="h-9 md:h-10 rounded-xl text-sm md:text-base font-semibold px-3 data-[state=active]:shadow-none"
         >
           <FileText className="h-4 w-4 md:mr-2" />
           <span className="hidden sm:inline">Technique</span>
@@ -198,7 +191,7 @@ export const Toolbar = ({
           variant={reportMode === "Report" ? "secondary" : "ghost"}
           size="sm"
           onClick={() => onReportModeChange("Report")}
-          className="h-9 md:h-10 text-sm md:text-base font-semibold px-3"
+          className="h-9 md:h-10 rounded-xl text-sm md:text-base font-semibold px-3 data-[state=active]:shadow-none"
         >
           <FileSearch className="h-4 w-4 md:mr-2" />
           <span className="hidden sm:inline">Report</span>
@@ -207,73 +200,75 @@ export const Toolbar = ({
 
       <div className="flex-1" />
 
-      {/* Inspector Profile Indicator */}
-      <ProfileIndicator className="hidden sm:flex" />
+      <div className="hidden xl:flex items-center gap-2 rounded-2xl border border-border/80 bg-black/10 px-2 py-1.5 backdrop-blur-xl">
+        <CurrentShapeHeader partType={partType || ""} className="max-w-[190px]" />
+        <Separator orientation="vertical" className="h-7 bg-border/70" />
+        <ProfileIndicator variant="compact" className="border-0 bg-transparent px-1 shadow-none hover:bg-white/5" />
+      </div>
 
       {/* Update Button - always visible, changes based on update state */}
-      {updateState === 'ready' ? (
-        <Button
-          variant="ghost"
-          size="sm"
-          title={`Install Update v${updateVersion} - Click to update now`}
-          className="h-10 px-3 md:px-4 flex items-center bg-green-500/20 hover:bg-green-500/30 text-green-400 font-semibold animate-pulse"
-          onClick={installUpdate}
-        >
-          <Rocket className="h-5 w-5 mr-2" />
-          <span>Update v{updateVersion}</span>
-        </Button>
-      ) : updateState === 'downloading' ? (
-        <Button
-          variant="ghost"
-          size="sm"
-          title={`Downloading update... ${updatePercent}%`}
-          className="h-10 px-3 md:px-4 flex items-center bg-blue-500/20 text-blue-400 font-semibold cursor-default"
-          disabled
-        >
-          <Download className="h-5 w-5 mr-2 animate-bounce" />
-          <span>{updatePercent}%</span>
-        </Button>
-      ) : updateState === 'available' ? (
-        <Button
-          variant="ghost"
-          size="sm"
-          title={`Update v${updateVersion} available - downloading...`}
-          className="h-10 px-3 md:px-4 flex items-center bg-yellow-500/20 text-yellow-400 font-semibold"
-          disabled
-        >
-          <Download className="h-5 w-5 mr-2 animate-spin" />
-          <span>v{updateVersion}</span>
-        </Button>
-      ) : (
+      <div className="flex items-center gap-2 rounded-2xl border border-border/80 bg-black/10 px-2 py-1.5 backdrop-blur-xl">
+        {updateState === 'ready' ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            title={`Install Update v${updateVersion} - Click to update now`}
+            className="h-10 rounded-xl border border-green-400/20 px-3 md:px-4 flex items-center bg-green-500/20 hover:bg-green-500/30 text-green-400 font-semibold animate-pulse"
+            onClick={installUpdate}
+          >
+            <Rocket className="h-5 w-5 mr-2" />
+            <span>Update v{updateVersion}</span>
+          </Button>
+        ) : updateState === 'downloading' ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            title={`Downloading update... ${updatePercent}%`}
+            className="h-10 rounded-xl border border-blue-400/20 px-3 md:px-4 flex items-center bg-blue-500/20 text-blue-400 font-semibold cursor-default"
+            disabled
+          >
+            <Download className="h-5 w-5 mr-2 animate-bounce" />
+            <span>{updatePercent}%</span>
+          </Button>
+        ) : updateState === 'available' ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            title={`Update v${updateVersion} available - downloading...`}
+            className="h-10 rounded-xl border border-yellow-400/20 px-3 md:px-4 flex items-center bg-yellow-500/20 text-yellow-400 font-semibold"
+            disabled
+          >
+            <Download className="h-5 w-5 mr-2 animate-spin" />
+            <span>v{updateVersion}</span>
+          </Button>
+        ) : (
+          <Button
+            variant="ghost"
+            size="icon"
+            title="Check for Updates"
+            className={`h-10 w-10 rounded-xl border border-transparent hover:border-primary/25 hover:bg-primary/10 ${updateState === 'checking' ? 'animate-spin' : ''}`}
+            onClick={checkForUpdates}
+            disabled={updateState === 'checking'}
+          >
+            <RefreshCw className="h-5 w-5" />
+          </Button>
+        )}
+
         <Button
           variant="ghost"
           size="icon"
-          title="Check for Updates"
-          className={`h-10 w-10 md:h-11 md:w-11 flex items-center justify-center ${updateState === 'checking' ? 'animate-spin' : ''}`}
-          onClick={checkForUpdates}
-          disabled={updateState === 'checking'}
+          title="Local Saved Cards"
+          className="h-10 w-10 rounded-xl border border-transparent hover:border-primary/25 hover:bg-primary/10 hidden sm:flex relative"
+          onClick={() => setLocalSavedCardsOpen(true)}
         >
-          <RefreshCw className="h-5 w-5" />
+          <FolderOpen className="h-5 w-5 md:h-5 md:w-5" />
+          {cards.length > 0 && (
+            <span className="absolute -top-1 -right-1 h-5 w-5 bg-blue-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
+              {cards.length}
+            </span>
+          )}
         </Button>
-      )}
-
-      <Separator orientation="vertical" className="h-8 md:h-10 mx-1 md:mx-2 hidden sm:block" />
-
-      {/* Right Side Tools - Hidden on small mobile */}
-      <Button
-        variant="ghost"
-        size="icon"
-        title="Local Saved Cards"
-        className="h-10 w-10 md:h-11 md:w-11 hidden sm:flex relative"
-        onClick={() => setLocalSavedCardsOpen(true)}
-      >
-        <FolderOpen className="h-5 w-5 md:h-5 md:w-5" />
-        {cards.length > 0 && (
-          <span className="absolute -top-1 -right-1 h-5 w-5 bg-blue-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
-            {cards.length}
-          </span>
-        )}
-      </Button>
+      </div>
       
       {/* Settings Button - temporarily hidden until settings are fully functional
       <Button 
@@ -305,8 +300,6 @@ export const Toolbar = ({
           setLocalSavedCardsOpen(false);
         }}
       />
-
-      <Separator orientation="vertical" className="h-8 md:h-10 mx-1 md:mx-2" />
 
       {/* Window Controls Group */}
       <div className="flex items-center gap-1 bg-slate-900/60 rounded-xl p-1 border border-slate-700/50 shadow-lg shadow-black/20">

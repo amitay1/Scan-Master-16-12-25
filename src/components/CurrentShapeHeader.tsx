@@ -142,18 +142,18 @@ export const CurrentShapeHeader: React.FC<CurrentShapeHeaderProps> = ({
             className="relative"
           >
             <div
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg border bg-card/80"
+              className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg border bg-card/80"
               style={{ borderColor: partType ? `${shapeInfo.color}50` : '#94A3B8' }}
             >
               <div
-                className="w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0"
+                className="h-[1.625rem] w-[1.625rem] rounded-md flex items-center justify-center flex-shrink-0"
                 style={{
                   backgroundColor: `${shapeInfo.color}15`,
                   border: `1.5px solid ${shapeInfo.color}30`,
                 }}
               >
                 <IconComponent
-                  className="w-4 h-4"
+                  className="w-3.5 h-3.5"
                   style={{ color: shapeInfo.color }}
                   strokeWidth={2}
                 />

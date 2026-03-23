@@ -1,3 +1,5 @@
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -21,51 +23,45 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* Dark professional desktop application color system */
-    --background: 220 25% 10%;
-    --foreground: 220 12% 95%;
+    /* Industrial workstation theme */
+    --background: 216 30% 8%;
+    --foreground: 210 20% 96%;
 
-    --card: 220 22% 13%;
-    --card-foreground: 220 12% 95%;
+    --card: 216 24% 11%;
+    --card-foreground: 210 20% 96%;
 
-    --popover: 220 22% 13%;
-    --popover-foreground: 220 12% 95%;
+    --popover: 216 24% 11%;
+    --popover-foreground: 210 20% 96%;
 
-    /* Professional blue primary */
-    --primary: 217 91% 55%;
+    --primary: 199 91% 60%;
     --primary-foreground: 0 0% 100%;
-    --primary-hover: 217 91% 60%;
+    --primary-hover: 199 91% 65%;
 
-    /* Neutral secondary for toolbars/panels */
-    --secondary: 220 20% 18%;
-    --secondary-foreground: 220 12% 90%;
+    --secondary: 216 19% 15%;
+    --secondary-foreground: 210 15% 92%;
 
-    /* Muted tones for backgrounds */
-    --muted: 220 20% 16%;
-    --muted-foreground: 215 16% 72%;
-    --placeholder-foreground: 215 14% 68%;
+    --muted: 216 16% 14%;
+    --muted-foreground: 215 16% 76%;
+    --placeholder-foreground: 215 15% 71%;
 
-    /* Status colors */
     --success: 145 70% 45%;
     --success-foreground: 0 0% 100%;
 
     --warning: 35 100% 55%;
     --warning-foreground: 0 0% 100%;
 
-    /* Technical accent for highlights */
-    --accent: 197 100% 52%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 33 94% 58%;
+    --accent-foreground: 216 35% 10%;
 
     --destructive: 0 70% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 20% 22%;
-    --input: 220 20% 22%;
-    --ring: 217 91% 55%;
+    --border: 216 18% 24%;
+    --input: 216 18% 18%;
+    --ring: 199 91% 60%;
 
-    --radius: 0.25rem;
+    --radius: 1rem;
 
-    /* Professional shadows */
     --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.4);
     --shadow-md: 0 2px 4px 0 rgba(0, 0, 0, 0.5);
     --shadow-lg: 0 4px 8px 0 rgba(0, 0, 0, 0.6);
@@ -73,26 +69,25 @@ All colors MUST be HSL.
   }
 
   .dark {
-    /* Professional dark theme for desktop apps */
-    --background: 220 25% 9%;
-    --foreground: 220 12% 96%;
+    --background: 216 31% 7%;
+    --foreground: 210 20% 97%;
 
-    --card: 220 22% 12%;
-    --card-foreground: 220 12% 96%;
+    --card: 216 25% 10%;
+    --card-foreground: 210 20% 97%;
 
-    --popover: 220 22% 12%;
-    --popover-foreground: 220 12% 96%;
+    --popover: 216 25% 10%;
+    --popover-foreground: 210 20% 97%;
 
-    --primary: 217 91% 55%;
+    --primary: 199 91% 60%;
     --primary-foreground: 0 0% 100%;
-    --primary-hover: 217 91% 60%;
+    --primary-hover: 199 91% 65%;
 
-    --secondary: 220 20% 18%;
-    --secondary-foreground: 220 12% 91%;
+    --secondary: 216 19% 15%;
+    --secondary-foreground: 210 15% 93%;
 
-    --muted: 220 20% 16%;
-    --muted-foreground: 215 16% 74%;
-    --placeholder-foreground: 215 14% 70%;
+    --muted: 216 16% 14%;
+    --muted-foreground: 215 16% 78%;
+    --placeholder-foreground: 215 15% 72%;
 
     --success: 145 70% 48%;
     --success-foreground: 0 0% 100%;
@@ -100,15 +95,15 @@ All colors MUST be HSL.
     --warning: 35 100% 55%;
     --warning-foreground: 0 0% 100%;
 
-    --accent: 197 100% 52%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 33 94% 58%;
+    --accent-foreground: 216 35% 10%;
 
     --destructive: 0 70% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 20% 22%;
-    --input: 220 20% 22%;
-    --ring: 217 91% 55%;
+    --border: 216 18% 24%;
+    --input: 216 18% 18%;
+    --ring: 199 91% 60%;
 
     --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.4);
     --shadow-md: 0 2px 4px 0 rgba(0, 0, 0, 0.5);
@@ -168,7 +163,7 @@ All colors MUST be HSL.
   body {
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "rlig" 1, "calt" 1;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-family: "IBM Plex Sans", "Segoe UI Variable", "Bahnschrift", "Segoe UI", sans-serif;
     overflow: hidden;
     height: 100%;
     width: 100%;
@@ -180,6 +175,10 @@ All colors MUST be HSL.
     /* Base text size - larger for desktop app readability */
     font-size: 1rem;
     line-height: 1.6;
+    background:
+      radial-gradient(circle at top left, hsl(var(--primary) / 0.18), transparent 26%),
+      radial-gradient(circle at top right, hsl(var(--accent) / 0.12), transparent 20%),
+      linear-gradient(180deg, hsl(216 28% 11%) 0%, hsl(var(--background)) 48%, hsl(220 30% 6%) 100%);
   }
 
   #root {
@@ -229,8 +228,14 @@ All colors MUST be HSL.
 
   /* Professional panel styling */
   .app-panel {
-    box-shadow: var(--shadow-panel);
-    @apply bg-card border border-border;
+    box-shadow:
+      0 20px 42px rgba(2, 6, 23, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    background:
+      linear-gradient(180deg, hsl(var(--card) / 0.98) 0%, hsl(216 23% 10% / 0.96) 100%);
+    border: 1px solid hsl(var(--border) / 0.9);
+    backdrop-filter: blur(16px);
+    border-radius: calc(var(--radius) + 0.125rem);
     font-size: 1rem; /* 16px base */
   }
 
@@ -249,6 +254,19 @@ All colors MUST be HSL.
   .app-panel h1, .app-panel h2, .app-panel h3, .app-panel h4 {
     font-size: 1.125rem; /* 18px */
     font-weight: 600;
+  }
+
+  .app-panel input,
+  .app-panel textarea,
+  .app-panel [role="combobox"],
+  .app-panel [data-slot="select-trigger"] {
+    background: hsl(216 19% 14% / 0.88) !important;
+    border-color: hsl(var(--border) / 0.85) !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  }
+
+  .app-panel button {
+    border-radius: calc(var(--radius) - 0.125rem);
   }
 
   html.electron-ui {
@@ -503,6 +521,193 @@ All colors MUST be HSL.
     @apply transition-all duration-200 ease-out;
   }
 
+  .workbench-shell {
+    background:
+      linear-gradient(180deg, hsl(216 28% 10% / 0.92) 0%, hsl(216 24% 8% / 0.96) 48%, hsl(220 28% 6%) 100%);
+  }
+
+  .workbench-toolbar {
+    background:
+      linear-gradient(180deg, hsl(216 24% 14% / 0.96) 0%, hsl(216 22% 10% / 0.94) 100%);
+    border-bottom: 1px solid hsl(var(--border) / 0.9);
+    box-shadow: 0 10px 24px rgba(2, 6, 23, 0.18);
+    backdrop-filter: blur(16px);
+  }
+
+  .workbench-sidebar-shell {
+    background:
+      linear-gradient(180deg, hsl(216 24% 12% / 0.98) 0%, hsl(220 24% 9% / 0.96) 100%);
+    border-right: 1px solid hsl(var(--border) / 0.9);
+    box-shadow: 18px 0 32px rgba(2, 6, 23, 0.12);
+  }
+
+  .workbench-sidebar-title {
+    background:
+      linear-gradient(90deg, hsl(var(--primary) / 0.12), transparent 72%);
+  }
+
+  .workbench-toggle-btn {
+    background: linear-gradient(180deg, hsl(216 20% 18% / 0.98), hsl(216 20% 12% / 0.96));
+    border-color: hsl(var(--border) / 0.95);
+    box-shadow: 0 12px 24px rgba(2, 6, 23, 0.25);
+  }
+
+  .workbench-header {
+    border: 1px solid hsl(var(--border) / 0.85);
+    border-radius: 1.5rem;
+    background:
+      linear-gradient(180deg, hsl(216 22% 13% / 0.98) 0%, hsl(216 20% 10% / 0.94) 100%);
+    box-shadow:
+      0 16px 38px rgba(2, 6, 23, 0.22),
+      inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    overflow: hidden;
+  }
+
+  .workbench-context-chip {
+    border: 1px solid hsl(var(--border) / 0.82);
+    border-radius: 1rem;
+    background:
+      linear-gradient(180deg, hsl(216 20% 15% / 0.92), hsl(216 18% 12% / 0.88));
+    padding: 0.8rem 1rem;
+    min-width: 0;
+  }
+
+  .workbench-context-chip-label {
+    display: block;
+    font-size: 0.68rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: hsl(var(--muted-foreground));
+  }
+
+  .workbench-context-chip-value {
+    display: block;
+    margin-top: 0.35rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: hsl(var(--foreground));
+    line-height: 1.25;
+  }
+
+  .workbench-inline-progress {
+    border: 1px solid hsl(var(--border) / 0.82);
+    border-radius: 0.95rem;
+    background:
+      linear-gradient(180deg, hsl(216 20% 15% / 0.96), hsl(216 18% 12% / 0.92));
+    padding: 0.62rem 0.85rem;
+    min-width: 0;
+  }
+
+  .workbench-inline-progress-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+
+  .workbench-inline-progress-row {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    margin-top: 0.38rem;
+  }
+
+  .workbench-inline-progress-track {
+    position: relative;
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 0.42rem;
+    border-radius: 999px;
+    overflow: hidden;
+    background: hsl(216 16% 9% / 0.95);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.45);
+  }
+
+  .workbench-inline-progress-fill {
+    height: 100%;
+    border-radius: inherit;
+    background:
+      linear-gradient(90deg, rgba(5, 150, 105, 0.86), rgba(52, 211, 153, 0.96));
+    box-shadow: 0 0 18px rgba(16, 185, 129, 0.32);
+    transition: width 180ms ease;
+  }
+
+  .workbench-tabstrip {
+    border-top: 1px solid hsl(var(--border) / 0.75);
+    background:
+      linear-gradient(180deg, hsl(216 18% 11% / 0.92), hsl(216 18% 10% / 0.88));
+  }
+
+  .workbench-tabstrip [role="tablist"] {
+    background: transparent !important;
+    padding: 0.55rem !important;
+    border-radius: 0 !important;
+  }
+
+  .workbench-tabstrip-compact [role="tablist"] {
+    padding: 0.42rem !important;
+  }
+
+  .workbench-tabstrip [role="tab"] {
+    border-radius: 0.95rem !important;
+    color: hsl(var(--muted-foreground)) !important;
+    font-weight: 600;
+    transition: all 160ms ease;
+    border: 1px solid transparent;
+  }
+
+  .workbench-tabstrip [role="tab"]:hover {
+    background: hsl(216 20% 16% / 0.86) !important;
+    color: hsl(var(--foreground)) !important;
+  }
+
+  .workbench-tabstrip [role="tab"][data-state="active"] {
+    background:
+      linear-gradient(180deg, hsl(var(--primary) / 0.22), hsl(216 24% 16% / 0.96)) !important;
+    color: hsl(var(--foreground)) !important;
+    border-color: hsl(var(--primary) / 0.38) !important;
+    box-shadow:
+      0 10px 18px rgba(14, 116, 144, 0.16),
+      inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  }
+
+  .workbench-surface {
+    overflow: hidden;
+  }
+
+  .workbench-surface > [data-state="active"] {
+    background:
+      linear-gradient(180deg, hsl(216 18% 12% / 0.98), hsl(220 18% 10% / 0.95));
+  }
+
+  .workstation-card {
+    border: 1px solid hsl(var(--border) / 0.9);
+    border-radius: 1.35rem;
+    background:
+      linear-gradient(180deg, hsl(216 20% 14% / 0.96) 0%, hsl(216 18% 11% / 0.92) 100%);
+    box-shadow:
+      0 18px 34px rgba(2, 6, 23, 0.16),
+      inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  }
+
+  .technical-stage {
+    border: 1px solid hsl(var(--border) / 0.8);
+    border-radius: 1.1rem;
+    background:
+      linear-gradient(180deg, rgba(235, 238, 241, 0.98) 0%, rgba(224, 229, 235, 0.98) 100%);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.65),
+      0 14px 28px rgba(2, 6, 23, 0.18);
+    overflow: hidden;
+  }
+
+  .status-ribbon {
+    background:
+      linear-gradient(180deg, hsl(216 24% 13% / 0.98), hsl(220 22% 10% / 0.96));
+    border-top: 1px solid hsl(var(--border) / 0.88);
+    box-shadow: 0 -12px 24px rgba(2, 6, 23, 0.14);
+  }
+
   /* Card hover effects */
   .card-hover {
     @apply transition-all duration-200 ease-out;
@@ -725,3 +930,11 @@ All colors MUST be HSL.
     animation: pulse-error 1s ease-in-out infinite;
   }
 }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: "Space Grotesk", "IBM Plex Sans", "Segoe UI Variable", sans-serif;
+    letter-spacing: -0.02em;
+  }
+
+  code, pre, .font-mono {
+    font-family: "IBM Plex Mono", "JetBrains Mono", monospace;
+  }

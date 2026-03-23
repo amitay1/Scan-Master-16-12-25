@@ -129,11 +129,12 @@ function BeautifulCardItem({
       transition={{ duration: 0.2 }}
       whileHover={{ scale: 1.01 }}
       className={cn(
-        "relative overflow-hidden rounded-xl border-2 transition-all duration-300 cursor-pointer group",
-        "bg-gradient-to-br from-slate-800/80 to-slate-900/80",
-        "hover:border-blue-500/50 hover:shadow-lg hover:shadow-blue-500/10",
-        card.isArchived ? "opacity-50 border-slate-700" : "border-slate-700/50",
-        card.isFavorite && "border-yellow-500/30"
+        "relative overflow-hidden rounded-[24px] border transition-all duration-300 cursor-pointer group",
+        "bg-[linear-gradient(180deg,rgba(18,25,38,0.96),rgba(11,16,25,0.98))]",
+        "hover:border-white/16 hover:bg-[linear-gradient(180deg,rgba(21,29,44,0.98),rgba(12,18,28,0.98))]",
+        "hover:shadow-[0_18px_40px_rgba(0,0,0,0.24)]",
+        card.isArchived ? "opacity-50 border-white/8" : "border-white/10",
+        card.isFavorite && "border-yellow-400/20"
       )}
       onClick={onLoad}
     >
@@ -174,7 +175,7 @@ function BeautifulCardItem({
                 {card.name}
               </h3>
               {card.description && (
-                <p className="text-sm text-slate-400 truncate mt-0.5">
+                <p className="text-sm text-slate-400 line-clamp-2 mt-0.5">
                   {card.description}
                 </p>
               )}
@@ -187,12 +188,12 @@ function BeautifulCardItem({
               <Button 
                 variant="ghost" 
                 size="icon" 
-                className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                className="h-8 w-8 rounded-xl border border-transparent opacity-0 group-hover:opacity-100 transition-opacity hover:border-white/10 hover:bg-white/[0.05]"
               >
                 <MoreVertical className="w-4 h-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48 bg-slate-800 border-slate-700">
+            <DropdownMenuContent align="end" className="w-48 bg-slate-900 border-white/10">
               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onLoad(); }}>
                 <FolderOpen className="w-4 h-4 mr-2" />
                 Open Card
@@ -245,7 +246,7 @@ function BeautifulCardItem({
 
         {/* Progress Section */}
         <div className={cn(
-          "rounded-lg p-3 mb-4 border",
+          "rounded-2xl p-3.5 mb-4 border",
           getCompletionBg(card.completionPercent)
         )}>
           <div className="flex items-center justify-between mb-2">
@@ -265,7 +266,7 @@ function BeautifulCardItem({
               {card.completionPercent}%
             </span>
           </div>
-          <div className="h-2 bg-slate-700/50 rounded-full overflow-hidden">
+          <div className="h-2 bg-black/20 rounded-full overflow-hidden">
             <motion.div 
               initial={{ width: 0 }}
               animate={{ width: `${card.completionPercent}%` }}
@@ -276,13 +277,13 @@ function BeautifulCardItem({
         </div>
 
         {/* Info Row */}
-        <div className="flex items-center justify-between text-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
           <div className="flex items-center gap-3 text-slate-400">
             <span className="flex items-center gap-1">
               <Clock className="w-3.5 h-3.5" />
               {formatDate(card.updatedAt)}
             </span>
-            <Badge variant="outline" className="text-xs border-slate-600 text-slate-300">
+            <Badge variant="outline" className="text-xs border-white/10 bg-white/[0.03] text-slate-300">
               {card.standard}
             </Badge>
           </div>
@@ -291,12 +292,12 @@ function BeautifulCardItem({
           {card.tags && card.tags.length > 0 && (
             <div className="flex gap-1">
               {card.tags.slice(0, 2).map(tag => (
-                <Badge key={tag} className="text-xs bg-slate-700/50 text-slate-300">
+                <Badge key={tag} className="text-xs border border-white/8 bg-white/[0.04] text-slate-300">
                   {tag}
                 </Badge>
               ))}
               {card.tags.length > 2 && (
-                <Badge className="text-xs bg-slate-700/50 text-slate-300">
+                <Badge className="text-xs border border-white/8 bg-white/[0.04] text-slate-300">
                   +{card.tags.length - 2}
                 </Badge>
               )}
@@ -307,10 +308,10 @@ function BeautifulCardItem({
         {/* Load Button - appears on hover */}
         <motion.div 
           initial={{ opacity: 0, y: 10 }}
-          className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-slate-900 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"
+          className="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-slate-950 via-slate-950/90 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"
         >
           <Button 
-            className="w-full bg-blue-600 hover:bg-blue-500 gap-2"
+            className="w-full rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 gap-2"
             onClick={(e) => { e.stopPropagation(); onLoad(); }}
           >
             Open & Continue Editing
@@ -331,9 +332,9 @@ function EmptyState({ searchQuery, profileName }: { searchQuery: string; profile
     <motion.div
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="flex flex-col items-center justify-center py-16 text-center"
+      className="flex flex-col items-center justify-center rounded-[28px] border border-dashed border-white/10 bg-white/[0.03] py-16 text-center"
     >
-      <div className="w-20 h-20 rounded-full bg-slate-800 flex items-center justify-center mb-6">
+      <div className="w-20 h-20 rounded-full bg-white/[0.04] flex items-center justify-center mb-6">
         <FolderOpen className="w-10 h-10 text-slate-500" />
       </div>
       <h3 className="text-xl font-semibold text-white mb-2">
@@ -488,13 +489,13 @@ export function SavedCardsDialog({ open, onOpenChange, onLoadCard }: SavedCardsD
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-5xl h-[85vh] flex flex-col p-0 bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 border-slate-700">
+        <DialogContent className="max-w-6xl h-[86vh] flex flex-col p-0 border border-white/10 bg-[linear-gradient(180deg,rgba(10,14,22,0.98),rgba(12,18,28,0.98))] shadow-[0_32px_80px_rgba(0,0,0,0.45)]">
           {/* Header */}
-          <DialogHeader className="px-6 py-5 border-b border-slate-700/50 bg-slate-900/50 backdrop-blur">
+          <DialogHeader className="px-6 py-5 border-b border-white/8 bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.18),transparent_40%),linear-gradient(180deg,rgba(15,23,42,0.98),rgba(12,18,28,0.96))] backdrop-blur">
             <div className="flex items-center justify-between">
               <div>
                 <DialogTitle className="text-2xl font-bold text-white flex items-center gap-3">
-                  <div className="p-2 rounded-xl bg-blue-500/20">
+                  <div className="p-2.5 rounded-2xl bg-blue-500/15 ring-1 ring-blue-400/20">
                     <FolderOpen className="w-6 h-6 text-blue-400" />
                   </div>
                   My Cards
@@ -513,14 +514,14 @@ export function SavedCardsDialog({ open, onOpenChange, onLoadCard }: SavedCardsD
               
               {/* Quick Stats */}
               <div className="flex gap-3">
-                <div className="px-4 py-2 rounded-lg bg-yellow-500/10 border border-yellow-500/30">
+                <div className="px-4 py-2.5 rounded-2xl bg-yellow-500/10 border border-yellow-400/20">
                   <div className="flex items-center gap-2">
                     <Star className="w-4 h-4 text-yellow-400" />
                     <span className="font-semibold text-yellow-400">{stats.favorites}</span>
                   </div>
                   <div className="text-xs text-yellow-400/70">Favorites</div>
                 </div>
-                <div className="px-4 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30">
+                <div className="px-4 py-2.5 rounded-2xl bg-emerald-500/10 border border-emerald-400/20">
                   <div className="flex items-center gap-2">
                     <FileCheck className="w-4 h-4 text-emerald-400" />
                     <span className="font-semibold text-emerald-400">
@@ -534,39 +535,39 @@ export function SavedCardsDialog({ open, onOpenChange, onLoadCard }: SavedCardsD
           </DialogHeader>
           
           {/* Toolbar */}
-          <div className="px-6 py-4 border-b border-slate-700/50 space-y-4 bg-slate-900/30">
+          <div className="px-6 py-4 border-b border-white/8 space-y-4 bg-black/10">
             {/* Search and Actions */}
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                 <Input
                   placeholder="Search cards..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 bg-slate-800/50 border-slate-600 h-11 text-base"
+                  className="pl-10 h-11 rounded-2xl border-white/10 bg-white/[0.04] text-base text-slate-100 placeholder:text-slate-500"
                 />
               </div>
               
-              <Button variant="outline" onClick={handleImport} className="h-11 gap-2">
+              <Button variant="outline" onClick={handleImport} className="h-11 rounded-2xl gap-2 border-white/10 bg-white/[0.03] hover:bg-white/[0.05]">
                 <Upload className="w-4 h-4" />
                 Import
               </Button>
               
-              <Button variant="outline" onClick={handleExportAll} className="h-11 gap-2" disabled={cards.length === 0}>
+              <Button variant="outline" onClick={handleExportAll} className="h-11 rounded-2xl gap-2 border-white/10 bg-white/[0.03] hover:bg-white/[0.05]" disabled={cards.length === 0}>
                 <Download className="w-4 h-4" />
                 Export All
               </Button>
             </div>
             
             {/* Tabs and Filters */}
-            <div className="flex items-center justify-between gap-4">
+            <div className="flex flex-wrap items-center justify-between gap-4">
               {/* Type Tabs */}
               <div className="flex gap-2">
                 <Button
                   variant={activeTab === 'all' ? 'default' : 'ghost'}
                   size="sm"
                   onClick={() => setActiveTab('all')}
-                  className={cn(activeTab === 'all' && 'bg-blue-600')}
+                  className={cn("rounded-2xl", activeTab === 'all' && 'bg-blue-600')}
                 >
                   All ({stats.total})
                 </Button>
@@ -574,7 +575,7 @@ export function SavedCardsDialog({ open, onOpenChange, onLoadCard }: SavedCardsD
                   variant={activeTab === 'technique' ? 'default' : 'ghost'}
                   size="sm"
                   onClick={() => setActiveTab('technique')}
-                  className={cn(activeTab === 'technique' && 'bg-blue-600', "gap-1")}
+                  className={cn(activeTab === 'technique' && 'bg-blue-600', "gap-1 rounded-2xl")}
                 >
                   <FileText className="w-4 h-4" />
                   Technique ({stats.techniques})
@@ -583,7 +584,7 @@ export function SavedCardsDialog({ open, onOpenChange, onLoadCard }: SavedCardsD
                   variant={activeTab === 'report' ? 'default' : 'ghost'}
                   size="sm"
                   onClick={() => setActiveTab('report')}
-                  className={cn(activeTab === 'report' && 'bg-purple-600', "gap-1")}
+                  className={cn(activeTab === 'report' && 'bg-purple-600', "gap-1 rounded-2xl")}
                 >
                   <ClipboardList className="w-4 h-4" />
                   Reports ({stats.reports})
@@ -596,7 +597,7 @@ export function SavedCardsDialog({ open, onOpenChange, onLoadCard }: SavedCardsD
                   variant={showFavoritesOnly ? "secondary" : "ghost"}
                   size="sm"
                   onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
-                  className="gap-1"
+                  className="gap-1 rounded-2xl"
                 >
                   <Star className={cn("w-4 h-4", showFavoritesOnly && "fill-yellow-400 text-yellow-400")} />
                   Favorites
@@ -606,7 +607,7 @@ export function SavedCardsDialog({ open, onOpenChange, onLoadCard }: SavedCardsD
                   variant={showArchived ? "secondary" : "ghost"}
                   size="sm"
                   onClick={() => setShowArchived(!showArchived)}
-                  className="gap-1"
+                  className="gap-1 rounded-2xl"
                 >
                   <Archive className="w-4 h-4" />
                   Archive ({stats.archived})
@@ -616,12 +617,12 @@ export function SavedCardsDialog({ open, onOpenChange, onLoadCard }: SavedCardsD
                 
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="gap-1">
+                    <Button variant="ghost" size="sm" className="gap-1 rounded-2xl border border-white/8 bg-white/[0.03] hover:bg-white/[0.05]">
                       {sortOrder === 'desc' ? <SortDesc className="w-4 h-4" /> : <SortAsc className="w-4 h-4" />}
                       {sortBy === 'updatedAt' ? 'Date' : sortBy === 'name' ? 'Name' : 'Progress'}
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="bg-slate-800 border-slate-700">
+                  <DropdownMenuContent align="end" className="bg-slate-900 border-white/10">
                     <DropdownMenuItem onClick={() => setSortBy('updatedAt')}>
                       <Clock className="w-4 h-4 mr-2" />
                       Update Date
@@ -651,7 +652,7 @@ export function SavedCardsDialog({ open, onOpenChange, onLoadCard }: SavedCardsD
               {filteredCards.length === 0 ? (
                 <EmptyState searchQuery={searchQuery} profileName={currentProfile?.name} />
               ) : (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
                   {filteredCards.map((card) => (
                     <BeautifulCardItem
                       key={card.id}
@@ -673,18 +674,18 @@ export function SavedCardsDialog({ open, onOpenChange, onLoadCard }: SavedCardsD
       
       {/* Delete Confirmation */}
       <AlertDialog open={!!deleteConfirmId} onOpenChange={() => setDeleteConfirmId(null)}>
-        <AlertDialogContent className="bg-slate-900 border-slate-700">
+        <AlertDialogContent className="border border-white/10 bg-[linear-gradient(180deg,rgba(10,14,22,0.98),rgba(12,18,28,0.98))]">
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this card?</AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogTitle className="text-white">Delete this card?</AlertDialogTitle>
+            <AlertDialogDescription className="text-slate-400">
               This action cannot be undone. The card will be permanently deleted.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="gap-2">
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="border-white/10 bg-white/[0.03] text-slate-200 hover:bg-white/[0.06] hover:text-white">Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => deleteConfirmId && handleDelete(deleteConfirmId)}
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-red-600 hover:bg-red-700 text-white"
             >
               Delete
             </AlertDialogAction>
