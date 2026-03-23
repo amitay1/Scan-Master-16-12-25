@@ -410,7 +410,7 @@ export const RealTimeTechnicalDrawing = ({
   }, [partType, drawingDimensions, layout, showGrid, material, standardType, partNumberProp, showScanCoverage, scanType, coverageDimensions]);
 
   return (
-    <div className="w-full h-full flex items-start justify-center overflow-hidden bg-[#D4D4D4] p-3">
+    <div className="w-full h-full flex items-center justify-center overflow-hidden bg-[#D4D4D4] p-3">
       <canvas
         id="technical-drawing-canvas"
         ref={canvasRef}
@@ -420,6 +420,7 @@ export const RealTimeTechnicalDrawing = ({
         style={{
           width: '100%',
           maxWidth: `${CANVAS_WIDTH}px`,
+          maxHeight: '100%',
           height: 'auto',
           aspectRatio: CANVAS_ASPECT_RATIO,
           display: 'block',
