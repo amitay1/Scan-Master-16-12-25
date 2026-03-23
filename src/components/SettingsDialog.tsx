@@ -52,6 +52,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
+import { APP_FONT_OPTIONS } from '@/lib/appFonts';
 
 // ============================================================================
 // TYPES
@@ -317,6 +318,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
 
 function GeneralSettings() {
   const { settings, updateSettings } = useSettings();
+  const selectedFont = APP_FONT_OPTIONS.find((font) => font.value === settings.general.uiFont) ?? APP_FONT_OPTIONS[0];
 
   return (
     <div className="space-y-6">
@@ -343,6 +345,44 @@ function GeneralSettings() {
                 <span className="ml-2">{theme.label}</span>
               </Button>
             ))}
+          </div>
+        </SettingsRow>
+
+        <SettingsRow
+          label="Application Font"
+          description="Choose the main font used across the interface"
+        >
+          <div className="space-y-3">
+            <Select
+              value={settings.general.uiFont}
+              onValueChange={(value) => updateSettings('general', { uiFont: value as AppSettings['general']['uiFont'] })}
+            >
+              <SelectTrigger className="w-[280px]">
+                <SelectValue placeholder="Select interface font" />
+              </SelectTrigger>
+              <SelectContent>
+                {APP_FONT_OPTIONS.map((font) => (
+                  <SelectItem key={font.value} value={font.value}>
+                    {font.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <div
+              className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3"
+              style={{ fontFamily: selectedFont.stack }}
+            >
+              <div className="text-sm font-semibold text-white">
+                {selectedFont.label}
+              </div>
+              <div className="text-sm text-slate-300">
+                ScanMaster Technique Card Preview 123
+              </div>
+              <div className="text-xs text-slate-400">
+                {selectedFont.sample}
+              </div>
+            </div>
           </div>
         </SettingsRow>
       </SettingsSection>

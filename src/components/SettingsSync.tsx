@@ -6,6 +6,7 @@
 import { useEffect } from 'react';
 import { useSettings } from '@/hooks/useSettings';
 import { useTheme } from 'next-themes';
+import { APP_FONT_STACKS } from '@/lib/appFonts';
 
 export function SettingsSync() {
   const { settings } = useSettings();
@@ -23,6 +24,13 @@ export function SettingsSync() {
     document.documentElement.dir = settings.general.language === 'he' ? 'rtl' : 'ltr';
     document.documentElement.lang = settings.general.language;
   }, [settings.general.language]);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const fontConfig = APP_FONT_STACKS[settings.general.uiFont] || APP_FONT_STACKS['ibm-plex-sans'];
+    root.style.setProperty('--app-font-family', fontConfig.body);
+    root.style.setProperty('--app-heading-font-family', fontConfig.heading);
+  }, [settings.general.uiFont]);
 
   // This component doesn't render anything
   return null;

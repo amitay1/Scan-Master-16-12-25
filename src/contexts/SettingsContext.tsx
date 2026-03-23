@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
 import { getStorageData, setStorageData, STORAGE_KEYS } from '@/services/unifiedStorage';
+import type { AppFontChoice } from '@/lib/appFonts';
 
 // ============================================================================
 // SETTINGS TYPES
@@ -8,6 +9,7 @@ import { getStorageData, setStorageData, STORAGE_KEYS } from '@/services/unified
 export interface GeneralSettings {
   language: 'en' | 'he';
   theme: 'light' | 'dark' | 'system';
+  uiFont: AppFontChoice;
   dateFormat: 'DD/MM/YYYY' | 'MM/DD/YYYY' | 'YYYY-MM-DD';
   timeFormat: '12h' | '24h';
   timezone: string;
@@ -106,6 +108,7 @@ const defaultSettings: AppSettings = {
   general: {
     language: 'en',
     theme: 'dark',
+    uiFont: 'ibm-plex-sans',
     dateFormat: 'DD/MM/YYYY',
     timeFormat: '24h',
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',

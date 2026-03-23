@@ -196,6 +196,18 @@ export const Toolbar = ({
           <FileSearch className="h-4 w-4 md:mr-2" />
           <span className="hidden sm:inline">Report</span>
         </Button>
+
+        <Separator orientation="vertical" className="mx-1 hidden h-7 bg-border/70 sm:block" />
+
+        <Button
+          variant="ghost"
+          size="icon"
+          title="Settings"
+          className="h-9 w-9 rounded-xl border border-transparent hover:border-primary/25 hover:bg-primary/10 md:h-10 md:w-10"
+          onClick={() => setSettingsOpen(true)}
+        >
+          <Settings className="h-4 w-4 md:h-5 md:w-5" />
+        </Button>
       </div>
 
       <div className="flex-1" />
@@ -258,7 +270,7 @@ export const Toolbar = ({
           variant="ghost"
           size="icon"
           title="Local Saved Cards"
-          className="h-10 w-10 rounded-xl border border-transparent hover:border-primary/25 hover:bg-primary/10 hidden sm:flex relative"
+          className="relative h-10 w-10 rounded-xl border border-transparent hover:border-primary/25 hover:bg-primary/10"
           onClick={() => setLocalSavedCardsOpen(true)}
         >
           <FolderOpen className="h-5 w-5 md:h-5 md:w-5" />
@@ -268,26 +280,13 @@ export const Toolbar = ({
             </span>
           )}
         </Button>
+
       </div>
-      
-      {/* Settings Button - temporarily hidden until settings are fully functional
-      <Button 
-        variant="ghost" 
-        size="icon" 
-        title="Settings" 
-        className="h-10 w-10 md:h-11 md:w-11 hidden sm:flex"
-        onClick={() => setSettingsOpen(true)}
-      >
-        <Settings className="h-5 w-5 md:h-5 md:w-5" />
-      </Button>
-      */}
-      
-      {/* Settings Dialog - temporarily disabled
-      <SettingsDialog 
-        open={settingsOpen} 
-        onOpenChange={setSettingsOpen} 
+
+      <SettingsDialog
+        open={settingsOpen}
+        onOpenChange={setSettingsOpen}
       />
-      */}
       
       {/* Local Saved Cards Dialog */}
       <SavedCardsDialog

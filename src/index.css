@@ -59,6 +59,9 @@ All colors MUST be HSL.
     --border: 216 18% 24%;
     --input: 216 18% 18%;
     --ring: 199 91% 60%;
+    --app-font-family: "IBM Plex Sans", "Segoe UI Variable", "Bahnschrift", "Segoe UI", sans-serif;
+    --app-heading-font-family: "IBM Plex Sans", "Segoe UI Variable", "Bahnschrift", "Segoe UI", sans-serif;
+    --app-mono-font-family: "IBM Plex Mono", "JetBrains Mono", monospace;
 
     --radius: 1rem;
 
@@ -163,7 +166,7 @@ All colors MUST be HSL.
   body {
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "rlig" 1, "calt" 1;
-    font-family: "IBM Plex Sans", "Segoe UI Variable", "Bahnschrift", "Segoe UI", sans-serif;
+    font-family: var(--app-font-family);
     overflow: hidden;
     height: 100%;
     width: 100%;
@@ -931,10 +934,10 @@ All colors MUST be HSL.
   }
 }
   h1, h2, h3, h4, h5, h6 {
-    font-family: "Space Grotesk", "IBM Plex Sans", "Segoe UI Variable", sans-serif;
+    font-family: var(--app-heading-font-family);
     letter-spacing: -0.02em;
   }
 
   code, pre, .font-mono {
-    font-family: "IBM Plex Mono", "JetBrains Mono", monospace;
+    font-family: var(--app-mono-font-family);
   }
