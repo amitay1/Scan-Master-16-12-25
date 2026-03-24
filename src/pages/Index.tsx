@@ -605,8 +605,8 @@ const Index = () => {
                       <div className="workbench-tabstrip workbench-tabstrip-compact w-full overflow-x-auto scrollbar-hide md:overflow-visible sticky top-0 z-10">
                         <TabsList className="inline-flex flex-nowrap h-auto items-center justify-start w-max md:w-full">
                           <TabsTrigger value="setup" className={workbenchTabTriggerClass}>Setup</TabsTrigger>
-                          <TabsTrigger value="equipment" className={workbenchTabTriggerClass}>Equipment</TabsTrigger>
                           <TabsTrigger value="scan" className={`${workbenchTabTriggerClass} whitespace-nowrap`}>Scan Params</TabsTrigger>
+                          <TabsTrigger value="equipment" className={workbenchTabTriggerClass}>Equipment</TabsTrigger>
                           <TabsTrigger value="calibration" className={`${workbenchTabTriggerClass} whitespace-nowrap`}>Reference Standard</TabsTrigger>
                           <TabsTrigger value="acceptance" className={workbenchTabTriggerClass}>Acceptance</TabsTrigger>
                           <TabsTrigger value="scandetails" className={`${workbenchTabTriggerClass} whitespace-nowrap`}>Scan Details</TabsTrigger>
@@ -733,25 +733,6 @@ const Index = () => {
                         />
                       </TabsContent>
 
-                      <TabsContent value="equipment" className="m-0">
-                        <EquipmentTab
-                          data={currentData.equipment}
-                          onChange={currentData.setEquipment}
-                          partThickness={currentData.inspectionSetup.partThickness}
-                          standard={standard}
-                        />
-                      </TabsContent>
-
-                      <TabsContent value="calibration" className="m-0">
-                        <CalibrationTab
-                          data={currentData.calibration}
-                          onChange={currentData.setCalibration}
-                          inspectionSetup={currentData.inspectionSetup}
-                          acceptanceClass={currentData.acceptanceCriteria.acceptanceClass}
-                          standard={standard}
-                        />
-                      </TabsContent>
-
                       <TabsContent value="scan" className="m-0">
                         <ScanParametersTab
                           data={currentData.scanParameters}
@@ -769,6 +750,26 @@ const Index = () => {
                           }}
                           equipmentData={currentData.equipment}
                           onEquipmentDataChange={currentData.setEquipment}
+                        />
+                      </TabsContent>
+
+                      <TabsContent value="equipment" className="m-0">
+                        <EquipmentTab
+                          data={currentData.equipment}
+                          onChange={currentData.setEquipment}
+                          partThickness={currentData.inspectionSetup.partThickness}
+                          standard={standard}
+                          scanTechnique={currentData.scanParameters.technique}
+                        />
+                      </TabsContent>
+
+                      <TabsContent value="calibration" className="m-0">
+                        <CalibrationTab
+                          data={currentData.calibration}
+                          onChange={currentData.setCalibration}
+                          inspectionSetup={currentData.inspectionSetup}
+                          acceptanceClass={currentData.acceptanceCriteria.acceptanceClass}
+                          standard={standard}
                         />
                       </TabsContent>
 

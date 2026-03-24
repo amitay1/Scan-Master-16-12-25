@@ -1,27 +1,40 @@
 import type { ScanDetail } from "@/types/scanDetails";
 import type { StandardType } from "@/types/techniqueSheet";
+import { getV2500GateSettingsForDirection } from "@/utils/pwNdipDefaults";
 
 const NDIP_1226_DIRECTIONS = ["E", "A", "B", "C", "D"] as const;
 const NDIP_1227_DIRECTIONS = ["M", "N", "O", "P", "K", "L"] as const;
 
+const withGateDefaults = (standard: "NDIP-1226" | "NDIP-1227", row: ScanDetail): ScanDetail => ({
+  ...row,
+  ...getV2500GateSettingsForDirection(standard, row.scanningDirection),
+});
+
 const NDIP_1226_SCAN_DETAILS: ScanDetail[] = [
-  { scanningDirection: "E", waveMode: "Circumferential shear wave +/-45", frequency: "5.0", make: "", probe: "", remarkDetails: "NDIP-1226 Figure 2 zone E", enabled: false, entrySurface: "id", angle: 45, color: "#22c55e" },
-  { scanningDirection: "A", waveMode: "Circumferential shear wave +/-45", frequency: "5.0", make: "", probe: "", remarkDetails: "NDIP-1226 Figure 2 zone A", enabled: false, entrySurface: "id", angle: 45, color: "#3b82f6" },
-  { scanningDirection: "B", waveMode: "Circumferential shear wave +/-45", frequency: "5.0", make: "", probe: "", remarkDetails: "NDIP-1226 Figure 2 zone B", enabled: false, entrySurface: "id", angle: 45, color: "#f59e0b" },
-  { scanningDirection: "C", waveMode: "Circumferential shear wave +/-45", frequency: "5.0", make: "", probe: "", remarkDetails: "NDIP-1226 Figure 2 zone C", enabled: false, entrySurface: "id", angle: 45, color: "#ef4444" },
-  { scanningDirection: "D", waveMode: "Circumferential shear wave +/-45", frequency: "5.0", make: "", probe: "", remarkDetails: "NDIP-1226 Figure 2 zone D", enabled: false, entrySurface: "id", angle: 45, color: "#8b5cf6" },
+  withGateDefaults("NDIP-1226", { scanningDirection: "E", waveMode: "Circumferential shear wave +/-45", frequency: "5.0", make: "", probe: "", remarkDetails: "NDIP-1226 Figure 2 zone E", enabled: false, entrySurface: "id", angle: 45, color: "#22c55e" }),
+  withGateDefaults("NDIP-1226", { scanningDirection: "A", waveMode: "Circumferential shear wave +/-45", frequency: "5.0", make: "", probe: "", remarkDetails: "NDIP-1226 Figure 2 zone A", enabled: false, entrySurface: "id", angle: 45, color: "#3b82f6" }),
+  withGateDefaults("NDIP-1226", { scanningDirection: "B", waveMode: "Circumferential shear wave +/-45", frequency: "5.0", make: "", probe: "", remarkDetails: "NDIP-1226 Figure 2 zone B", enabled: false, entrySurface: "id", angle: 45, color: "#f59e0b" }),
+  withGateDefaults("NDIP-1226", { scanningDirection: "C", waveMode: "Circumferential shear wave +/-45", frequency: "5.0", make: "", probe: "", remarkDetails: "NDIP-1226 Figure 2 zone C", enabled: false, entrySurface: "id", angle: 45, color: "#ef4444" }),
+  withGateDefaults("NDIP-1226", { scanningDirection: "D", waveMode: "Circumferential shear wave +/-45", frequency: "5.0", make: "", probe: "", remarkDetails: "NDIP-1226 Figure 2 zone D", enabled: false, entrySurface: "id", angle: 45, color: "#8b5cf6" }),
 ];
 
 const NDIP_1227_SCAN_DETAILS: ScanDetail[] = [
-  { scanningDirection: "M", waveMode: "Circumferential shear wave +/-45", frequency: "5.0", make: "", probe: "", remarkDetails: "NDIP-1227 Figure 2 zone M", enabled: false, entrySurface: "id", angle: 45, color: "#22c55e" },
-  { scanningDirection: "N", waveMode: "Circumferential shear wave +/-45", frequency: "5.0", make: "", probe: "", remarkDetails: "NDIP-1227 Figure 2 zone N", enabled: false, entrySurface: "id", angle: 45, color: "#3b82f6" },
-  { scanningDirection: "O", waveMode: "Circumferential shear wave +/-45", frequency: "5.0", make: "", probe: "", remarkDetails: "NDIP-1227 Figure 2 zone O", enabled: false, entrySurface: "id", angle: 45, color: "#f59e0b" },
-  { scanningDirection: "P", waveMode: "Circumferential shear wave +/-45", frequency: "5.0", make: "", probe: "", remarkDetails: "NDIP-1227 Figure 2 zone P", enabled: false, entrySurface: "id", angle: 45, color: "#ef4444" },
-  { scanningDirection: "K", waveMode: "Circumferential shear wave +/-45", frequency: "5.0", make: "", probe: "", remarkDetails: "NDIP-1227 Figure 2 zone K", enabled: false, entrySurface: "id", angle: 45, color: "#8b5cf6" },
-  { scanningDirection: "L", waveMode: "Circumferential shear wave +/-45", frequency: "5.0", make: "", probe: "", remarkDetails: "NDIP-1227 Figure 2 zone L", enabled: false, entrySurface: "id", angle: 45, color: "#14b8a6" },
+  withGateDefaults("NDIP-1227", { scanningDirection: "M", waveMode: "Circumferential shear wave +/-45", frequency: "5.0", make: "", probe: "", remarkDetails: "NDIP-1227 Figure 2 zone M", enabled: false, entrySurface: "id", angle: 45, color: "#22c55e" }),
+  withGateDefaults("NDIP-1227", { scanningDirection: "N", waveMode: "Circumferential shear wave +/-45", frequency: "5.0", make: "", probe: "", remarkDetails: "NDIP-1227 Figure 2 zone N", enabled: false, entrySurface: "id", angle: 45, color: "#3b82f6" }),
+  withGateDefaults("NDIP-1227", { scanningDirection: "O", waveMode: "Circumferential shear wave +/-45", frequency: "5.0", make: "", probe: "", remarkDetails: "NDIP-1227 Figure 2 zone O", enabled: false, entrySurface: "id", angle: 45, color: "#f59e0b" }),
+  withGateDefaults("NDIP-1227", { scanningDirection: "P", waveMode: "Circumferential shear wave +/-45", frequency: "5.0", make: "", probe: "", remarkDetails: "NDIP-1227 Figure 2 zone P", enabled: false, entrySurface: "id", angle: 45, color: "#ef4444" }),
+  withGateDefaults("NDIP-1227", { scanningDirection: "K", waveMode: "Circumferential shear wave +/-45", frequency: "5.0", make: "", probe: "", remarkDetails: "NDIP-1227 Figure 2 zone K", enabled: false, entrySurface: "id", angle: 45, color: "#8b5cf6" }),
+  withGateDefaults("NDIP-1227", { scanningDirection: "L", waveMode: "Circumferential shear wave +/-45", frequency: "5.0", make: "", probe: "", remarkDetails: "NDIP-1227 Figure 2 zone L", enabled: false, entrySurface: "id", angle: 45, color: "#14b8a6" }),
 ];
 
-const cloneScanDetails = (rows: ScanDetail[]): ScanDetail[] => rows.map((row) => ({ ...row }));
+const cloneScanDetails = (rows: ScanDetail[]): ScanDetail[] =>
+  rows.map((row) => ({
+    ...row,
+    gate1: row.gate1 ? { ...row.gate1 } : undefined,
+    gate2: row.gate2 ? { ...row.gate2 } : undefined,
+    gate3: row.gate3 ? { ...row.gate3 } : undefined,
+    gate4: row.gate4 ? { ...row.gate4 } : undefined,
+  }));
 
 export const getV2500ScanDetailDefaults = (standard: StandardType): ScanDetail[] | null => {
   if (standard === "NDIP-1226") return cloneScanDetails(NDIP_1226_SCAN_DETAILS);

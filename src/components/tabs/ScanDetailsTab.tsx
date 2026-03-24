@@ -14,7 +14,6 @@ import { TubeScanDiagram } from "@/components/TubeScanDiagram";
 import { ConeScanDiagram } from "@/components/ConeScanDiagram";
 import { BoxScanDiagram } from "@/components/BoxScanDiagram";
 import { CylinderScanDiagram } from "@/components/CylinderScanDiagram";
-import { DiskScanDiagram } from "@/components/DiskScanDiagram";
 import { V2500BoreScanDiagram } from "@/components/V2500BoreScanDiagram";
 import { RingScanDiagram } from "@/components/RingScanDiagram";
 import { HexBarScanDiagram } from "@/components/HexBarScanDiagram";
@@ -27,9 +26,9 @@ import { CustomDrawingUpload, ArrowOverlay, GeometrySelector } from "@/component
 import { useOllamaVision } from "@/components/scan-overlay/hooks/useOllamaVision";
 import { generateArrowsForGeometry, syncArrowsWithScanDetails } from "@/utils/scanArrowPlacement";
 import { getV2500ScanDetailDefaults } from "@/utils/pwScanDetailDefaults";
+import { isV2500NdipStandard } from "@/utils/pwNdipDefaults";
 import type { ScanArrow } from "@/types/scanOverlay";
 
-// Extended ScanDetail with per-row pulsar parameters
 interface ExtendedScanDetail extends ScanDetail {
   scanningFile?: string;
   pulsarParams?: string;
@@ -48,8 +47,6 @@ interface ExtendedScanDetail extends ScanDetail {
   velocity?: number;
   nearField?: number;
 }
-
-const DEFAULT_GATE: GateSettings = { start: 0, length: 0, level: 0 };
 
 const isTubeType = (partType?: PartGeometry | ""): boolean => {
   return !!partType && ["tube", "pipe", "sleeve", "bushing", "rectangular_tube", "square_tube"].includes(partType);
@@ -233,9 +230,9 @@ export const ScanDetailsTab = ({
     onChange({ ...data, scanDetails: normalizedScanDetails });
   }, [data, equipmentFrequency, frequencyOptions, onChange, standardEquipmentParams]);
 
-  const scanDetails = defaultScanDetails.map(fixed => {
-    const existing = data.scanDetails?.find(d => d.scanningDirection === fixed.scanningDirection);
-    return (existing || fixed) as ExtendedScanDetail;
+  const scanDetails = defaultScanDetails.map((fixed) => {
+    const existing = data.scanDetails?.find((d) => d.scanningDirection === fixed.scanningDirection);
+    return ({ ...fixed, ...existing } as ExtendedScanDetail);
   });
 
   const toggleScanDetail = (index: number) => {
@@ -243,14 +240,6 @@ export const ScanDetailsTab = ({
     const wasEnabled = newScanDetails[index].enabled;
     newScanDetails[index] = { ...newScanDetails[index], enabled: !wasEnabled };
     onChange({ ...data, scanDetails: newScanDetails });
-    // When enabling a direction, auto-expand its details and keep it open
-    if (!wasEnabled) {
-      setExpandedRows((prev) =>
-        prev.includes(newScanDetails[index].scanningDirection)
-          ? prev
-          : [...prev, newScanDetails[index].scanningDirection]
-      );
-    }
   };
 
   const updateScanDetail = (index: number, field: string, value: string | number | boolean | GateSettings) => {
@@ -269,11 +258,39 @@ export const ScanDetailsTab = ({
     onChange({ ...data, scanDetails: newScanDetails });
   };
 
-  const updateGate = (index: number, gateField: 'gate1' | 'gate2' | 'gate3' | 'gate4', subField: keyof GateSettings, value: number) => {
+  const updateGate = (
+    index: number,
+    gateField: 'gate1' | 'gate2' | 'gate3' | 'gate4',
+    subField: keyof GateSettings,
+    value: number | string | undefined
+  ) => {
     const newScanDetails = [...scanDetails];
-    const currentGate = (newScanDetails[index][gateField] as GateSettings | undefined) || DEFAULT_GATE;
-    newScanDetails[index] = { ...newScanDetails[index], [gateField]: { ...currentGate, [subField]: value } };
+    const currentGate = ((newScanDetails[index][gateField] as GateSettings | undefined) || {}) as GateSettings;
+    const nextGate: GateSettings = { ...currentGate, [subField]: value };
+    const hasValues = Object.values(nextGate).some((gateValue) => gateValue !== undefined && gateValue !== "");
+
+    newScanDetails[index] = {
+      ...newScanDetails[index],
+      [gateField]: hasValues ? nextGate : undefined,
+    };
     onChange({ ...data, scanDetails: newScanDetails });
+  };
+
+  const parseOptionalNumber = (value: string): number | undefined => {
+    if (!value.trim()) {
+      return undefined;
+    }
+
+    const parsed = Number.parseFloat(value);
+    return Number.isFinite(parsed) ? parsed : undefined;
+  };
+
+  const gateValueToInput = (value?: number | string): string => {
+    if (value === undefined || value === null) {
+      return "";
+    }
+
+    return String(value);
   };
 
   const toggleExpand = (direction: string) => {
@@ -289,8 +306,9 @@ export const ScanDetailsTab = ({
     scanDetails.map(d => [d.scanningDirection, d.color || "#111827"])
   ) as Record<string, string>;
 
+  const isV2500Standard = isV2500NdipStandard(standard);
   const isHptDiskPart = partType === "hpt_disk";
-  const showV2500BoreDiagram = isHptDiskPart || standard === "NDIP-1226" || standard === "NDIP-1227";
+  const showV2500BoreDiagram = isHptDiskPart || isV2500Standard;
   const v2500Stage: 1 | 2 | null = standard === "NDIP-1226" ? 1 : standard === "NDIP-1227" ? 2 : null;
 
   // Custom drawing handlers
@@ -438,6 +456,104 @@ export const ScanDetailsTab = ({
     return calculateNearField(diameterMm, frequencyMHz, velocityMs);
   };
 
+  const renderGateEditor = (
+    detail: ExtendedScanDetail,
+    index: number,
+    gateField: "gate1" | "gate2" | "gate3" | "gate4",
+    label: string,
+    labelClassName: string,
+    inputClassName: string,
+  ) => {
+    const gate = detail[gateField] as GateSettings | undefined;
+    const usePositionStartStop = isV2500Standard;
+
+    return (
+      <div>
+        <Label className={labelClassName}>
+          {label} {usePositionStartStop ? "(Position - Start - Stop)" : "(Start - Length - Level)"}
+        </Label>
+        <div className="grid grid-cols-3 gap-2 mt-1">
+          <Input
+            type={usePositionStartStop ? "text" : "number"}
+            value={gateValueToInput(usePositionStartStop ? gate?.position : gate?.start)}
+            onChange={(e) =>
+              updateGate(
+                index,
+                gateField,
+                usePositionStartStop ? "position" : "start",
+                usePositionStartStop ? (e.target.value || undefined) : parseOptionalNumber(e.target.value)
+              )
+            }
+            className={inputClassName}
+            placeholder={usePositionStartStop ? "Position" : "Start"}
+          />
+          <Input
+            type="number"
+            value={gateValueToInput(usePositionStartStop ? gate?.start : gate?.length)}
+            onChange={(e) =>
+              updateGate(
+                index,
+                gateField,
+                usePositionStartStop ? "start" : "length",
+                parseOptionalNumber(e.target.value)
+              )
+            }
+            className={inputClassName}
+            placeholder={usePositionStartStop ? "Start" : "Length"}
+          />
+          <Input
+            type="number"
+            value={gateValueToInput(usePositionStartStop ? gate?.stop : gate?.level)}
+            onChange={(e) =>
+              updateGate(
+                index,
+                gateField,
+                usePositionStartStop ? "stop" : "level",
+                parseOptionalNumber(e.target.value)
+              )
+            }
+            className={inputClassName}
+            placeholder={usePositionStartStop ? "Stop" : "Level %"}
+          />
+        </div>
+      </div>
+    );
+  };
+
+  const renderDiskReferenceDiagram = () => {
+    const activeDetails = scanDetails.filter((detail) => detail.enabled);
+
+    return (
+      <div className="rounded-lg border-2 border-gray-200 bg-white p-3">
+        <div className="mb-3">
+          <h4 className="text-sm font-semibold text-slate-800">Disk Forging</h4>
+          <p className="text-xs text-slate-500">ASTM E2375 Figure 7 reference</p>
+        </div>
+        <div className="overflow-hidden rounded-md border border-gray-200 bg-gray-50">
+          <img
+            src="/standards/e2375-diagrams/disk-forging.png"
+            alt="ASTM E2375 Figure 7 disk forging"
+            className="h-auto w-full object-contain"
+          />
+        </div>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {activeDetails.length > 0 ? activeDetails.map((detail) => (
+            <Badge
+              key={detail.scanningDirection}
+              variant="outline"
+              className={highlightedDirection === detail.scanningDirection ? "border-red-500 text-red-500" : ""}
+              style={highlightedDirection === detail.scanningDirection ? undefined : { borderColor: detail.color, color: detail.color }}
+            >
+              {detail.scanningDirection}: {detail.waveMode}
+            </Badge>
+          )) : (
+            <span className="text-xs text-slate-500">Enable directions to review the active scan set.</span>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   // Render expanded details panel - Dark theme design
   const renderExpandedDetails = (detail: ExtendedScanDetail, index: number) => (
     <tr className="bg-slate-900/50 border-b border-slate-700">
@@ -552,114 +668,10 @@ export const ScanDetailsTab = ({
               Gate Settings
             </h4>
             <div className="space-y-4">
-              {/* Gate 1 */}
-              <div>
-                <Label className="text-[10px] text-emerald-400/80 uppercase tracking-wide">Gate 1 (Start - Length - Level)</Label>
-                <div className="grid grid-cols-3 gap-2 mt-1">
-                  <Input
-                    type="number"
-                    value={detail.gate1?.start?.toString() || ""}
-                    onChange={(e) => updateGate(index, "gate1", "start", parseFloat(e.target.value) || 0)}
-                    className="h-8 text-xs text-center bg-slate-900/60 border-slate-600 text-slate-100 placeholder:text-slate-500"
-                    placeholder="Start"
-                  />
-                  <Input
-                    type="number"
-                    value={detail.gate1?.length?.toString() || ""}
-                    onChange={(e) => updateGate(index, "gate1", "length", parseFloat(e.target.value) || 0)}
-                    className="h-8 text-xs text-center bg-slate-900/60 border-slate-600 text-slate-100 placeholder:text-slate-500"
-                    placeholder="Length"
-                  />
-                  <Input
-                    type="number"
-                    value={detail.gate1?.level?.toString() || ""}
-                    onChange={(e) => updateGate(index, "gate1", "level", parseFloat(e.target.value) || 0)}
-                    className="h-8 text-xs text-center bg-slate-900/60 border-slate-600 text-slate-100 placeholder:text-slate-500"
-                    placeholder="Level %"
-                  />
-                </div>
-              </div>
-              {/* Gate 2 */}
-              <div>
-                <Label className="text-[10px] text-amber-400/80 uppercase tracking-wide">Gate 2 (Start - Length - Level)</Label>
-                <div className="grid grid-cols-3 gap-2 mt-1">
-                  <Input
-                    type="number"
-                    value={detail.gate2?.start?.toString() || ""}
-                    onChange={(e) => updateGate(index, "gate2", "start", parseFloat(e.target.value) || 0)}
-                    className="h-8 text-xs text-center bg-amber-950/40 border-amber-700/50 text-slate-100 placeholder:text-slate-500"
-                    placeholder="Start"
-                  />
-                  <Input
-                    type="number"
-                    value={detail.gate2?.length?.toString() || ""}
-                    onChange={(e) => updateGate(index, "gate2", "length", parseFloat(e.target.value) || 0)}
-                    className="h-8 text-xs text-center bg-amber-950/40 border-amber-700/50 text-slate-100 placeholder:text-slate-500"
-                    placeholder="Length"
-                  />
-                  <Input
-                    type="number"
-                    value={detail.gate2?.level?.toString() || ""}
-                    onChange={(e) => updateGate(index, "gate2", "level", parseFloat(e.target.value) || 0)}
-                    className="h-8 text-xs text-center bg-amber-950/40 border-amber-700/50 text-slate-100 placeholder:text-slate-500"
-                    placeholder="Level %"
-                  />
-                </div>
-              </div>
-              {/* Gate 3 */}
-              <div>
-                <Label className="text-[10px] text-violet-400/80 uppercase tracking-wide">Gate 3 (Start - Length - Level)</Label>
-                <div className="grid grid-cols-3 gap-2 mt-1">
-                  <Input
-                    type="number"
-                    value={detail.gate3?.start?.toString() || ""}
-                    onChange={(e) => updateGate(index, "gate3", "start", parseFloat(e.target.value) || 0)}
-                    className="h-8 text-xs text-center bg-violet-950/40 border-violet-700/50 text-slate-100 placeholder:text-slate-500"
-                    placeholder="Start"
-                  />
-                  <Input
-                    type="number"
-                    value={detail.gate3?.length?.toString() || ""}
-                    onChange={(e) => updateGate(index, "gate3", "length", parseFloat(e.target.value) || 0)}
-                    className="h-8 text-xs text-center bg-violet-950/40 border-violet-700/50 text-slate-100 placeholder:text-slate-500"
-                    placeholder="Length"
-                  />
-                  <Input
-                    type="number"
-                    value={detail.gate3?.level?.toString() || ""}
-                    onChange={(e) => updateGate(index, "gate3", "level", parseFloat(e.target.value) || 0)}
-                    className="h-8 text-xs text-center bg-violet-950/40 border-violet-700/50 text-slate-100 placeholder:text-slate-500"
-                    placeholder="Level %"
-                  />
-                </div>
-              </div>
-              {/* Gate 4 */}
-              <div>
-                <Label className="text-[10px] text-rose-400/80 uppercase tracking-wide">Gate 4 (Start - Length - Level)</Label>
-                <div className="grid grid-cols-3 gap-2 mt-1">
-                  <Input
-                    type="number"
-                    value={detail.gate4?.start?.toString() || ""}
-                    onChange={(e) => updateGate(index, "gate4", "start", parseFloat(e.target.value) || 0)}
-                    className="h-8 text-xs text-center bg-rose-950/40 border-rose-700/50 text-slate-100 placeholder:text-slate-500"
-                    placeholder="Start"
-                  />
-                  <Input
-                    type="number"
-                    value={detail.gate4?.length?.toString() || ""}
-                    onChange={(e) => updateGate(index, "gate4", "length", parseFloat(e.target.value) || 0)}
-                    className="h-8 text-xs text-center bg-rose-950/40 border-rose-700/50 text-slate-100 placeholder:text-slate-500"
-                    placeholder="Length"
-                  />
-                  <Input
-                    type="number"
-                    value={detail.gate4?.level?.toString() || ""}
-                    onChange={(e) => updateGate(index, "gate4", "level", parseFloat(e.target.value) || 0)}
-                    className="h-8 text-xs text-center bg-rose-950/40 border-rose-700/50 text-slate-100 placeholder:text-slate-500"
-                    placeholder="Level %"
-                  />
-                </div>
-              </div>
+              {renderGateEditor(detail, index, "gate1", "Gate 1", "text-[10px] text-emerald-400/80 uppercase tracking-wide", "h-8 text-xs text-center bg-slate-900/60 border-slate-600 text-slate-100 placeholder:text-slate-500")}
+              {renderGateEditor(detail, index, "gate2", "Gate 2", "text-[10px] text-amber-400/80 uppercase tracking-wide", "h-8 text-xs text-center bg-amber-950/40 border-amber-700/50 text-slate-100 placeholder:text-slate-500")}
+              {renderGateEditor(detail, index, "gate3", "Gate 3", "text-[10px] text-violet-400/80 uppercase tracking-wide", "h-8 text-xs text-center bg-violet-950/40 border-violet-700/50 text-slate-100 placeholder:text-slate-500")}
+              {renderGateEditor(detail, index, "gate4", "Gate 4", "text-[10px] text-rose-400/80 uppercase tracking-wide", "h-8 text-xs text-center bg-rose-950/40 border-rose-700/50 text-slate-100 placeholder:text-slate-500")}
             </div>
           </div>
 
@@ -801,7 +813,7 @@ export const ScanDetailsTab = ({
       return <CylinderScanDiagram scanDetails={scanDetails} highlightedDirection={highlightedDirection} />;
     } else if (isDiskType(partType)) {
       if (!showV2500BoreDiagram) {
-        return <DiskScanDiagram scanDetails={scanDetails} highlightedDirection={highlightedDirection} />;
+        return renderDiskReferenceDiagram();
       }
 
       return (
@@ -996,7 +1008,7 @@ export const ScanDetailsTab = ({
           <div className="flex items-center justify-between mb-1 px-1">
             <div className="flex items-center gap-2">
               <span className="text-xs font-medium text-slate-300">Scan Details</span>
-              <span className="text-[10px] text-blue-400">(Click row to expand details)</span>
+              <span className="text-[10px] text-blue-400">(Click direction or wave mode to expand)</span>
             </div>
             <Badge variant="outline" className="text-[10px] border-slate-600 text-slate-300">
               {scanDetails.filter(d => d.enabled).length} / {scanDetails.length} enabled
@@ -1020,7 +1032,7 @@ export const ScanDetailsTab = ({
                 {scanDetails.map((detail, index) => (
                   <React.Fragment key={detail.scanningDirection}>
                     <tr
-                      className={`border-b border-slate-700/50 cursor-pointer transition-colors ${
+                      className={`border-b border-slate-700/50 transition-colors ${
                         detail.enabled
                           ? 'bg-blue-900/20 hover:bg-blue-800/30'
                           : 'hover:bg-slate-700/40'
@@ -1029,7 +1041,7 @@ export const ScanDetailsTab = ({
                       onMouseLeave={() => setHighlightedDirection(null)}
                     >
                       {/* Expand Button */}
-                      <td className="px-2 py-1.5 text-center" onClick={() => toggleExpand(detail.scanningDirection)}>
+                      <td className="px-2 py-1.5 text-center">
                         {expandedRows.includes(detail.scanningDirection) ? (
                           <ChevronDown className="h-4 w-4 text-slate-400" />
                         ) : (
@@ -1047,7 +1059,7 @@ export const ScanDetailsTab = ({
                       </td>
 
                       {/* Direction */}
-                      <td className="px-2 py-1.5 text-center" onClick={() => toggleExpand(detail.scanningDirection)}>
+                      <td className="px-2 py-1.5 text-center cursor-pointer" onClick={() => toggleExpand(detail.scanningDirection)}>
                         <Badge
                           variant={detail.enabled ? "default" : "outline"}
                           className="text-xs font-bold"
@@ -1058,7 +1070,7 @@ export const ScanDetailsTab = ({
                       </td>
 
                       {/* Wave Mode */}
-                      <td className="px-2 py-1.5" onClick={() => toggleExpand(detail.scanningDirection)}>
+                      <td className="px-2 py-1.5 cursor-pointer" onClick={() => toggleExpand(detail.scanningDirection)}>
                         <span className="text-slate-300">{detail.waveMode}</span>
                       </td>
 

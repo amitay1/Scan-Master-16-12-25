@@ -3,12 +3,16 @@
 // ============================================================================
 
 export interface GateSettings {
-  /** Gate start position in mm */
-  start: number;
-  /** Gate length/width in mm */
-  length: number;
-  /** Gate level/threshold in % */
-  level: number;
+  /** Optional scan position / v-depth marker (NDIP gating sheets) */
+  position?: number | string;
+  /** Gate start position */
+  start?: number;
+  /** Gate length/width for generic standards */
+  length?: number;
+  /** Gate stop position for NDIP gating sheets */
+  stop?: number;
+  /** Gate level/threshold in % for generic standards */
+  level?: number;
 }
 
 // ============================================================================

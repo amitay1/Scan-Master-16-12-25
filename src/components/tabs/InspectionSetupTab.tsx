@@ -19,6 +19,7 @@ import {
 import { logInfo, logWarn } from "@/lib/logger";
 import type { ScanDetailsData } from "@/types/scanDetails";
 import { getInspectionThickness } from "@/utils/inspectionThickness";
+import { getV2500InspectionSetupDefaults, getV2500PartTypeLabel, isV2500NdipStandard } from "@/utils/pwNdipDefaults";
 
 // LocalStorage keys for custom items persistence
 const STORAGE_KEYS = {
@@ -618,6 +619,30 @@ export const InspectionSetupTab = ({
     onChange({ ...data, [field]: value });
   };
 
+  const isV2500Standard = isV2500NdipStandard(standardType);
+  const v2500PartTypeLabel = getV2500PartTypeLabel(standardType);
+
+  useEffect(() => {
+    const defaults = getV2500InspectionSetupDefaults(standardType);
+    if (!defaults) {
+      return;
+    }
+
+    const hasChanges = Object.entries(defaults).some(([key, value]) => data[key as keyof InspectionSetupData] !== value);
+    if (!hasChanges) {
+      return;
+    }
+
+    onChange({
+      ...data,
+      ...defaults,
+    });
+  }, [
+    data,
+    onChange,
+    standardType,
+  ]);
+
   // ═══════════════════════════════════════════════════════════════════════════
   // AUTO-RECOMMENDATION: Get calibration block recommendation based on part
   // NOW WITH SCAN DIRECTIONS INTEGRATION! 🔗
@@ -1050,18 +1075,31 @@ export const InspectionSetupTab = ({
             fieldKey="partType"
             required
           >
-            <PartTypeVisualSelector
-              value={data.partType}
-              material={data.material}
-              onChange={(value) => {
-                onChange({ 
-                  ...data, 
-                  partType: value,
-                  customShapeDescription: value === "custom" ? data.customShapeDescription : undefined,
-                  customShapeParameters: value === "custom" ? data.customShapeParameters : undefined
-                });
-              }}
-            />
+            {isV2500Standard ? (
+              <div className="space-y-2">
+                <Input
+                  value={v2500PartTypeLabel}
+                  readOnly
+                  className="bg-muted/40 font-medium"
+                />
+                <p className="text-xs text-muted-foreground">
+                  NDIP V2500 setup is locked to the stage-specific HPT disk geometry.
+                </p>
+              </div>
+            ) : (
+              <PartTypeVisualSelector
+                value={data.partType}
+                material={data.material}
+                onChange={(value) => {
+                  onChange({ 
+                    ...data, 
+                    partType: value,
+                    customShapeDescription: value === "custom" ? data.customShapeDescription : undefined,
+                    customShapeParameters: value === "custom" ? data.customShapeParameters : undefined
+                  });
+                }}
+              />
+            )}
           </FieldWithHelp>
         </div>
 

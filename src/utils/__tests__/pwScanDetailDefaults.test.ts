@@ -5,11 +5,16 @@ describe("pwScanDetailDefaults", () => {
   it("returns Stage 1 directions for NDIP-1226", () => {
     const rows = getV2500ScanDetailDefaults("NDIP-1226");
     expect(rows?.map((r) => r.scanningDirection)).toEqual(["E", "A", "B", "C", "D"]);
+    const rowE = rows?.find((r) => r.scanningDirection === "E");
+    expect(rowE?.gate1?.position).toBe(0);
+    expect(rowE?.gate2?.position).toBe(0.5);
   });
 
   it("returns Stage 2 directions for NDIP-1227", () => {
     const rows = getV2500ScanDetailDefaults("NDIP-1227");
     expect(rows?.map((r) => r.scanningDirection)).toEqual(["M", "N", "O", "P", "K", "L"]);
+    const rowN = rows?.find((r) => r.scanningDirection === "N");
+    expect(rowN?.gate1?.position).toBe("Too much noise, do not scan");
   });
 
   it("merges existing row values when normalizing an NDIP standard", () => {

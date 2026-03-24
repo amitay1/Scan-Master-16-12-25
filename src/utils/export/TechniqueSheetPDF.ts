@@ -2256,9 +2256,15 @@ class TechniqueSheetPDFBuilder {
     // ========== PROBE PARAMETERS TABLE ==========
     y = this.addSubsectionTitle('Probe Parameters', y);
 
-    const formatGate = (gate?: { start: number; length: number; level: number }): string => {
+    const formatGate = (gate?: { position?: number | string; start?: number; length?: number; stop?: number; level?: number }): string => {
       if (!gate) return '-';
-      return `${gate.start}-${gate.length}-${gate.level}%`;
+      if (gate.position !== undefined || gate.stop !== undefined) {
+        const position = gate.position ?? '-';
+        const start = gate.start ?? '-';
+        const stop = gate.stop ?? '-';
+        return `${position}-${start}-${stop}`;
+      }
+      return `${gate.start ?? '-'}-${gate.length ?? '-'}-${gate.level ?? '-'}%`;
     };
 
     const computeNearField = (detail: any): string => {
@@ -2352,6 +2358,12 @@ class TechniqueSheetPDFBuilder {
     // ========== GATE SETTINGS TABLE (Gates 1-4) ==========
     y = this.addSubsectionTitle('Gate Settings', y);
 
+    const hasNdipGateShape = enabledDetails.some((detail) =>
+      [detail.gate1, detail.gate2, detail.gate3, detail.gate4].some(
+        (gate) => gate?.position !== undefined || gate?.stop !== undefined
+      )
+    );
+
     const gateRows: string[][] = enabledDetails.map((detail) => {
       return [
         detail.scanningDirection,
@@ -2365,7 +2377,14 @@ class TechniqueSheetPDFBuilder {
 
     autoTable(this.pdf, {
       startY: y,
-      head: [['Dir', 'Gate 1 (S-L-Lvl%)', 'Gate 2 (S-L-Lvl%)', 'Gate 3 (S-L-Lvl%)', 'Gate 4 (S-L-Lvl%)', 'Scanning File']],
+      head: [[
+        'Dir',
+        hasNdipGateShape ? 'Gate 1 (Pos-Start-Stop)' : 'Gate 1 (S-L-Lvl%)',
+        hasNdipGateShape ? 'Gate 2 (Pos-Start-Stop)' : 'Gate 2 (S-L-Lvl%)',
+        hasNdipGateShape ? 'Gate 3 (Pos-Start-Stop)' : 'Gate 3 (S-L-Lvl%)',
+        hasNdipGateShape ? 'Gate 4 (Pos-Start-Stop)' : 'Gate 4 (S-L-Lvl%)',
+        'Scanning File'
+      ]],
       body: gateRows,
       theme: 'grid',
       styles: { fontSize: 7, cellPadding: 2 },

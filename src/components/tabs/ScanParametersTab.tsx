@@ -260,7 +260,7 @@ export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E", 
                 : 'bg-muted hover:bg-muted/80 text-foreground'
             }`}
           >
-            Phased array
+            Focal Law
           </button>
         </div>
       </div>
@@ -345,13 +345,13 @@ export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E", 
           </div>
         )}
 
-        {/* Phased Array Settings - Only when PA is selected */}
+        {/* Focal Law Settings - Only when PA is selected */}
         {showPhasedArray && (
           <div className="md:col-span-2">
             <Card className="p-4 border-purple-500/30 bg-purple-500/5">
               <div className="flex items-center gap-2 mb-3">
                 <Radio className="h-4 w-4 text-purple-400" />
-                <Label className="text-sm font-semibold">Phased Array Settings</Label>
+                <Label className="text-sm font-semibold">Focal Law Settings</Label>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {/* Refracted Angle Range */}
@@ -437,7 +437,7 @@ export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E", 
                 </FieldWithHelp>
 
                 <FieldWithHelp
-                  label="Focus Laws"
+                  label="Focal Law"
                   fieldKey="scanMethod"
                   help="Focal law configuration description"
                 >

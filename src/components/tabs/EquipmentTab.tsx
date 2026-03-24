@@ -2,7 +2,7 @@
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { EquipmentData, StandardType } from "@/types/techniqueSheet";
+import { EquipmentData, StandardType, TechniqueType } from "@/types/techniqueSheet";
 import { FieldWithHelp } from "@/components/FieldWithHelp";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,7 @@ interface EquipmentTabProps {
   onChange: (data: EquipmentData) => void;
   partThickness: number;
   standard?: StandardType;
+  scanTechnique?: TechniqueType;
 }
 
 const transducerTypes = ["immersion", "contact", "dual_element"];
@@ -86,7 +87,7 @@ const defaultWedgeTypes = [
   { value: "Custom", label: "Custom" },
 ];
 
-export const EquipmentTab = ({ data, onChange, partThickness, standard = "AMS-STD-2154E" }: EquipmentTabProps) => {
+export const EquipmentTab = ({ data, onChange, partThickness, standard = "AMS-STD-2154E", scanTechnique }: EquipmentTabProps) => {
   // State to control Phased Array section visibility
   const [showPASection, setShowPASection] = useState(false);
 
@@ -111,6 +112,12 @@ export const EquipmentTab = ({ data, onChange, partThickness, standard = "AMS-ST
       console.warn("Failed to load custom equipment items from localStorage:", error);
     }
   }, []);
+
+  useEffect(() => {
+    if (scanTechnique === "phased_array") {
+      setShowPASection(true);
+    }
+  }, [scanTechnique]);
 
   // Helper to add custom transducer type
   const addCustomTransducerType = (name: string) => {

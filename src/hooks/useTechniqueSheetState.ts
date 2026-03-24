@@ -27,6 +27,7 @@ import {
 import { PW_ANGLE_CALIBRATION_BLOCK } from "@/rules/pw/pwCalibrationBlocks";
 import { getInspectionThickness } from "@/utils/inspectionThickness";
 import { normalizeScanDetailsForStandard } from "@/utils/pwScanDetailDefaults";
+import { getV2500InspectionSetupDefaults } from "@/utils/pwNdipDefaults";
 
 // ג”€ג”€ Default initial values ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
 
@@ -453,6 +454,16 @@ export function useTechniqueSheetState({
     // 1) Update UI-level standard state
     setStandard(nextStandard);
 
+    const applyInspectionSetup = (prev: InspectionSetupData): InspectionSetupData => {
+      const pwDefaults = getV2500InspectionSetupDefaults(nextStandard);
+      if (!pwDefaults) return prev;
+
+      return {
+        ...prev,
+        ...pwDefaults,
+      };
+    };
+
     const getValidClassForStandard = (std: StandardType, currentClass: string | undefined) => {
       const classes = acceptanceClassesByStandard[std] || acceptanceClassesByStandard["AMS-STD-2154E"];
       const isValid = typeof currentClass === "string" && classes.some((c) => c.id === currentClass);
@@ -607,6 +618,9 @@ export function useTechniqueSheetState({
     };
 
     // Apply standard-dependent updates to BOTH parts (keeps split mode consistent)
+    setInspectionSetup(applyInspectionSetup);
+    setInspectionSetupB(applyInspectionSetup);
+
     setAcceptanceCriteria(applyAcceptance);
     setAcceptanceCriteriaB(applyAcceptance);
 
@@ -640,6 +654,8 @@ export function useTechniqueSheetState({
     });
   }, [
     setStandard,
+    setInspectionSetup,
+    setInspectionSetupB,
     setAcceptanceCriteria,
     setAcceptanceCriteriaB,
     setScanParameters,
