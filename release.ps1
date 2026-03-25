@@ -36,6 +36,42 @@ function Get-FileSha256 {
         return $null
     }
 }
+function Invoke-GhCli {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string[]]$Arguments,
+        [switch]$SilentStdErr
+    )
+
+    $previousErrorActionPreference = $ErrorActionPreference
+    $hasNativeErrorPreference = $null -ne (Get-Variable -Name PSNativeCommandUseErrorActionPreference -ErrorAction SilentlyContinue)
+    if ($hasNativeErrorPreference) {
+        $previousNativeErrorPreference = $PSNativeCommandUseErrorActionPreference
+    }
+
+    try {
+        $ErrorActionPreference = "Continue"
+        if ($hasNativeErrorPreference) {
+            $PSNativeCommandUseErrorActionPreference = $false
+        }
+
+        if ($SilentStdErr) {
+            $output = & gh @Arguments 2>$null
+        } else {
+            $output = & gh @Arguments 2>&1
+        }
+
+        return [PSCustomObject]@{
+            ExitCode = $LASTEXITCODE
+            Output = @($output)
+        }
+    } finally {
+        $ErrorActionPreference = $previousErrorActionPreference
+        if ($hasNativeErrorPreference) {
+            $PSNativeCommandUseErrorActionPreference = $previousNativeErrorPreference
+        }
+    }
+}
 function Get-ReleaseAssetMap {
     param(
         [string]$TagName,
@@ -47,8 +83,9 @@ function Get-ReleaseAssetMap {
         return $assetMap
     }
 
-    $assetsJson = gh release view $TagName --repo $Repo --json assets 2>$null
-    if ($LASTEXITCODE -ne 0 -or -not $assetsJson) {
+    $assetsResult = Invoke-GhCli -Arguments @("release", "view", $TagName, "--repo", $Repo, "--json", "assets") -SilentStdErr
+    $assetsJson = ($assetsResult.Output -join "`n").Trim()
+    if ($assetsResult.ExitCode -ne 0 -or -not $assetsJson) {
         return $assetMap
     }
 
@@ -176,6 +213,13 @@ $existingTag = git tag -l "v$newVersion" 2>&1
 if ($existingTag) {
     Write-Err "Tag v$newVersion already exists locally! Aborting to prevent duplicate."
     Write-Err "If you want to re-release, first delete the tag: git tag -d v$newVersion"
+    exit 1
+}
+
+$existingRemoteTag = git ls-remote --tags origin "refs/tags/v$newVersion" 2>$null
+if ($existingRemoteTag) {
+    Write-Err "Tag v$newVersion already exists on origin! Aborting to prevent duplicate."
+    Write-Err "If you want to re-release, delete the remote tag first: git push origin :refs/tags/v$newVersion"
     exit 1
 }
 
@@ -390,23 +434,33 @@ if ($ghAvailable) {
     }
     $releaseNotes += "`n**Full Changelog**: https://github.com/amitay1/Scan-Master-16-12-25/compare/v$currentVersion...v$newVersion"
 
-    # Create the release (handle "already exists" gracefully)
-    $releaseResult = gh release create "v$newVersion" --repo $githubRepo --title "$releaseTitle" --notes "$releaseNotes" 2>&1
-    if ($LASTEXITCODE -ne 0) {
-        if ($releaseResult -match "already exists") {
-            Write-Warn "  Release v$newVersion already exists on GitHub – will upload files to existing release."
-        } else {
-            Write-Err "  Failed to create GitHub release: $releaseResult"
-            Write-Err "  You can create it manually: gh release create v$newVersion --title `"$releaseTitle`""
-        }
+    $releaseTag = "v$newVersion"
+    $existingRelease = Invoke-GhCli -Arguments @("release", "view", $releaseTag, "--repo", $githubRepo, "--json", "url") -SilentStdErr
+
+    if ($existingRelease.ExitCode -eq 0) {
+        Write-Warn "  Release $releaseTag already exists on GitHub – will upload files to existing release."
     } else {
-        Write-Success "  GitHub Release v$newVersion created!"
+        $releaseResult = Invoke-GhCli -Arguments @("release", "create", $releaseTag, "--repo", $githubRepo, "--title", $releaseTitle, "--notes", $releaseNotes)
+        $releaseOutput = ($releaseResult.Output -join "`n").Trim()
+
+        if ($releaseResult.ExitCode -ne 0) {
+            if ($releaseOutput -match "already exists") {
+                Write-Warn "  Release $releaseTag already exists on GitHub – will upload files to existing release."
+            } elseif ($releaseOutput) {
+                Write-Err "  Failed to create GitHub release: $releaseOutput"
+                Write-Err "  You can create it manually: gh release create $releaseTag --title `"$releaseTitle`""
+            } else {
+                Write-Err "  Failed to create GitHub release with an unknown error."
+                Write-Err "  You can create it manually: gh release create $releaseTag --title `"$releaseTitle`""
+            }
+        } else {
+            Write-Success "  GitHub Release $releaseTag created!"
+        }
     }
 
     # Upload installer files only if build validation passed
     if ($buildOK -and $freshOutputDir -and (Test-Path $freshOutputDir)) {
         Write-Info "Uploading installer files to release..."
-        $releaseTag = "v$newVersion"
         $remoteAssets = Get-ReleaseAssetMap -TagName $releaseTag -Repo $githubRepo
 
         $filesToUpload = @(
@@ -456,8 +510,8 @@ if ($ghAvailable) {
 
                     Write-Info "  Uploading: $($file.Name) [$sizeText]"
                     $uploadStarted = Get-Date
-                    & gh release upload $releaseTag $file.Path --repo $githubRepo --clobber
-                    $uploadExitCode = $LASTEXITCODE
+                    $uploadResult = Invoke-GhCli -Arguments @("release", "upload", $releaseTag, $file.Path, "--repo", $githubRepo, "--clobber")
+                    $uploadExitCode = $uploadResult.ExitCode
                     $elapsed = (Get-Date) - $uploadStarted
                     $elapsedText = "{0:mm\:ss}" -f $elapsed
 
