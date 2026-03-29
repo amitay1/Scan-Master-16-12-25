@@ -84,13 +84,13 @@ const stringencyColors = {
   },
 };
 
-// Stringency labels in Hebrew + English
+// Stringency labels
 const stringencyLabels = {
-  highest: { en: "Most Stringent", he: "הכי מחמיר" },
-  high: { en: "Very Stringent", he: "מחמיר מאוד" },
-  medium: { en: "Standard", he: "סטנדרטי" },
-  low: { en: "Basic", he: "בסיסי" },
-  basic: { en: "Least Stringent", he: "הכי מקל" },
+  highest: "Most Stringent",
+  high: "Very Stringent",
+  medium: "Standard",
+  low: "Basic",
+  basic: "Least Stringent",
 };
 
 export const AcceptanceClassSelector = ({
@@ -179,7 +179,7 @@ export const AcceptanceClassSelector = ({
               variant="outline"
               className={cn("max-w-full shrink-0 whitespace-normal font-medium text-[10px]", selectedColors.badge)}
             >
-              {stringencyLabels[selectedOption.stringency].en}
+              {stringencyLabels[selectedOption.stringency]}
             </Badge>
           )}
         </div>

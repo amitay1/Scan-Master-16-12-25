@@ -54,7 +54,7 @@ const exportTemplates = [
   {
     id: "tuv" as ExportTemplate,
     name: "TÜV Professional",
-    description: "19-page comprehensive report with bilingual support",
+    description: "19-page comprehensive report with professional certification support",
     pages: "19",
     features: ["Document control", "Revision tracking", "DAC curves", "Calibration diagrams", "Multi-level approval"],
     icon: "🏆"
@@ -70,9 +70,9 @@ const exportTemplates = [
   {
     id: "iai" as ExportTemplate,
     name: "IAI Standard",
-    description: "10-15 page bilingual report",
+    description: "10-15 page detailed report",
     pages: "10-15",
-    features: ["Hebrew/English", "Detailed procedures", "Reference blocks", "Coverage tables"],
+    features: ["English report", "Detailed procedures", "Reference blocks", "Coverage tables"],
     icon: "✈️"
   },
   {
@@ -80,7 +80,7 @@ const exportTemplates = [
     name: "Custom Template",
     description: "Customize your export format",
     pages: "Variable",
-    features: ["Select sections", "Custom branding", "Flexible layout", "Choose language"],
+    features: ["Select sections", "Custom branding", "Flexible layout", "Choose export profile"],
     icon: "⚙️"
   }
 ];
@@ -405,7 +405,7 @@ export const ExportApprovalTab = ({
                       <TableCell>Variable</TableCell>
                     </TableRow>
                     <TableRow>
-                      <TableCell>Bilingual</TableCell>
+                      <TableCell>English Output</TableCell>
                       <TableCell><CheckCircle className="w-4 h-4 text-green-500" /></TableCell>
                       <TableCell><XCircle className="w-4 h-4 text-gray-300" /></TableCell>
                       <TableCell><CheckCircle className="w-4 h-4 text-green-500" /></TableCell>
@@ -518,8 +518,6 @@ export const ExportApprovalTab = ({
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="en">English</SelectItem>
-                        <SelectItem value="he">Hebrew</SelectItem>
-                        <SelectItem value="both">Bilingual (EN/HE)</SelectItem>
                       </SelectContent>
                     </Select>
                   </FieldWithHelp>

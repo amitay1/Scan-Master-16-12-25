@@ -55,8 +55,6 @@
 .z3{ transform: translateZ(20px); opacity:.92; }
 .z4{ transform: translateZ(40px); opacity:.92; }
 .z5{ transform: translateZ(60px); opacity:.92; }
-
-/* הילה/בוהק */
 .add-glow{ filter: drop-shadow(0 0 16px color-mix(in srgb, var(--halo) 70%, transparent)); }
 .shape-card:hover .add-glow{
   filter:
@@ -64,8 +62,6 @@
     drop-shadow(0 0 42px color-mix(in srgb, var(--halo) 40%, transparent));
 }
 .add-bloom{ mix-blend-mode: screen; filter: saturate(115%) brightness(1.02); }
-
-/* טקסטים */
 .card-title{
   position:absolute;
   left:50%;
@@ -141,8 +137,6 @@
   0%, 100% { box-shadow: 0 4px 12px color-mix(in srgb, var(--halo) 40%, transparent); }
   50% { box-shadow: 0 4px 20px color-mix(in srgb, var(--halo) 60%, transparent); }
 }
-
-/* הנפשות עדינות בלבד */
 .shape-card,.layer{ will-change: transform; }
 @media (prefers-reduced-motion: reduce){
   .shape-card,.layer{ transition:none !important; animation:none !important; }

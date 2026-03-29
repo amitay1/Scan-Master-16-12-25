@@ -649,7 +649,7 @@ export function IsometricDrawing({
           `}
         >
           <Radar className="w-4 h-4" />
-          <span>כיווני סריקה</span>
+          <span>Scan Directions</span>
           {selectedDirections.length > 0 && (
             <span className="bg-white/20 px-1.5 rounded text-xs">
               {selectedDirections.length}
@@ -666,20 +666,20 @@ export function IsometricDrawing({
                 <div className="flex items-center justify-between">
                   <h4 className="text-sm font-semibold text-white flex items-center gap-2">
                     <Radar className="w-4 h-4 text-blue-400" />
-                    E2375 כיווני סריקה
+                    E2375 Scan Directions
                   </h4>
                   <div className="flex gap-1">
                     <button
                       onClick={selectAll}
                       className="p-1 text-slate-400 hover:text-green-400 transition-colors"
-                      title="בחר הכל"
+                      title="Select all"
                     >
                       <CheckSquare className="w-4 h-4" />
                     </button>
                     <button
                       onClick={clearAll}
                       className="p-1 text-slate-400 hover:text-red-400 transition-colors"
-                      title="נקה הכל"
+                      title="Clear all"
                     >
                       <RotateCcw className="w-4 h-4" />
                     </button>
@@ -694,7 +694,7 @@ export function IsometricDrawing({
               <div className="max-h-48 overflow-y-auto p-2 space-y-1">
                 {availableDirections.length === 0 ? (
                   <p className="text-xs text-slate-400 text-center py-4">
-                    אין כיוונים זמינים לצורה זו
+                    No directions available for this shape
                   </p>
                 ) : (
                   availableDirections.map((dir) => {
@@ -722,7 +722,7 @@ export function IsometricDrawing({
                         </span>
                         <div className="flex-1 min-w-0">
                           <div className="text-xs text-white truncate font-medium">
-                            {dir.nameHe}
+                            {dir.name}
                           </div>
                           <div className="text-[10px] text-slate-400 truncate">
                             {dir.waveMode}

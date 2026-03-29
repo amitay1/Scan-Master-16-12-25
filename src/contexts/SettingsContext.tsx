@@ -205,6 +205,16 @@ export const SettingsContext = createContext<SettingsContextType | undefined>(un
 
 const STORAGE_KEY = STORAGE_KEYS.SETTINGS;
 
+function normalizeSettings(settings: AppSettings): AppSettings {
+  return {
+    ...settings,
+    general: {
+      ...settings.general,
+      language: 'en',
+    },
+  };
+}
+
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<AppSettings>(defaultSettings);
   const [isLoading, setIsLoading] = useState(true);
@@ -217,7 +227,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         const stored = await getStorageData<AppSettings>(STORAGE_KEY, defaultSettings);
         if (stored) {
           // Merge with defaults to handle new settings
-          setSettings(deepMerge(defaultSettings, stored));
+          setSettings(normalizeSettings(deepMerge(defaultSettings, stored)));
         }
       } catch (error) {
         console.error('Failed to load settings:', error);
@@ -260,7 +270,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     category: K,
     updates: Partial<AppSettings[K]>
   ) => {
-    setSettings(prev => ({
+    setSettings(prev => normalizeSettings({
       ...prev,
       [category]: {
         ...prev[category],
@@ -287,7 +297,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const importSettings = (json: string): boolean => {
     try {
       const imported = JSON.parse(json);
-      setSettings(deepMerge(defaultSettings, imported));
+      setSettings(normalizeSettings(deepMerge(defaultSettings, imported)));
       return true;
     } catch {
       return false;

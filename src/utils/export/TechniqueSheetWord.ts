@@ -5,7 +5,7 @@
  * Creates professional DOCX documents using the docx library.
  * SYNCHRONIZED WITH TechniqueSheetPDF.ts - Both exports must have identical content and styling.
  *
- * Design matches PDF: FRISA/TֳV professional style with:
+ * Design matches PDF: FRISA/TUV professional style with:
  * - Blue header bars with gold accents
  * - Document info boxes
  * - Professional table styling
@@ -787,7 +787,7 @@ const createWarningBox = (text: string): Table => {
               new Paragraph({
                 children: [
                   new TextRun({
-                    text: `ג ן¸ ${text}`,
+                    text: `Note: ${text}`,
                     size: 18,
                     color: '856404',
                   }),

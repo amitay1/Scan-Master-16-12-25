@@ -171,7 +171,6 @@ export type ScanDirectionCode =
 export interface ScanDirectionDefinition {
   code: ScanDirectionCode;
   name: string;
-  nameHe: string;
   waveMode: string;
   description: string;
   entrySurface: ScanDetail["entrySurface"];
@@ -185,7 +184,6 @@ export const SCAN_DIRECTION_DEFINITIONS: ScanDirectionDefinition[] = [
   {
     code: "A",
     name: "Primary Straight Beam",
-    nameHe: "קרן ישרה ראשית (מלמעלה/פני שטוח)",
     waveMode: "LW 0° (Primary Surface)",
     description: "E2375 Fig.6: Straight beam through thickness from primary flat surface",
     entrySurface: "top",
@@ -196,7 +194,6 @@ export const SCAN_DIRECTION_DEFINITIONS: ScanDirectionDefinition[] = [
   {
     code: "A₁",
     name: "Primary Dual Element",
-    nameHe: "קרן ישרה ראשית - אלמנט כפול",
     waveMode: "LW 0° (Dual Element - Near Surface 0-20mm)",
     description: "Dual element probe for near-surface detection (0-20mm depth) from primary flat surface",
     entrySurface: "top",
@@ -207,7 +204,6 @@ export const SCAN_DIRECTION_DEFINITIONS: ScanDirectionDefinition[] = [
   {
     code: "B",
     name: "Secondary Straight Beam",
-    nameHe: "קרן ישרה משנית (צד סמוך/נגדי)",
     waveMode: "LW 0° (Adjacent/Opposite Surface)",
     description: "E2375 Fig.6: Straight beam from adjacent side (bars/billets) or opposite side (>9in)",
     entrySurface: "side",
@@ -218,7 +214,6 @@ export const SCAN_DIRECTION_DEFINITIONS: ScanDirectionDefinition[] = [
   {
     code: "B₁",
     name: "Secondary Dual Element",
-    nameHe: "קרן ישרה משנית - אלמנט כפול",
     waveMode: "LW 0° (Dual Element - Near Surface 0-20mm)",
     description: "Dual element probe for near-surface detection (0-20mm depth) from adjacent/opposite surface",
     entrySurface: "side",
@@ -229,7 +224,6 @@ export const SCAN_DIRECTION_DEFINITIONS: ScanDirectionDefinition[] = [
   {
     code: "C",
     name: "Tertiary/Radial Beam",
-    nameHe: "קרן שלישית/רדיאלית",
     waveMode: "LW 0° (Third Face / Radial from OD)",
     description: "E2375 Fig.6/7: Third adjacent face (hex bar) or radial from circumference (disk/ring)",
     entrySurface: "od",
@@ -240,7 +234,6 @@ export const SCAN_DIRECTION_DEFINITIONS: ScanDirectionDefinition[] = [
   {
     code: "C₁",
     name: "Tertiary/Radial Dual Element",
-    nameHe: "קרן שלישית/רדיאלית - אלמנט כפול",
     waveMode: "LW 0° (Dual Element - Near Surface 0-20mm)",
     description: "Dual element probe for near-surface detection (0-20mm depth) from third face or radial from OD",
     entrySurface: "od",
@@ -251,7 +244,6 @@ export const SCAN_DIRECTION_DEFINITIONS: ScanDirectionDefinition[] = [
   {
     code: "D",
     name: "Circumferential Shear CW",
-    nameHe: "גל גזירה היקפי - עם כיוון השעון",
     waveMode: "SW Circumferential (Clockwise)",
     description: "E2375 Annex A1.3.1: Circumferential shear wave in clockwise direction (required for rings/tubes)",
     entrySurface: "od",
@@ -262,7 +254,6 @@ export const SCAN_DIRECTION_DEFINITIONS: ScanDirectionDefinition[] = [
   {
     code: "E",
     name: "Circumferential Shear CCW",
-    nameHe: "גל גזירה היקפי - נגד כיוון השעון",
     waveMode: "SW Circumferential (Counter-Clockwise)",
     description: "E2375 Annex A1.3.1: Circumferential shear wave in counter-clockwise direction (required for rings/tubes)",
     entrySurface: "od",
@@ -273,7 +264,6 @@ export const SCAN_DIRECTION_DEFINITIONS: ScanDirectionDefinition[] = [
   {
     code: "F",
     name: "Axial Shear Direction 1",
-    nameHe: "גל גזירה אקסיאלי - כיוון 1",
     waveMode: "SW Axial 45° (Direction 1)",
     description: "E2375 Annex A1.3.3: Axial shear wave for tubes - direction 1",
     entrySurface: "od",
@@ -284,7 +274,6 @@ export const SCAN_DIRECTION_DEFINITIONS: ScanDirectionDefinition[] = [
   {
     code: "G",
     name: "Axial Shear Direction 2",
-    nameHe: "גל גזירה אקסיאלי - כיוון 2",
     waveMode: "SW Axial 45° (Direction 2 - opposite)",
     description: "E2375 Annex A1.3.3: Axial shear wave for tubes - opposite direction",
     entrySurface: "od",
@@ -295,7 +284,6 @@ export const SCAN_DIRECTION_DEFINITIONS: ScanDirectionDefinition[] = [
   {
     code: "H",
     name: "From ID Surface",
-    nameHe: "מ-ID (משטח פנימי)",
     waveMode: "LW 0° (from ID)",
     description: "E2375: Longitudinal wave from inner diameter for hollow parts",
     entrySurface: "id",
@@ -306,7 +294,6 @@ export const SCAN_DIRECTION_DEFINITIONS: ScanDirectionDefinition[] = [
   {
     code: "I",
     name: "Through-Transmission",
-    nameHe: "TT - שני תמרים",
     waveMode: "Through-Transmission (TT)",
     description: "Through-transmission with separate transmitter and receiver",
     entrySurface: "top",
@@ -317,7 +304,6 @@ export const SCAN_DIRECTION_DEFINITIONS: ScanDirectionDefinition[] = [
   {
     code: "J",
     name: "Shear Wave 60°",
-    nameHe: "גל גזירה 60°",
     waveMode: "SW 60°",
     description: "E2375 Annex A1.3.4: 60° for thin sections (<1 inch)",
     entrySurface: "side",
@@ -328,7 +314,6 @@ export const SCAN_DIRECTION_DEFINITIONS: ScanDirectionDefinition[] = [
   {
     code: "K",
     name: "Shear Wave 45°",
-    nameHe: "גל גזירה 45°",
     waveMode: "SW 45°",
     description: "E2375 Annex A1.3.4: 45° for thick sections (>1 inch)",
     entrySurface: "side",
@@ -339,7 +324,6 @@ export const SCAN_DIRECTION_DEFINITIONS: ScanDirectionDefinition[] = [
   {
     code: "L",
     name: "Rotational/360° Scan",
-    nameHe: "סריקה סיבובית 360°",
     waveMode: "LW 0° (Rotating 360°)",
     description: "E2375 Fig.6: Radial scan while rotating bar towards center",
     entrySurface: "radial",

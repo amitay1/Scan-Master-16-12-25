@@ -379,7 +379,7 @@ export const RealTimeTechnicalDrawing = ({
           ? partNumberProp.trim()
           : partType.toUpperCase() + '-' + Date.now().toString().slice(-6);
       const materialName = material || 'ALUMINUM';
-      generator.drawTitleBlock(
+      generator.drawResponsiveTitleBlock(
         `${partType.toUpperCase().replace('_', ' ')} PART`,
         displayPartNumber,
         materialName,
@@ -410,7 +410,7 @@ export const RealTimeTechnicalDrawing = ({
   }, [partType, drawingDimensions, layout, showGrid, material, standardType, partNumberProp, showScanCoverage, scanType, coverageDimensions]);
 
   return (
-    <div className="w-full h-full flex items-center justify-center overflow-hidden bg-[#D4D4D4] p-3">
+    <div className="w-full h-full flex items-center justify-center overflow-visible bg-[#D4D4D4] p-3">
       <canvas
         id="technical-drawing-canvas"
         ref={canvasRef}

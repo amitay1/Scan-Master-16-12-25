@@ -217,7 +217,7 @@ const ScanArrowElement: React.FC<{
             fontSize="10"
             fill="white"
           >
-            {isDragging ? '🎯 Drag to position' : arrow.label}
+            {isDragging ? 'Drag to position' : arrow.label}
           </text>
         </g>
       )}
@@ -270,7 +270,7 @@ export const ArrowOverlay: React.FC<ArrowOverlayProps> = ({
   // Handle drag end
   const handleMouseUp = useCallback(() => {
     if (draggingDirection) {
-      console.log(`📍 Arrow ${draggingDirection} repositioned`);
+      console.log(`Arrow ${draggingDirection} repositioned`);
       setDraggingDirection(null);
     }
   }, [draggingDirection]);
@@ -295,7 +295,7 @@ export const ArrowOverlay: React.FC<ArrowOverlayProps> = ({
       {/* Drag mode indicator */}
       {enableDrag && onArrowMove && (
         <div className="absolute top-1 left-1 bg-blue-500/80 text-white text-[9px] px-1.5 py-0.5 rounded">
-          🎯 גרור חצים למיקום
+          Drag arrows to reposition
         </div>
       )}
 

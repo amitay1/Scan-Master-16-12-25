@@ -39,7 +39,6 @@ interface ArrowConfig {
   endPoint: { x: number; y: number };
   color: string;
   label: string;
-  labelHe: string;
   waveMode: string;
   animationType: 'pulse' | 'sweep' | 'rotate' | 'bounce';
   angle?: number;
@@ -228,7 +227,6 @@ function getArrowConfig(
     endPoint: { x: endPoint.x + offsetX, y: endPoint.y + offsetY },
     color: direction.color,
     label: direction.code,
-    labelHe: direction.nameHe,
     waveMode: direction.waveMode,
     animationType,
     angle: direction.angle,
@@ -516,7 +514,7 @@ export function ScanDirectionLegend({
                 backgroundColor: isSelected ? dir.color : `${dir.color}40`,
                 color: 'white',
               }}
-              title={`${dir.nameHe}\n${dir.waveMode}`}
+              title={`${dir.name}\n${dir.waveMode}`}
             >
               {dir.code}
             </button>
@@ -529,7 +527,7 @@ export function ScanDirectionLegend({
   return (
     <div className="space-y-1 p-3 bg-slate-800/95 rounded-lg backdrop-blur-sm max-h-64 overflow-y-auto">
       <h4 className="text-xs font-semibold text-slate-300 mb-2">
-        כיווני סריקה - E2375
+        Scan Directions - E2375
       </h4>
       {availableDirections.map((dir) => {
         const isSelected = selectedDirections.includes(dir.code);
@@ -552,7 +550,7 @@ export function ScanDirectionLegend({
               {dir.code}
             </span>
             <div className="flex-1 min-w-0">
-              <div className="text-xs text-white truncate">{dir.nameHe}</div>
+              <div className="text-xs text-white truncate">{dir.name}</div>
               <div className="text-[10px] text-slate-400 truncate">{dir.waveMode}</div>
             </div>
             {isSelected && (

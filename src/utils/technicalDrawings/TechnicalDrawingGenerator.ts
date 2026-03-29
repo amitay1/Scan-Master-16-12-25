@@ -126,6 +126,14 @@ export interface BoundingBox {
   height: number;
 }
 
+interface FittedTextOptions {
+  color?: string;
+  align?: 'left' | 'center' | 'right';
+  preferredFontSize?: number;
+  minFontSize?: number;
+  paddingX?: number;
+}
+
 export class TechnicalDrawingGenerator {
   private scope: paper.PaperScope;
   private canvas: HTMLCanvasElement;
@@ -477,14 +485,98 @@ export class TechnicalDrawingGenerator {
 
   // Draw text - Classic engineering style
   drawText(x: number, y: number, text: string, fontSize: number = 12, color: string = '#000000') {
+    return this.drawTextAligned(x, y, text, fontSize, color, 'center');
+  }
+
+  drawTextAligned(
+    x: number,
+    y: number,
+    text: string,
+    fontSize: number = 12,
+    color: string = '#000000',
+    justification: 'left' | 'center' | 'right' = 'center'
+  ) {
     const textItem = new this.scope.PointText(new this.scope.Point(x, y));
     textItem.content = text;
     textItem.fontSize = fontSize;
     textItem.fillColor = new this.scope.Color(color);
     textItem.fontFamily = 'Arial, sans-serif';
     textItem.fontWeight = 'bold';
-    textItem.justification = 'center';
+    textItem.justification = justification;
     return textItem;
+  }
+
+  private measureTextWidth(text: string, fontSize: number = 12): number {
+    const probe = new this.scope.PointText(new this.scope.Point(-9999, -9999));
+    probe.content = text;
+    probe.fontSize = fontSize;
+    probe.fontFamily = 'Arial, sans-serif';
+    probe.fontWeight = 'bold';
+    const width = probe.bounds.width;
+    probe.remove();
+    return width;
+  }
+
+  private fitTextToWidth(
+    text: string,
+    maxWidth: number,
+    preferredFontSize: number,
+    minFontSize: number
+  ): { text: string; fontSize: number } {
+    const normalized = String(text ?? '');
+    if (!normalized) {
+      return { text: '', fontSize: preferredFontSize };
+    }
+
+    let fontSize = preferredFontSize;
+    while (fontSize > minFontSize && this.measureTextWidth(normalized, fontSize) > maxWidth) {
+      fontSize -= 0.5;
+    }
+
+    if (this.measureTextWidth(normalized, fontSize) <= maxWidth) {
+      return { text: normalized, fontSize };
+    }
+
+    const ellipsis = '...';
+    let truncated = normalized;
+    while (truncated.length > 1 && this.measureTextWidth(`${truncated}${ellipsis}`, fontSize) > maxWidth) {
+      truncated = truncated.slice(0, -1);
+    }
+
+    return {
+      text: truncated.length < normalized.length ? `${truncated}${ellipsis}` : truncated,
+      fontSize,
+    };
+  }
+
+  private drawFittedTextInBox(
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    text: string,
+    options: FittedTextOptions = {}
+  ) {
+    const {
+      color = '#000000',
+      align = 'left',
+      preferredFontSize = 9,
+      minFontSize = 6,
+      paddingX = 6,
+    } = options;
+
+    const maxWidth = Math.max(10, width - paddingX * 2);
+    const { text: fittedText, fontSize } = this.fitTextToWidth(text, maxWidth, preferredFontSize, minFontSize);
+
+    const textX =
+      align === 'left'
+        ? x + paddingX
+        : align === 'right'
+          ? x + width - paddingX
+          : x + width / 2;
+    const textY = y + height / 2 + fontSize * 0.32;
+
+    return this.drawTextAligned(textX, textY, fittedText, fontSize, color, align);
   }
 
   // Draw hatching (for sections)
@@ -573,11 +665,11 @@ export class TechnicalDrawingGenerator {
     revision: string = 'A',
     date: string = new Date().toISOString().split('T')[0]
   ) {
+    const viewBounds = this.scope.view.bounds;
     const width = 180;
     const height = 80;
-    // Keep the title block away from the canvas edge so metadata rows never clip.
-    const x = this.canvas.width - width - 50;
-    const y = this.canvas.height - height - 28;
+    const x = viewBounds.right - width - 24;
+    const y = viewBounds.bottom - height - 20;
 
     // Main border
     this.drawRectangle(x, y, width, height, 'visible');
@@ -607,6 +699,104 @@ export class TechnicalDrawingGenerator {
     this.drawText(x + 35, y + 74, `TOL: ${tolerance}`, 8, '#000000');
     this.drawText(x + width / 2, y + 74, date, 8, '#000000');
     this.drawText(x + 145, y + 74, 'ISO 128', 8, '#000000');
+  }
+
+  drawResponsiveTitleBlock(
+    title: string,
+    partNumber: string,
+    material: string,
+    scale: string,
+    tolerance: string = '±0.1mm',
+    revision: string = 'A',
+    date: string = new Date().toISOString().split('T')[0]
+  ) {
+    const viewBounds = this.scope.view.bounds;
+    const viewWidth = viewBounds.width;
+    const outerMargin = 22;
+    const maxWidth = Math.max(220, Math.min(360, viewWidth - outerMargin * 2));
+    const minWidth = Math.min(240, maxWidth);
+    const width = Math.max(
+      minWidth,
+      Math.min(
+        maxWidth,
+        Math.max(
+          this.measureTextWidth(`PART: ${partNumber}`, 9) + 92,
+          this.measureTextWidth(`MAT: ${material}`, 9) + 92,
+          this.measureTextWidth(title, 11) + 24
+        )
+      )
+    );
+    const height = 86;
+    const x = Math.max(viewBounds.left + outerMargin, viewBounds.right - width - outerMargin);
+    const y = Math.max(viewBounds.top + outerMargin, viewBounds.bottom - height - outerMargin);
+    const titleRowHeight = 22;
+    const dataRowHeight = 22;
+    const bottomRowHeight = height - titleRowHeight - dataRowHeight * 2;
+    const rightColumnWidth = Math.max(72, Math.min(98, width * 0.28));
+    const leftColumnWidth = width - rightColumnWidth;
+    const bottomLeftWidth = Math.max(70, width * 0.26);
+    const bottomRightWidth = Math.max(64, width * 0.22);
+    const bottomCenterWidth = width - bottomLeftWidth - bottomRightWidth;
+
+    this.drawRectangle(x, y, width, height, 'visible');
+    this.drawLine(x, y + titleRowHeight, x + width, y + titleRowHeight, 'visible');
+    this.drawLine(x, y + titleRowHeight + dataRowHeight, x + width, y + titleRowHeight + dataRowHeight, 'visible');
+    this.drawLine(x, y + titleRowHeight + dataRowHeight * 2, x + width, y + titleRowHeight + dataRowHeight * 2, 'visible');
+
+    this.drawLine(x + leftColumnWidth, y + titleRowHeight, x + leftColumnWidth, y + titleRowHeight + dataRowHeight * 2, 'visible');
+    this.drawLine(x + bottomLeftWidth, y + titleRowHeight + dataRowHeight * 2, x + bottomLeftWidth, y + height, 'visible');
+    this.drawLine(x + bottomLeftWidth + bottomCenterWidth, y + titleRowHeight + dataRowHeight * 2, x + bottomLeftWidth + bottomCenterWidth, y + height, 'visible');
+
+    this.drawFittedTextInBox(x, y, width, titleRowHeight, title, {
+      align: 'center',
+      preferredFontSize: 11,
+      minFontSize: 7,
+      paddingX: 8,
+    });
+
+    this.drawFittedTextInBox(x, y + titleRowHeight, leftColumnWidth, dataRowHeight, `PART: ${partNumber}`, {
+      align: 'left',
+      preferredFontSize: 9,
+      minFontSize: 6,
+    });
+    this.drawFittedTextInBox(x + leftColumnWidth, y + titleRowHeight, rightColumnWidth, dataRowHeight, `REV: ${revision}`, {
+      align: 'center',
+      preferredFontSize: 9,
+      minFontSize: 6,
+      paddingX: 4,
+    });
+
+    this.drawFittedTextInBox(x, y + titleRowHeight + dataRowHeight, leftColumnWidth, dataRowHeight, `MAT: ${material}`, {
+      align: 'left',
+      preferredFontSize: 9,
+      minFontSize: 6,
+    });
+    this.drawFittedTextInBox(x + leftColumnWidth, y + titleRowHeight + dataRowHeight, rightColumnWidth, dataRowHeight, `SCALE: ${scale}`, {
+      align: 'center',
+      preferredFontSize: 8.5,
+      minFontSize: 6,
+      paddingX: 4,
+    });
+
+    const bottomY = y + titleRowHeight + dataRowHeight * 2;
+    this.drawFittedTextInBox(x, bottomY, bottomLeftWidth, bottomRowHeight, `TOL: ${tolerance}`, {
+      align: 'left',
+      preferredFontSize: 7.5,
+      minFontSize: 5.5,
+      paddingX: 5,
+    });
+    this.drawFittedTextInBox(x + bottomLeftWidth, bottomY, bottomCenterWidth, bottomRowHeight, date, {
+      align: 'center',
+      preferredFontSize: 7.5,
+      minFontSize: 5.5,
+      paddingX: 5,
+    });
+    this.drawFittedTextInBox(x + bottomLeftWidth + bottomCenterWidth, bottomY, bottomRightWidth, bottomRowHeight, 'ISO 128', {
+      align: 'center',
+      preferredFontSize: 7.5,
+      minFontSize: 5.5,
+      paddingX: 4,
+    });
   }
 
   // Draw text with a background rectangle for readability

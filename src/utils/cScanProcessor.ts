@@ -1,6 +1,5 @@
 /**
  * C-Scan Image Processor
- * מערכת מתקדמת לעיבוד תמונות C-Scan עם זיהוי פגמים אוטומטי
  */
 
 import chroma from 'chroma-js';
@@ -40,7 +39,6 @@ export class CScanProcessor {
   }
 
   /**
-   * יצירת מפת צבעים Jet (כחול -> ציאן -> צהוב -> אדום)
    */
   private createJetColormap(): chroma.Scale {
     return chroma.scale([
@@ -50,7 +48,6 @@ export class CScanProcessor {
   }
 
   /**
-   * יצירת מפת צבעים Viridis
    */
   private createViridisColormap(): chroma.Scale {
     return chroma.scale([
@@ -60,14 +57,12 @@ export class CScanProcessor {
   }
 
   /**
-   * יצירת מפת צבעים Grayscale
    */
   private createGrayscaleColormap(): chroma.Scale {
     return chroma.scale(['#000000', '#FFFFFF']).mode('lab');
   }
 
   /**
-   * יצירת מפת צבעים Thermal (שחור -> סגול -> אדום -> צהוב -> לבן)
    */
   private createThermalColormap(): chroma.Scale {
     return chroma.scale([
@@ -77,7 +72,6 @@ export class CScanProcessor {
   }
 
   /**
-   * עיבוד נתונים גולמיים לתמונה מעובדת
    */
   processRawData(rawData: number[][], options: ProcessingOptions): HTMLCanvasElement {
     const {
@@ -90,30 +84,21 @@ export class CScanProcessor {
     } = options;
 
     let processedData = rawData.map(row => [...row]);
-
-    // נרמול נתונים
     if (normalize) {
       processedData = this.normalizeData(processedData);
     }
-
-    // החלקה
     if (smoothing) {
       processedData = this.applyGaussianSmoothing(processedData);
     }
-
-    // סף
     if (threshold !== null) {
       processedData = processedData.map(row =>
         row.map(val => val > threshold ? 1 : 0)
       );
     }
-
-    // המרה לתמונה
     return this.dataToImage(processedData, width, height, colormap);
   }
 
   /**
-   * נרמול נתונים לטווח 0-1
    */
   private normalizeData(data: number[][]): number[][] {
     const flatData = data.flat();
@@ -129,7 +114,6 @@ export class CScanProcessor {
   }
 
   /**
-   * המרת נתונים לתמונה עם מפת צבעים
    */
   private dataToImage(
     data: number[][],
@@ -166,7 +150,6 @@ export class CScanProcessor {
   }
 
   /**
-   * החלקת Gaussian על הנתונים
    */
   private applyGaussianSmoothing(data: number[][]): number[][] {
     const kernel = [
@@ -199,7 +182,6 @@ export class CScanProcessor {
   }
 
   /**
-   * זיהוי אוטומטי של פגמים בנתונים
    */
   detectDefects(data: number[][], threshold: number): Defect[] {
     const defects: Defect[] = [];
@@ -211,7 +193,7 @@ export class CScanProcessor {
       for (let x = 0; x < (data[0]?.length || 0); x++) {
         if ((data[y]?.[x] || 0) > threshold && !visited[y][x]) {
           const defect = this.floodFill(data, x, y, threshold, visited);
-          if (defect.pixels.length > 5) { // מינימום גודל פגם
+          if (defect.pixels.length > 5) {
             defects.push({
               id: `DEF-${String(defects.length + 1).padStart(3, '0')}`,
               center: defect.center,
@@ -228,7 +210,6 @@ export class CScanProcessor {
   }
 
   /**
-   * אלגוריתם Flood Fill לזיהוי אזור פגום
    */
   private floodFill(
     data: number[][],
@@ -271,8 +252,6 @@ export class CScanProcessor {
       maxX = Math.max(maxX, cx);
       minY = Math.min(minY, cy);
       maxY = Math.max(maxY, cy);
-
-      // בדוק שכנים (4-connectivity)
       stack.push([cx + 1, cy]);
       stack.push([cx - 1, cy]);
       stack.push([cx, cy + 1]);
@@ -288,7 +267,6 @@ export class CScanProcessor {
   }
 
   /**
-   * יצירת נתוני C-Scan סימולטיביים
    */
   generateSimulatedData(
     rows: number,
@@ -296,16 +274,12 @@ export class CScanProcessor {
     defectCount: number = 2
   ): number[][] {
     const data: number[][] = [];
-
-    // רעש רקע
     for (let y = 0; y < rows; y++) {
       data[y] = [];
       for (let x = 0; x < cols; x++) {
-        data[y][x] = Math.random() * 0.2; // רעש נמוך
+        data[y][x] = Math.random() * 0.2;
       }
     }
-
-    // הוספת פגמים
     for (let i = 0; i < defectCount; i++) {
       const centerX = Math.floor(Math.random() * cols);
       const centerY = Math.floor(Math.random() * rows);

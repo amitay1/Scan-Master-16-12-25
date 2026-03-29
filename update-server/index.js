@@ -57,10 +57,10 @@ const releaseNotes = {
         '⚡ Performance improvements'
       ],
       he: [
-        '✨ נוספה מערכת הפעלת רישיון',
-        '🔒 נוספה נעילת תקנים',
-        '🐛 תוקנו בעיות ייצוא PDF',
-        '⚡ שיפורי ביצועים'
+        '✨ Added license activation system',
+        '🔒 Added standards locking mechanism',
+        '🐛 Fixed PDF export issues',
+        '⚡ Performance improvements'
       ]
     },
     critical: false,

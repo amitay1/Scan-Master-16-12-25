@@ -60,7 +60,7 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
           'workbench-toggle-btn absolute top-3 z-20 h-9 w-9 rounded-full shadow-sm hover:shadow-md transition-all duration-200',
           isOpen ? '-right-4' : 'right-2'
         )}
-        title={isOpen ? 'סגור סרגל צד' : 'פתח סרגל צד'}
+        title={isOpen ? 'Close sidebar' : 'Open sidebar'}
       >
         {isOpen ? (
           <ChevronLeft className="h-4 w-4" />

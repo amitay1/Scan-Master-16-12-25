@@ -29,6 +29,17 @@ export function useFirstRun(): UseFirstRunReturn {
   const [isLoading, setIsLoading] = useState(true);
   const [firstRunData, setFirstRunData] = useState<FirstRunData | null>(null);
 
+  const normalizeFirstRunData = useCallback((data: FirstRunData | null): FirstRunData | null => {
+    if (!data) {
+      return null;
+    }
+
+    return {
+      ...data,
+      selectedLanguage: 'en',
+    };
+  }, []);
+
   // Check if this is the first run
   useEffect(() => {
     try {
@@ -38,7 +49,9 @@ export function useFirstRun(): UseFirstRunReturn {
       if (completed === 'true') {
         setIsFirstRun(false);
         if (data) {
-          setFirstRunData(JSON.parse(data));
+          const parsedData = normalizeFirstRunData(JSON.parse(data));
+          setFirstRunData(parsedData);
+          localStorage.setItem(FIRST_RUN_DATA_KEY, JSON.stringify(parsedData));
         }
       } else {
         setIsFirstRun(true);
@@ -53,11 +66,11 @@ export function useFirstRun(): UseFirstRunReturn {
 
   const completeFirstRun = useCallback((data?: Partial<FirstRunData>) => {
     try {
-      const completionData: FirstRunData = {
+      const completionData = normalizeFirstRunData({
         ...data,
         completedAt: new Date().toISOString(),
-        version: '1.0.102'
-      };
+        version: '1.0.102',
+      }) as FirstRunData;
 
       localStorage.setItem(FIRST_RUN_KEY, 'true');
       localStorage.setItem(FIRST_RUN_DATA_KEY, JSON.stringify(completionData));
@@ -67,7 +80,7 @@ export function useFirstRun(): UseFirstRunReturn {
     } catch (error) {
       console.error('Error completing first run:', error);
     }
-  }, []);
+  }, [normalizeFirstRunData]);
 
   const resetFirstRun = useCallback(() => {
     try {
@@ -83,13 +96,13 @@ export function useFirstRun(): UseFirstRunReturn {
   const updateFirstRunData = useCallback((data: Partial<FirstRunData>) => {
     try {
       const currentData = firstRunData || {};
-      const newData = { ...currentData, ...data };
+      const newData = normalizeFirstRunData({ ...currentData, ...data }) as FirstRunData;
       localStorage.setItem(FIRST_RUN_DATA_KEY, JSON.stringify(newData));
       setFirstRunData(newData);
     } catch (error) {
       console.error('Error updating first run data:', error);
     }
-  }, [firstRunData]);
+  }, [firstRunData, normalizeFirstRunData]);
 
   return {
     isFirstRun,

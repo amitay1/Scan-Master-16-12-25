@@ -404,7 +404,7 @@ export interface OEMDocumentationRules {
   templateId: string;
   requiredSections: string[];
   approvalLevels: number;           // Number of approval signatures required
-  language: "english" | "bilingual";
+  language: "english";
   revisionTracking: boolean;
 }
 
@@ -700,7 +700,7 @@ export interface TechsheetTemplate {
   siteId?: string;                  // Site-specific template
   machineId?: string;               // Machine-specific template
   templatePath: string;
-  language: "english" | "hebrew" | "bilingual";
+  language: "english";
   sections: string[];               // Required sections
   logoPath?: string;
   headerText?: string;

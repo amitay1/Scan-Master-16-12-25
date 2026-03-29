@@ -1534,7 +1534,7 @@ export const InspectionSetupTab = ({
 
       {/* Technical Drawing with Dimensions */}
       {data.partType && (
-        <Card className="workstation-card mt-5 overflow-hidden border-0 p-5">
+        <Card className="workstation-card mt-5 overflow-visible border-0 p-5">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div>
               <h3 className="text-base font-semibold">Part Drawing with Dimensions</h3>

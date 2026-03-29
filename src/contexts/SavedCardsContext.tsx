@@ -264,7 +264,7 @@ export function SavedCardsProvider({ children }: { children: ReactNode }) {
     const duplicated: SavedCard = {
       ...original,
       id: generateId(),
-      name: newName || `${original.name} (העתק)`,
+      name: newName || `${original.name} (Copy)`,
       createdAt: now,
       updatedAt: now,
       isFavorite: false,
@@ -424,7 +424,7 @@ export function SavedCardsProvider({ children }: { children: ReactNode }) {
           newCards.push({
             id: generateId(),
             profileId, // Associate with current profile
-            name: item.sheetName || 'כרטיס מיובא',
+            name: item.sheetName || 'Imported Card',
             description: '',
             type: data.reportMode === 'Report' ? 'report' : 'technique',
             standard: (item.standard || data.standard || 'AMS-STD-2154E') as StandardType,

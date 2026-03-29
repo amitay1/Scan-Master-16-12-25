@@ -3,7 +3,7 @@
  * Handles document numbering, revision tracking, and controlled/uncontrolled copy settings
  */
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -19,7 +19,7 @@ export interface DocumentControlData {
   revisionDate: string;
   revisionDescription: string;
   controlledCopy: boolean;
-  language: "english" | "hebrew" | "bilingual";
+  language: "english";
 }
 
 interface DocumentControlProps {
@@ -31,7 +31,16 @@ export const DocumentControl: React.FC<DocumentControlProps> = ({
   data,
   onChange
 }) => {
-  const { formatDate, getCurrentDate } = useSettingsApply();
+  const { getCurrentDate } = useSettingsApply();
+
+  useEffect(() => {
+    if (data.language !== 'english') {
+      onChange({
+        ...data,
+        language: 'english',
+      });
+    }
+  }, [data, onChange]);
   
   const handleChange = (field: keyof DocumentControlData, value: string | boolean) => {
     onChange({
@@ -139,7 +148,7 @@ export const DocumentControl: React.FC<DocumentControlProps> = ({
         <div className="space-y-2">
           <Label htmlFor="language">Report Language</Label>
           <Select
-            value={data.language}
+            value="english"
             onValueChange={(value) => handleChange('language', value)}
           >
             <SelectTrigger>
@@ -147,12 +156,10 @@ export const DocumentControl: React.FC<DocumentControlProps> = ({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="english">English Only</SelectItem>
-              <SelectItem value="hebrew">Hebrew Only (עברית)</SelectItem>
-              <SelectItem value="bilingual">Bilingual (English/Hebrew)</SelectItem>
             </SelectContent>
           </Select>
           <p className="text-xs text-gray-500">
-            Language for headers, sections, and labels in the report
+            Report output is generated in English only
           </p>
         </div>
 

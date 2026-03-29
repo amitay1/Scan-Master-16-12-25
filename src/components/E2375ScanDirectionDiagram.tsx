@@ -20,7 +20,6 @@ const getE2375DiagramInfo = (partType: PartGeometry): {
   figure: string;
   page: number;
   title: string;
-  titleHe: string;
   description: string;
 } | null => {
   switch (partType) {
@@ -30,7 +29,6 @@ const getE2375DiagramInfo = (partType: PartGeometry): {
         figure: "Figure 6",
         page: 11,
         title: "Plate and Flat Bar",
-        titleHe: "פלייט ומוט שטוח",
         description: "Scan with a straight beam with the beam directed as shown. If W/T > 5, scan with straight beam."
       };
     case "rectangular_bar":
@@ -41,7 +39,6 @@ const getE2375DiagramInfo = (partType: PartGeometry): {
         figure: "Figure 6",
         page: 11,
         title: "Rectangular Bar, Bloom, and Billets",
-        titleHe: "מוט מלבני, בלום ובילטים",
         description: "If W/T < 5, scan from two adjacent sides with the sound beam directed as shown."
       };
     case "cylinder":
@@ -52,7 +49,6 @@ const getE2375DiagramInfo = (partType: PartGeometry): {
         figure: "Figure 6",
         page: 11,
         title: "Round Bars and Round Forging Stock",
-        titleHe: "מוטות עגולים ומלאי חישול עגול",
         description: "Examine by straight beam with sound beam directed towards the center of the bar while rotating."
       };
     case "tube":
@@ -64,7 +60,6 @@ const getE2375DiagramInfo = (partType: PartGeometry): {
         figure: "Figure 7",
         page: 12,
         title: "Ring Forgings",
-        titleHe: "חישולי טבעת",
         description: "Scan with a straight beam from the circumference with the sound beam directed radially."
       };
     case "hexagon":
@@ -73,7 +68,6 @@ const getE2375DiagramInfo = (partType: PartGeometry): {
         figure: "Figure 7",
         page: 12,
         title: "Hex Bar",
-        titleHe: "מוט משושה",
         description: "Scan with a straight beam from three adjacent faces."
       };
     case "disk_forging":
@@ -83,7 +77,6 @@ const getE2375DiagramInfo = (partType: PartGeometry): {
         figure: "Figure 7",
         page: 12,
         title: "Disk Forging",
-        titleHe: "חישול דיסק",
         description: "Scan with straight beams from at least one flat face, and radially from the circumference."
       };
     default:
@@ -92,22 +85,22 @@ const getE2375DiagramInfo = (partType: PartGeometry): {
 };
 
 // Direction data with colors and descriptions
-const DIRECTION_INFO: Record<string, { color: string; name: string; nameHe: string; wave: string }> = {
-  "A": { color: "#22c55e", name: "Primary Straight Beam", nameHe: "קרן ישרה ראשית", wave: "LW 0°" },
-  "A₁": { color: "#16a34a", name: "Primary Dual Element", nameHe: "אלמנט כפול ראשי", wave: "LW 0° DE" },
-  "B": { color: "#3b82f6", name: "Secondary Straight Beam", nameHe: "קרן ישרה משנית", wave: "LW 0°" },
-  "B₁": { color: "#2563eb", name: "Secondary Dual Element", nameHe: "אלמנט כפול משני", wave: "LW 0° DE" },
-  "C": { color: "#f59e0b", name: "Tertiary/Radial", nameHe: "קרן שלישית/רדיאלית", wave: "LW 0°" },
-  "C₁": { color: "#d97706", name: "Tertiary Dual Element", nameHe: "אלמנט כפול שלישי", wave: "LW 0° DE" },
-  "D": { color: "#ef4444", name: "Circumferential CW", nameHe: "היקפי - עם השעון", wave: "SW 45°" },
-  "E": { color: "#ec4899", name: "Circumferential CCW", nameHe: "היקפי - נגד השעון", wave: "SW 45°" },
-  "F": { color: "#8b5cf6", name: "Axial Shear Dir 1", nameHe: "גזירה אקסיאלית 1", wave: "SW 45°" },
-  "G": { color: "#14b8a6", name: "Axial Shear Dir 2", nameHe: "גזירה אקסיאלית 2", wave: "SW 45°" },
-  "H": { color: "#06b6d4", name: "From ID Surface", nameHe: "מפנים (ID)", wave: "LW 0°" },
-  "I": { color: "#84cc16", name: "Through-Transmission", nameHe: "TT - שני תמרים", wave: "TT" },
-  "J": { color: "#f97316", name: "Shear Wave 60°", nameHe: "גל גזירה 60°", wave: "SW 60°" },
-  "K": { color: "#eab308", name: "Shear Wave 45°", nameHe: "גל גזירה 45°", wave: "SW 45°" },
-  "L": { color: "#a855f7", name: "Rotational 360°", nameHe: "סריקה סיבובית", wave: "LW 0° Rot" },
+const DIRECTION_INFO: Record<string, { color: string; name: string; wave: string }> = {
+  "A": { color: "#22c55e", name: "Primary Straight Beam", wave: "LW 0°" },
+  "A₁": { color: "#16a34a", name: "Primary Dual Element", wave: "LW 0° DE" },
+  "B": { color: "#3b82f6", name: "Secondary Straight Beam", wave: "LW 0°" },
+  "B₁": { color: "#2563eb", name: "Secondary Dual Element", wave: "LW 0° DE" },
+  "C": { color: "#f59e0b", name: "Tertiary/Radial", wave: "LW 0°" },
+  "C₁": { color: "#d97706", name: "Tertiary Dual Element", wave: "LW 0° DE" },
+  "D": { color: "#ef4444", name: "Circumferential CW", wave: "SW 45°" },
+  "E": { color: "#ec4899", name: "Circumferential CCW", wave: "SW 45°" },
+  "F": { color: "#8b5cf6", name: "Axial Shear Dir 1", wave: "SW 45°" },
+  "G": { color: "#14b8a6", name: "Axial Shear Dir 2", wave: "SW 45°" },
+  "H": { color: "#06b6d4", name: "From ID Surface", wave: "LW 0°" },
+  "I": { color: "#84cc16", name: "Through-Transmission", wave: "TT" },
+  "J": { color: "#f97316", name: "Shear Wave 60°", wave: "SW 60°" },
+  "K": { color: "#eab308", name: "Shear Wave 45°", wave: "SW 45°" },
+  "L": { color: "#a855f7", name: "Rotational 360°", wave: "LW 0° Rot" },
 };
 
 // SVG diagrams for different part types
@@ -759,7 +752,7 @@ export const E2375ScanDirectionDiagram: React.FC<E2375ScanDirectionDiagramProps>
                 {diagramInfo.title}
               </h3>
               <p className="text-sm text-muted-foreground mt-1">
-                ASTM E2375-16 {diagramInfo.figure} • {diagramInfo.titleHe}
+                ASTM E2375-16 {diagramInfo.figure}
               </p>
             </div>
             <div className="flex gap-2">

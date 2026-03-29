@@ -22,21 +22,21 @@ export type DefectType =
 
 // Signal shape types
 export type SignalShape =
-  | "sharp_narrow"      // חד וצר - אופייני לסדקים
-  | "sharp_wide"        // חד ורחב
-  | "rounded"           // מעוגל - אופייני לנקבוביות
-  | "irregular"         // לא סדיר
-  | "multiple_peaks"    // מספר פיקים
-  | "diffuse"           // מפוזר
-  | "flat_topped";      // שטוח בראש
+  | "sharp_narrow"
+  | "sharp_wide"
+  | "rounded"
+  | "irregular"
+  | "multiple_peaks"
+  | "diffuse"
+  | "flat_topped";
 
 // Signal behavior when probe moves
 export type SignalBehavior =
-  | "stationary"        // נשאר במקום
-  | "moves_with_probe"  // נע עם הפרוב
-  | "disappears"        // נעלם
-  | "changes_amplitude" // משתנה באמפליטודה
-  | "splits";           // מתפצל
+  | "stationary"
+  | "moves_with_probe"
+  | "disappears"
+  | "changes_amplitude"
+  | "splits";
 
 // Indication input data
 export interface IndicationData {
@@ -113,7 +113,6 @@ export interface DefectCharacteristics {
   typicalOrientation: ("parallel" | "perpendicular" | "random")[];
   processAssociation: ("forging" | "casting" | "weld" | "wrought" | "any")[];
   description: string;
-  hebrewName: string;
 }
 
 // Defect database
@@ -127,7 +126,6 @@ export const DEFECT_CHARACTERISTICS: DefectCharacteristics[] = [
     typicalOrientation: ["perpendicular"],
     processAssociation: ["any"],
     description: "Planar discontinuity with sharp edges, typically perpendicular to the surface",
-    hebrewName: "סדק",
   },
   {
     type: "porosity",
@@ -138,7 +136,6 @@ export const DEFECT_CHARACTERISTICS: DefectCharacteristics[] = [
     typicalOrientation: ["random"],
     processAssociation: ["casting", "weld"],
     description: "Spherical or elongated gas pockets, scattered or clustered",
-    hebrewName: "נקבוביות",
   },
   {
     type: "inclusion",
@@ -149,7 +146,6 @@ export const DEFECT_CHARACTERISTICS: DefectCharacteristics[] = [
     typicalOrientation: ["random", "parallel"],
     processAssociation: ["forging", "casting", "wrought"],
     description: "Foreign material trapped during solidification",
-    hebrewName: "תכלית",
   },
   {
     type: "void",
@@ -160,7 +156,6 @@ export const DEFECT_CHARACTERISTICS: DefectCharacteristics[] = [
     typicalOrientation: ["random"],
     processAssociation: ["casting"],
     description: "Large cavity from shrinkage or gas",
-    hebrewName: "חלל",
   },
   {
     type: "delamination",
@@ -171,7 +166,6 @@ export const DEFECT_CHARACTERISTICS: DefectCharacteristics[] = [
     typicalOrientation: ["parallel"],
     processAssociation: ["wrought", "forging"],
     description: "Planar separation parallel to rolling/forging direction",
-    hebrewName: "הפרדת שכבות",
   },
   {
     type: "lack_of_fusion",
@@ -182,7 +176,6 @@ export const DEFECT_CHARACTERISTICS: DefectCharacteristics[] = [
     typicalOrientation: ["parallel"],
     processAssociation: ["weld"],
     description: "Incomplete fusion between weld passes or base metal",
-    hebrewName: "חוסר היתוך",
   },
   {
     type: "lack_of_penetration",
@@ -193,7 +186,6 @@ export const DEFECT_CHARACTERISTICS: DefectCharacteristics[] = [
     typicalOrientation: ["parallel"],
     processAssociation: ["weld"],
     description: "Incomplete joint penetration at weld root",
-    hebrewName: "חוסר חדירה",
   },
   {
     type: "shrinkage",
@@ -204,7 +196,6 @@ export const DEFECT_CHARACTERISTICS: DefectCharacteristics[] = [
     typicalOrientation: ["random"],
     processAssociation: ["casting"],
     description: "Cavities from solidification shrinkage",
-    hebrewName: "התכווצות",
   },
   {
     type: "lamination",
@@ -215,7 +206,6 @@ export const DEFECT_CHARACTERISTICS: DefectCharacteristics[] = [
     typicalOrientation: ["parallel"],
     processAssociation: ["wrought"],
     description: "Planar separation from rolling",
-    hebrewName: "למינציה",
   },
   {
     type: "segregation",
@@ -226,7 +216,6 @@ export const DEFECT_CHARACTERISTICS: DefectCharacteristics[] = [
     typicalOrientation: ["parallel"],
     processAssociation: ["forging", "wrought"],
     description: "Compositional variation affecting acoustic properties",
-    hebrewName: "הפרדה כימית",
   },
   {
     type: "hydrogen_flake",
@@ -237,7 +226,6 @@ export const DEFECT_CHARACTERISTICS: DefectCharacteristics[] = [
     typicalOrientation: ["parallel", "random"],
     processAssociation: ["forging"],
     description: "Internal cracks from hydrogen during cooling",
-    hebrewName: "פתיתי מימן",
   },
   {
     type: "forging_lap",
@@ -248,7 +236,6 @@ export const DEFECT_CHARACTERISTICS: DefectCharacteristics[] = [
     typicalOrientation: ["parallel"],
     processAssociation: ["forging"],
     description: "Surface fold from forging process",
-    hebrewName: "קיפול חישול",
   },
   {
     type: "seam",
@@ -259,42 +246,41 @@ export const DEFECT_CHARACTERISTICS: DefectCharacteristics[] = [
     typicalOrientation: ["parallel"],
     processAssociation: ["wrought"],
     description: "Longitudinal surface crack from rolling",
-    hebrewName: "תפר",
   },
 ];
 
 // Labels for UI
 export const DEFECT_TYPE_LABELS: Record<DefectType, string> = {
-  crack: "Crack (סדק)",
-  porosity: "Porosity (נקבוביות)",
-  inclusion: "Inclusion (תכלית)",
-  void: "Void (חלל)",
-  delamination: "Delamination (הפרדת שכבות)",
-  lack_of_fusion: "Lack of Fusion (חוסר היתוך)",
-  lack_of_penetration: "Lack of Penetration (חוסר חדירה)",
-  shrinkage: "Shrinkage (התכווצות)",
-  lamination: "Lamination (למינציה)",
-  segregation: "Segregation (הפרדה כימית)",
-  hydrogen_flake: "Hydrogen Flake (פתיתי מימן)",
-  forging_lap: "Forging Lap (קיפול חישול)",
-  seam: "Seam (תפר)",
-  unknown: "Unknown (לא ידוע)",
+  crack: "Crack",
+  porosity: "Porosity",
+  inclusion: "Inclusion",
+  void: "Void",
+  delamination: "Delamination",
+  lack_of_fusion: "Lack of Fusion",
+  lack_of_penetration: "Lack of Penetration",
+  shrinkage: "Shrinkage",
+  lamination: "Lamination",
+  segregation: "Segregation",
+  hydrogen_flake: "Hydrogen Flake",
+  forging_lap: "Forging Lap",
+  seam: "Seam",
+  unknown: "Unknown",
 };
 
 export const SIGNAL_SHAPE_LABELS: Record<SignalShape, string> = {
-  sharp_narrow: "Sharp & Narrow (חד וצר)",
-  sharp_wide: "Sharp & Wide (חד ורחב)",
-  rounded: "Rounded (מעוגל)",
-  irregular: "Irregular (לא סדיר)",
-  multiple_peaks: "Multiple Peaks (מספר פיקים)",
-  diffuse: "Diffuse (מפוזר)",
-  flat_topped: "Flat Topped (שטוח)",
+  sharp_narrow: "Sharp & Narrow",
+  sharp_wide: "Sharp & Wide",
+  rounded: "Rounded",
+  irregular: "Irregular",
+  multiple_peaks: "Multiple Peaks",
+  diffuse: "Diffuse",
+  flat_topped: "Flat Topped",
 };
 
 export const SIGNAL_BEHAVIOR_LABELS: Record<SignalBehavior, string> = {
-  stationary: "Stationary (קבוע)",
-  moves_with_probe: "Moves with Probe (נע עם הפרוב)",
-  disappears: "Disappears (נעלם)",
-  changes_amplitude: "Changes Amplitude (משתנה)",
-  splits: "Splits (מתפצל)",
+  stationary: "Stationary",
+  moves_with_probe: "Moves with Probe",
+  disappears: "Disappears",
+  changes_amplitude: "Changes Amplitude",
+  splits: "Splits",
 };

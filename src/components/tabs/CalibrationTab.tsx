@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { CalibrationData, InspectionSetupData, AcceptanceClass, CalibrationBlockType, StandardType, CalibrationSensitivityRow, StraightBeamConversionRow } from "@/types/techniqueSheet";
@@ -51,9 +51,6 @@ import { getInspectionThickness } from "@/utils/inspectionThickness";
 /**
  * Parse FBH diameter from the string returned by getFBHSizeForStandard()
  * Examples:
- *   "1/64\" (0.4mm)" ג†’ { inch: "1/64", mm: 0.4 }
- *   "3mm (0.118\")" ג†’ { inch: "-", mm: 3 }
- *   "#1 FBH (1/64\" / 0.4mm)" ג†’ { inch: "1/64", mm: 0.4 }
  */
 function parseFBHSizeString(sizeStr: string): { inch: string; mm: number } | null {
   if (!sizeStr) return null;
@@ -811,7 +808,6 @@ export const CalibrationTab = ({
     if (!parsed) return;
 
     // PW NDIP standards use fixed hole depths per IAE2P16675 calibration block
-    // Holes Lג€“S at specific depths (inches ג†’ mm), J&K omitted per NDIP Section 5.1.1.7.1
     const isV2500NDIP = standard === "NDIP-1226" || standard === "NDIP-1227";
     const isOtherPWNDIP = standard === "NDIP-1254" || standard === "NDIP-1257" || standard === "NDIP-1260";
     const pwHoleDepthsMm = [
@@ -1549,7 +1545,7 @@ export const CalibrationTab = ({
                 </TooltipTrigger>
                 <TooltipContent className="max-w-md">
                   <div className="space-y-2">
-                    <p className="text-sm font-semibold">נ¯ Auto-Selected Based On:</p>
+                    <p className="text-sm font-semibold">Auto-Selected Based On:</p>
                     <ul className="text-xs space-y-1 list-disc list-inside">
                       <li>Part Geometry & Dimensions</li>
                       <li>Critical Scan Types (Circumferential/Angle Beam)</li>

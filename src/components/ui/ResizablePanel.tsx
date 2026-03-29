@@ -420,7 +420,7 @@ export const Collapsible3DPanel = ({
                            ? 'bg-green-600/80 text-white hover:bg-green-500/80' 
                            : 'bg-white/10 text-white/60 hover:bg-white/20 hover:text-white'
                          }`}
-              title={isFloating ? "עגן לצד (Dock)" : "מצב צף - גרור לכל מקום (Float)"}
+              title={isFloating ? "Dock panel" : "Float panel"}
             >
               {isFloating ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
             </button>
@@ -434,7 +434,7 @@ export const Collapsible3DPanel = ({
               className="w-7 h-7 rounded-md bg-white/10 text-white/60
                          hover:bg-white/20 hover:text-white
                          transition-all duration-200 flex items-center justify-center"
-              title="הקטן תצוגה"
+              title="Zoom out"
             >
               <ZoomOut className="w-4 h-4" />
             </button>
@@ -449,7 +449,7 @@ export const Collapsible3DPanel = ({
                              ? 'bg-blue-600 text-white'
                              : 'bg-white/10 text-white/60 hover:bg-white/20 hover:text-white'
                            }`}
-                title={`גודל ${preset.label}`}
+                title={`Size ${preset.label}`}
               >
                 {preset.label}
               </button>
@@ -461,7 +461,7 @@ export const Collapsible3DPanel = ({
               className="w-7 h-7 rounded-md bg-white/10 text-white/60
                          hover:bg-white/20 hover:text-white
                          transition-all duration-200 flex items-center justify-center"
-              title="הגדל תצוגה"
+              title="Zoom in"
             >
               <ZoomIn className="w-4 h-4" />
             </button>
@@ -500,7 +500,7 @@ export const Collapsible3DPanel = ({
                       bg-slate-700/80 border-white/10
                       hover:bg-blue-600/80 transition-colors duration-200
                       ${isResizing ? 'bg-blue-600/80' : ''}`}
-          title="גרור לשינוי גודל"
+          title="Drag to resize"
         >
           <GripHorizontal className="w-3 h-3 text-white/60 rotate-45" />
         </div>
@@ -517,7 +517,7 @@ export const Collapsible3DPanel = ({
         {/* Floating mode indicator */}
         {isFloating && !isDragging && (
           <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border border-white/30 shadow-lg" 
-               title="מצב צף - גרור את הכותרת להזזה" />
+               title="Floating mode - drag the header to move" />
         )}
       </motion.div>
     </AnimatePresence>

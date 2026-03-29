@@ -1,13 +1,8 @@
 /**
  * Unified Export Service
  * =====================
- * מערכת ייצוא מאוחדת - מסמך אחד מלא במקום שני ייצואים נפרדים
  * 
- * פותרת את הבעיה של:
- * - Technique Mode: מייצא רק תכנון (לפני הבדיקה)
- * - Report Mode: מייצא רק תוצאות (אחרי הבדיקה)
  * 
- * עכשיו: ייצוא אחד שכולל הכל!
  */
 
 import type { 
@@ -32,46 +27,35 @@ import type {
 import type { InspectionReportData } from "@/types/inspectionReport";
 import type { ScanDetailsData } from "@/types/scanDetails";
 
-// === ממשקים לתבניות ייצוא ===
-
 export interface ExportTemplateConfig {
   id: ExportTemplate;
   name: string;
-  nameHe: string;
   description: string;
-  descriptionHe: string;
   pageCount: string;
   icon: string;
   sections: ExportSection[];
   features: string[];
-  supportsBilingual: boolean;
   requiresApproval: boolean;
 }
 
 export interface ExportSection {
   id: string;
   name: string;
-  nameHe: string;
   required: boolean;
   order: number;
   pages: number;
-  includeInPreInspection: boolean;  // לפני הבדיקה
-  includeInPostInspection: boolean; // אחרי הבדיקה
-  includeInFull: boolean;           // מסמך מלא
+  includeInPreInspection: boolean;  // Pre-inspection export
+  includeInPostInspection: boolean; // Post-inspection export
+  includeInFull: boolean;           // Full document export
 }
-
-// === הגדרת תבניות ===
 
 export const EXPORT_TEMPLATES: ExportTemplateConfig[] = [
   {
     id: "tuv",
     name: "TÜV Professional",
-    nameHe: "TÜV מקצועי",
     description: "19-page comprehensive report with full documentation",
-    descriptionHe: "דו\"ח מקיף של 19 עמודים עם תיעוד מלא",
     pageCount: "19",
     icon: "🏆",
-    supportsBilingual: true,
     requiresApproval: true,
     features: [
       "Document control",
@@ -82,30 +66,27 @@ export const EXPORT_TEMPLATES: ExportTemplateConfig[] = [
       "Digital signatures"
     ],
     sections: [
-      { id: "cover", name: "Cover Page", nameHe: "עמוד שער", required: true, order: 1, pages: 1, includeInPreInspection: true, includeInPostInspection: true, includeInFull: true },
-      { id: "toc", name: "Table of Contents", nameHe: "תוכן עניינים", required: true, order: 2, pages: 1, includeInPreInspection: true, includeInPostInspection: true, includeInFull: true },
-      { id: "revision", name: "Revision History", nameHe: "היסטוריית גרסאות", required: true, order: 3, pages: 1, includeInPreInspection: true, includeInPostInspection: true, includeInFull: true },
-      { id: "scope", name: "Scope & References", nameHe: "היקף והפניות", required: true, order: 4, pages: 1, includeInPreInspection: true, includeInPostInspection: true, includeInFull: true },
-      { id: "partInfo", name: "Part Information", nameHe: "פרטי חלק", required: true, order: 5, pages: 2, includeInPreInspection: true, includeInPostInspection: true, includeInFull: true },
-      { id: "equipment", name: "Equipment", nameHe: "ציוד", required: true, order: 6, pages: 2, includeInPreInspection: true, includeInPostInspection: true, includeInFull: true },
-      { id: "calibration", name: "Calibration", nameHe: "כיול", required: true, order: 7, pages: 2, includeInPreInspection: true, includeInPostInspection: true, includeInFull: true },
-      { id: "refStandards", name: "Reference Standards", nameHe: "תקני ייחוס", required: true, order: 8, pages: 1, includeInPreInspection: true, includeInPostInspection: true, includeInFull: true },
-      { id: "procedures", name: "Inspection Procedures", nameHe: "נהלי בדיקה", required: true, order: 9, pages: 2, includeInPreInspection: true, includeInPostInspection: true, includeInFull: true },
-      { id: "scanPlan", name: "Scan Plan & Coverage", nameHe: "תכנית סריקה וכיסוי", required: true, order: 10, pages: 2, includeInPreInspection: true, includeInPostInspection: true, includeInFull: true },
-      { id: "acceptance", name: "Acceptance Criteria", nameHe: "קריטריונים לקבלה", required: true, order: 11, pages: 1, includeInPreInspection: true, includeInPostInspection: true, includeInFull: true },
-      { id: "results", name: "Inspection Results", nameHe: "תוצאות בדיקה", required: false, order: 12, pages: 2, includeInPreInspection: false, includeInPostInspection: true, includeInFull: true },
-      { id: "signatures", name: "Approval & Signatures", nameHe: "אישורים וחתימות", required: true, order: 13, pages: 1, includeInPreInspection: false, includeInPostInspection: true, includeInFull: true },
+      { id: "cover", name: "Cover Page", required: true, order: 1, pages: 1, includeInPreInspection: true, includeInPostInspection: true, includeInFull: true },
+      { id: "toc", name: "Table of Contents", required: true, order: 2, pages: 1, includeInPreInspection: true, includeInPostInspection: true, includeInFull: true },
+      { id: "revision", name: "Revision History", required: true, order: 3, pages: 1, includeInPreInspection: true, includeInPostInspection: true, includeInFull: true },
+      { id: "scope", name: "Scope & References", required: true, order: 4, pages: 1, includeInPreInspection: true, includeInPostInspection: true, includeInFull: true },
+      { id: "partInfo", name: "Part Information", required: true, order: 5, pages: 2, includeInPreInspection: true, includeInPostInspection: true, includeInFull: true },
+      { id: "equipment", name: "Equipment", required: true, order: 6, pages: 2, includeInPreInspection: true, includeInPostInspection: true, includeInFull: true },
+      { id: "calibration", name: "Calibration", required: true, order: 7, pages: 2, includeInPreInspection: true, includeInPostInspection: true, includeInFull: true },
+      { id: "refStandards", name: "Reference Standards", required: true, order: 8, pages: 1, includeInPreInspection: true, includeInPostInspection: true, includeInFull: true },
+      { id: "procedures", name: "Inspection Procedures", required: true, order: 9, pages: 2, includeInPreInspection: true, includeInPostInspection: true, includeInFull: true },
+      { id: "scanPlan", name: "Scan Plan & Coverage", required: true, order: 10, pages: 2, includeInPreInspection: true, includeInPostInspection: true, includeInFull: true },
+      { id: "acceptance", name: "Acceptance Criteria", required: true, order: 11, pages: 1, includeInPreInspection: true, includeInPostInspection: true, includeInFull: true },
+      { id: "results", name: "Inspection Results", required: false, order: 12, pages: 2, includeInPreInspection: false, includeInPostInspection: true, includeInFull: true },
+      { id: "signatures", name: "Approval & Signatures", required: true, order: 13, pages: 1, includeInPreInspection: false, includeInPostInspection: true, includeInFull: true },
     ]
   },
   {
     id: "chw",
     name: "CHW Forge Style",
-    nameHe: "CHW Forge",
     description: "8-12 page compact professional report",
-    descriptionHe: "דו\"ח מקצועי קומפקטי של 8-12 עמודים",
     pageCount: "8-12",
     icon: "⚡",
-    supportsBilingual: false,
     requiresApproval: false,
     features: [
       "Compact layout",
@@ -114,70 +95,62 @@ export const EXPORT_TEMPLATES: ExportTemplateConfig[] = [
       "Simplified approval"
     ],
     sections: [
-      { id: "cover", name: "Cover & Summary", nameHe: "שער וסיכום", required: true, order: 1, pages: 1, includeInPreInspection: true, includeInPostInspection: true, includeInFull: true },
-      { id: "partEquip", name: "Part & Equipment", nameHe: "חלק וציוד", required: true, order: 2, pages: 2, includeInPreInspection: true, includeInPostInspection: true, includeInFull: true },
-      { id: "calibration", name: "Calibration Setup", nameHe: "הגדרת כיול", required: true, order: 3, pages: 2, includeInPreInspection: true, includeInPostInspection: true, includeInFull: true },
-      { id: "procedures", name: "Procedures", nameHe: "נהלים", required: true, order: 4, pages: 2, includeInPreInspection: true, includeInPostInspection: true, includeInFull: true },
-      { id: "results", name: "Results & Conclusions", nameHe: "תוצאות ומסקנות", required: false, order: 5, pages: 2, includeInPreInspection: false, includeInPostInspection: true, includeInFull: true },
-      { id: "approval", name: "Approval", nameHe: "אישור", required: true, order: 6, pages: 1, includeInPreInspection: false, includeInPostInspection: true, includeInFull: true },
+      { id: "cover", name: "Cover & Summary", required: true, order: 1, pages: 1, includeInPreInspection: true, includeInPostInspection: true, includeInFull: true },
+      { id: "partEquip", name: "Part & Equipment", required: true, order: 2, pages: 2, includeInPreInspection: true, includeInPostInspection: true, includeInFull: true },
+      { id: "calibration", name: "Calibration Setup", required: true, order: 3, pages: 2, includeInPreInspection: true, includeInPostInspection: true, includeInFull: true },
+      { id: "procedures", name: "Procedures", required: true, order: 4, pages: 2, includeInPreInspection: true, includeInPostInspection: true, includeInFull: true },
+      { id: "results", name: "Results & Conclusions", required: false, order: 5, pages: 2, includeInPreInspection: false, includeInPostInspection: true, includeInFull: true },
+      { id: "approval", name: "Approval", required: true, order: 6, pages: 1, includeInPreInspection: false, includeInPostInspection: true, includeInFull: true },
     ]
   },
   {
     id: "iai",
     name: "IAI Standard",
-    nameHe: "תעשייה אווירית",
-    description: "10-15 page bilingual report (Hebrew/English)",
-    descriptionHe: "דו\"ח דו-לשוני של 10-15 עמודים",
+    description: "10-15 page detailed report",
     pageCount: "10-15",
     icon: "✈️",
-    supportsBilingual: true,
     requiresApproval: true,
     features: [
-      "Hebrew/English bilingual",
+      "English report",
       "Detailed procedures",
       "Reference blocks",
       "Coverage tables",
       "IAI standard format"
     ],
     sections: [
-      { id: "cover", name: "Cover Page", nameHe: "עמוד שער", required: true, order: 1, pages: 1, includeInPreInspection: true, includeInPostInspection: true, includeInFull: true },
-      { id: "partInfo", name: "Part Details", nameHe: "פרטי חלק", required: true, order: 2, pages: 2, includeInPreInspection: true, includeInPostInspection: true, includeInFull: true },
-      { id: "equipment", name: "Equipment List", nameHe: "רשימת ציוד", required: true, order: 3, pages: 2, includeInPreInspection: true, includeInPostInspection: true, includeInFull: true },
-      { id: "calibration", name: "Calibration Data", nameHe: "נתוני כיול", required: true, order: 4, pages: 2, includeInPreInspection: true, includeInPostInspection: true, includeInFull: true },
-      { id: "procedures", name: "Test Procedures", nameHe: "נהלי בדיקה", required: true, order: 5, pages: 3, includeInPreInspection: true, includeInPostInspection: true, includeInFull: true },
-      { id: "coverage", name: "Coverage Table", nameHe: "טבלת כיסוי", required: true, order: 6, pages: 1, includeInPreInspection: true, includeInPostInspection: true, includeInFull: true },
-      { id: "results", name: "Test Results", nameHe: "תוצאות בדיקה", required: false, order: 7, pages: 2, includeInPreInspection: false, includeInPostInspection: true, includeInFull: true },
-      { id: "approval", name: "Signatures", nameHe: "חתימות", required: true, order: 8, pages: 1, includeInPreInspection: false, includeInPostInspection: true, includeInFull: true },
+      { id: "cover", name: "Cover Page", required: true, order: 1, pages: 1, includeInPreInspection: true, includeInPostInspection: true, includeInFull: true },
+      { id: "partInfo", name: "Part Details", required: true, order: 2, pages: 2, includeInPreInspection: true, includeInPostInspection: true, includeInFull: true },
+      { id: "equipment", name: "Equipment List", required: true, order: 3, pages: 2, includeInPreInspection: true, includeInPostInspection: true, includeInFull: true },
+      { id: "calibration", name: "Calibration Data", required: true, order: 4, pages: 2, includeInPreInspection: true, includeInPostInspection: true, includeInFull: true },
+      { id: "procedures", name: "Test Procedures", required: true, order: 5, pages: 3, includeInPreInspection: true, includeInPostInspection: true, includeInFull: true },
+      { id: "coverage", name: "Coverage Table", required: true, order: 6, pages: 1, includeInPreInspection: true, includeInPostInspection: true, includeInFull: true },
+      { id: "results", name: "Test Results", required: false, order: 7, pages: 2, includeInPreInspection: false, includeInPostInspection: true, includeInFull: true },
+      { id: "approval", name: "Signatures", required: true, order: 8, pages: 1, includeInPreInspection: false, includeInPostInspection: true, includeInFull: true },
     ]
   },
   {
     id: "custom",
     name: "Custom Template",
-    nameHe: "תבנית מותאמת",
     description: "Customize your export format",
-    descriptionHe: "התאם את תבנית הייצוא",
     pageCount: "Variable",
     icon: "⚙️",
-    supportsBilingual: true,
     requiresApproval: false,
     features: [
       "Select sections",
       "Custom branding",
       "Flexible layout",
-      "Choose language"
+      "Choose export profile"
     ],
-    sections: [] // מוגדר ע"י המשתמש
+    sections: []
   }
 ];
-
-// === שלב הבדיקה ===
 
 export type InspectionPhase = "pre-inspection" | "post-inspection" | "complete";
 
 export interface ExportContext {
   phase: InspectionPhase;
   template: ExportTemplate;
-  language: "en" | "he" | "both";
+  language: "en";
   includeImages: boolean;
   includeTables: boolean;
   includeCharts: boolean;
@@ -185,10 +158,7 @@ export interface ExportContext {
   customSections?: string[];
 }
 
-// === פונקציות מיפוי נתונים ===
-
 /**
- * ממפה נתונים מהמבנה הישן (Technique + Report) למבנה המאוחד
  */
 export function mapLegacyDataToUnified(
   inspectionSetup: InspectionSetupData,
@@ -422,8 +392,6 @@ function mapToDocumentation(
   };
 }
 
-// === זיהוי שלב הבדיקה ===
-
 export function detectInspectionPhase(data: Partial<UnifiedInspectionData>): InspectionPhase {
   const hasResults = (data.results?.scanResults?.length ?? 0) > 0;
   const hasApproval = !!data.documentation?.personnel?.approver?.name;
@@ -436,8 +404,6 @@ export function detectInspectionPhase(data: Partial<UnifiedInspectionData>): Ins
   }
   return "pre-inspection";
 }
-
-// === חישוב סעיפים לייצוא ===
 
 export function getSectionsForExport(
   template: ExportTemplateConfig,
@@ -462,8 +428,6 @@ export function getSectionsForExport(
   }).sort((a, b) => a.order - b.order);
 }
 
-// === חישוב סטטיסטיקות ייצוא ===
-
 export interface ExportStats {
   totalPages: number;
   sectionsIncluded: number;
@@ -485,8 +449,6 @@ export function calculateExportStats(
   
   const totalPages = sections.reduce((sum, s) => sum + s.pages, 0);
   const missingData: string[] = [];
-  
-  // בדיקת נתונים חסרים
   if (!data.project?.partNumber) missingData.push("Part Number");
   if (!data.project?.customerName) missingData.push("Customer Name");
   if (!data.equipment?.probes?.length) missingData.push("Probe Details");
@@ -496,16 +458,14 @@ export function calculateExportStats(
     if (!data.results?.scanResults?.length) missingData.push("Scan Results");
     if (!data.documentation?.personnel?.inspector?.name) missingData.push("Inspector Name");
   }
-  
-  // חישוב אחוז מוכנות
   const totalRequiredFields = 10;
   const filledFields = totalRequiredFields - missingData.length;
   const readinessPercentage = Math.round((filledFields / totalRequiredFields) * 100);
   
   const phaseLabels: Record<InspectionPhase, { en: string; he: string }> = {
-    "pre-inspection": { en: "Pre-Inspection", he: "לפני הבדיקה" },
-    "post-inspection": { en: "Post-Inspection", he: "אחרי הבדיקה" },
-    "complete": { en: "Complete Report", he: "דו\"ח מלא" },
+    "pre-inspection": { en: "Pre-Inspection", he: "Pre-Inspection" },
+    "post-inspection": { en: "Post-Inspection", he: "Post-Inspection" },
+    "complete": { en: "Complete Report", he: "Complete Report" },
   };
   
   return {
@@ -519,8 +479,6 @@ export function calculateExportStats(
     phaseLabelHe: phaseLabels[phase].he,
   };
 }
-
-// === יצירת תצוגה מקדימה ===
 
 export interface PreviewData {
   sections: {
@@ -544,9 +502,9 @@ export function generatePreview(
   return {
     sections: sections.map(section => ({
       id: section.id,
-      name: context.language === "he" ? section.nameHe : section.name,
+      name: section.name,
       status: getSectionStatus(section.id, data, phase),
-      content: getSectionPreviewContent(section.id, data, context.language),
+      content: getSectionPreviewContent(section.id, data, "en"),
     })),
     summary: stats,
   };
@@ -581,36 +539,32 @@ function getSectionPreviewContent(
   data: Partial<UnifiedInspectionData>,
   language: "en" | "he" | "both"
 ): string {
-  const isHebrew = language === "he";
-  
   switch (sectionId) {
     case "cover":
       return data.project?.partNumber 
-        ? `${isHebrew ? "חלק" : "Part"}: ${data.project.partNumber}` 
-        : isHebrew ? "ממתין למילוי..." : "Pending...";
+        ? `Part: ${data.project.partNumber}` 
+        : "Pending...";
     case "partInfo":
       return data.project?.material 
-        ? `${isHebrew ? "חומר" : "Material"}: ${data.project.material}` 
-        : isHebrew ? "ממתין..." : "Pending...";
+        ? `Material: ${data.project.material}` 
+        : "Pending...";
     case "equipment":
       return data.equipment?.manufacturer 
         ? `${data.equipment.manufacturer} ${data.equipment.model}` 
-        : isHebrew ? "לא הוגדר ציוד" : "No equipment defined";
+        : "No equipment defined";
     case "calibration":
       return data.equipment?.calibrationBlocks?.[0]?.name 
-        || (isHebrew ? "לא הוגדר בלוק כיול" : "No calibration block defined");
+        || "No calibration block defined";
     case "results": {
       const count = data.results?.scanResults?.length || 0;
       return count > 0 
-        ? `${count} ${isHebrew ? "סריקות" : "scans"}` 
-        : isHebrew ? "אין תוצאות עדיין" : "No results yet";
+        ? `${count} scans` 
+        : "No results yet";
     }
     default:
       return "";
   }
 }
-
-// === ייצוא הראשי ===
 
 export const unifiedExportService = {
   templates: EXPORT_TEMPLATES,

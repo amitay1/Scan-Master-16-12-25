@@ -129,7 +129,7 @@ export const exportTemplates: Record<ExportTemplate, TemplateConfiguration> = {
     },
     features: [
       "Professional TÜV-style formatting",
-      "Bilingual support (Hebrew/English)",
+      "English-only output",
       "Document control with revision tracking",
       "19 comprehensive pages",
       "Professional logo placement",

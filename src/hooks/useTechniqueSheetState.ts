@@ -1,4 +1,4 @@
-﻿import { useState, useMemo, useCallback, Dispatch, SetStateAction } from "react";
+import { useState, useMemo, useCallback, Dispatch, SetStateAction } from "react";
 import type {
   StandardType,
   InspectionSetupData,
@@ -28,8 +28,6 @@ import { PW_ANGLE_CALIBRATION_BLOCK } from "@/rules/pw/pwCalibrationBlocks";
 import { getInspectionThickness } from "@/utils/inspectionThickness";
 import { normalizeScanDetailsForStandard } from "@/utils/pwScanDetailDefaults";
 import { getV2500InspectionSetupDefaults } from "@/utils/pwNdipDefaults";
-
-// ג”€ג”€ Default initial values ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
 
 const defaultInspectionSetup: InspectionSetupData = {
   partNumber: "",
@@ -138,8 +136,6 @@ const defaultScanPlan: ScanPlanData = {
   ],
 };
 
-// ג”€ג”€ Current-data shape returned by currentData useMemo ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
-
 export interface CurrentPartData {
   inspectionSetup: InspectionSetupData;
   equipment: EquipmentData;
@@ -158,8 +154,6 @@ export interface CurrentPartData {
   setScanDetails: Dispatch<SetStateAction<ScanDetailsData>>;
   setScanPlan: Dispatch<SetStateAction<ScanPlanData>>;
 }
-
-// ג”€ג”€ Hook params ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
 
 interface UseTechniqueSheetStateParams {
   standard: StandardType;
@@ -188,8 +182,6 @@ export function useTechniqueSheetState({
   setActivePart,
 }: UseTechniqueSheetStateParams) {
   const [hasHydratedInitialDraft, setHasHydratedInitialDraft] = useState(false);
-
-  // ג”€ג”€ Part A state ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
   const [inspectionSetup, setInspectionSetup] = useState<InspectionSetupData>({ ...defaultInspectionSetup });
   const [equipment, setEquipment] = useState<EquipmentData>({ ...defaultEquipment });
   const [calibration, setCalibration] = useState<CalibrationData>({ ...defaultCalibration });
@@ -198,8 +190,6 @@ export function useTechniqueSheetState({
   const [documentation, setDocumentation] = useState<DocumentationData>(defaultDocumentation());
   const [scanDetails, setScanDetails] = useState<ScanDetailsData>({ ...defaultScanDetails });
   const [scanPlan, setScanPlan] = useState<ScanPlanData>(JSON.parse(JSON.stringify(defaultScanPlan)));
-
-  // ג”€ג”€ Part B state ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
   const [inspectionSetupB, setInspectionSetupB] = useState<InspectionSetupData>({ ...defaultInspectionSetup });
   const [equipmentB, setEquipmentB] = useState<EquipmentData>({ ...defaultEquipment });
   const [calibrationB, setCalibrationB] = useState<CalibrationData>({ ...defaultCalibration });
@@ -208,11 +198,7 @@ export function useTechniqueSheetState({
   const [documentationB, setDocumentationB] = useState<DocumentationData>(defaultDocumentation());
   const [scanDetailsB, setScanDetailsB] = useState<ScanDetailsData>({ ...defaultScanDetails });
   const [scanPlanB, setScanPlanB] = useState<ScanPlanData>(JSON.parse(JSON.stringify(defaultScanPlan)));
-
-  // ג”€ג”€ Inspection Report state ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
   const [inspectionReport, setInspectionReport] = useState<InspectionReportData>(getDefaultInspectionReportData());
-
-  // ג”€ג”€ currentData ג€“ picks A or B depending on split mode ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
   const currentData: CurrentPartData = useMemo(() => {
     if (!isSplitMode || activePart === "A") {
       return {
@@ -237,8 +223,6 @@ export function useTechniqueSheetState({
     inspectionSetup, equipment, calibration, scanParameters, acceptanceCriteria, documentation, scanDetails, scanPlan,
     inspectionSetupB, equipmentB, calibrationB, scanParametersB, acceptanceCriteriaB, documentationB, scanDetailsB, scanPlanB,
   ]);
-
-  // ג”€ג”€ Copy Part A ג†’ B ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
   const copyPartAToB = useCallback(() => {
     setInspectionSetupB({ ...inspectionSetup });
     setEquipmentB({ ...equipment });
@@ -249,8 +233,6 @@ export function useTechniqueSheetState({
     setScanDetailsB({ ...scanDetails });
     toast.success("Part A copied to Part B");
   }, [inspectionSetup, equipment, calibration, scanParameters, acceptanceCriteria, documentation, scanDetails]);
-
-  // ג”€ג”€ Build payload for DB save ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
   const buildTechniqueSheetPayload = useCallback((): TechniqueSheetCardData => ({
     standard,
     activeTab,
@@ -274,8 +256,6 @@ export function useTechniqueSheetState({
     inspectionSetupB, equipmentB, calibrationB, scanParametersB, acceptanceCriteriaB, documentationB, scanDetailsB,
     inspectionReport,
   ]);
-
-  // ג”€ג”€ Build card data for local save ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
   const buildCardData = useCallback(() => ({
     standard,
     activeTab,
@@ -299,8 +279,6 @@ export function useTechniqueSheetState({
     inspectionSetupB, equipmentB, calibrationB, scanParametersB, acceptanceCriteriaB, documentationB, scanDetailsB,
     inspectionReport,
   ]);
-
-  // ג”€ג”€ Apply loaded sheet (from DB) ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
   const applyLoadedSheet = useCallback((record: TechniqueSheetRecord) => {
     const data = record.data;
     if (!data) {
@@ -332,8 +310,6 @@ export function useTechniqueSheetState({
 
     setInspectionReport(data.inspectionReport || getDefaultInspectionReportData());
   }, [setStandard, setActiveTab, setReportMode, setIsSplitMode, setActivePart]);
-
-  // ג”€ג”€ Apply loaded local card (from localStorage) ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
   const applyLocalCard = useCallback((data: any) => {
     if (data.standard) setStandard(data.standard as StandardType);
     if (data.activeTab) setActiveTab(data.activeTab);
@@ -359,8 +335,6 @@ export function useTechniqueSheetState({
 
     if (data.inspectionReport) setInspectionReport(data.inspectionReport);
   }, [setStandard, setActiveTab, setReportMode, setIsSplitMode, setActivePart]);
-
-  // ג”€ג”€ Load / save draft from localStorage ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
   const loadDraftFromLocalStorage = useCallback(() => {
     const saved = localStorage.getItem("techniqueSheet_draft");
     if (!saved) {
@@ -392,8 +366,6 @@ export function useTechniqueSheetState({
       setHasHydratedInitialDraft(true);
     }
   }, [setStandard, setIsSplitMode, setActivePart]);
-
-  // ג”€ג”€ Load test card (dev / testing) ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
   const applyTestCard = useCallback((card: {
     standard: StandardType;
     inspectionSetup: InspectionSetupData;
@@ -432,8 +404,6 @@ export function useTechniqueSheetState({
     setScanDetailsB({ ...defaultScanDetails });
     setScanPlanB(cloneData(defaultScanPlan));
   }, [reportMode, setStandard, setIsSplitMode, setActivePart, setActiveTab]);
-
-  // ג”€ג”€ Apply sample card (from JSON) ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
   const applySampleCard = useCallback((card: any) => {
     setStandard(card.standard || "AMS-STD-2154E");
     if (card.inspectionSetup) setInspectionSetup(card.inspectionSetup);

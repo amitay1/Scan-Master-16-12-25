@@ -19,10 +19,10 @@ export function SettingsSync() {
     }
   }, [settings.general.theme, setTheme, theme]);
 
-  // Apply language direction
+  // Keep the application in English/LTR mode
   useEffect(() => {
-    document.documentElement.dir = settings.general.language === 'he' ? 'rtl' : 'ltr';
-    document.documentElement.lang = settings.general.language;
+    document.documentElement.dir = 'ltr';
+    document.documentElement.lang = 'en';
   }, [settings.general.language]);
 
   useEffect(() => {

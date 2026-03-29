@@ -467,6 +467,7 @@ const Index = () => {
   );
 
   const workbenchTabTriggerClass = "flex-shrink-0 px-3 py-2";
+  const workbenchTabListClass = "inline-flex h-auto w-max min-w-full flex-nowrap items-center justify-center gap-2 md:gap-3";
 
   // ── Loading / auth guards ──────────────────────────────────────────────
   if (loading) {
@@ -603,10 +604,10 @@ const Index = () => {
                   <>
                     <div className="workbench-header">
                       <div className="workbench-tabstrip workbench-tabstrip-compact w-full overflow-x-auto scrollbar-hide md:overflow-visible sticky top-0 z-10">
-                        <TabsList className="inline-flex flex-nowrap h-auto items-center justify-start w-max md:w-full">
+                        <TabsList className={workbenchTabListClass}>
                           <TabsTrigger value="setup" className={workbenchTabTriggerClass}>Setup</TabsTrigger>
-                          <TabsTrigger value="scan" className={`${workbenchTabTriggerClass} whitespace-nowrap`}>Scan Params</TabsTrigger>
                           <TabsTrigger value="equipment" className={workbenchTabTriggerClass}>Equipment</TabsTrigger>
+                          <TabsTrigger value="scan" className={`${workbenchTabTriggerClass} whitespace-nowrap`}>Scan Params</TabsTrigger>
                           <TabsTrigger value="calibration" className={`${workbenchTabTriggerClass} whitespace-nowrap`}>Reference Standard</TabsTrigger>
                           <TabsTrigger value="acceptance" className={workbenchTabTriggerClass}>Acceptance</TabsTrigger>
                           <TabsTrigger value="scandetails" className={`${workbenchTabTriggerClass} whitespace-nowrap`}>Scan Details</TabsTrigger>
@@ -660,7 +661,7 @@ const Index = () => {
                       </div>
                       </div>
                       <div className="workbench-tabstrip workbench-tabstrip-compact w-full overflow-x-auto scrollbar-hide md:overflow-visible sticky top-0 z-10">
-                        <TabsList className="inline-flex flex-nowrap h-auto items-center justify-start w-max md:w-full">
+                        <TabsList className={workbenchTabListClass}>
                           <TabsTrigger value="cover" className={`${workbenchTabTriggerClass} whitespace-nowrap`}>Cover Page</TabsTrigger>
                           <TabsTrigger value="equipment-report" className={`${workbenchTabTriggerClass} whitespace-nowrap`}>Equipment</TabsTrigger>
                           <TabsTrigger value="diagram" className={`${workbenchTabTriggerClass} whitespace-nowrap`}>Part Diagram</TabsTrigger>

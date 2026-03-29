@@ -25,7 +25,6 @@ const getE2375PageInfo = (partType: PartGeometry): {
   page: number;
   figure: string;
   title: string;
-  titleHe: string;
   description: string;
 } | null => {
   switch (partType) {
@@ -36,7 +35,6 @@ const getE2375PageInfo = (partType: PartGeometry): {
         page: 11,
         figure: "Figure 6",
         title: "Plate and Flat Bar",
-        titleHe: "פלייט ומוט שטוח",
         description: "Scan with a straight beam with the beam directed as shown. If W/T > 5, scan with straight beam. If W or T > 9 inches (228.6 mm), surface resolution requirements may require scanning from opposite side."
       };
       
@@ -48,7 +46,6 @@ const getE2375PageInfo = (partType: PartGeometry): {
         page: 11,
         figure: "Figure 6",
         title: "Rectangular Bar, Bloom, and Billets",
-        titleHe: "מוט מלבני, בלום ובילטים",
         description: "If W/T < 5, scan with a straight beam from two adjacent sides with the sound beam directed as shown. If T or W > 9 inches (228.6 mm), surface resolution requirements may require scanning from opposite sides."
       };
       
@@ -60,7 +57,6 @@ const getE2375PageInfo = (partType: PartGeometry): {
         page: 11,
         figure: "Figure 6",
         title: "Round Bars and Round Forging Stock",
-        titleHe: "מוטות עגולים ומלאי חישול עגול",
         description: "Examine by straight beam with sound beam directed towards the center of the bar as shown while bar is rotating to locate discontinuities at or near the center of the bar."
       };
 
@@ -75,7 +71,6 @@ const getE2375PageInfo = (partType: PartGeometry): {
         page: 12,
         figure: "Figure 7",
         title: "Ring Forgings",
-        titleHe: "חישולי טבעת",
         description: "Scan with a straight beam from the circumference with the sound beam directed radially as shown if ring forging thickness is not > 20% of OD. Scanning with a straight beam in the axial direction is required only if L/T < 5."
       };
       
@@ -85,7 +80,6 @@ const getE2375PageInfo = (partType: PartGeometry): {
         page: 12,
         figure: "Figure 7",
         title: "Disk Forging",
-        titleHe: "חישול דיסק",
         description: "Scan with straight beams as shown, from at least one flat face, and radially from the circumference whenever practical."
       };
       
@@ -95,7 +89,6 @@ const getE2375PageInfo = (partType: PartGeometry): {
         page: 12,
         figure: "Figure 7",
         title: "Hex Bar",
-        titleHe: "מוט משושה",
         description: "Scan with a straight beam from three adjacent faces. Also, when T exceeds a value where attenuation reduces the signal to an unacceptable value scan from opposite sides."
       };
 
@@ -105,7 +98,6 @@ const getE2375PageInfo = (partType: PartGeometry): {
         page: 11,
         figure: "Figure 6",
         title: "Standard Shapes",
-        titleHe: "צורות סטנדרטיות",
         description: "Refer to ASTM E2375 for specific scanning requirements for this geometry."
       };
   }
@@ -348,7 +340,7 @@ export const E2375StandardDiagram: React.FC<E2375StandardDiagramProps> = ({
                 {pageInfo.title}
               </h3>
               <p className="text-sm text-muted-foreground mt-1">
-                ASTM E2375-16 {pageInfo.figure} (Page {pageInfo.page}) • {pageInfo.titleHe}
+                ASTM E2375-16 {pageInfo.figure} (Page {pageInfo.page})
               </p>
             </div>
             <div className="flex gap-2">

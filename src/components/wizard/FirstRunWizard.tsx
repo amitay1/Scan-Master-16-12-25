@@ -256,9 +256,6 @@ export function FirstRunWizard({ open, onComplete, onSkip }: FirstRunWizardProps
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="en">English</SelectItem>
-                <SelectItem value="he">Hebrew</SelectItem>
-                <SelectItem value="de">German</SelectItem>
-                <SelectItem value="fr">French</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -407,7 +404,7 @@ export function FirstRunWizard({ open, onComplete, onSkip }: FirstRunWizardProps
       <div className="bg-muted/50 p-4 rounded-lg max-w-sm mx-auto mb-8">
         <h4 className="font-medium mb-2">Your Configuration:</h4>
         <div className="text-sm text-muted-foreground space-y-1 text-left">
-          <p><span className="text-foreground">Language:</span> {wizardData.selectedLanguage === 'en' ? 'English' : wizardData.selectedLanguage}</p>
+          <p><span className="text-foreground">Language:</span> English</p>
           <p><span className="text-foreground">Units:</span> {wizardData.selectedUnits === 'metric' ? 'Metric (mm)' : 'Imperial (inch)'}</p>
           <p><span className="text-foreground">Default Standard:</span> {wizardData.defaultStandard}</p>
           {wizardData.organizationName && (

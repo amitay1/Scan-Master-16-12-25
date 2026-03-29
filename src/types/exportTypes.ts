@@ -30,7 +30,7 @@ export interface ExportOptions {
   revisionNumber?: string;
   revisionDate?: string;
   revisionDescription?: string;
-  language?: "english" | "hebrew" | "bilingual";
+  language?: "english";
   certificationLevel?: "Level I" | "Level II" | "Level III";
   inspectorCertification?: string;
   controlledCopy?: boolean;

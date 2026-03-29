@@ -85,7 +85,7 @@ export function ExportDialog({ open, onOpenChange, partDiagram, data }: ExportDi
     revisionDate: getCurrentDate(),
     revisionDescription: "Initial Release",
     controlledCopy: true,
-    language: "bilingual"
+    language: "english"
   });
   const [certification, setCertification] = useState<CertificationData>({
     inspectorName: data.documentation.inspectorName || "",
@@ -358,7 +358,7 @@ export function ExportDialog({ open, onOpenChange, partDiagram, data }: ExportDi
                   <AlertDescription className="text-blue-800 dark:text-blue-200">
                     <strong>TÜV Professional Template</strong>
                     <br />
-                    This template creates a comprehensive 19-page report following TÜV international standards with bilingual support and professional certification requirements.
+                    This template creates a comprehensive 19-page report following TÜV international standards with professional certification requirements.
                   </AlertDescription>
                 </Alert>
 

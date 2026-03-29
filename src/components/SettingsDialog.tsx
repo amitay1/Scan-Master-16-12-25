@@ -456,7 +456,6 @@ function GeneralSettings() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="en">English</SelectItem>
-              <SelectItem value="he">עברית</SelectItem>
             </SelectContent>
           </Select>
         </SettingsRow>

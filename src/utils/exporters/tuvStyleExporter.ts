@@ -4,7 +4,7 @@
  * 
  * Creates comprehensive 19-page inspection reports following TÜV professional standards
  * Features:
- * - Bilingual support (Hebrew/English)
+ * - English-only output
  * - Professional logo placement
  * - Document control with revision tracking
  * - Level II/III certification signatures
@@ -23,7 +23,7 @@ export interface TuvDocumentInfo {
   revisionDate: string;
   revisionDescription: string;
   controlledCopy: boolean;
-  language: "english" | "hebrew" | "bilingual";
+  language: "english";
 }
 
 export interface TuvCertificationInfo {
@@ -71,7 +71,7 @@ export class TuvStyleExporter extends BaseExporter {
       revisionDate: options.revisionDate || new Date().toLocaleDateString(),
       revisionDescription: options.revisionDescription || "Initial Release",
       controlledCopy: options.controlledCopy ?? true,
-      language: options.language || "bilingual"
+      language: "english"
     };
 
     this.certificationInfo = {
@@ -192,16 +192,23 @@ export class TuvStyleExporter extends BaseExporter {
   }
 
   private getDocumentTitle(): string {
-    const isBilingual = this.documentInfo.language === "bilingual";
-    const isHebrew = this.documentInfo.language === "hebrew";
-    
-    if (isBilingual) {
-      return "Ultrasonic Testing Procedure / נוהל בדיקה אולטראסונית";
-    } else if (isHebrew) {
-      return "נוהל בדיקה אולטראסונית";
-    } else {
-      return "Ultrasonic Testing Procedure";
-    }
+    return "Ultrasonic Testing Procedure";
+  }
+
+  private toEnglishOnly(text: string): string {
+    return text
+      .replace(/\s*\/\s*[\u0590-\u05FF][^\n\r'\"]*/gu, '')
+      .replace(/\\n[\u0590-\u05FF][^\n\r'\"]*/gu, '')
+      .replace(/[\u0590-\u05FF]+/gu, '')
+      .replace(/•\s*/g, '• ')
+      .replace(/\s{2,}/g, ' ')
+      .trim();
+  }
+
+  private sanitizeLines(lines: string[]): string[] {
+    return lines
+      .map((line) => this.toEnglishOnly(line))
+      .filter((line) => line.length > 0);
   }
 
   // Page 1: Professional Cover Page
@@ -316,28 +323,28 @@ export class TuvStyleExporter extends BaseExporter {
     this.doc.setFontSize(18);
     this.doc.setFont('helvetica', 'bold');
     this.doc.setTextColor(...this.tuvColors.primary);
-    this.doc.text('Table of Contents / תוכן העניינים', this.pageWidth / 2, yPos, { align: 'center' });
+    this.doc.text('NO RECORDABLE INDICATIONS FOUND', this.pageWidth / 2, yPos, { align: 'center' });
 
     yPos += 20;
 
     const tocItems = [
-      { section: '1.', title: 'Scope and Purpose / תחום והמטרה', page: 3 },
-      { section: '2.', title: 'Surface Preparation / הכנת המשטח', page: 4 },
-      { section: '3.', title: 'Equipment / ציוד', page: 5 },
-      { section: '4.', title: 'Calibration / כיול', page: 6 },
-      { section: '5.', title: 'Calibration Verification / אימות כיול', page: 7 },
-      { section: '6.', title: 'Part Identification / זיהוי החלק', page: 8 },
-      { section: '7.', title: 'Inspection Coverage / כיסוי הבדיקה', page: 9 },
-      { section: '8.', title: 'Detection Capability / יכולת גילוי', page: 10 },
-      { section: '9.', title: 'Acceptance Criteria / קריטריוני קבלה', page: 11 },
-      { section: '10.', title: 'Cleaning / ניקוי', page: 12 },
-      { section: '11.', title: 'Reference Standards / תקנים מתייחסים', page: 13 },
-      { section: '12.', title: 'Report / דוח', page: 14 },
-      { section: '13.', title: 'Technical Parameters / פרמטרים טכניים', page: 15 },
-      { section: '14.', title: 'Scan Results / תוצאות הסריקה', page: 16 },
-      { section: '15.', title: 'Quality Assurance / אישור איכות', page: 17 },
-      { section: '16.', title: 'Document Control / בקרת מסמכים', page: 18 },
-      { section: '17.', title: 'Signatures / חתימות', page: 19 },
+      { section: '1.', title: '', page: 3 },
+      { section: '2.', title: '', page: 4 },
+      { section: '3.', title: '', page: 5 },
+      { section: '4.', title: '', page: 6 },
+      { section: '5.', title: '', page: 7 },
+      { section: '6.', title: '', page: 8 },
+      { section: '7.', title: '', page: 9 },
+      { section: '8.', title: '', page: 10 },
+      { section: '9.', title: '', page: 11 },
+      { section: '10.', title: '', page: 12 },
+      { section: '11.', title: '', page: 13 },
+      { section: '12.', title: '', page: 14 },
+      { section: '13.', title: '', page: 15 },
+      { section: '14.', title: '', page: 16 },
+      { section: '15.', title: '', page: 17 },
+      { section: '16.', title: '', page: 18 },
+      { section: '17.', title: '', page: 19 },
     ];
 
     this.doc.setFontSize(11);
@@ -346,7 +353,7 @@ export class TuvStyleExporter extends BaseExporter {
 
     tocItems.forEach((item) => {
       this.doc.text(item.section, this.margin, yPos);
-      this.doc.text(item.title, this.margin + 15, yPos);
+      this.doc.text(this.toEnglishOnly(item.title), this.margin + 15, yPos);
       
       // Dotted line
       const titleWidth = this.doc.getTextWidth(item.section + ' ' + item.title);
@@ -368,7 +375,7 @@ export class TuvStyleExporter extends BaseExporter {
     this.currentPage = 3;
     this.addHeaderFooter(this.currentPage);
 
-    this.createSectionHeader('1. Scope and Purpose / תחום והמטרה', 50);
+    this.createSectionHeader('1. Scope and Purpose', 50);
     
     let yPos = 70;
     this.doc.setFontSize(11);
@@ -380,35 +387,32 @@ export class TuvStyleExporter extends BaseExporter {
       "internal discontinuities in the specified component. The inspection shall be performed",
       "in accordance with the applicable codes and standards.",
       "",
-      "נוהל זה מגדיר את שיטת הבדיקה האולטראסונית שתיושם לגילוי",
-      "אי-רציפויות פנימיות ברכיב המוגדר. הבדיקה תבוצע",
-      "בהתאם לקודים ולתקנים החלים."
     ];
 
-    scopeText.forEach(line => {
+    this.sanitizeLines(scopeText).forEach(line => {
       this.doc.text(line, this.margin, yPos, { maxWidth: this.pageWidth - 2 * this.margin });
       yPos += 6;
     });
 
     // Inspection objectives
     yPos += 10;
-    this.createSubsectionHeader('1.1 Inspection Objectives / יעדי הבדיקה', yPos);
+    this.createSubsectionHeader('1.1 Inspection Objectives', yPos);
     yPos += 15;
 
     const objectives = [
-      "• Detection of internal flaws / גילוי פגמים פנימיים",
-      "• Verification of material integrity / אימות תקינות החומר", 
-      "• Assessment of component fitness for service / הערכת כשירות הרכיב לשירות"
+      "• Detection of internal flaws",
+      "• Verification of material integrity", 
+      "• Assessment of component fitness for service"
     ];
 
-    objectives.forEach(objective => {
+    this.sanitizeLines(objectives).forEach(objective => {
       this.doc.text(objective, this.margin + 5, yPos);
       yPos += 8;
     });
 
     // Applicable standards table
     yPos += 15;
-    this.createSubsectionHeader('1.2 Applicable Standards / תקנים חלים', yPos);
+    this.createSubsectionHeader('1.2 Applicable Standards', yPos);
     yPos += 15;
 
     const standards = [
@@ -440,7 +444,7 @@ export class TuvStyleExporter extends BaseExporter {
     this.currentPage = 4;
     this.addHeaderFooter(this.currentPage);
 
-    this.createSectionHeader('2. Surface Preparation / הכנת המשטח', 50);
+    this.createSectionHeader('2. Surface Preparation', 50);
     
     let yPos = 70;
     
@@ -472,7 +476,7 @@ export class TuvStyleExporter extends BaseExporter {
     });
 
     yPos = this.getTableFinalY() + 20;
-    this.createSubsectionHeader('2.1 Cleaning Procedure / נוהל הניקוי', yPos);
+    this.createSubsectionHeader('2.1 Cleaning Procedure', yPos);
     yPos += 15;
 
     const cleaningSteps = [
@@ -495,7 +499,7 @@ export class TuvStyleExporter extends BaseExporter {
     this.currentPage = 5;
     this.addHeaderFooter(this.currentPage);
 
-    this.createSectionHeader('3. Equipment / ציוד', 50);
+    this.createSectionHeader('3. Equipment', 50);
     
     let yPos = 70;
 
@@ -529,7 +533,7 @@ export class TuvStyleExporter extends BaseExporter {
 
     // Transducer specifications
     yPos = this.getTableFinalY() + 20;
-    this.createSubsectionHeader('3.1 Transducer Specifications / מפרט המתמרים', yPos);
+    this.createSubsectionHeader('3.1 Transducer Specifications', yPos);
     yPos += 15;
 
     const transducerData = [
@@ -563,7 +567,7 @@ export class TuvStyleExporter extends BaseExporter {
     this.currentPage = 6;
     this.addHeaderFooter(this.currentPage);
 
-    this.createSectionHeader('4. Calibration / כיול', 50);
+    this.createSectionHeader('4. Calibration', 50);
     
     let yPos = 70;
     const calibrationData = [
@@ -592,7 +596,7 @@ export class TuvStyleExporter extends BaseExporter {
     });
 
     yPos = this.getTableFinalY() + 20;
-    this.createSubsectionHeader('4.1 Calibration Procedure / נוהל כיול', yPos);
+    this.createSubsectionHeader('4.1 Calibration Procedure', yPos);
     yPos += 15;
 
     const calibrationSteps = [
@@ -615,10 +619,10 @@ export class TuvStyleExporter extends BaseExporter {
     this.currentPage = 7;
     this.addHeaderFooter(this.currentPage);
 
-    this.createSectionHeader('5. Calibration Verification / אימות כיול', 50);
+    this.createSectionHeader('5. Calibration Verification', 50);
     
     let yPos = 70;
-    this.createSubsectionHeader('5.1 Daily Verification Checks / בדיקות אימות יומיות', yPos);
+    this.createSubsectionHeader('5.1 Daily Verification Checks', yPos);
     yPos += 15;
 
     const verificationData = [
@@ -650,7 +654,7 @@ export class TuvStyleExporter extends BaseExporter {
     this.currentPage = 8;
     this.addHeaderFooter(this.currentPage);
 
-    this.createSectionHeader('6. Part Identification / זיהוי החלק', 50);
+    this.createSectionHeader('6. Part Identification', 50);
     
     let yPos = 70;
     const partData = this.data.inspectionSetup;
@@ -685,7 +689,7 @@ export class TuvStyleExporter extends BaseExporter {
 
     // Part dimensions
     yPos = this.getTableFinalY() + 20;
-    this.createSubsectionHeader('6.1 Part Dimensions / מידות החלק', yPos);
+    this.createSubsectionHeader('6.1 Part Dimensions', yPos);
     yPos += 15;
 
     const dimensionsData = [
@@ -716,7 +720,7 @@ export class TuvStyleExporter extends BaseExporter {
     this.currentPage = 9;
     this.addHeaderFooter(this.currentPage);
 
-    this.createSectionHeader('7. Inspection Coverage / כיסוי הבדיקה', 50);
+    this.createSectionHeader('7. Inspection Coverage', 50);
     
     let yPos = 70;
     this.doc.setFontSize(11);
@@ -728,12 +732,9 @@ export class TuvStyleExporter extends BaseExporter {
       "as specified in the applicable drawing or specification. Minimum coverage",
       "requirements are defined below:",
       "",
-      "כיסוי הבדיקה יכלול את כל האזורים הנגישים של הרכיב",
-      "כמוגדר בשרטוט או במפרט החל. דרישות כיסוי מינימליות",
-      "מוגדרות להלן:"
     ];
 
-    coverageText.forEach(line => {
+    this.sanitizeLines(coverageText).forEach(line => {
       this.doc.text(line, this.margin, yPos, { maxWidth: this.pageWidth - 2 * this.margin });
       yPos += 6;
     });
@@ -768,10 +769,10 @@ export class TuvStyleExporter extends BaseExporter {
     this.currentPage = 10;
     this.addHeaderFooter(this.currentPage);
 
-    this.createSectionHeader('8. Detection Capability / יכולת גילוי', 50);
+    this.createSectionHeader('8. Detection Capability', 50);
     
     let yPos = 70;
-    this.createSubsectionHeader('8.1 Minimum Detectable Flaw / פגם מינימלי לגילוי', yPos);
+    this.createSubsectionHeader('8.1 Minimum Detectable Flaw', yPos);
     yPos += 15;
 
     const detectionData = [
@@ -799,7 +800,7 @@ export class TuvStyleExporter extends BaseExporter {
     });
 
     yPos = this.getTableFinalY() + 20;
-    this.createSubsectionHeader('8.2 Detection Sensitivity / רגישות גילוי', yPos);
+    this.createSubsectionHeader('8.2 Detection Sensitivity', yPos);
     yPos += 15;
 
     const sensitivityText = [
@@ -819,7 +820,7 @@ export class TuvStyleExporter extends BaseExporter {
     this.currentPage = 11;
     this.addHeaderFooter(this.currentPage);
 
-    this.createSectionHeader('9. Acceptance Criteria / קריטריוני קבלה', 50);
+    this.createSectionHeader('9. Acceptance Criteria', 50);
     
     const yPos = 70;
     const criteria = this.data.acceptanceCriteria;
@@ -854,10 +855,10 @@ export class TuvStyleExporter extends BaseExporter {
     this.currentPage = 12;
     this.addHeaderFooter(this.currentPage);
 
-    this.createSectionHeader('10. Cleaning / ניקוי', 50);
+    this.createSectionHeader('10. Cleaning', 50);
     
     let yPos = 70;
-    this.createSubsectionHeader('10.1 Pre-Inspection Cleaning / ניקוי טרום בדיקה', yPos);
+    this.createSubsectionHeader('10.1 Pre-Inspection Cleaning', yPos);
     yPos += 15;
 
     const preCleaningSteps = [
@@ -877,7 +878,7 @@ export class TuvStyleExporter extends BaseExporter {
     });
 
     yPos += 15;
-    this.createSubsectionHeader('10.2 Post-Inspection Cleaning / ניקוי לאחר בדיקה', yPos);
+    this.createSubsectionHeader('10.2 Post-Inspection Cleaning', yPos);
     yPos += 15;
 
     const postCleaningData = [
@@ -904,7 +905,7 @@ export class TuvStyleExporter extends BaseExporter {
     });
 
     yPos = this.getTableFinalY() + 20;
-    this.createSubsectionHeader('10.3 Approved Cleaning Agents / חומרי ניקוי מאושרים', yPos);
+    this.createSubsectionHeader('10.3 Approved Cleaning Agents', yPos);
     yPos += 15;
 
     const cleaningAgents = [
@@ -936,10 +937,10 @@ export class TuvStyleExporter extends BaseExporter {
     this.currentPage = 13;
     this.addHeaderFooter(this.currentPage);
 
-    this.createSectionHeader('11. Reference Standards / תקנים מתייחסים', 50);
+    this.createSectionHeader('11. Reference Standards', 50);
     
     let yPos = 70;
-    this.createSubsectionHeader('11.1 Primary Standards / תקנים עיקריים', yPos);
+    this.createSubsectionHeader('11.1 Primary Standards', yPos);
     yPos += 15;
 
     const primaryStandards = [
@@ -973,7 +974,7 @@ export class TuvStyleExporter extends BaseExporter {
     });
 
     yPos = this.getTableFinalY() + 20;
-    this.createSubsectionHeader('11.2 Calibration Standards / תקני כיול', yPos);
+    this.createSubsectionHeader('11.2 Calibration Standards', yPos);
     yPos += 15;
 
     const calibrationStandards = [
@@ -999,7 +1000,7 @@ export class TuvStyleExporter extends BaseExporter {
     });
 
     yPos = this.getTableFinalY() + 20;
-    this.createSubsectionHeader('11.3 Material Property References / מאפייני חומר מתייחסים', yPos);
+    this.createSubsectionHeader('11.3 Material Property References', yPos);
     yPos += 15;
 
     const materialProperties = [
@@ -1032,10 +1033,10 @@ export class TuvStyleExporter extends BaseExporter {
     this.currentPage = 14;
     this.addHeaderFooter(this.currentPage);
 
-    this.createSectionHeader('12. Report / דוח', 50);
+    this.createSectionHeader('12. Report', 50);
     
     let yPos = 70;
-    this.createSubsectionHeader('12.1 Report Content Requirements / דרישות תוכן הדוח', yPos);
+    this.createSubsectionHeader('12.1 Report Content Requirements', yPos);
     yPos += 15;
 
     const reportContent = [
@@ -1069,7 +1070,7 @@ export class TuvStyleExporter extends BaseExporter {
     });
 
     yPos = this.getTableFinalY() + 20;
-    this.createSubsectionHeader('12.2 Documentation Standards / תקני תיעוד', yPos);
+    this.createSubsectionHeader('12.2 Documentation Standards', yPos);
     yPos += 15;
 
     this.doc.setFontSize(10);
@@ -1083,20 +1084,15 @@ export class TuvStyleExporter extends BaseExporter {
       "• Company QA procedures and work instructions",
       "• Customer specifications and drawing requirements",
       "",
-      "כל דוחות הבדיקה יעמדו בתקנים הבאים:",
-      "• תקן ISO 17635 - כללים כלליים עבור חומרים מתכתיים",
-      "• ASME סעיף V - בדיקה לא הרסנית",
-      "• נהלי אישור איכות של החברה והוראות עבודה",
-      "• דרישות הלקוח ודרישות השרטוט"
     ];
 
-    docStandardsText.forEach(line => {
+    this.sanitizeLines(docStandardsText).forEach(line => {
       this.doc.text(line, this.margin, yPos, { maxWidth: this.pageWidth - 2 * this.margin });
       yPos += 6;
     });
 
     yPos += 15;
-    this.createSubsectionHeader('12.3 Report Distribution / הפצת הדוח', yPos);
+    this.createSubsectionHeader('12.3 Report Distribution', yPos);
     yPos += 15;
 
     const distributionTable = [
@@ -1128,10 +1124,10 @@ export class TuvStyleExporter extends BaseExporter {
     this.currentPage = 15;
     this.addHeaderFooter(this.currentPage);
 
-    this.createSectionHeader('13. Technical Parameters / פרמטרים טכניים', 50);
+    this.createSectionHeader('13. Technical Parameters', 50);
     
     let yPos = 70;
-    this.createSubsectionHeader('13.1 Inspection Parameters / פרמטרי בדיקה', yPos);
+    this.createSubsectionHeader('13.1 Inspection Parameters', yPos);
     yPos += 15;
 
     const scanParams = this.data.scanParameters;
@@ -1170,7 +1166,7 @@ export class TuvStyleExporter extends BaseExporter {
     });
 
     yPos = this.getTableFinalY() + 20;
-    this.createSubsectionHeader('13.2 Environmental Conditions / תנאי סביבה', yPos);
+    this.createSubsectionHeader('13.2 Environmental Conditions', yPos);
     yPos += 15;
 
     const environmentalParams = [
@@ -1198,7 +1194,7 @@ export class TuvStyleExporter extends BaseExporter {
     });
 
     yPos = this.getTableFinalY() + 20;
-    this.createSubsectionHeader('13.3 System Performance Verification / אימות ביצועי המערכת', yPos);
+    this.createSubsectionHeader('13.3 System Performance Verification', yPos);
     yPos += 15;
 
     const performanceData = [
@@ -1231,10 +1227,10 @@ export class TuvStyleExporter extends BaseExporter {
     this.currentPage = 16;
     this.addHeaderFooter(this.currentPage);
 
-    this.createSectionHeader('14. Scan Results / תוצאות הסריקה', 50);
+    this.createSectionHeader('14. Scan Results', 50);
     
     let yPos = 70;
-    this.createSubsectionHeader('14.1 Inspection Summary / סיכום הבדיקה', yPos);
+    this.createSubsectionHeader('14.1 Inspection Summary', yPos);
     yPos += 15;
 
     const summaryData = [
@@ -1268,7 +1264,7 @@ export class TuvStyleExporter extends BaseExporter {
     });
 
     yPos = this.getTableFinalY() + 20;
-    this.createSubsectionHeader('14.2 Indication Details / פרטי אינדיקציות', yPos);
+    this.createSubsectionHeader('14.2 Indication Details', yPos);
     yPos += 15;
 
     // Mock inspection results for demonstration
@@ -1325,11 +1321,11 @@ export class TuvStyleExporter extends BaseExporter {
       this.doc.setFontSize(11);
       this.doc.setFont('helvetica', 'bold');
       this.doc.setTextColor(0, 128, 0);
-      this.doc.text('לא נמצאו אינדיקציות לרישום', this.pageWidth / 2, yPos, { align: 'center' });
+      this.doc.text('NO RECORDABLE INDICATIONS FOUND', this.pageWidth / 2, yPos, { align: 'center' });
     }
 
     yPos = this.getTableFinalY() + 30;
-    this.createSubsectionHeader('14.3 Statistical Analysis / ניתוח סטטיסטי', yPos);
+    this.createSubsectionHeader('14.3 Statistical Analysis', yPos);
     yPos += 15;
 
     const statisticalData = [
@@ -1362,10 +1358,10 @@ export class TuvStyleExporter extends BaseExporter {
     this.currentPage = 17;
     this.addHeaderFooter(this.currentPage);
 
-    this.createSectionHeader('15. Quality Assurance / אישור איכות', 50);
+    this.createSectionHeader('15. Quality Assurance', 50);
     
     let yPos = 70;
-    this.createSubsectionHeader('15.1 QA Verification Checklist / רשימת בדיקת אישור איכות', yPos);
+    this.createSubsectionHeader('15.1 QA Verification Checklist', yPos);
     yPos += 15;
 
     const qaChecklist = [
@@ -1400,7 +1396,7 @@ export class TuvStyleExporter extends BaseExporter {
     });
 
     yPos = this.getTableFinalY() + 20;
-    this.createSubsectionHeader('15.2 Traceability Matrix / מטריצת עקיבות', yPos);
+    this.createSubsectionHeader('15.2 Traceability Matrix', yPos);
     yPos += 15;
 
     const traceabilityData = [
@@ -1428,7 +1424,7 @@ export class TuvStyleExporter extends BaseExporter {
     });
 
     yPos = this.getTableFinalY() + 20;
-    this.createSubsectionHeader('15.3 Quality Statement / הצהרת איכות', yPos);
+    this.createSubsectionHeader('15.3 Quality Statement', yPos);
     yPos += 15;
 
     this.doc.setFontSize(10);
@@ -1443,15 +1439,9 @@ export class TuvStyleExporter extends BaseExporter {
       "• Personnel certification requirements SNT-TC-1A",
       "• Equipment calibration and maintenance procedures",
       "",
-      "בדיקה זו בוצעה בהתאם ל:",
-      "• נהלים מאושרים והוראות עבודה",
-      "• דרישות קודים ותקנים חלים",
-      "• מערכת ניהול איכות ISO 9001:2015",
-      "• דרישות הסמכת כוח אדם SNT-TC-1A",
-      "• נהלי כיול ותחזוקה של ציוד"
     ];
 
-    qualityStatements.forEach(line => {
+    this.sanitizeLines(qualityStatements).forEach(line => {
       this.doc.text(line, this.margin, yPos, { maxWidth: this.pageWidth - 2 * this.margin });
       yPos += 6;
     });
@@ -1474,7 +1464,7 @@ export class TuvStyleExporter extends BaseExporter {
     this.currentPage = 18;
     this.addHeaderFooter(this.currentPage);
 
-    this.createSectionHeader('16. Document Control / בקרת מסמכים', 50);
+    this.createSectionHeader('16. Document Control', 50);
     
     const yPos = 70;
     
@@ -1506,7 +1496,7 @@ export class TuvStyleExporter extends BaseExporter {
     this.currentPage = 19;
     this.addHeaderFooter(this.currentPage);
 
-    this.createSectionHeader('17. Signatures / חתימות', 50);
+    this.createSectionHeader('17. Signatures', 50);
     
     let yPos = 70;
 
@@ -1514,15 +1504,15 @@ export class TuvStyleExporter extends BaseExporter {
     this.doc.setFontSize(10);
     this.doc.setFont('helvetica', 'normal');
     this.doc.setTextColor(...this.tuvColors.text);
-    this.doc.text('Certification levels as per SNT-TC-1A / רמות הסמכה לפי SNT-TC-1A', this.margin, yPos);
+    this.doc.text('Certification levels as per SNT-TC-1A', this.margin, yPos);
     
     yPos += 20;
 
     // Signatures table
     const signaturesData = [
-      ['Role / תפקיד', 'Name / שם', 'Level / רמה', 'Certificate No. / מספר תעודה', 'Date / תאריך', 'Signature / חתימה'],
+      ['Role', 'Name', 'Level', 'Certificate No.', 'Date', 'Signature'],
       [
-        'Inspector\nבודק', 
+        'Inspector', 
         this.certificationInfo.inspectorName || '____________', 
         this.certificationInfo.inspectorLevel, 
         this.certificationInfo.inspectorCertification || '____________', 
@@ -1530,7 +1520,7 @@ export class TuvStyleExporter extends BaseExporter {
         '________________________'
       ],
       [
-        'Reviewer\nסוקר', 
+        'Reviewer', 
         this.certificationInfo.reviewerName || '____________', 
         this.certificationInfo.reviewerLevel || 'Level II/III', 
         '____________', 
@@ -1538,7 +1528,7 @@ export class TuvStyleExporter extends BaseExporter {
         '________________________'
       ],
       [
-        'Approver\nמאשר', 
+        'Approver', 
         this.certificationInfo.approverName || '____________', 
         this.certificationInfo.approverLevel || 'Level III', 
         '____________', 
@@ -1546,7 +1536,7 @@ export class TuvStyleExporter extends BaseExporter {
         '________________________'
       ],
       [
-        'Customer Rep.\nנציג לקוח', 
+        'Customer Rep.', 
         this.certificationInfo.customerRepresentative || '____________', 
         'N/A', 
         '____________', 
@@ -1557,8 +1547,8 @@ export class TuvStyleExporter extends BaseExporter {
 
     autoTable(this.doc, {
       startY: yPos,
-      head: [signaturesData[0]],
-      body: signaturesData.slice(1),
+      head: [signaturesData[0].map((cell) => this.toEnglishOnly(cell))],
+      body: signaturesData.slice(1).map((row) => row.map((cell) => this.toEnglishOnly(cell))),
       theme: 'grid',
       headStyles: {
         fillColor: this.tuvColors.primary,
@@ -1591,11 +1581,9 @@ export class TuvStyleExporter extends BaseExporter {
       "I certify that this inspection was performed in accordance with the applicable codes,",
       "standards and procedures, and that the results are accurately reported herein.",
       "",
-      "אני מאשר כי בדיקה זו בוצעה בהתאם לקודים, התקנים והנהלים החלים,",
-      "וכי התוצאות מדווחות כאן באופן מדויק."
     ];
 
-    certStatement.forEach(line => {
+    this.sanitizeLines(certStatement).forEach(line => {
       this.doc.text(line, this.pageWidth / 2, yPos, { align: 'center', maxWidth: 150 });
       yPos += 6;
     });
@@ -1606,10 +1594,11 @@ export class TuvStyleExporter extends BaseExporter {
     this.doc.setFontSize(14);
     this.doc.setFont('helvetica', 'bold');
     this.doc.setTextColor(...this.tuvColors.primary);
-    this.doc.text(title, this.margin, yPos);
+    const sanitizedTitle = this.toEnglishOnly(title);
+    this.doc.text(sanitizedTitle, this.margin, yPos);
     
     // Underline
-    const titleWidth = this.doc.getTextWidth(title);
+    const titleWidth = this.doc.getTextWidth(sanitizedTitle);
     this.doc.setLineWidth(0.5);
     this.doc.setDrawColor(...this.tuvColors.primary);
     this.doc.line(this.margin, yPos + 2, this.margin + titleWidth, yPos + 2);
@@ -1619,7 +1608,7 @@ export class TuvStyleExporter extends BaseExporter {
     this.doc.setFontSize(12);
     this.doc.setFont('helvetica', 'bold');
     this.doc.setTextColor(...this.tuvColors.secondary);
-    this.doc.text(title, this.margin, yPos);
+    this.doc.text(this.toEnglishOnly(title), this.margin, yPos);
   }
 
   private getTableFinalY(): number {
