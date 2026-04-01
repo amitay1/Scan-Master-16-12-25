@@ -86,6 +86,7 @@ let isDev;
 let offlineUpdater;
 let silentUpdateTimer = null;
 let updateCheckInterval = null;
+const pendingUpdatePreparation = new Map();
 
 // Update settings - can be configured per-factory
 const UPDATE_SETTINGS = {
@@ -115,6 +116,45 @@ function buildUpdateState(extra = {}) {
     currentVersion: app.getVersion(),
     ...extra,
   };
+}
+
+function requestRendererUpdatePreparation(reason = 'manual-install') {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    return Promise.resolve(false);
+  }
+
+  const requestId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+  return new Promise((resolve) => {
+    const timeout = setTimeout(() => {
+      pendingUpdatePreparation.delete(requestId);
+      resolve(false);
+    }, 5000);
+
+    pendingUpdatePreparation.set(requestId, () => {
+      clearTimeout(timeout);
+      pendingUpdatePreparation.delete(requestId);
+      resolve(true);
+    });
+
+    mainWindow.webContents.send('prepare-update-install', {
+      requestId,
+      reason,
+      version: updateVersion,
+    });
+  });
+}
+
+async function performUpdateInstall(silent = true, reason = 'manual-install') {
+  if (!autoUpdater) {
+    return { started: false };
+  }
+
+  cancelScheduledRestart();
+  await requestRendererUpdatePreparation(reason);
+  closeApproved = true;
+  autoUpdater.quitAndInstall(silent, true);
+  return { started: true };
 }
 
 async function safeCheckForUpdates(force = false) {
@@ -382,11 +422,9 @@ function scheduleAutoRestart(delaySeconds) {
     });
   }
   
-  silentUpdateTimer = setTimeout(() => {
+  silentUpdateTimer = setTimeout(async () => {
     console.log('🔄 Auto-restarting for update...');
-    if (autoUpdater) {
-      autoUpdater.quitAndInstall(true, true); // isSilent: true, isForceRunAfter: true
-    }
+    await performUpdateInstall(true, 'scheduled-restart');
   }, delaySeconds * 1000);
 }
 
@@ -446,13 +484,18 @@ function setupIPCHandlers() {
     return safeStartUpdateDownload('manual');
   });
 
-  ipcMain.handle('install-update', (event, silent = true) => {
-    if (autoUpdater) {
-      // Cancel any scheduled restart
-      cancelScheduledRestart();
-      // isSilent: run installer without UI, isForceRunAfter: restart app after install
-      autoUpdater.quitAndInstall(silent, true);
+  ipcMain.handle('install-update', async (event, silent = true) => {
+    return performUpdateInstall(silent, 'manual-install');
+  });
+
+  ipcMain.handle('update-install-ready', (event, payload) => {
+    const finalize = pendingUpdatePreparation.get(payload?.requestId);
+    if (finalize) {
+      finalize();
+      return { acknowledged: true };
     }
+
+    return { acknowledged: false };
   });
 
   ipcMain.handle('get-app-version', () => {
@@ -990,9 +1033,7 @@ function buildMenuTemplate() {
     updateMenuItem = {
       label: '🔴 Install Update (v' + updateVersion + ')',
       click: () => {
-        if (autoUpdater) {
-          autoUpdater.quitAndInstall();
-        }
+        void performUpdateInstall(true, 'manual-install');
       }
     };
   } else if (updateAvailable) {

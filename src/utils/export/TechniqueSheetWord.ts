@@ -1572,56 +1572,26 @@ export function buildTechniqueSheetWordDocument(
 
     const enabledDetails = scanDetails.scanDetails.filter(d => d.enabled);
 
-    // Scan Directions Overview
-    children.push(createSubsectionTitle('Scan Directions Overview'));
-    children.push(new Paragraph({ children: [], spacing: { after: 100 } }));
+    const formatEntrySurface = (entrySurface?: string): string => {
+      if (!entrySurface) return '-';
+      const surfaceLabels: Record<string, string> = {
+        top: 'Top',
+        bottom: 'Bottom',
+        side: 'Side',
+        od: 'OD',
+        id: 'ID',
+        end: 'End',
+        radial: 'Radial',
+      };
+      return surfaceLabels[entrySurface] || entrySurface.replace(/_/g, ' ');
+    };
 
-    const overviewHeaders = ['Dir.', 'Wave Mode', 'Angle', 'Freq.', 'Make', 'Probe/Size', 'Remarks'];
-    const overviewHeaderRow = new TableRow({
-      children: overviewHeaders.map(text => new TableCell({
-        children: [new Paragraph({
-          children: [new TextRun({ text, bold: true, size: 14, color: 'FFFFFF' })],
-          alignment: AlignmentType.CENTER,
-        })],
-        shading: { fill: WORD_COLORS.primaryDark, type: ShadingType.CLEAR },
-        margins: {
-          top: convertInchesToTwip(0.03),
-          bottom: convertInchesToTwip(0.03),
-          left: convertInchesToTwip(0.03),
-          right: convertInchesToTwip(0.03),
-        },
-      })),
-    });
-
-    const overviewDataRows = enabledDetails.map((detail, idx) => new TableRow({
-      children: [
-        detail.scanningDirection,
-        detail.waveMode || '-',
-        detail.angle !== undefined ? `${detail.angle} deg` : '-',
-        detail.frequency ? `${detail.frequency} MHz` : '-',
-        detail.make || '-',
-        detail.probe || '-',
-        detail.remarkDetails || '-',
-      ].map(text => new TableCell({
-        children: [new Paragraph({
-          children: [new TextRun({ text, size: 14 })],
-        })],
-        shading: idx % 2 === 1 ? { fill: WORD_COLORS.rowAlt, type: ShadingType.CLEAR } : undefined,
-        margins: {
-          top: convertInchesToTwip(0.03),
-          bottom: convertInchesToTwip(0.03),
-          left: convertInchesToTwip(0.03),
-          right: convertInchesToTwip(0.03),
-        },
-      })),
-    }));
-
-    children.push(new Table({
-      width: { size: 100, type: WidthType.PERCENTAGE },
-      rows: [overviewHeaderRow, ...overviewDataRows],
-    }));
-
-    children.push(new Paragraph({ children: [], spacing: { after: 200 } }));
+    const formatWaveType = (waveMode?: string): string => {
+      const normalized = (waveMode || '').toLowerCase();
+      if (normalized.includes('shear')) return 'S';
+      if (normalized.includes('long') || normalized.includes('dual')) return 'L';
+      return '-';
+    };
 
     const computeNearField = (detail: any): string => {
       const d = Number(detail.activeElementDiameter);
@@ -1634,109 +1604,203 @@ export function buildTechniqueSheetWordDocument(
       return `${((d * d * f) / (4 * velocityMmUs)).toFixed(2)} mm`;
     };
 
-    // Probe Parameters
-    children.push(createSubsectionTitle('Probe Parameters'));
-    children.push(new Paragraph({ children: [], spacing: { after: 100 } }));
-
-    const probeHeaders = ['Dir.', 'Part Number', 'Serial Number', 'Active Element', 'Bandwidth', 'Focus Size', 'Velocity', 'Near Field'];
-    const probeHeaderRow = new TableRow({
-      children: probeHeaders.map(text => new TableCell({
-        children: [new Paragraph({
-          children: [new TextRun({ text, bold: true, size: 14, color: 'FFFFFF' })],
-          alignment: AlignmentType.CENTER,
-        })],
-        shading: { fill: '2563EB', type: ShadingType.CLEAR },
-        margins: {
-          top: convertInchesToTwip(0.03),
-          bottom: convertInchesToTwip(0.03),
-          left: convertInchesToTwip(0.03),
-          right: convertInchesToTwip(0.03),
-        },
-      })),
-    });
-
-    const probeDataRows = enabledDetails.map((detail, idx) => new TableRow({
-      children: [
-        detail.scanningDirection,
-        detail.partNumber || '-',
-        detail.serialNumber || '-',
-        detail.activeElementDiameter !== undefined ? `${detail.activeElementDiameter} mm` : '-',
-        detail.bandwidth || '-',
-        detail.focusSize || '-',
-        detail.velocity !== undefined ? `${detail.velocity} m/s` : '-',
-        computeNearField(detail),
-      ].map(text => new TableCell({
-        children: [new Paragraph({
-          children: [new TextRun({ text, size: 14 })],
-        })],
-        shading: idx % 2 === 1 ? { fill: WORD_COLORS.rowAlt, type: ShadingType.CLEAR } : undefined,
-        margins: {
-          top: convertInchesToTwip(0.03),
-          bottom: convertInchesToTwip(0.03),
-          left: convertInchesToTwip(0.03),
-          right: convertInchesToTwip(0.03),
-        },
-      })),
-    }));
-
-    children.push(new Table({
-      width: { size: 100, type: WidthType.PERCENTAGE },
-      rows: [probeHeaderRow, ...probeDataRows],
-    }));
-
-    children.push(new Paragraph({ children: [], spacing: { after: 200 } }));
-
-    // U.T Parameters
-    children.push(createSubsectionTitle('U.T Parameters'));
-    children.push(new Paragraph({ children: [], spacing: { after: 100 } }));
-
-    const formatGate = (gate?: { start: number; length: number; level: number }): string => {
+    const formatGate = (gate?: { position?: number | string; start?: number; length?: number; stop?: number; level?: number }): string => {
       if (!gate) return '-';
-      return `${gate.start}-${gate.length}-${gate.level}%`;
+      if (gate.position !== undefined || gate.stop !== undefined) {
+        const position = gate.position ?? '-';
+        const start = gate.start ?? '-';
+        const stop = gate.stop ?? '-';
+        return `${position}-${start}-${stop}`;
+      }
+      return `${gate.start ?? '-'}-${gate.length ?? '-'}-${gate.level ?? '-'}%`;
     };
 
-    const utHeaders = ['Dir.', 'U.T Parameter', 'Range', 'Delay', 'Gate 1', 'TCG'];
-    const utHeaderRow = new TableRow({
-      children: utHeaders.map(text => new TableCell({
+    const buildDetailParagraphs = (lines: Array<[string, string]>) => {
+      const visibleLines = lines.filter(([, value]) => value && value !== '-');
+      if (visibleLines.length === 0) {
+        return [
+          new Paragraph({
+            children: [new TextRun({ text: '-', size: 14 })],
+          }),
+        ];
+      }
+
+      return visibleLines.map(([label, value], idx) => new Paragraph({
+        children: [
+          new TextRun({ text: `${label}: `, bold: true, size: 14, color: WORD_COLORS.primaryDark }),
+          new TextRun({ text: value, size: 14, color: WORD_COLORS.text }),
+        ],
+        spacing: { after: idx === visibleLines.length - 1 ? 0 : 25 },
+      }));
+    };
+
+    const cellBorders = {
+      top: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
+      bottom: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
+      left: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
+      right: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
+    };
+
+    const columnWidths = [8, 22, 24, 18, 28] as const;
+    const headerLabels = ['Dir.', 'Scan Setup', 'Search Unit / Probe', 'Acoustic Data', 'Instrument & Gates'];
+
+    const headerRow = new TableRow({
+      children: headerLabels.map((text, index) => new TableCell({
         children: [new Paragraph({
           children: [new TextRun({ text, bold: true, size: 14, color: 'FFFFFF' })],
           alignment: AlignmentType.CENTER,
         })],
-        shading: { fill: '4F46E5', type: ShadingType.CLEAR },
+        shading: { fill: WORD_COLORS.primaryDark, type: ShadingType.CLEAR },
+        borders: cellBorders,
+        width: { size: columnWidths[index], type: WidthType.PERCENTAGE },
+        verticalAlign: VerticalAlign.CENTER,
         margins: {
-          top: convertInchesToTwip(0.03),
-          bottom: convertInchesToTwip(0.03),
-          left: convertInchesToTwip(0.03),
-          right: convertInchesToTwip(0.03),
+          top: convertInchesToTwip(0.04),
+          bottom: convertInchesToTwip(0.04),
+          left: convertInchesToTwip(0.04),
+          right: convertInchesToTwip(0.04),
         },
       })),
     });
 
-    const utRows = enabledDetails.map((detail, idx) => new TableRow({
-      children: [
-        detail.scanningDirection,
-        detail.utParameter || detail.pulsarParams || '-',
-        detail.utRange !== undefined ? `${detail.utRange}` : '-',
-        detail.utDelay !== undefined ? `${detail.utDelay}` : '-',
-        formatGate(detail.gate1),
-        detail.tcgMode !== undefined ? (detail.tcgMode ? 'YES' : 'NO') : '-',
-      ].map(text => new TableCell({
-        children: [new Paragraph({
-          children: [new TextRun({ text, size: 14 })],
-        })],
-        shading: idx % 2 === 1 ? { fill: WORD_COLORS.rowAlt, type: ShadingType.CLEAR } : undefined,
-        margins: {
-          top: convertInchesToTwip(0.03),
-          bottom: convertInchesToTwip(0.03),
-          left: convertInchesToTwip(0.03),
-          right: convertInchesToTwip(0.03),
-        },
-      })),
-    }));
+    const consolidatedRows = enabledDetails.map((detail, idx) => {
+      const rowFill = idx % 2 === 1 ? WORD_COLORS.rowAlt : WORD_COLORS.white;
+      const waveType = formatWaveType(detail.waveMode);
+      const dirFill = waveType === 'S' ? 'DC3545' : waveType === 'L' ? '007AC2' : WORD_COLORS.secondary;
+      const rangeDelay = detail.utRange !== undefined || detail.utDelay !== undefined
+        ? `${detail.utRange ?? '-'} / ${detail.utDelay ?? '-'}`
+        : '-';
+      const prfDb = detail.prf !== undefined || detail.db !== undefined
+        ? `${detail.prf ?? '-'} / ${detail.db ?? '-'}`
+        : '-';
+      const indexFilter = detail.indexMode || detail.filter
+        ? `${detail.indexMode || '-'} / ${detail.filter || '-'}`
+        : '-';
+      const rejectTcg = detail.reject || detail.tcgMode !== undefined
+        ? `${detail.reject || '-'} / ${detail.tcgMode === true ? 'YES' : detail.tcgMode === false ? 'NO' : '-'}`
+        : '-';
+      const attenBwe = detail.attenuation !== undefined || detail.backWallEcho !== undefined
+        ? `${detail.attenuation ?? '-'} / ${detail.backWallEcho ?? '-'}`
+        : '-';
+
+      return new TableRow({
+        children: [
+          new TableCell({
+            children: [new Paragraph({
+              children: [new TextRun({ text: detail.scanningDirection || '-', bold: true, size: 16, color: 'FFFFFF' })],
+              alignment: AlignmentType.CENTER,
+            })],
+            shading: { fill: dirFill, type: ShadingType.CLEAR },
+            borders: cellBorders,
+            width: { size: columnWidths[0], type: WidthType.PERCENTAGE },
+            verticalAlign: VerticalAlign.CENTER,
+            margins: {
+              top: convertInchesToTwip(0.04),
+              bottom: convertInchesToTwip(0.04),
+              left: convertInchesToTwip(0.03),
+              right: convertInchesToTwip(0.03),
+            },
+          }),
+          new TableCell({
+            children: buildDetailParagraphs([
+              ['Entry', formatEntrySurface(detail.entrySurface)],
+              ['Wave', detail.waveMode ? `${waveType} | ${detail.waveMode}` : waveType],
+              ['Angle', detail.angle !== undefined ? `${detail.angle}°` : '-'],
+              ['Water Path', detail.waterPath !== undefined ? `${detail.waterPath} mm` : '-'],
+              ['Remarks', detail.remarkDetails || '-'],
+            ]),
+            shading: { fill: rowFill, type: ShadingType.CLEAR },
+            borders: cellBorders,
+            width: { size: columnWidths[1], type: WidthType.PERCENTAGE },
+            verticalAlign: VerticalAlign.TOP,
+            margins: {
+              top: convertInchesToTwip(0.04),
+              bottom: convertInchesToTwip(0.04),
+              left: convertInchesToTwip(0.05),
+              right: convertInchesToTwip(0.05),
+            },
+          }),
+          new TableCell({
+            children: buildDetailParagraphs([
+              ['Probe', detail.probe || '-'],
+              ['Make', detail.make || '-'],
+              ['P/N / S/N', detail.partNumber || detail.serialNumber ? `${detail.partNumber || '-'} / ${detail.serialNumber || '-'}` : '-'],
+              ['Technique / Freq.', detail.technique || detail.frequency ? `${formatTechnique(detail.technique || scanParameters.technique)} / ${detail.frequency ? `${detail.frequency} MHz` : '-'}` : '-'],
+              ['Wave Mode', detail.waveMode || '-'],
+            ]),
+            shading: { fill: rowFill, type: ShadingType.CLEAR },
+            borders: cellBorders,
+            width: { size: columnWidths[2], type: WidthType.PERCENTAGE },
+            verticalAlign: VerticalAlign.TOP,
+            margins: {
+              top: convertInchesToTwip(0.04),
+              bottom: convertInchesToTwip(0.04),
+              left: convertInchesToTwip(0.05),
+              right: convertInchesToTwip(0.05),
+            },
+          }),
+          new TableCell({
+            children: buildDetailParagraphs([
+              ['Active Elem.', detail.activeElementDiameter !== undefined ? `${detail.activeElementDiameter} mm` : (detail.activeElement || '-')],
+              ['Bandwidth', detail.bandwidth || '-'],
+              ['Focus', detail.focusSize || '-'],
+              ['Velocity / Near Field', detail.velocity !== undefined || computeNearField(detail) !== '-'
+                ? `${detail.velocity !== undefined ? `${detail.velocity} m/s` : '-'} / ${computeNearField(detail)}`
+                : '-'],
+              ['SSS', detail.sss || '-'],
+              ['Atten. / BWE', attenBwe],
+            ]),
+            shading: { fill: rowFill, type: ShadingType.CLEAR },
+            borders: cellBorders,
+            width: { size: columnWidths[3], type: WidthType.PERCENTAGE },
+            verticalAlign: VerticalAlign.TOP,
+            margins: {
+              top: convertInchesToTwip(0.04),
+              bottom: convertInchesToTwip(0.04),
+              left: convertInchesToTwip(0.05),
+              right: convertInchesToTwip(0.05),
+            },
+          }),
+          new TableCell({
+            children: buildDetailParagraphs([
+              ['UT', detail.utParameter || detail.pulsarParams || '-'],
+              ['Range / Delay', rangeDelay],
+              ['PRF / dB', prfDb],
+              ['Index / Filter', indexFilter],
+              ['Reject / TCG', rejectTcg],
+              ['G1', formatGate(detail.gate1)],
+              ['G2', formatGate(detail.gate2)],
+              ['G3', formatGate(detail.gate3)],
+              ['G4', formatGate(detail.gate4)],
+              ['File', detail.scanningFile || '-'],
+            ]),
+            shading: { fill: rowFill, type: ShadingType.CLEAR },
+            borders: cellBorders,
+            width: { size: columnWidths[4], type: WidthType.PERCENTAGE },
+            verticalAlign: VerticalAlign.TOP,
+            margins: {
+              top: convertInchesToTwip(0.04),
+              bottom: convertInchesToTwip(0.04),
+              left: convertInchesToTwip(0.05),
+              right: convertInchesToTwip(0.05),
+            },
+          }),
+        ],
+      });
+    });
 
     children.push(new Table({
       width: { size: 100, type: WidthType.PERCENTAGE },
-      rows: [utHeaderRow, ...utRows],
+      layout: TableLayoutType.FIXED,
+      rows: [headerRow, ...consolidatedRows],
+      borders: {
+        top: { style: BorderStyle.SINGLE, size: 6, color: WORD_COLORS.tableBorder },
+        bottom: { style: BorderStyle.SINGLE, size: 6, color: WORD_COLORS.tableBorder },
+        left: { style: BorderStyle.SINGLE, size: 6, color: WORD_COLORS.tableBorder },
+        right: { style: BorderStyle.SINGLE, size: 6, color: WORD_COLORS.tableBorder },
+        insideHorizontal: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
+        insideVertical: { style: BorderStyle.SINGLE, size: 4, color: WORD_COLORS.tableBorder },
+      },
     }));
 
     children.push(new Paragraph({ children: [new PageBreak()] }));

@@ -6,6 +6,7 @@ import type {
   ScanParametersData,
   AcceptanceCriteriaData,
   DocumentationData,
+  ScanPlanData,
 } from "@/types/techniqueSheet";
 import type { ScanDetailsData } from "@/types/scanDetails";
 import type { InspectionReportData } from "@/types/inspectionReport";
@@ -101,6 +102,7 @@ export interface TechniqueSheetPartData {
   acceptanceCriteria: AcceptanceCriteriaData;
   documentation: DocumentationData;
   scanDetails: ScanDetailsData;
+  scanPlan?: ScanPlanData;
 }
 
 export interface TechniqueSheetCardData {

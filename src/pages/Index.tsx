@@ -49,6 +49,14 @@ import { OfflineUpdateDialog } from "@/components/updates/OfflineUpdateDialog";
 import { LicenseWarningBanner } from "@/components/LicenseWarningBanner";
 import { requiresAngleBeam } from "@/utils/beamTypeClassification";
 import { exportInspectionReportPDF } from "@/utils/export/InspectionReportPDF";
+import {
+  clearTechniqueSheetDraft,
+  clearUpdateRecoveryRecord,
+  readUpdateRecoveryRecord,
+  writeTechniqueSheetDraft,
+  writeUpdateRecoveryRecord,
+} from "@/utils/updateRecovery";
+import type { UpdateRecoveryRecord } from "@/utils/updateRecovery";
 import type { SavedCard } from "@/contexts/SavedCardsContext";
 
 import { StandardProvider } from "@/contexts/StandardContext";
@@ -81,6 +89,7 @@ const Index = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [quickFillDialogOpen, setQuickFillDialogOpen] = useState(false);
   const [unsavedCloseDialogOpen, setUnsavedCloseDialogOpen] = useState(false);
+  const [updateRecoveryNotice, setUpdateRecoveryNotice] = useState<UpdateRecoveryRecord | null>(null);
   const [isClosingAfterSave, setIsClosingAfterSave] = useState(false);
   const [lastSavedSnapshot, setLastSavedSnapshot] = useState<string | null>(null);
   const hasInitializedSavedSnapshotRef = useRef(false);
@@ -152,7 +161,8 @@ const Index = () => {
     isSplitMode, activePart, inspectionSetup, inspectionSetupB,
   });
 
-  const currentCardSnapshot = useMemo(() => JSON.stringify(buildCardData()), [buildCardData]);
+  const currentDraftData = useMemo(() => buildCardData(), [buildCardData]);
+  const currentCardSnapshot = useMemo(() => JSON.stringify(currentDraftData), [currentDraftData]);
   const isDirty = lastSavedSnapshot !== null && currentCardSnapshot !== lastSavedSnapshot;
 
   const markCurrentAsSaved = useCallback((snapshot = currentCardSnapshot) => {
@@ -161,31 +171,12 @@ const Index = () => {
 
   // ── localStorage draft save ────────────────────────────────────────────
   useEffect(() => {
-    const data = {
-      standard, isSplitMode, activePart,
-      inspectionSetup: sheetState.inspectionSetup,
-      equipment: sheetState.equipment,
-      calibration: sheetState.calibration,
-      scanParameters: sheetState.scanParameters,
-      acceptanceCriteria: sheetState.acceptanceCriteria,
-      documentation: sheetState.documentation,
-      scanDetails: sheetState.scanDetails,
-      inspectionSetupB: sheetState.inspectionSetupB,
-      equipmentB: sheetState.equipmentB,
-      calibrationB: sheetState.calibrationB,
-      scanParametersB: sheetState.scanParametersB,
-      acceptanceCriteriaB: sheetState.acceptanceCriteriaB,
-      documentationB: sheetState.documentationB,
-      scanDetailsB: sheetState.scanDetailsB,
-    };
-    localStorage.setItem("techniqueSheet_draft", JSON.stringify(data));
-  }, [
-    standard, isSplitMode, activePart,
-    sheetState.inspectionSetup, sheetState.equipment, sheetState.calibration,
-    sheetState.scanParameters, sheetState.acceptanceCriteria, sheetState.documentation, sheetState.scanDetails,
-    sheetState.inspectionSetupB, sheetState.equipmentB, sheetState.calibrationB,
-    sheetState.scanParametersB, sheetState.acceptanceCriteriaB, sheetState.documentationB, sheetState.scanDetailsB,
-  ]);
+    if (!sheetState.hasHydratedInitialDraft) {
+      return;
+    }
+
+    writeTechniqueSheetDraft(currentDraftData);
+  }, [sheetState.hasHydratedInitialDraft, currentDraftData]);
 
   // Load draft on mount
   useEffect(() => {
@@ -200,6 +191,59 @@ const Index = () => {
     hasInitializedSavedSnapshotRef.current = true;
     setLastSavedSnapshot(currentCardSnapshot);
   }, [sheetState.hasHydratedInitialDraft, currentCardSnapshot]);
+
+  useEffect(() => {
+    if (!sheetState.hasHydratedInitialDraft) {
+      return;
+    }
+
+    const recoveryRecord = readUpdateRecoveryRecord();
+    if (recoveryRecord) {
+      setUpdateRecoveryNotice(recoveryRecord);
+    }
+  }, [sheetState.hasHydratedInitialDraft]);
+
+  useEffect(() => {
+    if (!window.electron?.onPrepareForUpdateInstall) {
+      return;
+    }
+
+    const handlePrepareForUpdateInstall = async (payload: {
+      requestId: string;
+      reason: UpdateRecoveryRecord["reason"];
+      version?: string;
+    }) => {
+      const cardName =
+        persistence.currentSheetName ||
+        currentData.inspectionSetup.partName ||
+        currentData.inspectionSetup.partNumber ||
+        "Unsaved card";
+
+      writeTechniqueSheetDraft(currentDraftData);
+      writeUpdateRecoveryRecord({
+        cardName,
+        savedAt: new Date().toISOString(),
+        reason: payload.reason,
+        version: payload.version,
+        activeTab,
+        reportMode,
+      });
+
+      await window.electron?.confirmUpdateInstallReady?.(payload.requestId);
+    };
+
+    window.electron.onPrepareForUpdateInstall(handlePrepareForUpdateInstall);
+    return () => {
+      window.electron?.removePrepareForUpdateInstall?.(handlePrepareForUpdateInstall);
+    };
+  }, [
+    currentDraftData,
+    persistence.currentSheetName,
+    currentData.inspectionSetup.partName,
+    currentData.inspectionSetup.partNumber,
+    activeTab,
+    reportMode,
+  ]);
 
   // ── Keyboard shortcuts ─────────────────────────────────────────────────
   const confirmAppClose = useCallback(async () => {
@@ -262,6 +306,19 @@ const Index = () => {
 
     setUnsavedCloseDialogOpen(true);
   }, [isDirty, continueClosing]);
+
+  const handleKeepRecoveredProgress = useCallback(() => {
+    clearUpdateRecoveryRecord();
+    setUpdateRecoveryNotice(null);
+    toast.success("Recovered your in-progress card after the update.");
+  }, []);
+
+  const handleDiscardRecoveredProgress = useCallback(() => {
+    clearUpdateRecoveryRecord();
+    clearTechniqueSheetDraft();
+    setUpdateRecoveryNotice(null);
+    window.location.reload();
+  }, []);
 
   const handleSaveAndClose = useCallback(async () => {
     setIsClosingAfterSave(true);
@@ -1014,6 +1071,47 @@ const Index = () => {
             <Button onClick={handleSaveDialogConfirm} disabled={!persistence.sheetNameInput.trim() || persistence.isSavingSheet}>
               {persistence.isSavingSheet && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Save Card
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={Boolean(updateRecoveryNotice)}
+        onOpenChange={(open) => {
+          if (!open) {
+            handleKeepRecoveredProgress();
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Progress Restored After Update</DialogTitle>
+            <DialogDescription>
+              Scan Master restored the in-progress card that was open before the app restarted to install an update.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 py-3 text-sm">
+            <div>
+              <span className="font-medium">Card:</span>{" "}
+              {updateRecoveryNotice?.cardName || "Unsaved card"}
+            </div>
+            <div>
+              <span className="font-medium">Recovered:</span>{" "}
+              {updateRecoveryNotice?.savedAt ? new Date(updateRecoveryNotice.savedAt).toLocaleString() : "Just now"}
+            </div>
+            {updateRecoveryNotice?.version && (
+              <div>
+                <span className="font-medium">Version:</span> {updateRecoveryNotice.version}
+              </div>
+            )}
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={handleDiscardRecoveredProgress}>
+              Discard Restored Progress
+            </Button>
+            <Button onClick={handleKeepRecoveredProgress}>
+              Continue
             </Button>
           </DialogFooter>
         </DialogContent>

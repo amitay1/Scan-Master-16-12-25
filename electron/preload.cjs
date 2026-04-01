@@ -3,6 +3,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 // Store update status listeners
 const updateListeners = new Set();
 const appCloseRequestListeners = new Set();
+const updateInstallPreparationListeners = new Set();
 
 // Listen for update status from main process
 ipcRenderer.on('update-status', (event, status) => {
@@ -11,6 +12,10 @@ ipcRenderer.on('update-status', (event, status) => {
 
 ipcRenderer.on('app-close-requested', () => {
   appCloseRequestListeners.forEach(callback => callback());
+});
+
+ipcRenderer.on('prepare-update-install', (event, payload) => {
+  updateInstallPreparationListeners.forEach(callback => callback(payload));
 });
 
 // Expose protected methods that allow the renderer process to use
@@ -57,6 +62,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
   removeAppCloseRequested: (callback) => {
     appCloseRequestListeners.delete(callback);
   },
+  onPrepareForUpdateInstall: (callback) => {
+    updateInstallPreparationListeners.add(callback);
+  },
+  removePrepareForUpdateInstall: (callback) => {
+    updateInstallPreparationListeners.delete(callback);
+  },
+  confirmUpdateInstallReady: (requestId) => ipcRenderer.invoke('update-install-ready', { requestId }),
 
   // Platform information
   platform: process.platform
@@ -123,6 +135,13 @@ contextBridge.exposeInMainWorld('electron', {
   removeAppCloseRequested: (callback) => {
     appCloseRequestListeners.delete(callback);
   },
+  onPrepareForUpdateInstall: (callback) => {
+    updateInstallPreparationListeners.add(callback);
+  },
+  removePrepareForUpdateInstall: (callback) => {
+    updateInstallPreparationListeners.delete(callback);
+  },
+  confirmUpdateInstallReady: (requestId) => ipcRenderer.invoke('update-install-ready', { requestId }),
 
   // File operations - for PDF export etc.
   savePDF: (data, filename) => ipcRenderer.invoke('save-pdf', { data, filename }),

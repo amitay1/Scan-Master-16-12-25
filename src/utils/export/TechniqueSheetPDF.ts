@@ -1701,8 +1701,8 @@ class TechniqueSheetPDFBuilder {
     this.addHeader();
     let y = PAGE.contentStart;
 
-    // Dynamic section numbering - E2375 is a subsection of Scan Details (section 6)
-    const sectionNum = this.data.scanDetails ? '6.1' : '6';
+    // Dynamic section numbering - E2375 is a subsection of Scan Details
+    const sectionNum = this.data.scanDetails ? '5.1' : '5';
     y = this.addSectionTitle(`${sectionNum} ASTM E2375 SCAN DIRECTIONS DIAGRAM`, y);
 
     // Add subtitle with standard reference
@@ -2100,7 +2100,7 @@ class TechniqueSheetPDFBuilder {
     this.addHeader();
     let y = PAGE.contentStart;
 
-    y = this.addSectionTitle('6. SCAN PLAN', y);
+    y = this.addSectionTitle('5. SCAN DETAILS & DIRECTIONS', y);
 
     if (!this.data.scanDetails) {
       this.pdf.setFontSize(10);
@@ -2122,6 +2122,181 @@ class TechniqueSheetPDFBuilder {
       this.addFooter();
       return;
     }
+
+    const formatGateCompact = (gate?: { position?: number | string; start?: number; length?: number; stop?: number; level?: number }): string => {
+      if (!gate) return '-';
+      if (gate.position !== undefined || gate.stop !== undefined) {
+        const position = gate.position ?? '-';
+        const start = gate.start ?? '-';
+        const stop = gate.stop ?? '-';
+        return `${position}-${start}-${stop}`;
+      }
+      return `${gate.start ?? '-'}-${gate.length ?? '-'}-${gate.level ?? '-'}%`;
+    };
+
+    const computeNearFieldCompact = (detail: any): string => {
+      const d = Number(detail.activeElementDiameter);
+      const f = Number.parseFloat(detail.frequency || '');
+      const v = Number(detail.velocity || 5920);
+      if (!Number.isFinite(d) || d <= 0 || !Number.isFinite(f) || f <= 0 || !Number.isFinite(v) || v <= 0) {
+        return '-';
+      }
+      const velocityMmUs = v / 1000;
+      return `${((d * d * f) / (4 * velocityMmUs)).toFixed(2)} mm`;
+    };
+
+    const formatEntrySurface = (entrySurface?: string): string => {
+      if (!entrySurface) return '-';
+      const surfaceLabels: Record<string, string> = {
+        top: 'Top',
+        bottom: 'Bottom',
+        side: 'Side',
+        od: 'OD',
+        id: 'ID',
+        end: 'End',
+        radial: 'Radial',
+      };
+      return surfaceLabels[entrySurface] || entrySurface.replace(/_/g, ' ');
+    };
+
+    const formatWaveType = (waveMode?: string): string => {
+      const normalized = (waveMode || '').toLowerCase();
+      if (normalized.includes('shear')) return 'S';
+      if (normalized.includes('long') || normalized.includes('dual')) return 'L';
+      return '-';
+    };
+
+    const formatTechniqueLabel = (technique?: string): string => {
+      if (!technique) return '-';
+      const techniqueMap: Record<string, string> = {
+        conventional: 'Conventional',
+        bubbler: 'Bubbler',
+        squirt: 'Squirt / Water Jet',
+        phased_array: 'Phased Array',
+      };
+      return techniqueMap[technique] || technique;
+    };
+
+    const buildCellText = (lines: Array<[string, string]>): string => {
+      const visibleLines = lines.filter(([, value]) => value && value !== '-');
+      if (visibleLines.length === 0) {
+        return '-';
+      }
+
+      return visibleLines.map(([label, value]) => `${label}: ${value}`).join('\n');
+    };
+
+    const consolidatedRows: string[][] = enabledDetails.map((detail) => {
+      const waveType = formatWaveType(detail.waveMode);
+      const rangeDelay = detail.utRange !== undefined || detail.utDelay !== undefined
+        ? `${detail.utRange ?? '-'} / ${detail.utDelay ?? '-'}`
+        : '-';
+      const prfDb = detail.prf !== undefined || detail.db !== undefined
+        ? `${detail.prf ?? '-'} / ${detail.db ?? '-'}`
+        : '-';
+      const indexFilter = detail.indexMode || detail.filter
+        ? `${detail.indexMode || '-'} / ${detail.filter || '-'}`
+        : '-';
+      const rejectTcg = detail.reject || detail.tcgMode !== undefined
+        ? `${detail.reject || '-'} / ${detail.tcgMode === true ? 'YES' : detail.tcgMode === false ? 'NO' : '-'}`
+        : '-';
+      const attenBwe = detail.attenuation !== undefined || detail.backWallEcho !== undefined
+        ? `${detail.attenuation ?? '-'} / ${detail.backWallEcho ?? '-'}`
+        : '-';
+
+      return [
+        detail.scanningDirection || '-',
+        buildCellText([
+          ['Entry', formatEntrySurface(detail.entrySurface)],
+          ['Wave', detail.waveMode ? `${waveType} | ${detail.waveMode}` : waveType],
+          ['Angle', detail.angle !== undefined ? `${detail.angle}°` : '-'],
+          ['Water Path', detail.waterPath !== undefined ? `${detail.waterPath} mm` : '-'],
+          ['Remarks', detail.remarkDetails || '-'],
+        ]),
+        buildCellText([
+          ['Probe', detail.probe || '-'],
+          ['Make', detail.make || '-'],
+          ['P/N / S/N', detail.partNumber || detail.serialNumber ? `${detail.partNumber || '-'} / ${detail.serialNumber || '-'}` : '-'],
+          ['Technique / Freq.', detail.technique || detail.frequency ? `${formatTechniqueLabel(detail.technique || this.data.scanParameters.technique)} / ${detail.frequency ? `${detail.frequency} MHz` : '-'}` : '-'],
+          ['Wave Mode', detail.waveMode || '-'],
+        ]),
+        buildCellText([
+          ['Active Elem.', detail.activeElementDiameter !== undefined ? `${detail.activeElementDiameter} mm` : (detail.activeElement || '-')],
+          ['Bandwidth', detail.bandwidth || '-'],
+          ['Focus', detail.focusSize || '-'],
+          ['Velocity / Near Field', detail.velocity !== undefined || computeNearFieldCompact(detail) !== '-'
+            ? `${detail.velocity !== undefined ? `${detail.velocity} m/s` : '-'} / ${computeNearFieldCompact(detail)}`
+            : '-'],
+          ['SSS', detail.sss || '-'],
+          ['Atten. / BWE', attenBwe],
+        ]),
+        buildCellText([
+          ['UT', detail.utParameter || detail.pulsarParams || '-'],
+          ['Range / Delay', rangeDelay],
+          ['PRF / dB', prfDb],
+          ['Index / Filter', indexFilter],
+          ['Reject / TCG', rejectTcg],
+          ['G1', formatGateCompact(detail.gate1)],
+          ['G2', formatGateCompact(detail.gate2)],
+          ['G3', formatGateCompact(detail.gate3)],
+          ['G4', formatGateCompact(detail.gate4)],
+          ['File', detail.scanningFile || '-'],
+        ]),
+      ];
+    });
+
+    autoTable(this.pdf, {
+      startY: y,
+      head: [['Dir', 'Scan Setup', 'Search Unit / Probe', 'Acoustic Data', 'Instrument & Gates']],
+      body: consolidatedRows,
+      theme: 'grid',
+      styles: {
+        fontSize: 6.3,
+        cellPadding: { top: 1.8, bottom: 1.8, left: 1.8, right: 1.8 },
+        lineColor: COLORS.tableBorder,
+        lineWidth: 0.2,
+        overflow: 'linebreak',
+        valign: 'top',
+      },
+      headStyles: {
+        fillColor: COLORS.primary,
+        textColor: [255, 255, 255],
+        fontSize: 7,
+        fontStyle: 'bold',
+        halign: 'center',
+        valign: 'middle',
+      },
+      columnStyles: {
+        0: { cellWidth: 12, halign: 'center', fontStyle: 'bold', valign: 'middle' },
+        1: { cellWidth: 34 },
+        2: { cellWidth: 42 },
+        3: { cellWidth: 34 },
+        4: { cellWidth: 58 },
+      },
+      didParseCell: (data) => {
+        if (data.section === 'body' && data.column.index === 0) {
+          const detail = enabledDetails[data.row.index];
+          const waveType = formatWaveType(detail?.waveMode);
+          data.cell.styles.textColor = [255, 255, 255];
+          data.cell.styles.fontStyle = 'bold';
+          data.cell.styles.fontSize = 8;
+
+          if (waveType === 'S') {
+            data.cell.styles.fillColor = [220, 53, 69];
+          } else if (waveType === 'L') {
+            data.cell.styles.fillColor = [0, 122, 194];
+          } else {
+            data.cell.styles.fillColor = COLORS.secondary;
+          }
+        }
+      },
+      alternateRowStyles: { fillColor: COLORS.rowAlt },
+      margin: { left: PAGE.marginLeft, right: PAGE.marginRight, bottom: PAGE.footerHeight + 5 },
+      rowPageBreak: 'avoid',
+    });
+
+    this.addFooter();
+    return;
 
     // ========== FRISA-STYLE INTEGRATED SCAN PLAN TABLE ==========
     // Main scan plan table with all key parameters in one view
@@ -2414,8 +2589,8 @@ class TechniqueSheetPDFBuilder {
 
     // Dynamic section numbering — avoid collision with e2375 which uses 6.1
     const dirSectionNum = this.data.scanDetails
-      ? (this.data.e2375Diagram ? '6.2' : '6.1')
-      : '6';
+      ? (this.data.e2375Diagram ? '5.2' : '5.1')
+      : '5';
     y = this.addSectionTitle(`${dirSectionNum}. SCAN DIRECTIONS - INSPECTION PLAN`, y);
 
     if (this.data.scanDirectionsDrawing) {

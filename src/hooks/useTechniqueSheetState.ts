@@ -28,6 +28,7 @@ import { PW_ANGLE_CALIBRATION_BLOCK } from "@/rules/pw/pwCalibrationBlocks";
 import { getInspectionThickness } from "@/utils/inspectionThickness";
 import { normalizeScanDetailsForStandard } from "@/utils/pwScanDetailDefaults";
 import { getV2500InspectionSetupDefaults } from "@/utils/pwNdipDefaults";
+import { readTechniqueSheetDraft } from "@/utils/updateRecovery";
 
 const defaultInspectionSetup: InspectionSetupData = {
   partNumber: "",
@@ -231,8 +232,9 @@ export function useTechniqueSheetState({
     setAcceptanceCriteriaB({ ...acceptanceCriteria });
     setDocumentationB({ ...documentation });
     setScanDetailsB({ ...scanDetails });
+    setScanPlanB(JSON.parse(JSON.stringify(scanPlan)));
     toast.success("Part A copied to Part B");
-  }, [inspectionSetup, equipment, calibration, scanParameters, acceptanceCriteria, documentation, scanDetails]);
+  }, [inspectionSetup, equipment, calibration, scanParameters, acceptanceCriteria, documentation, scanDetails, scanPlan]);
   const buildTechniqueSheetPayload = useCallback((): TechniqueSheetCardData => ({
     standard,
     activeTab,
@@ -241,19 +243,20 @@ export function useTechniqueSheetState({
     activePart,
     partA: {
       inspectionSetup, equipment, calibration, scanParameters,
-      acceptanceCriteria, documentation, scanDetails,
+      acceptanceCriteria, documentation, scanDetails, scanPlan,
     },
     partB: {
       inspectionSetup: inspectionSetupB, equipment: equipmentB,
       calibration: calibrationB, scanParameters: scanParametersB,
       acceptanceCriteria: acceptanceCriteriaB, documentation: documentationB,
       scanDetails: scanDetailsB,
+      scanPlan: scanPlanB,
     },
     inspectionReport,
   }), [
     standard, activeTab, reportMode, isSplitMode, activePart,
-    inspectionSetup, equipment, calibration, scanParameters, acceptanceCriteria, documentation, scanDetails,
-    inspectionSetupB, equipmentB, calibrationB, scanParametersB, acceptanceCriteriaB, documentationB, scanDetailsB,
+    inspectionSetup, equipment, calibration, scanParameters, acceptanceCriteria, documentation, scanDetails, scanPlan,
+    inspectionSetupB, equipmentB, calibrationB, scanParametersB, acceptanceCriteriaB, documentationB, scanDetailsB, scanPlanB,
     inspectionReport,
   ]);
   const buildCardData = useCallback(() => ({
@@ -264,19 +267,20 @@ export function useTechniqueSheetState({
     activePart,
     partA: {
       inspectionSetup, equipment, calibration, scanParameters,
-      acceptanceCriteria, documentation, scanDetails,
+      acceptanceCriteria, documentation, scanDetails, scanPlan,
     },
     partB: isSplitMode ? {
       inspectionSetup: inspectionSetupB, equipment: equipmentB,
       calibration: calibrationB, scanParameters: scanParametersB,
       acceptanceCriteria: acceptanceCriteriaB, documentation: documentationB,
       scanDetails: scanDetailsB,
+      scanPlan: scanPlanB,
     } : undefined,
     inspectionReport: reportMode === "Report" ? inspectionReport : undefined,
   }), [
     standard, activeTab, reportMode, isSplitMode, activePart,
-    inspectionSetup, equipment, calibration, scanParameters, acceptanceCriteria, documentation, scanDetails,
-    inspectionSetupB, equipmentB, calibrationB, scanParametersB, acceptanceCriteriaB, documentationB, scanDetailsB,
+    inspectionSetup, equipment, calibration, scanParameters, acceptanceCriteria, documentation, scanDetails, scanPlan,
+    inspectionSetupB, equipmentB, calibrationB, scanParametersB, acceptanceCriteriaB, documentationB, scanDetailsB, scanPlanB,
     inspectionReport,
   ]);
   const applyLoadedSheet = useCallback((record: TechniqueSheetRecord) => {
@@ -299,6 +303,7 @@ export function useTechniqueSheetState({
     setAcceptanceCriteria(data.partA?.acceptanceCriteria || { ...defaultAcceptanceCriteria });
     setDocumentation(data.partA?.documentation || defaultDocumentation());
     setScanDetails(data.partA?.scanDetails || { scanDetails: [] });
+    setScanPlan(data.partA?.scanPlan || JSON.parse(JSON.stringify(defaultScanPlan)));
 
     setInspectionSetupB(data.partB?.inspectionSetup || { ...defaultInspectionSetup });
     setEquipmentB(data.partB?.equipment || { ...defaultEquipment });
@@ -307,6 +312,7 @@ export function useTechniqueSheetState({
     setAcceptanceCriteriaB(data.partB?.acceptanceCriteria || { ...defaultAcceptanceCriteria });
     setDocumentationB(data.partB?.documentation || defaultDocumentation());
     setScanDetailsB(data.partB?.scanDetails || { scanDetails: [] });
+    setScanPlanB(data.partB?.scanPlan || JSON.parse(JSON.stringify(defaultScanPlan)));
 
     setInspectionReport(data.inspectionReport || getDefaultInspectionReportData());
   }, [setStandard, setActiveTab, setReportMode, setIsSplitMode, setActivePart]);
@@ -324,6 +330,7 @@ export function useTechniqueSheetState({
     if (data.partA?.acceptanceCriteria) setAcceptanceCriteria(data.partA.acceptanceCriteria);
     if (data.partA?.documentation) setDocumentation(data.partA.documentation);
     if (data.partA?.scanDetails) setScanDetails(data.partA.scanDetails);
+    if (data.partA?.scanPlan) setScanPlan(data.partA.scanPlan);
 
     if (data.partB?.inspectionSetup) setInspectionSetupB(data.partB.inspectionSetup);
     if (data.partB?.equipment) setEquipmentB(data.partB.equipment);
@@ -332,17 +339,23 @@ export function useTechniqueSheetState({
     if (data.partB?.acceptanceCriteria) setAcceptanceCriteriaB(data.partB.acceptanceCriteria);
     if (data.partB?.documentation) setDocumentationB(data.partB.documentation);
     if (data.partB?.scanDetails) setScanDetailsB(data.partB.scanDetails);
+    if (data.partB?.scanPlan) setScanPlanB(data.partB.scanPlan);
 
     if (data.inspectionReport) setInspectionReport(data.inspectionReport);
   }, [setStandard, setActiveTab, setReportMode, setIsSplitMode, setActivePart]);
   const loadDraftFromLocalStorage = useCallback(() => {
-    const saved = localStorage.getItem("techniqueSheet_draft");
-    if (!saved) {
+    const data = readTechniqueSheetDraft<any>();
+    if (!data) {
       setHasHydratedInitialDraft(true);
       return;
     }
+
     try {
-      const data = JSON.parse(saved);
+      if (data.partA) {
+        applyLocalCard(data);
+        return;
+      }
+
       setStandard(data.standard || "AMS-STD-2154E");
       setIsSplitMode(data.isSplitMode || false);
       setActivePart(data.activePart || "A");
@@ -353,6 +366,7 @@ export function useTechniqueSheetState({
       if (data.acceptanceCriteria) setAcceptanceCriteria(data.acceptanceCriteria);
       if (data.documentation) setDocumentation(data.documentation);
       if (data.scanDetails) setScanDetails(data.scanDetails);
+      if (data.scanPlan) setScanPlan(data.scanPlan);
       if (data.inspectionSetupB) setInspectionSetupB(data.inspectionSetupB);
       if (data.equipmentB) setEquipmentB(data.equipmentB);
       if (data.calibrationB) setCalibrationB(data.calibrationB);
@@ -360,12 +374,13 @@ export function useTechniqueSheetState({
       if (data.acceptanceCriteriaB) setAcceptanceCriteriaB(data.acceptanceCriteriaB);
       if (data.documentationB) setDocumentationB(data.documentationB);
       if (data.scanDetailsB) setScanDetailsB(data.scanDetailsB);
+      if (data.scanPlanB) setScanPlanB(data.scanPlanB);
     } catch (error) {
       logError("Failed to load draft data", error);
     } finally {
       setHasHydratedInitialDraft(true);
     }
-  }, [setStandard, setIsSplitMode, setActivePart]);
+  }, [applyLocalCard, setStandard, setIsSplitMode, setActivePart]);
   const applyTestCard = useCallback((card: {
     standard: StandardType;
     inspectionSetup: InspectionSetupData;

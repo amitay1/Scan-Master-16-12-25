@@ -6,12 +6,15 @@ declare const __APP_VERSION__: string;
 interface ElectronAPI {
   getAppVersion: () => Promise<string>;
   checkForUpdates: () => Promise<void>;
-  installUpdate: () => void;
+  installUpdate: (silent?: boolean) => Promise<{ started: boolean }>;
   onUpdateStatus: (callback: (event: any, status: UpdateStatusEvent) => void) => void;
   removeUpdateListener: (callback: (event: any, status: UpdateStatusEvent) => void) => void;
   confirmAppClose?: () => Promise<{ success: boolean }>;
   onAppCloseRequested?: (callback: () => void) => void;
   removeAppCloseRequested?: (callback: () => void) => void;
+  onPrepareForUpdateInstall?: (callback: (payload: PrepareForUpdateInstallPayload) => void) => void;
+  removePrepareForUpdateInstall?: (callback: (payload: PrepareForUpdateInstallPayload) => void) => void;
+  confirmUpdateInstallReady?: (requestId: string) => Promise<{ acknowledged: boolean }>;
 }
 
 interface UpdateStatusEvent {
@@ -19,6 +22,12 @@ interface UpdateStatusEvent {
   version?: string;
   percent?: number;
   error?: string;
+}
+
+interface PrepareForUpdateInstallPayload {
+  requestId: string;
+  reason: 'manual-install' | 'scheduled-restart' | 'update-on-quit';
+  version?: string;
 }
 
 declare global {

@@ -294,6 +294,10 @@ export function UpdateNotification() {
                   Will auto-install when you close the app
                 </div>
 
+                <p className="text-slate-500 text-xs mb-8">
+                  Your current in-progress card will be restored after the restart.
+                </p>
+
                 {/* Actions */}
                 <div className="flex flex-col gap-3">
                   <Button
