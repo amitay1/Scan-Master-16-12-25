@@ -27,6 +27,10 @@ export function drawHptDiskTechnicalDrawing(
 ): void {
   const stage = resolveV2500Stage(options);
 
+  if (stage === 1 && drawStage1ReferenceFigure(generator, layout, options)) {
+    return;
+  }
+
   // Use NDIP nominal bore diameters as sane defaults when the user hasn't entered an ID.
   // NDIP defines bore radius (inches) per stage.
   const defaultBoreIdMm = stage === 2
@@ -54,6 +58,81 @@ export function drawHptDiskTechnicalDrawing(
 
   drawBoreOpeningView(generator, od, id, layout.frontView);
   drawBoreProfileView(generator, stage, od, id, thickness, layout.sideView, options);
+}
+
+function drawStage1ReferenceFigure(
+  generator: TechnicalDrawingGenerator,
+  layout: LayoutConfig,
+  options?: {
+    standardType?: StandardType;
+    partNumber?: string;
+    stage?: 1 | 2;
+    enabledDirections?: string[];
+    directionColors?: Record<string, string>;
+  }
+): boolean {
+  const scope = generator.getScope();
+  if (!scope?.Raster) {
+    return false;
+  }
+
+  const x = layout.frontView.x;
+  const y = layout.frontView.y;
+  const width = layout.sideView.x + layout.sideView.width - layout.frontView.x;
+  const height = Math.max(layout.frontView.height, layout.sideView.height);
+
+  generator.drawViewLabel(x + width / 2, y, 'HPT DISK SECTION - NDIP-1226 FIGURE 2');
+  generator.drawText(x + width / 2, y + height + 12, 'Stage 1 reference profile with E/A/B/C/D coverage layout', 10, '#666666');
+
+  const raster = new scope.Raster('/standards/hpt-disk-setup-stage1.png') as any;
+  raster.onLoad = () => {
+    const framePaddingX = 16;
+    const framePaddingTop = 8;
+    const framePaddingBottom = 18;
+    const frameRect = new scope.Path.Rectangle(
+      new scope.Rectangle(
+        new scope.Point(x + framePaddingX, y + framePaddingTop),
+        new scope.Size(width - framePaddingX * 2, height - framePaddingTop - framePaddingBottom)
+      )
+    );
+    frameRect.strokeColor = new scope.Color('#d1d5db');
+    frameRect.strokeWidth = 1;
+    frameRect.fillColor = new scope.Color('#ffffff');
+
+    raster.fitBounds(frameRect.bounds);
+    raster.position = frameRect.bounds.center;
+    raster.bringToFront();
+
+    const badge = new scope.Path.Rectangle(
+      new scope.Rectangle(
+        new scope.Point(x + width - 180, y + 10),
+        new scope.Size(154, 24)
+      ),
+      new scope.Size(8, 8)
+    );
+    badge.fillColor = new scope.Color('#eff6ff');
+    badge.strokeColor = new scope.Color('#93c5fd');
+    badge.strokeWidth = 1;
+
+    const badgeText = new scope.PointText(new scope.Point(x + width - 103, y + 26));
+    badgeText.content = options?.partNumber ? `PN ${options.partNumber}` : 'V2500 HPT Disk';
+    badgeText.justification = 'center';
+    badgeText.fontFamily = 'monospace';
+    badgeText.fontSize = 11;
+    badgeText.fontWeight = 'bold' as any;
+    badgeText.fillColor = new scope.Color('#1d4ed8');
+
+    generator.render();
+  };
+
+  raster.onError = () => {
+    raster.remove();
+    drawBoreOpeningView(generator, 200, 2 * 2.91 * 25.4, layout.frontView);
+    drawBoreProfileView(generator, 1, 200, 2 * 2.91 * 25.4, 60, layout.sideView, options);
+    generator.render();
+  };
+
+  return true;
 }
 
 /* ------------------------------------------------------------------ */

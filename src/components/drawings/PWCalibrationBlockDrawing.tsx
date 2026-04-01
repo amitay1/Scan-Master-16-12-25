@@ -56,6 +56,30 @@ function normId(v: string) {
   return v.trim().toUpperCase();
 }
 
+function polarToCartesian(cx: number, cy: number, radius: number, angleDeg: number) {
+  const angleRad = degToRad(angleDeg);
+  return {
+    x: cx + radius * Math.cos(angleRad),
+    y: cy + radius * Math.sin(angleRad),
+  };
+}
+
+function describeArc(
+  cx: number,
+  cy: number,
+  radius: number,
+  startAngle: number,
+  endAngle: number,
+  sweepFlag = 1
+) {
+  const start = polarToCartesian(cx, cy, radius, startAngle);
+  const end = polarToCartesian(cx, cy, radius, endAngle);
+  const delta = Math.abs(endAngle - startAngle);
+  const largeArcFlag = delta <= 180 ? 0 : 1;
+
+  return `M ${start.x} ${start.y} A ${radius} ${radius} 0 ${largeArcFlag} ${sweepFlag} ${end.x} ${end.y}`;
+}
+
 export function PWCalibrationBlockDrawing({
   width = 950,
   height = 700,
@@ -122,6 +146,8 @@ export function PWCalibrationBlockDrawing({
   const bottomLeftPx = runLeftPx;
   const bottomRightPx = topLenPx - runRightPx;
   const bottomFlatPx = bottomRightPx - bottomLeftPx;
+  const leftFaceLengthIn = FIG1.heightRefIn / Math.sin(degToRad(FIG1.leftFaceDeg));
+  const rightFaceLengthIn = FIG1.heightRefIn / Math.sin(degToRad(FIG1.rightFaceDeg));
 
   // View anchors
   const topView = { x: layout.leftMargin, y: layout.topViewY };
@@ -162,7 +188,7 @@ export function PWCalibrationBlockDrawing({
         markerEnd={dimArrow}
       />
       <rect x={(x1 + x2) / 2 - 58} y={y + textDy - 10} width="116" height="18" fill="white" />
-      <text x={(x1 + x2) / 2} y={y + textDy + 3} textAnchor="middle" fontSize="11" fontFamily="monospace" fill={stroke}>
+      <text x={(x1 + x2) / 2} y={y + textDy + 4} textAnchor="middle" fontSize="13" fontWeight="700" fontFamily="monospace" fill={stroke}>
         {label}
       </text>
     </g>
@@ -190,10 +216,65 @@ export function PWCalibrationBlockDrawing({
         markerEnd={dimArrow}
       />
       <rect x={x - 48} y={(y1 + y2) / 2 - 9} width="96" height="18" fill="white" />
-      <text x={x} y={(y1 + y2) / 2 + 4} textAnchor="middle" fontSize="11" fontFamily="monospace" fill={stroke}>
+      <text x={x} y={(y1 + y2) / 2 + 4} textAnchor="middle" fontSize="13" fontWeight="700" fontFamily="monospace" fill={stroke}>
         {label}
       </text>
     </g>
+  );
+
+  const drawAngleArc = (
+    cx: number,
+    cy: number,
+    radius: number,
+    startAngle: number,
+    endAngle: number,
+    label: string,
+    labelX: number,
+    labelY: number,
+    sweepFlag = 1
+  ) => (
+    <g>
+      <path
+        d={describeArc(cx, cy, radius, startAngle, endAngle, sweepFlag)}
+        fill="none"
+        stroke={dim}
+        strokeWidth="1.2"
+      />
+      <text
+        x={labelX}
+        y={labelY}
+        textAnchor="middle"
+        fontSize="12"
+        fontWeight="700"
+        fontFamily="monospace"
+        fill={stroke}
+      >
+        {label}
+      </text>
+    </g>
+  );
+
+  const drawRotatedLabel = (
+    x: number,
+    y: number,
+    label: string,
+    angleDeg: number
+  ) => (
+    <text
+      x={x}
+      y={y}
+      textAnchor="middle"
+      fontSize="12"
+      fontWeight="700"
+      fontFamily="monospace"
+      fill={stroke}
+      stroke="white"
+      strokeWidth="4"
+      paintOrder="stroke fill"
+      transform={`rotate(${angleDeg} ${x} ${y})`}
+    >
+      {label}
+    </text>
   );
 
   // Approximate hole layout from the OEM isometric view (front face).
@@ -217,19 +298,19 @@ export function PWCalibrationBlockDrawing({
       data-testid="angle-beam-image-capture"
       className="pw-calibration-block-drawing angle-beam-image-capture bg-white rounded-lg border-2 border-blue-200 shadow-lg overflow-x-auto"
     >
-      {/* Header (kept compact; main fidelity is in the figure itself) */}
-      <div className="bg-gradient-to-r from-blue-700 to-indigo-800 text-white px-4 py-3">
+      <div className="border-b border-slate-300 bg-slate-50 px-4 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="bg-white text-blue-800 px-3 py-1 rounded font-bold text-lg">P&W</div>
+            <div className="rounded border border-slate-300 bg-white px-3 py-1 font-bold text-lg text-slate-900">P&W</div>
             <div>
-              <h3 className="text-lg font-bold">{title}</h3>
-              <p className="text-sm opacity-90">Calibration Standard - {standardRef} - Figure 1</p>
+              <h3 className="text-lg font-bold text-slate-900">{title}</h3>
+              <p className="text-sm text-slate-600">Calibration Standard - {standardRef} - Figure 1</p>
             </div>
           </div>
-          <div className="text-right text-xs leading-5 opacity-90 font-mono">
-            <div>PN: {PW_ANGLE_CALIBRATION_BLOCK.partNumber}</div>
-            <div>FBH: #{PW_ANGLE_CALIBRATION_BLOCK.fbhSize} (1/64")</div>
+          <div className="text-right text-xs leading-5 font-mono text-slate-700">
+            <div className="font-semibold text-slate-900">PN: {PW_ANGLE_CALIBRATION_BLOCK.partNumber}</div>
+            <div>FBH: #{PW_ANGLE_CALIBRATION_BLOCK.fbhSize} (1/64") | DAC: L-S</div>
+            <div>Top: 8.000 x 1.605 in | Height Ref: 3.500 in</div>
           </div>
         </div>
       </div>
@@ -250,13 +331,13 @@ export function PWCalibrationBlockDrawing({
         </defs>
 
         {/* Figure label */}
-        <text x={width / 2} y={40} textAnchor="middle" fontSize="14" fontWeight="700" fill={stroke} fontFamily="monospace">
+        <text x={width / 2} y={40} textAnchor="middle" fontSize="15" fontWeight="700" fill={stroke} fontFamily="monospace">
           FIGURE 1 - CALIBRATION STANDARD (IAE2P16675)
         </text>
 
         {/* ====================== TOP VIEW ====================== */}
         <g transform={`translate(${topView.x}, ${topView.y})`}>
-          <text x={topLenPx / 2} y={-18} textAnchor="middle" fontSize="12" fontWeight="700" fill={stroke} fontFamily="monospace">
+          <text x={topLenPx / 2} y={-18} textAnchor="middle" fontSize="13" fontWeight="700" fill={stroke} fontFamily="monospace">
             TOP VIEW
           </text>
 
@@ -272,7 +353,7 @@ export function PWCalibrationBlockDrawing({
 
         {/* ====================== PROFILE VIEW ====================== */}
         <g transform={`translate(${profileView.x}, ${profileView.y})`}>
-          <text x={topLenPx / 2} y={-18} textAnchor="middle" fontSize="12" fontWeight="700" fill={stroke} fontFamily="monospace">
+          <text x={topLenPx / 2} y={-18} textAnchor="middle" fontSize="13" fontWeight="700" fill={stroke} fontFamily="monospace">
             PROFILE VIEW
           </text>
 
@@ -300,6 +381,60 @@ export function PWCalibrationBlockDrawing({
           <text x={topLenPx * 0.67} y={36} fontSize="11" fontFamily="monospace" fill={stroke}>
             {FIG1.rightFaceDeg.toFixed(0)}.000° ± .500°
           </text>
+
+          <rect x={topLenPx * 0.04} y={10} width={topLenPx * 0.92} height={66} fill="#ffffff" />
+          {drawAngleArc(
+            0,
+            0,
+            54,
+            0,
+            FIG1.leftFaceDeg,
+            `${FIG1.leftFaceDeg.toFixed(0)}.000° ± .500°`,
+            topLenPx * 0.22,
+            64
+          )}
+          {drawAngleArc(
+            topLenPx,
+            0,
+            54,
+            135,
+            180,
+            `${FIG1.rightFaceDeg.toFixed(0)}.000° ± .500°`,
+            topLenPx * 0.78,
+            60
+          )}
+          {drawAngleArc(
+            bottomLeftPx,
+            profHeightPx,
+            46,
+            240,
+            360,
+            "(120.000°)",
+            bottomLeftPx + 52,
+            profHeightPx - 34
+          )}
+          {drawAngleArc(
+            bottomRightPx,
+            profHeightPx,
+            46,
+            180,
+            315,
+            "(135.000°)",
+            bottomRightPx - 52,
+            profHeightPx - 34
+          )}
+          {drawRotatedLabel(
+            bottomLeftPx * 0.42,
+            profHeightPx * 0.62,
+            `(${leftFaceLengthIn.toFixed(3)})`,
+            FIG1.leftFaceDeg
+          )}
+          {drawRotatedLabel(
+            topLenPx - runRightPx * 0.42,
+            profHeightPx * 0.66,
+            `(${rightFaceLengthIn.toFixed(3)})`,
+            -FIG1.rightFaceDeg
+          )}
 
           {/* Bottom flat highlight */}
           <line
@@ -331,7 +466,7 @@ export function PWCalibrationBlockDrawing({
               {drawDimV(topLenPx + 30, 0, profHeightPx, "(3.500)", topLenPx + 14, topLenPx + 46)}
 
               {/* Scale label */}
-              <text x={topLenPx / 2} y={profHeightPx + 72} textAnchor="middle" fontSize="10" fontFamily="monospace" fill={muted}>
+              <text x={topLenPx / 2} y={profHeightPx + 72} textAnchor="middle" fontSize="11" fontWeight="700" fontFamily="monospace" fill={muted}>
                 SCALE: 2/1
               </text>
             </>
@@ -340,66 +475,53 @@ export function PWCalibrationBlockDrawing({
 
         {/* ====================== ISOMETRIC VIEW (HOLE LAYOUT) ====================== */}
         <g transform={`translate(${isoView.x}, ${isoView.y})`}>
-          <text x={140} y={-18} textAnchor="middle" fontSize="12" fontWeight="700" fill={stroke} fontFamily="monospace">
+          <text x={140} y={-18} textAnchor="middle" fontSize="13" fontWeight="700" fill={stroke} fontFamily="monospace">
             ISOMETRIC - HOLE LAYOUT
           </text>
 
           {(() => {
             const faceW = isoFace.width;
             const faceH = isoFace.height;
-            const dx = -isoFace.depthX;
-            const dy = -isoFace.depthY;
-
-            // Front face origin (0,0) to (faceW, faceH)
             const front = { x: 0, y: 0 };
-            const back = { x: dx, y: dy };
+            const topRise = 90;
+            const depth = 82;
+            const backTopLeft = { x: -depth, y: -topRise };
+            const backTopRight = { x: 36, y: -topRise };
+            const backBottomLeft = { x: -depth, y: faceH - topRise };
 
             return (
               <>
-                {/* Back face */}
+                {/* Top sloped face */}
                 <polygon
                   points={[
-                    `${back.x},${back.y}`,
-                    `${back.x + faceW},${back.y}`,
-                    `${back.x + faceW},${back.y + faceH}`,
-                    `${back.x},${back.y + faceH}`,
-                  ].join(" ")}
-                  fill="#ffffff"
-                  stroke={stroke}
-                  strokeWidth="1.5"
-                />
-
-                {/* Top face */}
-                <polygon
-                  points={[
-                    `${back.x},${back.y}`,
-                    `${back.x + faceW},${back.y}`,
+                    `${backTopLeft.x},${backTopLeft.y}`,
+                    `${backTopRight.x},${backTopRight.y}`,
                     `${front.x + faceW},${front.y}`,
                     `${front.x},${front.y}`,
                   ].join(" ")}
                   fill="#ffffff"
                   stroke={stroke}
-                  strokeWidth="1.5"
+                  strokeWidth="2"
                 />
 
-                {/* Side face */}
+                {/* Left side face */}
                 <polygon
                   points={[
-                    `${back.x},${back.y}`,
+                    `${backTopLeft.x},${backTopLeft.y}`,
                     `${front.x},${front.y}`,
                     `${front.x},${front.y + faceH}`,
-                    `${back.x},${back.y + faceH}`,
+                    `${backBottomLeft.x},${backBottomLeft.y}`,
                   ].join(" ")}
                   fill="#ffffff"
                   stroke={stroke}
-                  strokeWidth="1.5"
+                  strokeWidth="2"
                 />
 
                 {/* Front face (hole face) */}
                 <rect x={front.x} y={front.y} width={faceW} height={faceH} fill="#ffffff" stroke={stroke} strokeWidth="2" />
 
                 {/* 45-degree label on top (matches the OEM isometric annotation) */}
-                <text x={front.x + faceW - 62} y={front.y - 6} fontSize="14" fontFamily="monospace" fill={stroke}>
+                <text x={front.x + faceW - 68} y={front.y - 8} fontSize="16" fontWeight="700" fontFamily="monospace" fill={stroke}>
                   45°
                 </text>
 
@@ -427,12 +549,15 @@ export function PWCalibrationBlockDrawing({
                         {/* Label */}
                         <text
                           x={cx}
-                          y={cy - 12}
+                          y={pos.y > 0.6 ? cy + 26 : cy - 14}
                           textAnchor="middle"
-                          fontSize="12"
-                          fontWeight={700}
+                          fontSize="14"
+                          fontWeight={800}
                           fontFamily="monospace"
                           fill={stroke}
+                          stroke="white"
+                          strokeWidth="4"
+                          paintOrder="stroke fill"
                         >
                           {h.id}
                         </text>
@@ -456,7 +581,7 @@ export function PWCalibrationBlockDrawing({
               PART: {PW_ANGLE_CALIBRATION_BLOCK.partNumber} (Calibration Block)
             </text>
             <text x={12} y={72} fontSize="11" fontFamily="monospace" fill={stroke}>
-              HOLES SHOWN: J, K, L, M, N, P, Q, R, S | DAC: L-S
+              TOP 8.000 x 1.605 | HEIGHT REF 3.500 | BOTTOM 2.479 | DAC: L-S
             </text>
           </g>
         )}

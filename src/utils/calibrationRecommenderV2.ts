@@ -1136,7 +1136,7 @@ export function generateCalibrationRecommendationV2(
     const ndipData = getNDIPPartData(input.standard);
     if (ndipData) {
       notes.push(`NDIP Document: ${ndipData.ndipDocument} Rev ${ndipData.revision}`);
-      notes.push(`Part Number: ${ndipData.partNumber}, Bore Radius: ${ndipData.boreRadius}" (Offset: ${ndipData.boreOffset}")`);
+      notes.push(`Part Number: ${ndipData.partNumber}, Bore Radius: ${ndipData.boreRadius}" (Offset: ${ndipData.boreOffset}" per AMS-STD-2154E Figure 10)`);
     }
   }
   if (oemVendor !== 'GENERIC') {

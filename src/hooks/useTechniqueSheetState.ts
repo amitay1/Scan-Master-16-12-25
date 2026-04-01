@@ -36,6 +36,7 @@ const defaultInspectionSetup: InspectionSetupData = {
   material: "",
   materialSpec: "",
   partType: "",
+  localModelAssetName: undefined,
   partThickness: 25.0,
   partLength: 100.0,
   partWidth: 50.0,

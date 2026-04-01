@@ -33,6 +33,7 @@ import type {
   ScanPlanData,
 } from '@/types/techniqueSheet';
 import type { ScanDetailsData } from '@/types/scanDetails';
+import { getActiveScanDetails } from '@/utils/scanDetailsSelection';
 import {
   COLORS,
   PAGE,
@@ -2112,7 +2113,7 @@ class TechniqueSheetPDFBuilder {
     }
 
     const sd = this.data.scanDetails;
-    const enabledDetails = sd.scanDetails?.filter(d => d.enabled) || [];
+    const enabledDetails = getActiveScanDetails(sd.scanDetails);
 
     if (enabledDetails.length === 0) {
       this.pdf.setFontSize(10);

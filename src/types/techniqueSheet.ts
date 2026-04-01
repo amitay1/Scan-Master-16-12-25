@@ -109,6 +109,7 @@ export interface InspectionSetupData {
   partType: PartGeometry | "";
   customShapeDescription?: string;
   customShapeImage?: string; // Image upload for custom shapes
+  localModelAssetName?: string; // Optional local STL/3D reference selected from MRO library
   customShapeParameters?: {
     dimension1?: { label: string; value: number };
     dimension2?: { label: string; value: number };

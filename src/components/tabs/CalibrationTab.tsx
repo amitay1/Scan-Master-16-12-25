@@ -1084,20 +1084,22 @@ export const CalibrationTab = ({
     const pwStandards = ['NDIP-1226', 'NDIP-1227', 'NDIP-1254', 'NDIP-1257', 'NDIP-1260', 'PWA-SIM'];
     return pwStandards.includes(standard);
   }, [standard]);
+  const isHptDiskGeometry = mappedPartGeometry === 'hpt_disk' || inspectionSetup.partType === 'hpt_disk';
+  const shouldUsePwCalibrationReference = isPWStandard || isHptDiskGeometry;
 
   const showStraightBeam = beamRequirement === "both" || beamRequirement === "straight_only";
-  const showAngleBeam = beamRequirement === "both" || beamRequirement === "angle_only" || isPWStandard;
+  const showAngleBeam = beamRequirement === "both" || beamRequirement === "angle_only" || shouldUsePwCalibrationReference;
   const showBeamTabs = showStraightBeam && showAngleBeam;
 
   // For PW procedures, the angle-beam block is the most relevant "reference standard".
   // Auto-switch to the Angle tab the first time we enter a PW standard.
   const prevIsPWStandardRef = useRef<boolean | null>(null);
   useEffect(() => {
-    if (isPWStandard && prevIsPWStandardRef.current !== true) {
+    if (shouldUsePwCalibrationReference && prevIsPWStandardRef.current !== true) {
       setActiveBeamTab("angle");
     }
-    prevIsPWStandardRef.current = isPWStandard;
-  }, [isPWStandard]);
+    prevIsPWStandardRef.current = shouldUsePwCalibrationReference;
+  }, [shouldUsePwCalibrationReference]);
 
   // Check specific P&W standard types
   const isPWASIM = standard === 'PWA-SIM';
@@ -1212,8 +1214,8 @@ export const CalibrationTab = ({
       );
     }
 
-    // P&W V2500 or GTF Standards - Show IAE2P16675 calibration block drawing
-    if (isPWStandard) {
+    // P&W V2500/GTF or explicit HPT disk geometry - show PW calibration reference flow
+    if (shouldUsePwCalibrationReference) {
       return (
         <div className="space-y-4">
           {/* P&W specific notice */}
@@ -1228,6 +1230,7 @@ export const CalibrationTab = ({
                   {standard === 'NDIP-1254' && 'PW1100G GTF HPT 1st Stage Hub - NDIP-1254 (AUSI)'}
                   {standard === 'NDIP-1257' && 'PW1100G GTF HPT 2nd Stage Hub - NDIP-1257 (AUSI)'}
                   {standard === 'NDIP-1260' && 'PW1100G GTF HPC 8th Stage IBR-8 - NDIP-1260 (AUSI)'}
+                  {!isPWStandard && isHptDiskGeometry && 'HPT Disk geometry selected - using V2500 Figure 1 calibration reference'}
                 </p>
               </div>
             </div>
@@ -1309,10 +1312,21 @@ export const CalibrationTab = ({
                 <p className="text-xs opacity-90">Powder metal contamination screening - Automated inspection only</p>
               </div>
             )}
+            {!isPWStandard && isHptDiskGeometry && (
+              <div className="mt-3 p-2 bg-white/15 rounded-lg">
+                <p className="text-sm font-semibold">
+                  HPT geometry override active
+                </p>
+                <p className="text-xs opacity-90">
+                  The UI now uses the IAE2P16675 Figure 1 reference block because the selected part geometry is `hpt_disk`,
+                  even though the active procedure is not an NDIP V2500 standard.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* V2500 standards have published Figure 1 geometry (IAE2P16675). */}
-          {isV2500Standard && (
+          {(isV2500Standard || isHptDiskGeometry) && !isGTFStandard && (
             <PWCalibrationBlockDrawing
               width={950}
               height={700}
@@ -1347,7 +1361,7 @@ export const CalibrationTab = ({
           )}
 
           {/* V2500 Bore Profile Cross-Section (per NDIP Figure 2) */}
-           {isV2500Standard && (
+           {(isV2500Standard || isHptDiskGeometry) && (
              <div className="space-y-3">
                <h4 className="font-semibold text-gray-700 flex items-center gap-2">
                  <Target className="h-4 w-4" />

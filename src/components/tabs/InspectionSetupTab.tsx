@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { InspectionSetupData, MaterialType, PartGeometry, AcceptanceClass, StandardType } from "@/types/techniqueSheet";
-import { Upload, X, Plus } from "lucide-react";
+import { Upload, X, Plus, HardDrive, ExternalLink, Download, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { materialDatabase } from "@/utils/enhancedAutoFillLogic";
@@ -20,6 +20,15 @@ import { logInfo, logWarn } from "@/lib/logger";
 import type { ScanDetailsData } from "@/types/scanDetails";
 import { getInspectionThickness } from "@/utils/inspectionThickness";
 import { getV2500InspectionSetupDefaults, getV2500PartTypeLabel, isV2500NdipStandard } from "@/utils/pwNdipDefaults";
+import {
+  enrichMroAsset,
+  fetchMroAssetCatalog,
+  formatMroAssetSize,
+  getRelevantMroAssets,
+  groupMroAssetsByCategory,
+  sortMroAssets,
+  type RawMroAssetCatalogResponse,
+} from "@/utils/mroAssets";
 
 // LocalStorage keys for custom items persistence
 const STORAGE_KEYS = {
@@ -548,6 +557,8 @@ export const InspectionSetupTab = ({
   const [addingSpec, setAddingSpec] = useState(false);
   const [addingHeatTreat, setAddingHeatTreat] = useState(false);
   const [newItemValue, setNewItemValue] = useState("");
+  const [mroCatalog, setMroCatalog] = useState<RawMroAssetCatalogResponse | null>(null);
+  const [isLoadingMroCatalog, setIsLoadingMroCatalog] = useState(false);
 
   // Load custom items from localStorage on mount
   useEffect(() => {
@@ -562,6 +573,42 @@ export const InspectionSetupTab = ({
     } catch (error) {
       logWarn("Failed to load custom items from localStorage:", error);
     }
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadMroCatalog = async () => {
+      setIsLoadingMroCatalog(true);
+
+      try {
+        const response = await fetchMroAssetCatalog();
+
+        if (!cancelled) {
+          setMroCatalog(response);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          logWarn("Failed to load local MRO assets:", error);
+          setMroCatalog({
+            available: false,
+            baseDir: null,
+            assets: [],
+            message: "Failed to load local MRO assets.",
+          });
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoadingMroCatalog(false);
+        }
+      }
+    };
+
+    void loadMroCatalog();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Helper to add custom material
@@ -621,6 +668,43 @@ export const InspectionSetupTab = ({
 
   const isV2500Standard = isV2500NdipStandard(standardType);
   const v2500PartTypeLabel = getV2500PartTypeLabel(standardType);
+  const mroAssets = React.useMemo(
+    () => sortMroAssets((mroCatalog?.assets || []).map(enrichMroAsset)),
+    [mroCatalog],
+  );
+  const relevantMroAssets = React.useMemo(
+    () => getRelevantMroAssets(mroAssets, { partNumber: data.partNumber, standard: standardType, partType: data.partType }),
+    [mroAssets, data.partNumber, standardType, data.partType],
+  );
+  const groupedMroAssets = React.useMemo(
+    () => groupMroAssetsByCategory(mroAssets),
+    [mroAssets],
+  );
+  const visibleMroGroups = React.useMemo(
+    () => Object.entries(groupedMroAssets).filter(([, assets]) => assets.length > 0),
+    [groupedMroAssets],
+  );
+  const threeDModelAssets = React.useMemo(
+    () => groupedMroAssets["3d-model"] || [],
+    [groupedMroAssets],
+  );
+  const relevantThreeDModelAssets = React.useMemo(
+    () => relevantMroAssets.filter((asset) => asset.category === "3d-model"),
+    [relevantMroAssets],
+  );
+  const selectedLocalModelExists = React.useMemo(
+    () => threeDModelAssets.some((asset) => asset.name === data.localModelAssetName),
+    [threeDModelAssets, data.localModelAssetName],
+  );
+
+  useEffect(() => {
+    if (data.localModelAssetName && !selectedLocalModelExists) {
+      onChange({
+        ...data,
+        localModelAssetName: undefined,
+      });
+    }
+  }, [data, onChange, selectedLocalModelExists]);
 
   useEffect(() => {
     const defaults = getV2500InspectionSetupDefaults(standardType);
@@ -1567,6 +1651,198 @@ export const InspectionSetupTab = ({
               showDimensions={true}
             />
           </div>
+        </Card>
+      )}
+
+      {(isLoadingMroCatalog || mroCatalog || mroAssets.length > 0) && (
+        <Card className="workstation-card mt-5 overflow-visible border-0 p-5">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h3 className="text-base font-semibold">Local MRO Reference Library</h3>
+              <p className="text-xs text-muted-foreground">
+                Files detected in <span className="font-mono">public/standards/MRO</span> are exposed here when present locally,
+                but excluded from packaged installers and update payloads.
+              </p>
+            </div>
+            <Badge variant="outline" className="border-primary/30 bg-primary/10 text-primary">
+              <HardDrive className="mr-1 h-3 w-3" />
+              Local Only
+            </Badge>
+          </div>
+
+          {isLoadingMroCatalog ? (
+            <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-background/60 px-3 py-4 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Scanning local MRO files...
+            </div>
+          ) : !mroCatalog?.available ? (
+            <div className="rounded-lg border border-dashed border-border/70 bg-background/60 px-4 py-4 text-sm text-muted-foreground">
+              {mroCatalog?.message || "No local MRO directory was detected."}
+            </div>
+          ) : (
+            <div className="space-y-5">
+              {threeDModelAssets.length > 0 && (
+                <div className="space-y-2 rounded-lg border border-border/70 bg-background/70 p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <Label className="text-sm font-medium">3D Viewer Source</Label>
+                      <p className="text-xs text-muted-foreground">
+                        Choose which local STL model should drive the live 3D preview in setup.
+                      </p>
+                    </div>
+                    <Badge variant="outline">{threeDModelAssets.length} STL</Badge>
+                  </div>
+
+                  <Select
+                    value={data.localModelAssetName || "__parametric__"}
+                    onValueChange={(value) => {
+                      onChange({
+                        ...data,
+                        localModelAssetName: value === "__parametric__" ? undefined : value,
+                      });
+                    }}
+                  >
+                    <SelectTrigger className="bg-background">
+                      <SelectValue placeholder="Select STL model source..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__parametric__">Parametric Preview Only</SelectItem>
+                      {threeDModelAssets.map((asset) => {
+                        const isRelevant = relevantThreeDModelAssets.some((relevant) => relevant.name === asset.name);
+                        return (
+                          <SelectItem key={asset.name} value={asset.name}>
+                            {asset.name}{isRelevant ? " • Relevant" : ""}
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+
+                  {data.localModelAssetName ? (
+                    <p className="text-xs text-muted-foreground">
+                      Active local model: <span className="font-medium text-foreground">{data.localModelAssetName}</span>
+                    </p>
+                  ) : relevantThreeDModelAssets.length > 1 ? (
+                    <p className="text-xs text-amber-600 dark:text-amber-400">
+                      More than one relevant STL was found for this setup. Pick the correct model explicitly.
+                    </p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      No STL is locked right now. The 3D viewer falls back to the internal parametric shape preview.
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {relevantMroAssets.length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-medium">Relevant To Current Setup</Label>
+                    <Badge variant="secondary">{relevantMroAssets.length}</Badge>
+                  </div>
+                  <div className="grid gap-2">
+                    {relevantMroAssets.map((asset) => (
+                      <div
+                        key={`relevant-${asset.name}`}
+                        className="flex flex-col gap-3 rounded-lg border border-primary/20 bg-primary/5 p-3 lg:flex-row lg:items-center lg:justify-between"
+                      >
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="truncate text-sm font-medium">{asset.name}</p>
+                            <Badge variant="outline">{asset.categoryLabel}</Badge>
+                            <Badge variant="secondary">{asset.extension.replace(".", "").toUpperCase()}</Badge>
+                          </div>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            {asset.description} • {formatMroAssetSize(asset.size)}
+                          </p>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => window.open(asset.assetUrl, "_blank", "noopener,noreferrer")}
+                          >
+                            <ExternalLink className="mr-1 h-3.5 w-3.5" />
+                            Open
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => window.open(asset.downloadUrl, "_blank", "noopener,noreferrer")}
+                          >
+                            <Download className="mr-1 h-3.5 w-3.5" />
+                            Download
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium">All Local MRO Assets</Label>
+                  <Badge variant="secondary">{mroAssets.length}</Badge>
+                </div>
+
+                {visibleMroGroups.map(([groupName, assets]) => (
+                  <div key={groupName} className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm font-medium">{assets[0]?.categoryLabel || groupName}</Label>
+                      <Badge variant="outline">{assets.length}</Badge>
+                    </div>
+                    <div className="grid gap-2">
+                      {assets.map((asset) => (
+                        <div
+                          key={asset.name}
+                          className="flex flex-col gap-3 rounded-lg border border-border/70 bg-background/70 p-3 lg:flex-row lg:items-center lg:justify-between"
+                        >
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <p className="truncate text-sm font-medium">{asset.name}</p>
+                              <Badge variant="secondary">{asset.extension.replace(".", "").toUpperCase()}</Badge>
+                              {asset.partNumbers.map((partNumber) => (
+                                <Badge key={`${asset.name}-${partNumber}`} variant="outline">
+                                  {partNumber}
+                                </Badge>
+                              ))}
+                              {asset.standards.map((assetStandard) => (
+                                <Badge key={`${asset.name}-${assetStandard}`} variant="outline">
+                                  {assetStandard}
+                                </Badge>
+                              ))}
+                            </div>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              {asset.description} • {formatMroAssetSize(asset.size)}
+                            </p>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => window.open(asset.assetUrl, "_blank", "noopener,noreferrer")}
+                            >
+                              <ExternalLink className="mr-1 h-3.5 w-3.5" />
+                              Open
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={() => window.open(asset.downloadUrl, "_blank", "noopener,noreferrer")}
+                            >
+                              <Download className="mr-1 h-3.5 w-3.5" />
+                              Download
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </Card>
       )}
     </div>

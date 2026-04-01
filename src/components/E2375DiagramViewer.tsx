@@ -2,6 +2,7 @@ import React from "react";
 import { Card } from "@/components/ui/card";
 import type { PartGeometry } from "@/types/techniqueSheet";
 import type { ScanDetail } from "@/types/scanDetails";
+import { getActiveScanDetails } from "@/utils/scanDetailsSelection";
 
 interface E2375DiagramViewerProps {
   partType: PartGeometry;
@@ -231,14 +232,13 @@ export const E2375DiagramViewer: React.FC<E2375DiagramViewerProps> = ({
         </div>
 
         {/* Enabled Scan Directions */}
-        {scanDetails && scanDetails.some(d => d.enabled) && (
+        {getActiveScanDetails(scanDetails).length > 0 && (
           <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded">
             <h4 className="text-sm font-semibold text-green-900 mb-2">
               Enabled Scan Directions for this Part
             </h4>
             <div className="flex flex-wrap gap-2">
-              {scanDetails
-                .filter(d => d.enabled)
+              {getActiveScanDetails(scanDetails)
                 .map(detail => (
                   <span
                     key={detail.scanningDirection}

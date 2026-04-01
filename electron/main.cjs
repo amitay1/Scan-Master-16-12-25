@@ -108,6 +108,59 @@ let updateCheckInProgress = false;
 let updateDownloadInProgress = false;
 let lastDownloadPercent = 0;
 
+function getMroDirectoryCandidates() {
+  const repoRoot = path.join(__dirname, '..');
+  const executableDir = path.dirname(process.execPath);
+
+  return [
+    process.env.SCANMASTER_MRO_DIR,
+    path.join(process.cwd(), 'public', 'standards', 'MRO'),
+    path.join(repoRoot, 'public', 'standards', 'MRO'),
+    path.join(executableDir, 'MRO'),
+    path.join(executableDir, 'public', 'standards', 'MRO'),
+    process.resourcesPath ? path.join(process.resourcesPath, 'MRO') : null,
+    process.resourcesPath ? path.join(process.resourcesPath, 'public', 'standards', 'MRO') : null,
+  ].filter(Boolean);
+}
+
+function resolveMroDirectory() {
+  const seen = new Set();
+
+  for (const candidate of getMroDirectoryCandidates()) {
+    const normalized = path.resolve(candidate);
+    if (seen.has(normalized)) {
+      continue;
+    }
+
+    seen.add(normalized);
+
+    try {
+      if (fs.existsSync(normalized) && fs.statSync(normalized).isDirectory()) {
+        return normalized;
+      }
+    } catch (error) {
+      console.warn('Failed to inspect MRO directory candidate:', normalized, error.message);
+    }
+  }
+
+  return null;
+}
+
+function buildMroAssetResponse(fileName, stats) {
+  const safeName = path.basename(fileName);
+  const extension = path.extname(safeName).toLowerCase();
+  const encodedName = encodeURIComponent(safeName);
+
+  return {
+    name: safeName,
+    extension,
+    size: stats.size,
+    modifiedAt: stats.mtime.toISOString(),
+    assetUrl: `/api/mro-assets/file/${encodedName}`,
+    downloadUrl: `/api/mro-assets/file/${encodedName}?download=1`,
+  };
+}
+
 function buildUpdateState(extra = {}) {
   return {
     updateAvailable,
@@ -1538,6 +1591,77 @@ function startEmbeddedServer() {
           res.json(standard || {});
         } catch (e) {
           res.json({});
+        }
+      });
+
+      expressApp.get('/api/mro-assets', (req, res) => {
+        try {
+          const mroDir = resolveMroDirectory();
+
+          if (!mroDir) {
+            return res.json({
+              available: false,
+              baseDir: null,
+              assets: [],
+              message: 'No local MRO directory was found. The folder is optional and excluded from packaged updates.',
+            });
+          }
+
+          const assets = fs
+            .readdirSync(mroDir, { withFileTypes: true })
+            .filter((entry) => entry.isFile())
+            .map((entry) => {
+              const absolutePath = path.join(mroDir, entry.name);
+              const stats = fs.statSync(absolutePath);
+              return buildMroAssetResponse(entry.name, stats);
+            })
+            .sort((a, b) => a.name.localeCompare(b.name));
+
+          return res.json({
+            available: true,
+            baseDir: mroDir,
+            assets,
+            message: 'Local MRO assets detected. This directory is served only when present on the machine and is excluded from packaged updates.',
+          });
+        } catch (error) {
+          return res.status(500).json({
+            available: false,
+            baseDir: null,
+            assets: [],
+            message: error.message,
+          });
+        }
+      });
+
+      expressApp.get('/api/mro-assets/file/:fileName', (req, res) => {
+        try {
+          const mroDir = resolveMroDirectory();
+          const requestedName = decodeURIComponent(req.params.fileName || '');
+          const safeName = path.basename(requestedName);
+
+          if (!mroDir) {
+            return res.status(404).json({ error: 'MRO directory not found' });
+          }
+
+          if (!safeName || safeName !== requestedName) {
+            return res.status(400).json({ error: 'Invalid MRO file name' });
+          }
+
+          const absolutePath = path.join(mroDir, safeName);
+
+          if (!fs.existsSync(absolutePath) || !fs.statSync(absolutePath).isFile()) {
+            return res.status(404).json({ error: 'MRO file not found' });
+          }
+
+          res.setHeader('Cache-Control', 'no-store');
+
+          if (req.query.download === '1') {
+            return res.download(absolutePath, safeName);
+          }
+
+          return res.sendFile(absolutePath);
+        } catch (error) {
+          return res.status(500).json({ error: error.message });
         }
       });
 

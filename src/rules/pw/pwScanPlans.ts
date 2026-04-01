@@ -7,6 +7,9 @@
  * V2500 HPT Disk Off-Wing Immersion UT Scan Plans
  */
 
+import { PW_V2500_PARTS } from './pwRuleSet';
+import { PW_HPT_TRANSDUCER_SETUP } from './pwTransducers';
+
 /**
  * Scan direction for circumferential shear wave inspection
  */
@@ -68,17 +71,17 @@ export interface PWScanPlan {
  * Per NDIP-1226 Section 7.1, Figure 2
  */
 export const PW_V2500_STAGE1_SCAN_PLAN: PWScanPlan = {
-  partNumber: '2A5001',
+  partNumber: PW_V2500_PARTS.hptStage1.partNumber,
   ndipReference: 'NDIP-1226 Rev F',
   description: 'V2500 1st Stage HPT Disk Bore Inspection',
   inspectionType: 'bore',
   waveType: 'shear',
-  boreRadius: 2.91, // inches - nominal
-  boreOffset: 0.943, // inches (Section 7.1.2)
+  boreRadius: PW_V2500_PARTS.hptStage1.boreRadius,
+  boreOffset: PW_V2500_PARTS.hptStage1.boreOffset,
   minRadialCoverage: 2.6, // inches (Section 7.1.3)
   maxScanIncrement: 0.02, // inches (Section 7.2)
   maxIndexIncrement: 0.02, // inches per revolution (Section 7.3)
-  waterPath: 8.0, // inches (Section 7.5)
+  waterPath: PW_HPT_TRANSDUCER_SETUP.waterPath,
 
   // From NDIP-1226 Figure 2 — each zone is a physical surface, scanned in both ±45°.
   // Surface order in cross-section (left to right): E → A → B → C → D
@@ -88,7 +91,7 @@ export const PW_V2500_STAGE1_SCAN_PLAN: PWScanPlan = {
       surfaceName: 'Upper Web Transition',
       description: 'Curved fillet/arc transition from web to hub (upper left in Figure 2)',
       profileShape: { type: 'arc', notes: 'Upper fillet, curved transition from web toward bore' },
-      refractedAngle: 45,
+      refractedAngle: PW_HPT_TRANSDUCER_SETUP.refractedAngle,
       scanModes: ['positive', 'negative'],
       direction: 'positive', // deprecated
       coverageRequired: 2.6,
@@ -98,7 +101,7 @@ export const PW_V2500_STAGE1_SCAN_PLAN: PWScanPlan = {
       surfaceName: 'Upper Chamfer',
       description: 'Short straight chamfer between surface E and land B',
       profileShape: { type: 'chamfer', notes: 'Short angled segment connecting E to B' },
-      refractedAngle: 45,
+      refractedAngle: PW_HPT_TRANSDUCER_SETUP.refractedAngle,
       scanModes: ['positive', 'negative'],
       direction: 'positive', // deprecated
       coverageRequired: 2.6,
@@ -108,7 +111,7 @@ export const PW_V2500_STAGE1_SCAN_PLAN: PWScanPlan = {
       surfaceName: 'Upper Land',
       description: 'Flat horizontal land at top of hub between A and C',
       profileShape: { type: 'line', notes: 'Horizontal flat surface at top of bore hub' },
-      refractedAngle: 45,
+      refractedAngle: PW_HPT_TRANSDUCER_SETUP.refractedAngle,
       scanModes: ['positive', 'negative'],
       direction: 'positive', // deprecated
       coverageRequired: 2.6,
@@ -118,7 +121,7 @@ export const PW_V2500_STAGE1_SCAN_PLAN: PWScanPlan = {
       surfaceName: 'Bore Entry Chamfer',
       description: 'Short straight chamfer from land B down to bore ID surface D',
       profileShape: { type: 'chamfer', notes: 'Short angled segment connecting B to bore ID D' },
-      refractedAngle: 45,
+      refractedAngle: PW_HPT_TRANSDUCER_SETUP.refractedAngle,
       scanModes: ['positive', 'negative'],
       direction: 'positive', // deprecated
       coverageRequired: 2.6,
@@ -128,7 +131,7 @@ export const PW_V2500_STAGE1_SCAN_PLAN: PWScanPlan = {
       surfaceName: 'Bore ID',
       description: 'Bore inner diameter — vertical cylindrical wall (rightmost in Figure 2)',
       profileShape: { type: 'line', notes: 'Vertical wall representing bore ID cylinder in cross-section' },
-      refractedAngle: 45,
+      refractedAngle: PW_HPT_TRANSDUCER_SETUP.refractedAngle,
       scanModes: ['positive', 'negative'],
       direction: 'positive', // deprecated
       coverageRequired: 2.6,
@@ -149,17 +152,17 @@ export const PW_V2500_STAGE1_SCAN_PLAN: PWScanPlan = {
  * Per NDIP-1227 Section 7.1, Figure 2
  */
 export const PW_V2500_STAGE2_SCAN_PLAN: PWScanPlan = {
-  partNumber: '2A4802',
+  partNumber: PW_V2500_PARTS.hptStage2.partNumber,
   ndipReference: 'NDIP-1227 Rev D',
   description: 'V2500 2nd Stage HPT Disk Bore Inspection',
   inspectionType: 'bore',
   waveType: 'shear',
-  boreRadius: 2.773, // inches - nominal
-  boreOffset: 0.898, // inches (Section 7.1.2)
+  boreRadius: PW_V2500_PARTS.hptStage2.boreRadius,
+  boreOffset: PW_V2500_PARTS.hptStage2.boreOffset,
   minRadialCoverage: 2.6, // inches (Section 7.1.3)
   maxScanIncrement: 0.02, // inches (Section 7.2)
   maxIndexIncrement: 0.02, // inches per revolution (Section 7.3)
-  waterPath: 8.0, // inches (Section 7.5)
+  waterPath: PW_HPT_TRANSDUCER_SETUP.waterPath,
 
   // From NDIP-1227 Figure 2 — each zone is a physical surface, scanned in both ±45°.
   // Upper profile (left to right): M → N → O → P (bore ID)
@@ -170,7 +173,7 @@ export const PW_V2500_STAGE2_SCAN_PLAN: PWScanPlan = {
       surfaceName: 'Upper Web Transition (Large Arc)',
       description: 'Large curved transition from web to hub — upper left in Figure 2',
       profileShape: { type: 'arc', notes: 'Long arc/spline, major upper transition toward bore' },
-      refractedAngle: 45,
+      refractedAngle: PW_HPT_TRANSDUCER_SETUP.refractedAngle,
       scanModes: ['positive', 'negative'],
       direction: 'positive', // deprecated
       coverageRequired: 2.6,
@@ -180,7 +183,7 @@ export const PW_V2500_STAGE2_SCAN_PLAN: PWScanPlan = {
       surfaceName: 'Upper Shoulder Fillet',
       description: 'Small arc/fillet between M and land O — shoulder area',
       profileShape: { type: 'arc', notes: 'Short rounded fillet at shoulder before upper land' },
-      refractedAngle: 45,
+      refractedAngle: PW_HPT_TRANSDUCER_SETUP.refractedAngle,
       scanModes: ['positive', 'negative'],
       direction: 'positive', // deprecated
       coverageRequired: 2.6,
@@ -190,7 +193,7 @@ export const PW_V2500_STAGE2_SCAN_PLAN: PWScanPlan = {
       surfaceName: 'Upper Land',
       description: 'Flat horizontal land at top of hub between N and bore ID P',
       profileShape: { type: 'line', notes: 'Horizontal flat surface at top of bore hub' },
-      refractedAngle: 45,
+      refractedAngle: PW_HPT_TRANSDUCER_SETUP.refractedAngle,
       scanModes: ['positive', 'negative'],
       direction: 'positive', // deprecated
       coverageRequired: 2.6,
@@ -200,7 +203,7 @@ export const PW_V2500_STAGE2_SCAN_PLAN: PWScanPlan = {
       surfaceName: 'Bore ID',
       description: 'Bore inner diameter — vertical cylindrical wall (rightmost in Figure 2)',
       profileShape: { type: 'line', notes: 'Vertical wall representing bore ID cylinder in cross-section' },
-      refractedAngle: 45,
+      refractedAngle: PW_HPT_TRANSDUCER_SETUP.refractedAngle,
       scanModes: ['positive', 'negative'],
       direction: 'positive', // deprecated
       coverageRequired: 2.6,
@@ -210,7 +213,7 @@ export const PW_V2500_STAGE2_SCAN_PLAN: PWScanPlan = {
       surfaceName: 'Lower Fillet Transition',
       description: 'Curved fillet/arc in lower bore area — transition from web to lower hub',
       profileShape: { type: 'arc', notes: 'Lower curved fillet transition' },
-      refractedAngle: 45,
+      refractedAngle: PW_HPT_TRANSDUCER_SETUP.refractedAngle,
       scanModes: ['positive', 'negative'],
       direction: 'positive', // deprecated
       coverageRequired: 2.6,
@@ -220,7 +223,7 @@ export const PW_V2500_STAGE2_SCAN_PLAN: PWScanPlan = {
       surfaceName: 'Lower Diagonal Slope',
       description: 'Straight diagonal surface below K — angled toward bore step/shoulder',
       profileShape: { type: 'line', notes: 'Diagonal straight segment after lower fillet K' },
-      refractedAngle: 45,
+      refractedAngle: PW_HPT_TRANSDUCER_SETUP.refractedAngle,
       scanModes: ['positive', 'negative'],
       direction: 'positive', // deprecated
       coverageRequired: 2.6,

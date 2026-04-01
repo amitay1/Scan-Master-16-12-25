@@ -970,6 +970,9 @@ const Index = () => {
                 <ThreeDViewer
                   partType={currentData.inspectionSetup.partType || ""}
                   material={currentData.inspectionSetup.material as MaterialType || ""}
+                  standardType={standard}
+                  partNumber={currentData.inspectionSetup.partNumber}
+                  externalModelAssetName={currentData.inspectionSetup.localModelAssetName}
                   dimensions={{
                     length: currentData.inspectionSetup.partLength || 100,
                     width: currentData.inspectionSetup.partWidth || 50,

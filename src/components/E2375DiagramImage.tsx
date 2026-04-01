@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Info, Maximize2, ExternalLink, ZoomIn, ZoomOut } from "lucide-react";
 import type { PartGeometry } from "@/types/techniqueSheet";
 import type { ScanDetail } from "@/types/scanDetails";
+import { getActiveScanDetails } from "@/utils/scanDetailsSelection";
 import { TubeScanDiagram } from "@/components/TubeScanDiagram";
 import { ConeScanDiagram } from "@/components/ConeScanDiagram";
 
@@ -195,7 +196,7 @@ const ScanDirectionLegend: React.FC<{
   scanDetails?: ScanDetail[]; 
   recommendedDirections: string[];
 }> = ({ scanDetails, recommendedDirections }) => {
-  const enabledDirections = scanDetails?.filter(d => d.enabled) || [];
+  const enabledDirections = getActiveScanDetails(scanDetails);
   
   if (enabledDirections.length === 0) {
     return (
@@ -256,6 +257,7 @@ export const E2375DiagramImage: React.FC<E2375DiagramImageProps> = ({
   const [zoom, setZoom] = useState(1);
 
   const imageInfo = getE2375ImageInfo(partType);
+  const activeScanDetails = getActiveScanDetails(scanDetails);
 
   if (!imageInfo) {
     return (
@@ -394,7 +396,7 @@ export const E2375DiagramImage: React.FC<E2375DiagramImageProps> = ({
               <div className="bg-slate-100 rounded-lg p-4 border border-slate-300">
                 <h4 className="text-sm font-bold mb-3 flex items-center gap-2 text-slate-900">
                   <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                  Active Scan Directions ({scanDetails?.filter(d => d.enabled).length || 0})
+                  Active Scan Directions ({activeScanDetails.length})
                 </h4>
                 <ScanDirectionLegend 
                   scanDetails={scanDetails} 

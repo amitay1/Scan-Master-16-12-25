@@ -6,6 +6,23 @@
  */
 
 import type { OEMRuleSet } from '../../types/oemTypes';
+import { calculateAms2154CylindricalOffset } from '@/utils/ams2154ImmersionCalculator';
+import {
+  PW_HPT_TRANSDUCER_SETUP,
+  PW_REFERENCE_SHEAR_VELOCITY,
+  PW_REFERENCE_WATER_VELOCITY,
+} from './pwTransducers';
+
+function calculatePWBoreOffset(boreRadius: number): number {
+  return Number(
+    calculateAms2154CylindricalOffset({
+      outerRadius: boreRadius,
+      refractedAngle: PW_HPT_TRANSDUCER_SETUP.refractedAngle,
+      shearVelocity: PW_REFERENCE_SHEAR_VELOCITY,
+      waterVelocity: PW_REFERENCE_WATER_VELOCITY,
+    }).offset.toFixed(3)
+  );
+}
 
 export const PW_RULE_SET: OEMRuleSet = {
   vendorId: 'PW',
@@ -40,10 +57,10 @@ export const PW_RULE_SET: OEMRuleSet = {
   scanParameters: {
     maxScanIncrement: 0.020, // inches (Section 7.2)
     maxIndexIncrement: 0.020, // inches per revolution (Section 7.3)
-    waterPath: 8.0, // inches (Section 5.1.1.2, 7.5)
-    incidentAngle: 18.6, // degrees - approximate for 45° refracted shear
-    refractedAngle: 45, // degrees - shear wave in part
-    waveType: 'shear',
+    waterPath: PW_HPT_TRANSDUCER_SETUP.waterPath,
+    incidentAngle: PW_HPT_TRANSDUCER_SETUP.incidentAngle,
+    refractedAngle: PW_HPT_TRANSDUCER_SETUP.refractedAngle,
+    waveType: PW_HPT_TRANSDUCER_SETUP.waveType,
   },
 
   // Noise requirements from NDIP Section 7.9.5
@@ -135,7 +152,7 @@ export const PW_V2500_PARTS = {
     description: 'V2500 1st Stage High Pressure Turbine Disk',
     material: 'Powdered Nickel Metal',
     boreRadius: 2.910, // inches - nominal
-    boreOffset: 0.943, // inches - for ±45° refracted angle
+    boreOffset: calculatePWBoreOffset(2.910), // AMS-STD-2154E Figure 10
     inspectionZones: ['A', 'B', 'C', 'D', 'E'], // From Figure 2
   },
   hptStage2: {
@@ -144,7 +161,7 @@ export const PW_V2500_PARTS = {
     description: 'V2500 2nd Stage High Pressure Turbine Disk',
     material: 'Powdered Nickel Metal',
     boreRadius: 2.773, // inches - nominal
-    boreOffset: 0.898, // inches - for ±45° refracted angle
+    boreOffset: calculatePWBoreOffset(2.773), // AMS-STD-2154E Figure 10
     inspectionZones: ['K', 'L', 'M', 'N', 'O', 'P'], // From Figure 2
   },
 };

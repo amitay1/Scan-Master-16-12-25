@@ -5,6 +5,11 @@
  * Source: NDIP-1227 Section 2.4, 2.5
  */
 
+import {
+  AMS_2154_DEFAULT_WATER_VELOCITY,
+  calculateAms2154IncidentAngle,
+} from '@/utils/ams2154ImmersionCalculator';
+
 export interface PWTransducer {
   partNumber: string;
   frequency: number; // MHz
@@ -43,7 +48,7 @@ export const PW_PRIMARY_TRANSDUCER: PWTransducer = {
 };
 
 /**
- * IAE2P16678 - 45° Mirror for angle beam inspection
+ * IAE2P16678 - 45-degree mirror for angle beam inspection
  */
 export const PW_45_DEGREE_MIRROR: PWTransducerMirror = {
   partNumber: 'IAE2P16678',
@@ -96,10 +101,23 @@ export interface TransducerSetup {
   normalizationRequired: boolean;
 }
 
+export const PW_REFERENCE_WATER_VELOCITY = AMS_2154_DEFAULT_WATER_VELOCITY;
+
+// This reference shear velocity reproduces the published NDIP bore offsets when
+// the AMS-STD-2154E Figure 10 offset method is applied at 45 degrees.
+export const PW_REFERENCE_SHEAR_VELOCITY = 3230; // m/s
+export const PW_REFERENCE_REFRACTED_ANGLE = 45; // degrees
+
 export const PW_HPT_TRANSDUCER_SETUP: TransducerSetup = {
   waterPath: 8.0, // inches (Section 5.1.1.2)
-  incidentAngle: 18.6, // degrees - approximate (Section 5.1.1.3)
-  refractedAngle: 45, // degrees - shear wave in part
+  incidentAngle: Number(
+    calculateAms2154IncidentAngle(
+      PW_REFERENCE_REFRACTED_ANGLE,
+      PW_REFERENCE_SHEAR_VELOCITY,
+      PW_REFERENCE_WATER_VELOCITY
+    ).toFixed(1)
+  ),
+  refractedAngle: PW_REFERENCE_REFRACTED_ANGLE, // degrees - shear wave in part
   waveType: 'shear',
   mirrorRequired: true, // Per Section 7.6
   normalizationRequired: true, // Per Section 5.1.1.1, 7.7
@@ -107,11 +125,7 @@ export const PW_HPT_TRANSDUCER_SETUP: TransducerSetup = {
 
 /**
  * Calculate incident angle for desired refracted angle
- * Using Snell's Law: sin(θi)/sin(θr) = V1/V2
- *
- * For water to Nickel alloy:
- * - Water velocity: ~1480 m/s
- * - Nickel shear velocity: ~3000 m/s (approximate for PM nickel)
+ * Using AMS-STD-2154E Figure 10 / Snell's Law for water-to-metal shear waves.
  *
  * @param refractedAngle Target angle in material (degrees)
  * @param waterVelocity Sound velocity in water (m/s)
@@ -119,22 +133,14 @@ export const PW_HPT_TRANSDUCER_SETUP: TransducerSetup = {
  */
 export function calculateIncidentAngle(
   refractedAngle: number,
-  waterVelocity: number = 1480,
-  materialShearVelocity: number = 3000
+  waterVelocity: number = PW_REFERENCE_WATER_VELOCITY,
+  materialShearVelocity: number = PW_REFERENCE_SHEAR_VELOCITY
 ): number {
-  const refractedRad = (refractedAngle * Math.PI) / 180;
-  const sinIncident =
-    (Math.sin(refractedRad) * waterVelocity) / materialShearVelocity;
-
-  // Check if angle is achievable (critical angle)
-  if (sinIncident > 1) {
-    throw new Error(
-      `Cannot achieve ${refractedAngle}° refracted angle - exceeds critical angle`
-    );
-  }
-
-  const incidentRad = Math.asin(sinIncident);
-  return (incidentRad * 180) / Math.PI;
+  return calculateAms2154IncidentAngle(
+    refractedAngle,
+    materialShearVelocity,
+    waterVelocity
+  );
 }
 
 /**

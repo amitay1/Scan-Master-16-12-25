@@ -44,6 +44,7 @@ import type {
   ScanPlanData,
 } from '@/types/techniqueSheet';
 import type { ScanDetailsData } from '@/types/scanDetails';
+import { getActiveScanDetails } from '@/utils/scanDetailsSelection';
 import {
   formatValue as formatValueHelper,
   formatNumber,
@@ -1564,13 +1565,15 @@ export function buildTechniqueSheetWordDocument(
     children.push(new Paragraph({ children: [], spacing: { after: 200 } }));
   }
 
+  const activeScanDetails = getActiveScanDetails(scanDetails?.scanDetails);
+
   // ========== 5. SCAN DETAILS (if available) ==========
-  if (scanDetails?.scanDetails && scanDetails.scanDetails.some(d => d.enabled)) {
+  if (activeScanDetails.length > 0) {
     children.push(new Paragraph({ children: [], spacing: { before: 120, after: 20 } }));
     children.push(createSectionTitle('5. SCAN DETAILS & DIRECTIONS'));
     children.push(new Paragraph({ children: [], spacing: { after: 200 } }));
 
-    const enabledDetails = scanDetails.scanDetails.filter(d => d.enabled);
+    const enabledDetails = activeScanDetails;
 
     const formatEntrySurface = (entrySurface?: string): string => {
       if (!entrySurface) return '-';

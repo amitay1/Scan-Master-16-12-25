@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Info, ZoomIn, ZoomOut, Maximize2, ExternalLink, RefreshCw, FileImage, AlertCircle } from "lucide-react";
 import type { PartGeometry } from "@/types/techniqueSheet";
 import type { ScanDetail } from "@/types/scanDetails";
+import { getActiveScanDetails } from "@/utils/scanDetailsSelection";
 
 // Configure PDF.js worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
@@ -316,7 +317,7 @@ export const E2375StandardDiagram: React.FC<E2375StandardDiagramProps> = ({
   const handleZoomOut = () => setScale(prev => Math.max(prev - 0.25, 0.75));
   const handleRetry = () => setRetryKey(prev => prev + 1);
 
-  const enabledDirections = scanDetails?.filter(d => d.enabled) || [];
+  const enabledDirections = getActiveScanDetails(scanDetails);
 
   if (!pageInfo) {
     return (

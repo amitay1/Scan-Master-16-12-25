@@ -11,6 +11,7 @@
                       },
     "files":  [
                   "dist/**/*",
+                  "!dist/standards/MRO/**",
                   "electron/**/*",
                   "server/**/*",
                   "shared/**/*",

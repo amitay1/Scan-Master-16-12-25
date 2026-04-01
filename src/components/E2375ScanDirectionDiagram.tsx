@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { motion, AnimatePresence } from "framer-motion";
 import type { PartGeometry } from "@/types/techniqueSheet";
 import type { ScanDetail } from "@/types/scanDetails";
+import { getActiveScanDetails, getActiveScanDirections } from "@/utils/scanDetailsSelection";
 import { Info, ExternalLink, ZoomIn, Maximize2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -105,7 +106,7 @@ const DIRECTION_INFO: Record<string, { color: string; name: string; wave: string
 
 // SVG diagrams for different part types
 const RectangularDiagram: React.FC<{ scanDetails?: ScanDetail[]; highlighted?: string | null }> = ({ scanDetails, highlighted }) => {
-  const enabledDirections = scanDetails?.filter(d => d.enabled).map(d => d.scanningDirection) || [];
+  const enabledDirections = getActiveScanDirections(scanDetails);
   
   return (
     <svg viewBox="0 0 400 300" className="w-full h-full">
@@ -246,7 +247,7 @@ const RectangularDiagram: React.FC<{ scanDetails?: ScanDetail[]; highlighted?: s
 };
 
 const CylindricalDiagram: React.FC<{ scanDetails?: ScanDetail[]; highlighted?: string | null }> = ({ scanDetails, highlighted }) => {
-  const enabledDirections = scanDetails?.filter(d => d.enabled).map(d => d.scanningDirection) || [];
+  const enabledDirections = getActiveScanDirections(scanDetails);
   
   return (
     <svg viewBox="0 0 400 300" className="w-full h-full">
@@ -405,7 +406,7 @@ const CylindricalDiagram: React.FC<{ scanDetails?: ScanDetail[]; highlighted?: s
 };
 
 const TubeDiagram: React.FC<{ scanDetails?: ScanDetail[]; highlighted?: string | null }> = ({ scanDetails, highlighted }) => {
-  const enabledDirections = scanDetails?.filter(d => d.enabled).map(d => d.scanningDirection) || [];
+  const enabledDirections = getActiveScanDirections(scanDetails);
   
   return (
     <svg viewBox="0 0 400 300" className="w-full h-full">
@@ -539,7 +540,7 @@ const TubeDiagram: React.FC<{ scanDetails?: ScanDetail[]; highlighted?: string |
 };
 
 const HexBarDiagram: React.FC<{ scanDetails?: ScanDetail[]; highlighted?: string | null }> = ({ scanDetails, highlighted }) => {
-  const enabledDirections = scanDetails?.filter(d => d.enabled).map(d => d.scanningDirection) || [];
+  const enabledDirections = getActiveScanDirections(scanDetails);
   
   // Hexagon points
   const hexPoints = "100,20 160,50 160,110 100,140 40,110 40,50";
@@ -628,7 +629,7 @@ const ScanDirectionLegend: React.FC<{ scanDetails?: ScanDetail[]; highlighted?: 
   highlighted,
   onHighlight 
 }) => {
-  const enabledDirections = scanDetails?.filter(d => d.enabled) || [];
+  const enabledDirections = getActiveScanDetails(scanDetails);
   
   if (enabledDirections.length === 0) {
     return (

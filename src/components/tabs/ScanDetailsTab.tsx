@@ -19,6 +19,7 @@ import { RingScanDiagram } from "@/components/RingScanDiagram";
 import { HexBarScanDiagram } from "@/components/HexBarScanDiagram";
 import { ImpellerScanDiagram } from "@/components/ImpellerScanDiagram";
 import { BliskScanDiagram } from "@/components/BliskScanDiagram";
+import { RealTimeTechnicalDrawing } from "@/components/RealTimeTechnicalDrawing";
 import { getFrequencyOptionsForStandard } from "@/utils/frequencyUtils";
 import { calculateNearField } from "@/utils/coverageCalculator";
 import { equipmentParametersByStandard } from "@/data/standardsDifferences";
@@ -27,6 +28,7 @@ import { useOllamaVision } from "@/components/scan-overlay/hooks/useOllamaVision
 import { generateArrowsForGeometry, syncArrowsWithScanDetails } from "@/utils/scanArrowPlacement";
 import { getV2500ScanDetailDefaults } from "@/utils/pwScanDetailDefaults";
 import { isV2500NdipStandard } from "@/utils/pwNdipDefaults";
+import { getActiveScanDetails, getActiveScanDirections } from "@/utils/scanDetailsSelection";
 import type { ScanArrow } from "@/types/scanOverlay";
 
 interface ExtendedScanDetail extends ScanDetail {
@@ -301,14 +303,15 @@ export const ScanDetailsTab = ({
     );
   };
 
-  const enabledScanDirections = scanDetails.filter(d => d.enabled).map(d => d.scanningDirection);
+  const activeScanDetails = getActiveScanDetails(scanDetails);
+  const enabledScanDirections = getActiveScanDirections(scanDetails);
   const directionColors = Object.fromEntries(
     scanDetails.map(d => [d.scanningDirection, d.color || "#111827"])
   ) as Record<string, string>;
 
   const isV2500Standard = isV2500NdipStandard(standard);
   const isHptDiskPart = partType === "hpt_disk";
-  const showV2500BoreDiagram = isHptDiskPart || isV2500Standard;
+  const showV2500BoreDiagram = !isHptDiskPart && isV2500Standard;
   const v2500Stage: 1 | 2 | null = standard === "NDIP-1226" ? 1 : standard === "NDIP-1227" ? 2 : null;
 
   // Custom drawing handlers
@@ -538,6 +541,57 @@ export const ScanDetailsTab = ({
         </div>
         <div className="mt-3 flex flex-wrap gap-2">
           {activeDetails.length > 0 ? activeDetails.map((detail) => (
+            <Badge
+              key={detail.scanningDirection}
+              variant="outline"
+              className={highlightedDirection === detail.scanningDirection ? "border-red-500 text-red-500" : ""}
+              style={highlightedDirection === detail.scanningDirection ? undefined : { borderColor: detail.color, color: detail.color }}
+            >
+              {detail.scanningDirection}: {detail.waveMode}
+            </Badge>
+          )) : (
+            <span className="text-xs text-slate-500">Enable directions to review the active scan set.</span>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const renderHptDiskReferenceDiagram = () => {
+    const referenceLabel =
+      standard === "NDIP-1227"
+        ? "NDIP-1227 Figure 2 reference"
+        : standard === "NDIP-1226"
+          ? "NDIP-1226 Figure 2 reference"
+          : "PW HPT disk bore reference";
+
+    return (
+      <div className="rounded-lg border-2 border-gray-200 bg-white p-3">
+        <div className="mb-3">
+          <h4 className="text-sm font-semibold text-slate-800">HPT Disk Bore Profile</h4>
+          <p className="text-xs text-slate-500">{referenceLabel}</p>
+        </div>
+        <div className="overflow-hidden rounded-md border border-gray-200 bg-gray-50">
+          <RealTimeTechnicalDrawing
+            partType="hpt_disk"
+            standardType={standard}
+            enabledScanDirections={enabledScanDirections}
+            directionColors={directionColors}
+            dimensions={{
+              length: dimensions?.length || 100,
+              width: dimensions?.width || 50,
+              thickness: dimensions?.thickness || dimensions?.height || 10,
+              diameter: dimensions?.outerDiameter || dimensions?.diameter,
+              innerDiameter: dimensions?.innerDiameter,
+              isHollow: dimensions?.isHollow,
+              wallThickness: dimensions?.wallThickness,
+            }}
+            showGrid={false}
+            showDimensions={true}
+          />
+        </div>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {activeScanDetails.length > 0 ? activeScanDetails.map((detail) => (
             <Badge
               key={detail.scanningDirection}
               variant="outline"
@@ -812,6 +866,10 @@ export const ScanDetailsTab = ({
     } else if (isCylinderType(partType)) {
       return <CylinderScanDiagram scanDetails={scanDetails} highlightedDirection={highlightedDirection} />;
     } else if (isDiskType(partType)) {
+      if (isHptDiskPart) {
+        return renderHptDiskReferenceDiagram();
+      }
+
       if (!showV2500BoreDiagram) {
         return renderDiskReferenceDiagram();
       }
@@ -1011,7 +1069,7 @@ export const ScanDetailsTab = ({
               <span className="text-[10px] text-blue-400">(Click direction or wave mode to expand)</span>
             </div>
             <Badge variant="outline" className="text-[10px] border-slate-600 text-slate-300">
-              {scanDetails.filter(d => d.enabled).length} / {scanDetails.length} enabled
+              {activeScanDetails.length} / {scanDetails.length} active
             </Badge>
           </div>
 

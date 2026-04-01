@@ -1,53 +1,57 @@
-import { Canvas } from "@react-three/fiber";
+import { Canvas, useThree } from "@react-three/fiber";
 import { OrbitControls, PerspectiveCamera } from "@react-three/drei";
-import { PartGeometry, MaterialType } from "@/types/techniqueSheet";
+import { PartGeometry, MaterialType, StandardType } from "@/types/techniqueSheet";
 import { Button } from "@/components/ui/button";
 import { RotateCcw, Navigation, Loader2, AlertTriangle } from "lucide-react";
-import { useRef, useMemo, useState, useEffect, memo, useCallback, Suspense } from "react";
+import { useRef, useMemo, useState, useEffect, memo, useCallback } from "react";
 import * as THREE from "three";
+import { STLLoader } from "three/examples/jsm/loaders/STLLoader.js";
 import { getMaterialByMaterialType } from "./3d/ShapeMaterials";
 import { getGeometryByType } from "./3d/ShapeGeometries";
-import { Skeleton } from "@/components/ui/skeleton";
+import { enrichMroAsset, fetchMroAssetCatalog, getRelevantMroAssets } from "@/utils/mroAssets";
 
-// Check if WebGL is supported
 function isWebGLSupported(): boolean {
   try {
-    const canvas = document.createElement('canvas');
-    const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+    const canvas = document.createElement("canvas");
+    const gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
     return gl !== null;
-  } catch (e) {
+  } catch {
     return false;
   }
 }
 
-// Fallback component when WebGL is not available
-const WebGLFallback = memo(function WebGLFallback({ partType, material, dimensions }: {
+const WebGLFallback = memo(function WebGLFallback({
+  partType,
+  material,
+  dimensions,
+}: {
   partType: PartGeometry | "";
   material?: MaterialType | "";
   dimensions?: { thickness?: number };
 }) {
   return (
-    <div className="relative w-full h-full bg-gradient-to-br from-muted/30 to-muted/10 rounded-lg border border-border overflow-hidden flex flex-col items-center justify-center p-4">
-      <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-4 max-w-sm text-center">
-        <AlertTriangle className="h-8 w-8 text-amber-500 mx-auto mb-2" />
-        <h3 className="text-sm font-medium text-foreground mb-1">3D Preview Unavailable</h3>
-        <p className="text-xs text-muted-foreground mb-3">
-          WebGL is not supported or disabled in your browser. The 3D visualization requires WebGL to render.
+    <div className="relative flex h-full w-full flex-col items-center justify-center overflow-hidden rounded-lg border border-border bg-gradient-to-br from-muted/30 to-muted/10 p-4">
+      <div className="max-w-sm rounded-lg border border-amber-500/20 bg-amber-500/10 p-4 text-center">
+        <AlertTriangle className="mx-auto mb-2 h-8 w-8 text-amber-500" />
+        <h3 className="mb-1 text-sm font-medium text-foreground">3D Preview Unavailable</h3>
+        <p className="mb-3 text-xs text-muted-foreground">
+          WebGL is not supported or is disabled in this environment.
         </p>
-        <div className="bg-card/50 rounded p-2 text-left">
-          <p className="text-xs font-medium text-foreground mb-1">Part Configuration:</p>
+        <div className="rounded bg-card/50 p-2 text-left">
+          <p className="mb-1 text-xs font-medium text-foreground">Part Configuration:</p>
           <p className="text-xs text-muted-foreground">
-            {partType ? `Type: ${partType}` : 'No part type selected'}
+            {partType ? `Type: ${partType}` : "No part type selected"}
           </p>
           {material && <p className="text-xs text-muted-foreground">Material: {material}</p>}
-          {dimensions?.thickness && <p className="text-xs text-muted-foreground">Thickness: {dimensions.thickness}mm</p>}
+          {dimensions?.thickness && (
+            <p className="text-xs text-muted-foreground">Thickness: {dimensions.thickness}mm</p>
+          )}
         </div>
       </div>
     </div>
   );
 });
 
-// Debounce hook for smooth updates without flickering
 function useDebounce<T>(value: T, delay: number): T {
   const [debouncedValue, setDebouncedValue] = useState<T>(value);
 
@@ -64,20 +68,22 @@ function useDebounce<T>(value: T, delay: number): T {
   return debouncedValue;
 }
 
-// Deep comparison for objects
 function useDeepMemo<T>(value: T): T {
   const ref = useRef<T>(value);
-  
+
   if (JSON.stringify(value) !== JSON.stringify(ref.current)) {
     ref.current = value;
   }
-  
+
   return ref.current;
 }
 
 interface ThreeDViewerProps {
   partType: PartGeometry | "";
   material?: MaterialType | "";
+  standardType?: StandardType;
+  partNumber?: string;
+  externalModelAssetName?: string;
   dimensions?: {
     length: number;
     width: number;
@@ -88,110 +94,40 @@ interface ThreeDViewerProps {
     innerLength?: number;
     innerWidth?: number;
     wallThickness?: number;
-    // Cone-specific dimensions
     coneTopDiameter?: number;
     coneBottomDiameter?: number;
     coneHeight?: number;
   };
 }
 
-
-// Component for hollow tube with real hole
-const HollowTube = ({ material, outerRadius, innerRadius, length }: { material: THREE.MeshStandardMaterial; outerRadius: number; innerRadius: number; length: number }) => {
-  const geometry = useMemo(() => {
-    const shape = new THREE.Shape();
-    shape.absarc(0, 0, outerRadius, 0, Math.PI * 2, false);
-    const hole = new THREE.Path();
-    hole.absarc(0, 0, innerRadius, 0, Math.PI * 2, true);
-    shape.holes.push(hole);
-    
-    const extrudeSettings = {
-      depth: length,
-      bevelEnabled: false,
-      steps: 1
-    };
-    
-    const geom = new THREE.ExtrudeGeometry(shape, extrudeSettings);
-    geom.rotateY(Math.PI / 2);
-    geom.translate(0, 0, -length / 2);
-    return geom;
-  }, [outerRadius, innerRadius, length]);
-  
-  // Clone material and set double-sided
-  const tubeMaterial = useMemo(() => {
-    const mat = material.clone();
-    mat.side = THREE.DoubleSide;
-    return mat;
-  }, [material]);
-  
-  return (
-    <mesh castShadow receiveShadow geometry={geometry} material={tubeMaterial} />
-  );
-};
-
-// Component for hollow ring with real hole
-const HollowRing = ({ material, outerRadius, innerRadius, height }: { material: THREE.MeshStandardMaterial; outerRadius: number; innerRadius: number; height: number }) => {
-  const geometry = useMemo(() => {
-    const shape = new THREE.Shape();
-    shape.absarc(0, 0, outerRadius, 0, Math.PI * 2, false);
-    const hole = new THREE.Path();
-    hole.absarc(0, 0, innerRadius, 0, Math.PI * 2, true);
-    shape.holes.push(hole);
-    
-    const extrudeSettings = {
-      depth: height,
-      bevelEnabled: false,
-      steps: 1
-    };
-    
-    const geom = new THREE.ExtrudeGeometry(shape, extrudeSettings);
-    geom.rotateX(Math.PI / 2);
-    geom.translate(0, 0, -height / 2);
-    return geom;
-  }, [outerRadius, innerRadius, height]);
-  
-  // Clone material and set double-sided
-  const ringMaterial = useMemo(() => {
-    const mat = material.clone();
-    mat.side = THREE.DoubleSide;
-    return mat;
-  }, [material]);
-  
-  return (
-    <mesh castShadow receiveShadow geometry={geometry} material={ringMaterial} />
-  );
-};
-
-// Memoized Part component to prevent unnecessary re-renders
 const Part = memo(function Part({ partType, material, dimensions }: ThreeDViewerProps) {
-  // Shorter debounce for more responsive updates (150ms)
   const debouncedDimensions = useDebounce(dimensions, 150);
-  
-  // Get metallic material based on material type (aerospace metals)
   const metalMaterial = useMemo(() => getMaterialByMaterialType(material), [material]);
 
-  // Calculate scale based on debounced dimensions
   const scale = useMemo((): [number, number, number] => {
     if (!debouncedDimensions) return [1, 1, 1];
 
-    const baseSize = 1;
-    const isRound = partType === 'cylinder' || partType === 'tube' || partType === 'cone' || partType === 'sphere';
+    const isRound =
+      partType === "cylinder" ||
+      partType === "tube" ||
+      partType === "cone" ||
+      partType === "sphere";
 
     if (isRound && debouncedDimensions.diameter) {
-      // For round parts, use uniform YZ scale from diameter to preserve circular cross-section
       const diameterScale = debouncedDimensions.diameter / 75;
-      const lengthScale = debouncedDimensions.length ? debouncedDimensions.length / 100 : diameterScale;
+      const lengthScale = debouncedDimensions.length
+        ? debouncedDimensions.length / 100
+        : diameterScale;
       return [lengthScale, diameterScale, diameterScale];
     }
 
-    const scaleX = debouncedDimensions.length ? debouncedDimensions.length / 100 : baseSize;
-    const scaleY = debouncedDimensions.thickness ? debouncedDimensions.thickness / 50 : baseSize;
-    const scaleZ = debouncedDimensions.width ? debouncedDimensions.width / 75 : baseSize;
+    const scaleX = debouncedDimensions.length ? debouncedDimensions.length / 100 : 1;
+    const scaleY = debouncedDimensions.thickness ? debouncedDimensions.thickness / 50 : 1;
+    const scaleZ = debouncedDimensions.width ? debouncedDimensions.width / 75 : 1;
 
     return [scaleX, scaleY, scaleZ];
   }, [debouncedDimensions, partType]);
 
-  // Use deep comparison for geometry parameters to ensure updates
   const geometryParams = useDeepMemo({
     isHollow: debouncedDimensions?.isHollow || false,
     outerDiameter: debouncedDimensions?.diameter || 0,
@@ -202,38 +138,111 @@ const Part = memo(function Part({ partType, material, dimensions }: ThreeDViewer
     innerLength: debouncedDimensions?.innerLength || 0,
     innerWidth: debouncedDimensions?.innerWidth || 0,
     wallThickness: debouncedDimensions?.wallThickness || 0,
-    // Cone-specific parameters - use undefined if not set so geometry uses proper defaults
     coneTopDiameter: debouncedDimensions?.coneTopDiameter || undefined,
     coneBottomDiameter: debouncedDimensions?.coneBottomDiameter || undefined,
     coneHeight: debouncedDimensions?.coneHeight || undefined,
   });
 
-  // Use the same geometry as Shape3DViewer for consistency.
-  // IMPORTANT: Hooks must run in the same order on every render.
-  // We therefore compute geometry even when partType is empty, and
-  // fall back to a placeholder geometry.
   const geometry = useMemo(() => {
-    const geom = partType
+    const nextGeometry = partType
       ? getGeometryByType(partType, geometryParams)
       : new THREE.BoxGeometry(1, 0.5, 0.5);
 
-    geom.computeBoundingBox();
-    geom.computeVertexNormals();
-    return geom;
+    nextGeometry.computeBoundingBox();
+    nextGeometry.computeVertexNormals();
+    return nextGeometry;
   }, [partType, geometryParams]);
-  
-  // When no part type selected, show a neutral placeholder material.
+
   const resolvedMaterial = partType
     ? metalMaterial
-    : (new THREE.MeshStandardMaterial({ color: "#A0A0A0", metalness: 0.8, roughness: 0.3 }));
+    : new THREE.MeshStandardMaterial({
+        color: "#A0A0A0",
+        metalness: 0.8,
+        roughness: 0.3,
+      });
 
   return <mesh castShadow receiveShadow geometry={geometry} material={resolvedMaterial} scale={scale} />;
 });
 
-// Loading fallback for 3D canvas
+interface ExternalModelPartProps {
+  assetUrl: string;
+  material?: MaterialType | "";
+  onStatusChange?: (status: "loading" | "ready" | "error") => void;
+}
+
+const ExternalModelPart = memo(function ExternalModelPart({
+  assetUrl,
+  material,
+  onStatusChange,
+}: ExternalModelPartProps) {
+  const { invalidate } = useThree();
+  const [geometry, setGeometry] = useState<THREE.BufferGeometry | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loader = new STLLoader();
+
+    setGeometry(null);
+    onStatusChange?.("loading");
+
+    loader.load(
+      assetUrl,
+      (loadedGeometry) => {
+        if (cancelled) return;
+
+        const normalizedGeometry = loadedGeometry.clone();
+        normalizedGeometry.computeVertexNormals();
+        normalizedGeometry.computeBoundingBox();
+        normalizedGeometry.center();
+
+        setGeometry(normalizedGeometry);
+        onStatusChange?.("ready");
+        invalidate();
+      },
+      undefined,
+      () => {
+        if (cancelled) return;
+
+        onStatusChange?.("error");
+        invalidate();
+      },
+    );
+
+    return () => {
+      cancelled = true;
+    };
+  }, [assetUrl, invalidate, onStatusChange]);
+
+  const metalMaterial = useMemo(() => getMaterialByMaterialType(material), [material]);
+
+  const scale = useMemo(() => {
+    if (!geometry?.boundingBox) return 1;
+
+    const size = new THREE.Vector3();
+    geometry.boundingBox.getSize(size);
+    const maxDimension = Math.max(size.x, size.y, size.z, 1);
+    return 2.6 / maxDimension;
+  }, [geometry]);
+
+  if (!geometry) {
+    return null;
+  }
+
+  return (
+    <mesh
+      castShadow
+      receiveShadow
+      geometry={geometry}
+      material={metalMaterial}
+      rotation={[-Math.PI / 2, 0, 0]}
+      scale={scale}
+    />
+  );
+});
+
 const CanvasLoader = () => (
   <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-muted/30 to-muted/10">
-    <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
+    <Loader2 className="mb-2 h-8 w-8 animate-spin text-primary" />
     <p className="text-xs text-muted-foreground">Loading 3D view...</p>
   </div>
 );
@@ -242,6 +251,60 @@ export const ThreeDViewer = memo(function ThreeDViewer(props: ThreeDViewerProps)
   const controlsRef = useRef<any>();
   const [isLoading, setIsLoading] = useState(true);
   const [webglSupported] = useState(() => isWebGLSupported());
+  const [mroAssets, setMroAssets] = useState<ReturnType<typeof enrichMroAsset>[]>([]);
+  const [externalModelStatus, setExternalModelStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadMroAssets = async () => {
+      try {
+        const catalog = await fetchMroAssetCatalog();
+        if (!cancelled) {
+          setMroAssets((catalog.assets || []).map(enrichMroAsset));
+        }
+      } catch {
+        if (!cancelled) {
+          setMroAssets([]);
+        }
+      }
+    };
+
+    void loadMroAssets();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const externalModelAssets = useMemo(
+    () => mroAssets.filter((asset) => asset.category === "3d-model"),
+    [mroAssets],
+  );
+
+  const relevantExternalModelAssets = useMemo(
+    () =>
+      getRelevantMroAssets(externalModelAssets, {
+        partNumber: props.partNumber,
+        standard: props.standardType,
+        partType: props.partType,
+      }),
+    [externalModelAssets, props.partNumber, props.standardType, props.partType],
+  );
+
+  const resolvedExternalModel = useMemo(() => {
+    if (props.externalModelAssetName) {
+      return externalModelAssets.find((asset) => asset.name === props.externalModelAssetName) || null;
+    }
+
+    if (relevantExternalModelAssets.length === 1) {
+      return relevantExternalModelAssets[0];
+    }
+
+    return null;
+  }, [props.externalModelAssetName, externalModelAssets, relevantExternalModelAssets]);
+
+  const showExternalModel = Boolean(resolvedExternalModel) && externalModelStatus !== "error";
 
   const handleReset = useCallback(() => {
     if (controlsRef.current) {
@@ -249,36 +312,63 @@ export const ThreeDViewer = memo(function ThreeDViewer(props: ThreeDViewerProps)
     }
   }, []);
 
-  // Only re-render Canvas when part type or material changes (not dimensions - handled by Part component)
-  const viewerKey = useMemo(() => {
-    return `${props.partType}-${props.material}`;
-  }, [props.partType, props.material]);
+  const viewerKey = useMemo(
+    () => `${props.partType}-${props.material}-${resolvedExternalModel?.name || "parametric"}`,
+    [props.partType, props.material, resolvedExternalModel?.name],
+  );
 
-  // Show loading state briefly when part type changes
   useEffect(() => {
-    if (webglSupported) {
-      setIsLoading(true);
-      const timer = setTimeout(() => setIsLoading(false), 300);
-      return () => clearTimeout(timer);
-    }
-  }, [props.partType, props.material, webglSupported]);
+    if (!webglSupported) return;
 
-  // If WebGL is not supported, show fallback
+    setIsLoading(true);
+    const timer = setTimeout(() => setIsLoading(false), 300);
+    return () => clearTimeout(timer);
+  }, [props.partType, props.material, resolvedExternalModel?.name, webglSupported]);
+
+  useEffect(() => {
+    if (resolvedExternalModel) {
+      setExternalModelStatus("loading");
+      return;
+    }
+
+    setExternalModelStatus("idle");
+  }, [resolvedExternalModel?.assetUrl]);
+
   if (!webglSupported) {
     return <WebGLFallback partType={props.partType} material={props.material} dimensions={props.dimensions} />;
   }
 
+  const viewerTitle = resolvedExternalModel
+    ? `Local STL | ${resolvedExternalModel.name}`
+    : props.partType
+      ? `${props.partType.charAt(0).toUpperCase() + props.partType.slice(1)} | ${props.material || "No material"}`
+      : "Configure part geometry";
+
+  const viewerSubtitle = resolvedExternalModel
+    ? externalModelStatus === "error"
+      ? "Failed to load selected STL. Showing parametric fallback."
+      : "Loaded from local MRO library"
+    : relevantExternalModelAssets.length > 1 && !props.externalModelAssetName
+      ? "Multiple local STL models are available. Choose one in Setup."
+      : props.dimensions
+        ? `${props.dimensions.thickness}mm thick`
+        : "";
+
   return (
-    <div className="relative h-full w-full overflow-hidden rounded-[1.1rem] border border-border bg-gradient-to-br from-slate-900/95 via-slate-900/90 to-slate-950 transition-opacity duration-200">
-      {isLoading && <CanvasLoader />}
+    <div
+      data-testid="3d-viewer"
+      className="three-d-viewer relative h-full w-full overflow-hidden rounded-[1.1rem] border border-border bg-gradient-to-br from-slate-900/95 via-slate-900/90 to-slate-950 transition-opacity duration-200"
+    >
+      {(isLoading || externalModelStatus === "loading") && <CanvasLoader />}
+
       <Canvas
         key={viewerKey}
         shadows
-        className={`transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
+        className={`transition-opacity duration-300 ${isLoading ? "opacity-0" : "opacity-100"}`}
         gl={{
           antialias: true,
-          powerPreference: 'high-performance',
-          preserveDrawingBuffer: false
+          powerPreference: "high-performance",
+          preserveDrawingBuffer: false,
         }}
         dpr={[1, 2]}
         frameloop="demand"
@@ -287,15 +377,14 @@ export const ThreeDViewer = memo(function ThreeDViewer(props: ThreeDViewerProps)
         <color attach="background" args={["#0b1220"]} />
         <fog attach="fog" args={["#0b1220", 6, 14]} />
         <PerspectiveCamera makeDefault position={[3, 2, 3]} />
-        <OrbitControls 
+        <OrbitControls
           ref={controlsRef}
           enableDamping
           dampingFactor={0.05}
           minDistance={1}
           maxDistance={10}
         />
-        
-        {/* Lighting - shifted from generic preview to studio-style rig */}
+
         <ambientLight intensity={0.45} />
         <hemisphereLight args={["#dbeafe", "#0f172a", 0.65]} />
         <directionalLight
@@ -322,11 +411,18 @@ export const ThreeDViewer = memo(function ThreeDViewer(props: ThreeDViewerProps)
           <meshStandardMaterial color="#111827" metalness={0.08} roughness={0.92} />
         </mesh>
         <gridHelper args={[12, 24, "#2563eb", "#334155"]} position={[0, -1, 0]} />
-        {/* Part */}
-        <Part {...props} />
+
+        {showExternalModel && resolvedExternalModel ? (
+          <ExternalModelPart
+            assetUrl={resolvedExternalModel.assetUrl}
+            material={props.material}
+            onStatusChange={(status) => setExternalModelStatus(status)}
+          />
+        ) : (
+          <Part {...props} />
+        )}
       </Canvas>
 
-      {/* Controls overlay */}
       <div className="absolute bottom-4 right-4 flex gap-2 animate-fade-in">
         <Button
           size="sm"
@@ -334,26 +430,18 @@ export const ThreeDViewer = memo(function ThreeDViewer(props: ThreeDViewerProps)
           onClick={handleReset}
           className="border border-white/10 bg-slate-900/80 shadow-lg backdrop-blur-md"
         >
-          <RotateCcw className="h-4 w-4 mr-1" />
+          <RotateCcw className="mr-1 h-4 w-4" />
           Reset View
         </Button>
       </div>
 
-      {/* Info overlay */}
-      <div className="absolute left-4 top-4 max-w-[210px] rounded-2xl border border-white/10 bg-slate-900/82 p-3 shadow-lg backdrop-blur-md animate-fade-in transition-all duration-200">
-        <p className="text-xs font-medium text-foreground mb-1 flex items-center gap-2">
+      <div className="absolute left-4 top-4 max-w-[280px] rounded-2xl border border-white/10 bg-slate-900/82 p-3 shadow-lg backdrop-blur-md animate-fade-in transition-all duration-200">
+        <p className="mb-1 flex items-center gap-2 text-xs font-medium text-foreground">
           <Navigation className="h-3 w-3" />
           Part Visualization
         </p>
-        <p className="text-xs text-muted-foreground transition-colors duration-200">
-          {props.partType ?
-            `${props.partType.charAt(0).toUpperCase() + props.partType.slice(1)} • ${props.material || "No material"}` :
-            "Configure part geometry"
-          }
-        </p>
-        <p className="text-xs text-muted-foreground mt-1">
-          {props.dimensions && `${props.dimensions.thickness}mm thick`}
-        </p>
+        <p className="text-xs text-muted-foreground transition-colors duration-200">{viewerTitle}</p>
+        <p className="mt-1 text-xs text-muted-foreground">{viewerSubtitle}</p>
       </div>
     </div>
   );
