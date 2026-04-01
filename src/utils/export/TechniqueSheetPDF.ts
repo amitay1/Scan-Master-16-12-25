@@ -285,11 +285,11 @@ class TechniqueSheetPDFBuilder {
       this.pageMapping.set('technical-drawing', page++);
     }
 
-    // 2. Equipment
-    this.pageMapping.set('equipment', page++);
-
-    // 3. Scan Parameters
+    // 2. Scan Parameters
     this.pageMapping.set('scan-parameters', page++);
+
+    // 3. Equipment
+    this.pageMapping.set('equipment', page++);
 
     // 4. Acceptance
     this.pageMapping.set('acceptance', page++);
@@ -342,13 +342,13 @@ class TechniqueSheetPDFBuilder {
       this.buildTechnicalDrawing();
     }
 
-    // 2. EQUIPMENT
-    this.addNewPage();
-    this.buildEquipment();
-
-    // 3. SCAN PARAMETERS
+    // 2. SCAN PARAMETERS
     this.addNewPage();
     this.buildScanParameters();
+
+    // 3. EQUIPMENT
+    this.addNewPage();
+    this.buildEquipment();
 
     // 4. ACCEPTANCE CRITERIA
     this.addNewPage();
@@ -1065,12 +1065,12 @@ class TechniqueSheetPDFBuilder {
     }
     sectionNum++;
 
-    // 2. Equipment
-    tocItems.push({ title: `${sectionNum}. Equipment`, page: this.pageMapping.get('equipment') || 4 });
+    // 2. Scan Parameters
+    tocItems.push({ title: `${sectionNum}. Scan Parameters`, page: this.pageMapping.get('scan-parameters') || 4 });
     sectionNum++;
 
-    // 3. Scan Parameters
-    tocItems.push({ title: `${sectionNum}. Scan Parameters`, page: this.pageMapping.get('scan-parameters') || 5 });
+    // 3. Equipment
+    tocItems.push({ title: `${sectionNum}. Equipment`, page: this.pageMapping.get('equipment') || 5 });
     sectionNum++;
 
     // 4. Acceptance Criteria

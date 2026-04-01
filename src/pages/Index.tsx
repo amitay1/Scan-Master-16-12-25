@@ -606,8 +606,8 @@ const Index = () => {
                       <div className="workbench-tabstrip workbench-tabstrip-compact w-full overflow-x-auto scrollbar-hide md:overflow-visible sticky top-0 z-10">
                         <TabsList className={workbenchTabListClass}>
                           <TabsTrigger value="setup" className={workbenchTabTriggerClass}>Setup</TabsTrigger>
-                          <TabsTrigger value="equipment" className={workbenchTabTriggerClass}>Equipment</TabsTrigger>
                           <TabsTrigger value="scan" className={`${workbenchTabTriggerClass} whitespace-nowrap`}>Scan Params</TabsTrigger>
+                          <TabsTrigger value="equipment" className={workbenchTabTriggerClass}>Equipment</TabsTrigger>
                           <TabsTrigger value="calibration" className={`${workbenchTabTriggerClass} whitespace-nowrap`}>Reference Standard</TabsTrigger>
                           <TabsTrigger value="acceptance" className={workbenchTabTriggerClass}>Acceptance</TabsTrigger>
                           <TabsTrigger value="scandetails" className={`${workbenchTabTriggerClass} whitespace-nowrap`}>Scan Details</TabsTrigger>

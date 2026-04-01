@@ -456,9 +456,12 @@ export const UnifiedExportDialog: React.FC<UnifiedExportDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl p-0 gap-0 overflow-hidden border border-border/70 bg-[linear-gradient(180deg,rgba(10,14,22,0.98),rgba(12,18,28,0.98))] shadow-[0_32px_80px_rgba(0,0,0,0.45)]" hideCloseButton>
+      <DialogContent
+        className="flex max-w-4xl max-h-[calc(100dvh-1rem)] flex-col gap-0 overflow-hidden border border-border/70 bg-[linear-gradient(180deg,rgba(10,14,22,0.98),rgba(12,18,28,0.98))] p-0 shadow-[0_32px_80px_rgba(0,0,0,0.45)] sm:max-h-[calc(100dvh-2rem)]"
+        hideCloseButton
+      >
         {/* Header */}
-        <div className="relative border-b border-white/8 bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.24),transparent_42%),linear-gradient(135deg,rgba(12,19,31,0.98),rgba(10,14,22,0.98))] px-6 py-5">
+        <div className="relative border-b border-white/8 bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.24),transparent_42%),linear-gradient(135deg,rgba(12,19,31,0.98),rgba(10,14,22,0.98))] px-4 py-4 sm:px-6 sm:py-5">
           <button
             onClick={() => onOpenChange(false)}
             className="absolute right-4 top-4 rounded-full border border-white/10 bg-white/5 p-1.5 text-slate-400 transition-colors hover:bg-white/10 hover:text-white"
@@ -501,7 +504,7 @@ export const UnifiedExportDialog: React.FC<UnifiedExportDialogProps> = ({
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-5">
+        <div className="min-h-0 flex-1 overflow-y-auto p-4 space-y-5 sm:p-6">
 
           {/* Compliance Status */}
           <button
@@ -574,7 +577,7 @@ export const UnifiedExportDialog: React.FC<UnifiedExportDialogProps> = ({
           </div>
 
           {/* Sections Status */}
-          <div className="grid grid-cols-5 gap-2">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-5">
             {readinessData.sections.map((section) => {
               const sectionFilled = section.fields.filter(f => f.value && f.value !== "").length;
               const sectionTotal = section.fields.length;
@@ -614,7 +617,7 @@ export const UnifiedExportDialog: React.FC<UnifiedExportDialogProps> = ({
                 Primary action exports {activeExportOption.label}
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               {/* PDF Option */}
               <button
                 onClick={() => !isExporting && setExportFormat("pdf")}
@@ -735,9 +738,9 @@ export const UnifiedExportDialog: React.FC<UnifiedExportDialogProps> = ({
               </div>
 
               <div className="text-sm font-medium text-slate-100">Company Logo</div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               {companyLogo ? (
-                <div className="flex items-center gap-3 flex-1 p-3 rounded-2xl border border-emerald-400/20 bg-emerald-500/10">
+                <div className="flex flex-1 flex-col gap-3 rounded-2xl border border-emerald-400/20 bg-emerald-500/10 p-3 sm:flex-row sm:items-center">
                   <img src={companyLogo} alt="Logo" className="h-10 w-10 object-contain rounded" />
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-medium text-emerald-100 truncate">
@@ -793,12 +796,12 @@ export const UnifiedExportDialog: React.FC<UnifiedExportDialogProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-white/8 bg-black/15">
-          <div className="flex items-center justify-between">
+        <div className="border-t border-white/8 bg-black/15 px-4 py-4 sm:px-6">
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
             <button
               onClick={() => onOpenChange(false)}
               disabled={isExporting}
-              className="rounded-2xl border border-white/10 px-4 py-3 text-sm font-medium text-slate-300 transition-colors hover:bg-white/[0.05] hover:text-white"
+              className="w-full rounded-2xl border border-white/10 px-4 py-3 text-sm font-medium text-slate-300 transition-colors hover:bg-white/[0.05] hover:text-white sm:w-auto"
             >
               Cancel
             </button>
@@ -808,7 +811,7 @@ export const UnifiedExportDialog: React.FC<UnifiedExportDialogProps> = ({
               onClick={() => handleExport(exportFormat)}
               disabled={isExporting || activeExportOption.disabled}
               className={cn(
-                "px-6 font-semibold rounded-2xl",
+                "w-full justify-center rounded-2xl px-6 font-semibold sm:w-auto",
                 "bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600",
                 "shadow-[0_18px_30px_rgba(37,99,235,0.25)]"
               )}
