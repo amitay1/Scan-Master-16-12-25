@@ -110,6 +110,20 @@ export const exportInspectionReportPDF = (
     }
   };
 
+  const drawCheckMark = (
+    boxX: number,
+    boxY: number,
+    boxSize: number,
+    color: [number, number, number] = COLORS.white
+  ): void => {
+    doc.setDrawColor(...color);
+    doc.setLineWidth(0.6);
+    doc.line(boxX + boxSize * 0.8, boxY + boxSize * 0.55, boxX + boxSize * 1.55, boxY + boxSize * 1.25);
+    doc.line(boxX + boxSize * 1.55, boxY + boxSize * 1.25, boxX + boxSize * 3.1, boxY + boxSize * 0.1);
+    doc.setLineWidth(0.3);
+    doc.setDrawColor(...COLORS.tableBorder);
+  };
+
   // ============================================================================
   // COVER PAGE HEADER (FRISA style with logo support)
   // ============================================================================
@@ -420,8 +434,8 @@ export const exportInspectionReportPDF = (
   const summaryRows = [
     ['Customer', formatValue(data.customerName), 'PO Number', formatValue(data.poNumber)],
     ['Part Number', formatValue(data.partNumber), 'Part Name', formatValue(data.itemDescription)],
-    ['Material', formatValue(data.materialGrade), 'Cast/Heat N°', formatValue(data.castNumber)],
-    ['Document N°', formatValue(data.documentNo), 'Revision', formatValue(data.currentRevision)],
+    ['Material', formatValue(data.materialGrade), 'Cast/Heat No.', formatValue(data.castNumber)],
+    ['Document No.', formatValue(data.documentNo), 'Revision', formatValue(data.currentRevision)],
     ['Test Standard', formatValue(data.testStandard), 'Test Method', 'UT'],
     ['Issue Date', formatDate(data.issueDate), 'Results', formatValue(data.results) || 'CONFORM'],
   ];
@@ -463,12 +477,12 @@ export const exportInspectionReportPDF = (
 
   yPos = addFieldRow([
     { label: 'Description', value: data.itemDescription },
-    { label: 'Drawing N°', value: data.drawingNumber },
+    { label: 'Drawing No.', value: data.drawingNumber },
   ], yPos);
 
   yPos = addFieldRow([
-    { label: 'Lot N°', value: data.lotNumber },
-    { label: 'Batch N°', value: data.batchNumber || '-' },
+    { label: 'Lot No.', value: data.lotNumber },
+    { label: 'Batch No.', value: data.batchNumber || '-' },
   ], yPos);
 
   yPos = addFieldRow([
@@ -512,8 +526,7 @@ export const exportInspectionReportPDF = (
     if (isSelected) {
       doc.setFillColor(...COLORS.primary);
       doc.rect(xOffset, yPos - 3, 4, 4, 'F');
-      doc.setTextColor(...COLORS.white);
-      doc.text('✓', xOffset + 0.5, yPos);
+      drawCheckMark(xOffset, yPos - 3, 4);
     } else {
       doc.setDrawColor(...COLORS.tableBorder);
       doc.rect(xOffset, yPos - 3, 4, 4, 'S');
@@ -699,7 +712,7 @@ export const exportInspectionReportPDF = (
   doc.setFontSize(8);
   doc.setFont('helvetica', 'italic');
   doc.setTextColor(...COLORS.lightText);
-  doc.text('If needed — Add C-Scan image result (see Scan Data pages).', PAGE.marginLeft + 3, yPos);
+  doc.text('If needed - Add C-Scan image result (see Scan Data pages).', PAGE.marginLeft + 3, yPos);
   yPos += 8;
 
   addFooter(currentPage, totalPages);
@@ -722,7 +735,7 @@ export const exportInspectionReportPDF = (
   yPos = addFieldRow([
     { label: 'Make', value: eq?.generatorMake || '-' },
     { label: 'Model', value: eq?.generatorModel || '-' },
-    { label: 'Serial N°', value: eq?.generatorSerial || '-' },
+    { label: 'Serial No.', value: eq?.generatorSerial || '-' },
   ], yPos);
 
   yPos = addField('Calibration Date', eq?.generatorCalibrationDate || '-', PAGE.marginLeft, yPos, 35);
@@ -795,7 +808,7 @@ export const exportInspectionReportPDF = (
   yPos = addSubSectionTitle('Calibration Block', yPos);
 
   yPos = addFieldRow([
-    { label: 'Serial N°', value: eq?.calibrationBlockSerial || '-' },
+    { label: 'Serial No.', value: eq?.calibrationBlockSerial || '-' },
     { label: 'Material', value: eq?.calibrationBlockMaterial || '-' },
   ], yPos);
 
@@ -809,9 +822,7 @@ export const exportInspectionReportPDF = (
   if (nistChecked) {
     doc.setFillColor(...COLORS.success);
     doc.rect(PAGE.marginLeft, yPos - 3, 4, 4, 'F');
-    doc.setTextColor(...COLORS.white);
-    doc.setFontSize(7);
-    doc.text('✓', PAGE.marginLeft + 0.8, yPos);
+    drawCheckMark(PAGE.marginLeft, yPos - 3, 4);
   } else {
     doc.setDrawColor(...COLORS.tableBorder);
     doc.rect(PAGE.marginLeft, yPos - 3, 4, 4, 'S');
@@ -1294,7 +1305,7 @@ export const exportInspectionReportPDF = (
     ], yPos);
 
     yPos = addFieldRow([
-      { label: 'Certificate N°', value: cert.certificateNumber || '-' },
+      { label: 'Certificate No.', value: cert.certificateNumber || '-' },
       { label: 'Expiry Date', value: cert.expiryDate || '-' },
     ], yPos);
 

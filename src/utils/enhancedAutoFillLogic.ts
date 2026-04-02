@@ -252,7 +252,7 @@ export const geometryRecommendations: Record<PartGeometry, GeometryRecommendatio
   machined_component: { calibrationBlockType: ["flat_block"], scanPattern: "Drawing-specific", transducerType: "contact", specialConsiderations: "Follow parent form inspection method." },
   impeller: { calibrationBlockType: ["flat_block", "curved_block", "cylinder_notched"], scanPattern: "Multi-zone: Hub, Web, Rim. Bore: circumferential shear wave 45°", transducerType: "immersion", specialConsiderations: "CRITICAL: Stepped geometry requires zone-by-zone inspection. Class AAA per AMS-STD-2154." },
   blisk: { calibrationBlockType: ["flat_block", "curved_block", "cylinder_notched"], scanPattern: "Disk body: radial/axial. Blade roots: focused beam. Bore: circumferential shear wave 45°", transducerType: "immersion", specialConsiderations: "CRITICAL: Dual inspection zones - Disk body + Blade roots. Class AAA mandatory." },
-  hpt_disk: { calibrationBlockType: ["flat_block", "cylinder_notched", "angle_beam"], scanPattern: "Face: straight beam. Bore: circumferential shear wave ±45°", transducerType: "immersion", specialConsiderations: "V2500 HPT Disk per NDIP-1226/1227. Apply NDIP Section 8 acceptance/rejection criteria. TOF criteria: ≥15 pixels over 3+ scan lines with SNR ≥1.5:1. #1 FBH (1/64\") at 80% FSH." },
+  hpt_disk: { calibrationBlockType: ["flat_block", "cylinder_notched", "angle_beam"], scanPattern: "Face: straight beam. Bore: circumferential shear wave ±45°", transducerType: "immersion", specialConsiderations: "Engine HPT disk geometry. Use straight-beam face coverage and validate whether bore shear-wave inspection is required by the active OEM/customer procedure. Apply NDIP-specific TOF and acceptance criteria only when NDIP-1226/1227 is the active standard." },
   custom: { calibrationBlockType: ["flat_block"], scanPattern: "Drawing-specific", transducerType: "contact", specialConsiderations: "Refer to engineering drawing and customer specifications." }
 };
 
@@ -773,7 +773,7 @@ export const GEOMETRY_INSPECTION_RULES: Record<PartGeometry, GeometryInspectionR
     scanDirection: ["Straight beam from flat face", "Circumferential shear wave +45°", "Circumferential shear wave -45°", "Radial from bore"],
     waveMode: ["Longitudinal", "Shear wave"],
     conditions: ["Full face coverage with straight beam", "Bore inspection with circumferential shear wave ±45°", "SNR ≥1.5:1 required"],
-    specialNotes: ["V2500 HPT Disk per NDIP-1226/1227", "TOF criteria: ≥15 pixels over 3+ scan lines", "#1 FBH (1/64\") at 80% FSH", "Acceptance/rejection per NDIP Section 8.0"],
+    specialNotes: ["Engine HPT disk geometry", "Confirm whether OEM bore shear-wave inspection is mandatory", "Apply NDIP-1226/1227 TOF and #1 FBH criteria only when that standard is active", "Otherwise follow the active customer or material specification"],
     diagramReference: "Disk"
   },
   custom: {

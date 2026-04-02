@@ -35,6 +35,11 @@ import type {
 import type { ScanDetailsData } from '@/types/scanDetails';
 import { getActiveScanDetails } from '@/utils/scanDetailsSelection';
 import {
+  isActiveMroStandard,
+  isPwaSimStandard as isPwaSimOemStandard,
+  isPwOemStandard,
+} from '@/utils/mroPolicy';
+import {
   COLORS,
   PAGE,
   FONTS,
@@ -246,8 +251,15 @@ class TechniqueSheetPDFBuilder {
 
   /** Check if current standard is a Pratt & Whitney OEM standard */
   private isPWStandard(): boolean {
-    const s = this.data.standard;
-    return s === 'NDIP-1226' || s === 'NDIP-1227' || s === 'NDIP-1254' || s === 'NDIP-1257' || s === 'NDIP-1260' || s === 'PWA-SIM';
+    return isPwOemStandard(this.data.standard);
+  }
+
+  private isV2500MroStandard(): boolean {
+    return isActiveMroStandard(this.data.standard);
+  }
+
+  private isPwaSimStandard(): boolean {
+    return isPwaSimOemStandard(this.data.standard);
   }
 
   // Safely get the final Y position after autoTable
@@ -687,7 +699,11 @@ class TechniqueSheetPDFBuilder {
 
     // Document title (center-left) - P&W gets custom header
     const isPWCover = this.isPWStandard();
-    const coverTitle = isPWCover ? 'P&W — SONIC INSPECTION METHOD' : 'UT TECHNIQUE SHEET';
+    const coverTitle = this.isPwaSimStandard()
+      ? 'P&W - SONIC INSPECTION METHOD'
+      : isPWCover
+        ? 'P&W - NDIP INSPECTION REQUIREMENTS'
+        : 'UT TECHNIQUE SHEET';
     this.pdf.setTextColor(255, 255, 255);
     this.pdf.setFontSize(14);
     this.pdf.setFont('helvetica', 'bold');
@@ -696,12 +712,12 @@ class TechniqueSheetPDFBuilder {
     // Subtitle for P&W or company name
     if (isPWCover) {
       const ndipLabels: Record<string, string> = {
-        'NDIP-1226': 'NDIP-1226 Rev F — V2500 1st Stage HPT Disk',
-        'NDIP-1227': 'NDIP-1227 Rev D — V2500 2nd Stage HPT Disk',
-        'NDIP-1254': 'NDIP-1254 — PW1100G HPT 1st Stage Hub (AUSI)',
-        'NDIP-1257': 'NDIP-1257 — PW1100G HPT 2nd Stage Hub (AUSI)',
-        'NDIP-1260': 'NDIP-1260 — PW1100G HPC 8th Stage IBR-8 (AUSI)',
-        'PWA-SIM': 'PWA SIM — Sonic Inspection Method (Bar/Billet/Forging)',
+        'NDIP-1226': 'NDIP-1226 Rev F - V2500 1st Stage HPT Disk',
+        'NDIP-1227': 'NDIP-1227 Rev D - V2500 2nd Stage HPT Disk',
+        'NDIP-1254': 'NDIP-1254 - PW1100G HPT 1st Stage Hub (AUSI)',
+        'NDIP-1257': 'NDIP-1257 - PW1100G HPT 2nd Stage Hub (AUSI)',
+        'NDIP-1260': 'NDIP-1260 - PW1100G HPC 8th Stage IBR-8 (AUSI)',
+        'PWA-SIM': 'PWA SIM - Sonic Inspection Method (Bar/Billet/Forging)',
       };
       const ndipRef = ndipLabels[this.data.standard] || this.data.standard;
       this.pdf.setFontSize(8);
@@ -896,9 +912,9 @@ class TechniqueSheetPDFBuilder {
       y += 12;
     }
 
-    // ===== P&W NDIP OEM REQUIREMENTS BOX (when NDIP standard selected) =====
-    const isPWStandard = this.isPWStandard();
-    if (isPWStandard) {
+    // ===== V2500 NDIP OEM REQUIREMENTS BOX =====
+    const showV2500Requirements = this.isV2500MroStandard();
+    if (showV2500Requirements) {
       const stage = this.data.standard === 'NDIP-1226' ? '1st' : '2nd';
       const ndipRev = this.data.standard === 'NDIP-1226' ? 'NDIP-1226 Rev F' : 'NDIP-1227 Rev D';
 
@@ -910,7 +926,7 @@ class TechniqueSheetPDFBuilder {
       this.pdf.setFontSize(9);
       this.pdf.setFont('helvetica', 'bold');
       this.pdf.setTextColor(255, 255, 255);
-      this.pdf.text(`PRATT & WHITNEY — V2500 ${stage} Stage HPT Disk`, PAGE.marginLeft + 8, y + 5.5);
+      this.pdf.text(`PRATT & WHITNEY - V2500 ${stage} Stage HPT Disk`, PAGE.marginLeft + 8, y + 5.5);
       this.pdf.setFontSize(7);
       this.pdf.setTextColor(200, 210, 225);
       this.pdf.text(ndipRev, PAGE.marginLeft + PAGE.contentWidth - 5, y + 5.5, { align: 'right' });
@@ -919,12 +935,12 @@ class TechniqueSheetPDFBuilder {
       // Requirements grid
       const pwRows = [
         ['Transducer', 'IAE2P16679 (5 MHz, 0.75" element, 8" focal)'],
-        ['Mirror', 'IAE2P16678 (45°) — must be fully seated'],
-        ['Calibration Block', 'IAE2P16675 (#1 FBH, holes L–S)'],
+        ['Mirror', 'IAE2P16678 (45 deg) - must be fully seated'],
+        ['Calibration Block', 'IAE2P16675 (#1 FBH, holes L-S)'],
         ['Water Path', '8.0" per Section 5.1.1.2'],
-        ['Scan Angles', '±45° circumferential shear wave'],
+        ['Scan Angles', '+/-45 deg circumferential shear wave'],
         ['Noise Limit', 'Max 7.5% FSH average, 8.5% band'],
-        ['Post-Cal Tolerance', '±2.0 dB'],
+        ['Post-Cal Tolerance', '+/-2.0 dB'],
         ['Data Transfer', 'MFT to PW MPE-NDE'],
       ];
 
@@ -1214,7 +1230,7 @@ class TechniqueSheetPDFBuilder {
       y = this.addSubsectionTitle('Material Properties', y);
 
       const matProps = buildTableRows([
-        ['Material Density', setup.materialDensity ? formatNumber(setup.materialDensity, 0, 'kg/m³') : undefined],
+        ['Material Density', setup.materialDensity ? formatNumber(setup.materialDensity, 0, 'kg/m3') : undefined],
       ]);
 
       if (matProps.length > 0) {
@@ -1429,7 +1445,7 @@ class TechniqueSheetPDFBuilder {
 
       autoTable(this.pdf, {
         startY: y,
-        head: [['P/N', 'Δ Type', 'Ø FBH (inch)', 'Ø FBH (mm)', 'E (mm)', 'H (mm)']],
+        head: [['P/N', 'Delta Type', 'Dia FBH (inch)', 'Dia FBH (mm)', 'E (mm)', 'H (mm)']],
         body: fbhRows,
         theme: 'grid',
         styles: { fontSize: 8, cellPadding: 2 },
@@ -1468,7 +1484,7 @@ class TechniqueSheetPDFBuilder {
 
       autoTable(this.pdf, {
         startY: y,
-        head: [['Reflector Type', 'Size (inch)', 'Curvature Corr. (dB)', 'Gain Offset (dB)', 'ΔdB Total']],
+        head: [['Reflector Type', 'Size (inch)', 'Curvature Corr. (dB)', 'Gain Offset (dB)', 'Delta dB Total']],
         body: sensRows,
         theme: 'grid',
         styles: { fontSize: 8, cellPadding: 2 },
@@ -1501,7 +1517,7 @@ class TechniqueSheetPDFBuilder {
 
       autoTable(this.pdf, {
         startY: y,
-        head: [['P/N', 'FBH Cal. Size', 'FBH Required', 'ΔdB Needed', 'Transfer Corr. (dB)', 'Curvature Corr. (dB)']],
+        head: [['P/N', 'FBH Cal. Size', 'FBH Required', 'Delta dB Needed', 'Transfer Corr. (dB)', 'Curvature Corr. (dB)']],
         body: sbcRows,
         theme: 'grid',
         styles: { fontSize: 8, cellPadding: 2 },
@@ -1539,7 +1555,7 @@ class TechniqueSheetPDFBuilder {
 
       autoTable(this.pdf, {
         startY: y,
-        head: [['Reflector', 'Size Req. (inch)', 'Current Ref.', 'Ref. Size', 'Size ΔdB', 'Transfer ΔdB', 'Total ΔdB', 'Depth (mm)', 'Sound Path (mm)']],
+        head: [['Reflector', 'Size Req. (inch)', 'Current Ref.', 'Ref. Size', 'Size Delta dB', 'Transfer Delta dB', 'Total Delta dB', 'Depth (mm)', 'Sound Path (mm)']],
         body: abRows,
         theme: 'grid',
         styles: { fontSize: 7, cellPadding: 2 },
@@ -1882,8 +1898,8 @@ class TechniqueSheetPDFBuilder {
       const scanTypesDisplay = scanTypesArr.length > 0 ? scanTypesArr.join(', ') : undefined;
 
       const paInfo = buildTableRows([
-        ['Refracted Angle Start', pa.refractedAngleStart ? `${pa.refractedAngleStart}°` : undefined],
-        ['Refracted Angle End', pa.refractedAngleEnd ? `${pa.refractedAngleEnd}°` : undefined],
+        ['Refracted Angle Start', pa.refractedAngleStart !== undefined ? `${pa.refractedAngleStart} deg` : undefined],
+        ['Refracted Angle End', pa.refractedAngleEnd !== undefined ? `${pa.refractedAngleEnd} deg` : undefined],
         ['Aperture', pa.aperture?.toString()],
         ['Focus Laws', pa.focusLaws],
         ['Scan Types', scanTypesDisplay],
@@ -1967,14 +1983,14 @@ class TechniqueSheetPDFBuilder {
 
     y = this.getTableEndY(y);
 
-    // P&W NDIP Pixel-Based Rejection Criteria (additional detail)
-    const isPWAcceptance = this.isPWStandard();
-    if (isPWAcceptance) {
+    // V2500 NDIP Pixel-Based Rejection Criteria (additional detail)
+    const isV2500Acceptance = this.isV2500MroStandard();
+    if (isV2500Acceptance) {
       y = this.addSubsectionTitle('NDIP Pixel-Based Rejection Criteria', y);
 
       const pwCriteriaRows = [
         ['Amplitude C-Scan', ''],
-        ['  Min pixel grouping', '3 pixels (2×1 or 1×2)'],
+        ['  Min pixel grouping', '3 pixels (2x1 or 1x2)'],
         ['  Adjacent pixel depth tolerance', '0.025"'],
         ['  Calibration amplitude', '80% FSH (#1 FBH)'],
         ['  Reject threshold', '20% FSH (25% of calibration)'],
@@ -1982,7 +1998,7 @@ class TechniqueSheetPDFBuilder {
         ['TOF C-Scan', ''],
         ['  Min pixel grouping', '15 pixels connected'],
         ['  Min adjacent scan lines', '3'],
-        ['  SNR threshold', '≥1.5:1'],
+        ['  SNR threshold', '>=1.5:1'],
         ['  Low noise threshold', '5.0% FSH'],
         ['  Low noise rejection level', '7.5% FSH (when avg noise <5%)'],
       ];
@@ -2038,7 +2054,7 @@ class TechniqueSheetPDFBuilder {
         y = PAGE.contentStart;
       }
 
-      y = this.addSubsectionTitle('Table 6 — Ultrasonic Classes — Notes', y);
+      y = this.addSubsectionTitle('Table 6 - Ultrasonic Classes - Notes', y);
 
       const table6Notes: [string, string][] = [
         ['1/', 'Any discontinuity with an indication greater than the response from a reference flat-bottom hole or equivalent notch at the estimated discontinuity depth of the size given (inches diameter) is not acceptable.'],
@@ -2070,10 +2086,10 @@ class TechniqueSheetPDFBuilder {
     if (warning) {
       y += 5;
       // Use darker box for PW warnings
-      const bgColor: [number, number, number] = isPWAcceptance ? [226, 232, 240] : [255, 243, 205];
-      const borderColor: [number, number, number] = isPWAcceptance ? [30, 41, 59] : [255, 193, 7];
-      const titleColor: [number, number, number] = isPWAcceptance ? [30, 41, 59] : [133, 100, 4];
-      const warningBoxHeight = isPWAcceptance ? 28 : 20;
+      const bgColor: [number, number, number] = isV2500Acceptance ? [226, 232, 240] : [255, 243, 205];
+      const borderColor: [number, number, number] = isV2500Acceptance ? [30, 41, 59] : [255, 193, 7];
+      const titleColor: [number, number, number] = isV2500Acceptance ? [30, 41, 59] : [133, 100, 4];
+      const warningBoxHeight = isV2500Acceptance ? 28 : 20;
 
       this.pdf.setFillColor(...bgColor);
       this.pdf.roundedRect(PAGE.marginLeft, y, PAGE.contentWidth, warningBoxHeight, 2, 2, 'F');
@@ -2083,7 +2099,7 @@ class TechniqueSheetPDFBuilder {
       this.pdf.setFontSize(9);
       this.pdf.setFont('helvetica', 'bold');
       this.pdf.setTextColor(...titleColor);
-      this.pdf.text(isPWAcceptance ? 'P&W OEM REQUIREMENTS' : 'MATERIAL WARNING', PAGE.marginLeft + 5, y + 6);
+      this.pdf.text(isV2500Acceptance ? 'P&W OEM REQUIREMENTS' : 'MATERIAL WARNING', PAGE.marginLeft + 5, y + 6);
       this.pdf.setFont('helvetica', 'normal');
       this.pdf.setFontSize(8);
       this.pdf.text(warning, PAGE.marginLeft + 5, y + 12, { maxWidth: PAGE.contentWidth - 10 });
@@ -2210,7 +2226,7 @@ class TechniqueSheetPDFBuilder {
         buildCellText([
           ['Entry', formatEntrySurface(detail.entrySurface)],
           ['Wave', detail.waveMode ? `${waveType} | ${detail.waveMode}` : waveType],
-          ['Angle', detail.angle !== undefined ? `${detail.angle}°` : '-'],
+          ['Angle', detail.angle !== undefined ? `${detail.angle} deg` : '-'],
           ['Water Path', detail.waterPath !== undefined ? `${detail.waterPath} mm` : '-'],
           ['Remarks', detail.remarkDetails || '-'],
         ]),
@@ -2341,7 +2357,7 @@ class TechniqueSheetPDFBuilder {
         detail.scanningDirection,                                    // Dir (A, B, C, etc.)
         detail.entrySurface || '-',                                  // Entry Surface (was phantom "surface")
         waveType,                                                    // Wave (L/S)
-        detail.angle !== undefined ? `${detail.angle}°` : '0°',     // Angle
+        detail.angle !== undefined ? `${detail.angle} deg` : '0 deg',     // Angle
         detail.waterPath ? `${detail.waterPath}` : '-',              // Water Path
         detail.remarkDetails || '-',                                 // Remarks
       ];

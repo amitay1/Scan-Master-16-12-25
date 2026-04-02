@@ -35,6 +35,7 @@ import { Collapsible3DPanel } from "@/components/ui/ResizablePanel";
 import { CollapsibleSidebar } from "@/components/CollapsibleSidebar";
 import type { StandardType, MaterialType } from "@/types/techniqueSheet";
 import { getResolutionValues } from "@/utils/frequencyUtils";
+import { deriveCalibrationScanDirectionInfo } from "@/utils/mroPolicy";
 import { useAuth } from "@/hooks/useAuth";
 import { logInfo } from "@/lib/logger";
 import { Button } from "@/components/ui/button";
@@ -749,6 +750,10 @@ const Index = () => {
                           scanDetails={currentData.scanDetails}
                           onCalibrationRecommendation={(blockType, reasoning) => {
                             const currentCalibration = currentData.calibration;
+                            const scanDirectionInfo = deriveCalibrationScanDirectionInfo(
+                              currentData.scanDetails.scanDetails,
+                              standard,
+                            );
                             if (currentCalibration.standardType !== blockType) {
                               currentData.setCalibration({
                                 ...currentCalibration,
@@ -758,8 +763,8 @@ const Index = () => {
                               logInfo(`Auto-selected calibration block: ${blockType}`, {
                                 reasoning,
                                 criticalScans: {
-                                  hasCircumferential: currentData.scanDetails.scanDetails.some(s => s.enabled && ["D", "E"].includes(s.scanningDirection)),
-                                  hasAngleBeam: currentData.scanDetails.scanDetails.some(s => s.enabled && ["F", "G", "H"].includes(s.scanningDirection)),
+                                  hasCircumferential: scanDirectionInfo.hasCircumferentialScan,
+                                  hasAngleBeam: scanDirectionInfo.hasAngleBeam,
                                 },
                               });
                             }
@@ -773,6 +778,7 @@ const Index = () => {
                           onChange={currentData.setScanDetails}
                           partType={currentData.inspectionSetup.partType}
                           standard={standard}
+                          partNumber={currentData.inspectionSetup.partNumber}
                           equipmentFrequency={currentData.equipment.frequency}
                           dimensions={{
                             diameter: currentData.inspectionSetup.diameter,

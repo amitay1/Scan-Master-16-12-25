@@ -385,8 +385,8 @@ export function getMaterialWarning(material: string | undefined, standard?: stri
   if ((standard === 'NDIP-1226' || standard === 'NDIP-1227') &&
       (material.toLowerCase().includes('nickel') || material.toLowerCase() === 'nickel_alloy')) {
     const stage = standard === 'NDIP-1226' ? '1st' : '2nd';
-    return `P&W V2500 ${stage} Stage HPT Disk — ONLY IAE2P16679 transducer (5 MHz) with IAE2P16678 45° mirror. ` +
-      `Calibration block IAE2P16675 (powdered nickel). 8" water path immersion. ±45° circumferential shear wave. ` +
+    return `P&W V2500 ${stage} Stage HPT Disk - ONLY IAE2P16679 transducer (5 MHz) with IAE2P16678 45 deg mirror. ` +
+      `Calibration block IAE2P16675 (powdered nickel). 8" water path immersion. +/-45 deg circumferential shear wave. ` +
       `Inspector must hold PW POD qualification. Electronic data transfer to PW MPE-NDE via MFT.`;
   }
 

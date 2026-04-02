@@ -54,6 +54,7 @@ import {
   selectTubeReferenceStandard,
   TubeReferenceStandardSelection,
 } from '@/data/shearWaveCalibrationBlocks';
+import { isActiveMroStandard } from "@/utils/mroPolicy";
 
 // Import the new angle beam calculator
 import {
@@ -542,7 +543,7 @@ function selectStraightBeamBlock(
     if (partType === 'hpt_disk') {
       const hasCircumferentialScan = !!input.scanDirections?.hasCircumferentialScan;
       const hasBore = !!(innerDiameter && innerDiameter > 0);
-      const isNdipHptStandard = ['NDIP-1226', 'NDIP-1227', 'NDIP-1254', 'NDIP-1257', 'NDIP-1260'].includes(input.standard);
+      const isNdipHptStandard = isActiveMroStandard(input.standard);
 
       // NDIP procedures are bore-driven. Generic standards require explicit circumferential bore scan.
       const needsNotchedBlock = isNdipHptStandard
@@ -1310,7 +1311,7 @@ export function generateCalibrationRecommendationV2(
 
   // HPT Disk-specific warnings and notes (NDIP-1226/1227)
   if (input.partType === 'hpt_disk') {
-    const isNdipHptStandard = ['NDIP-1226', 'NDIP-1227', 'NDIP-1254', 'NDIP-1257', 'NDIP-1260'].includes(input.standard);
+    const isNdipHptStandard = isActiveMroStandard(input.standard);
     const hasBore = !!(input.innerDiameter && input.innerDiameter > 0);
 
     if (isNdipHptStandard) {

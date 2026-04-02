@@ -19,6 +19,11 @@ import {
 import { logInfo, logWarn } from "@/lib/logger";
 import type { ScanDetailsData } from "@/types/scanDetails";
 import { getInspectionThickness } from "@/utils/inspectionThickness";
+import {
+  ACTIVE_MRO_STANDARD_CODES,
+  deriveCalibrationScanDirectionInfo,
+  isSupportedMroAssetName,
+} from "@/utils/mroPolicy";
 import { getV2500InspectionSetupDefaults, getV2500PartTypeLabel, isV2500NdipStandard } from "@/utils/pwNdipDefaults";
 import {
   enrichMroAsset,
@@ -82,7 +87,7 @@ const partTypes: PartTypeOption[] = [
   { value: "disk", label: "Disk (Generic)", description: "Use disk_forging if applicable" },
   { value: "impeller", label: "Impeller", description: "Complex stepped disk (aero engine)" },
   { value: "blisk", label: "Blisk (Bladed Disk)", description: "Integrated blade-disk (aero engine)" },
-  { value: "hpt_disk", label: "HPT Disk", description: "Turbine disk with stepped bore profile (V2500)" },
+  { value: "hpt_disk", label: "HPT Disk", description: "Turbine disk with stepped bore profile" },
 ];
 
 
@@ -668,8 +673,14 @@ export const InspectionSetupTab = ({
 
   const isV2500Standard = isV2500NdipStandard(standardType);
   const v2500PartTypeLabel = getV2500PartTypeLabel(standardType);
+  const activeMroLabel = ACTIVE_MRO_STANDARD_CODES.join(" / ");
   const mroAssets = React.useMemo(
-    () => sortMroAssets((mroCatalog?.assets || []).map(enrichMroAsset)),
+    () =>
+      sortMroAssets(
+        (mroCatalog?.assets || [])
+          .filter((asset) => isSupportedMroAssetName(asset.name))
+          .map(enrichMroAsset),
+      ),
     [mroCatalog],
   );
   const relevantMroAssets = React.useMemo(
@@ -751,18 +762,9 @@ export const InspectionSetupTab = ({
     // Debounce: Wait 300ms before running heavy computation
     const timeoutId = setTimeout(() => {
     try {
-      // Analyze CRITICAL scan directions that affect calibration block choice
-      // Only: Circumferential (D/E) and Angle Beam (F/G/H...) matter!
-      const scanDirectionInfo = scanDetails ? {
-        // Circumferential shear wave REQUIRES notched blocks
-        hasCircumferentialScan: scanDetails.scanDetails.some(s => 
-          s.enabled && ['D', 'E'].includes(s.scanningDirection)
-        ),
-        // Angle beam requires IIW/DSC blocks
-        hasAngleBeam: scanDetails.scanDetails.some(s => 
-          s.enabled && ['F', 'G', 'H', 'I', 'J', 'K'].includes(s.scanningDirection)
-        ),
-      } : undefined;
+      const scanDirectionInfo = scanDetails
+        ? deriveCalibrationScanDirectionInfo(scanDetails.scanDetails, standardType)
+        : undefined;
 
       const recommendationInput: CalibrationRecommendationInput = {
         material: data.material as MaterialType,
@@ -1660,8 +1662,8 @@ export const InspectionSetupTab = ({
             <div>
               <h3 className="text-base font-semibold">Local MRO Reference Library</h3>
               <p className="text-xs text-muted-foreground">
-                Files detected in <span className="font-mono">public/standards/MRO</span> are exposed here when present locally,
-                but excluded from packaged installers and update payloads.
+                Files detected in <span className="font-mono">public/standards/MRO</span> are exposed here only when they match the
+                approved {activeMroLabel} V2500 package. Duplicate or legacy files stay hidden from the software.
               </p>
             </div>
             <Badge variant="outline" className="border-primary/30 bg-primary/10 text-primary">
@@ -1753,7 +1755,7 @@ export const InspectionSetupTab = ({
                             <Badge variant="secondary">{asset.extension.replace(".", "").toUpperCase()}</Badge>
                           </div>
                           <p className="mt-1 text-xs text-muted-foreground">
-                            {asset.description} • {formatMroAssetSize(asset.size)}
+                            {asset.description} | {formatMroAssetSize(asset.size)}
                           </p>
                         </div>
                         <div className="flex gap-2">
@@ -1782,7 +1784,7 @@ export const InspectionSetupTab = ({
 
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <Label className="text-sm font-medium">All Local MRO Assets</Label>
+                  <Label className="text-sm font-medium">Approved Local MRO Assets</Label>
                   <Badge variant="secondary">{mroAssets.length}</Badge>
                 </div>
 
@@ -1814,7 +1816,7 @@ export const InspectionSetupTab = ({
                               ))}
                             </div>
                             <p className="mt-1 text-xs text-muted-foreground">
-                              {asset.description} • {formatMroAssetSize(asset.size)}
+                              {asset.description} | {formatMroAssetSize(asset.size)}
                             </p>
                           </div>
                           <div className="flex gap-2">

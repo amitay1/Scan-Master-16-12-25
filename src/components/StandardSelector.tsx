@@ -38,6 +38,7 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { HIDDEN_LEGACY_OEM_STANDARD_CODES } from "@/utils/mroPolicy";
 import { getOEMRulesFromStandard, isOEMStandard } from "@/utils/oemRuleEngine";
 
 interface StandardSelectorProps {
@@ -143,6 +144,9 @@ const standards: StandardOption[] = STANDARD_DEFS.map(
   })
 );
 
+const hiddenLegacyOemStandardSet = new Set<StandardType>(HIDDEN_LEGACY_OEM_STANDARD_CODES);
+const visibleStandards = standards.filter((standard) => !hiddenLegacyOemStandardSet.has(standard.value));
+
 const FAMILY_ORDER: StandardFamily[] = ["Aerospace", "ASTM", "European", "OEM"];
 const FAMILY_FILTER_ORDER: StandardFamilyFilter[] = ["All", ...FAMILY_ORDER];
 const FAMILY_LABELS: Record<StandardFamily, string> = {
@@ -236,7 +240,10 @@ export const StandardSelector = ({
 }: StandardSelectorProps) => {
   const { canUseStandard, license, isElectron } = useLicense();
   const isCompact = variant === "compact";
-  const currentStandard = standards.find((standard) => standard.value === value) ?? standards[0];
+  const currentStandard =
+    standards.find((standard) => standard.value === value) ??
+    visibleStandards[0] ??
+    standards[0];
   const [searchTerm, setSearchTerm] = useState("");
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
   const [activeFamily, setActiveFamily] = useState<StandardFamilyFilter>("All");
@@ -254,7 +261,7 @@ export const StandardSelector = ({
 
   const filteredStandards = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
-    return standards.filter((standard) => {
+    return visibleStandards.filter((standard) => {
       const family = getStandardFamily(standard.value);
       if (activeFamily !== "All" && family !== activeFamily) return false;
       if (!term) return true;
@@ -275,7 +282,7 @@ export const StandardSelector = ({
       FAMILY_ORDER.reduce(
         (accumulator, family) => ({
           ...accumulator,
-          [family]: standards.filter((standard) => getStandardFamily(standard.value) === family).length,
+          [family]: visibleStandards.filter((standard) => getStandardFamily(standard.value) === family).length,
         }),
         {} as Record<StandardFamily, number>
       ),
@@ -435,7 +442,7 @@ export const StandardSelector = ({
                   <div className="grid gap-2">
                     {FAMILY_FILTER_ORDER.map((family) => {
                       const isActive = activeFamily === family;
-                      const count = family === "All" ? standards.length : familyCounts[family];
+                      const count = family === "All" ? visibleStandards.length : familyCounts[family];
                       return (
                         <button
                           key={family}

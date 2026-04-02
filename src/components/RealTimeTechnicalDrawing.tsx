@@ -19,6 +19,7 @@ import { drawRectangularTubeTechnicalDrawing } from '@/utils/technicalDrawings/r
 import { drawImpellerTechnicalDrawing } from '@/utils/technicalDrawings/impellerDrawing';
 import { drawBliskTechnicalDrawing } from '@/utils/technicalDrawings/bliskDrawing';
 import { drawHptDiskTechnicalDrawing } from '@/utils/technicalDrawings/hptDiskDrawing';
+import { hasKnownActiveMroContext } from '@/utils/mroPolicy';
 import {
   ScanType,
   calculateScanZones,
@@ -283,12 +284,18 @@ export const RealTimeTechnicalDrawing = ({
           // HPT DISK - V2500 bore profile (NDIP-1226/1227)
           // ============================================
           case 'hpt_disk':
-            drawHptDiskTechnicalDrawing(generator, drawingDimensions, layout, {
-              standardType,
-              partNumber: partNumberProp,
-              enabledDirections: enabledScanDirections,
-              directionColors,
-            });
+            if (hasKnownActiveMroContext(standardType, partNumberProp)) {
+              drawHptDiskTechnicalDrawing(generator, drawingDimensions, layout, {
+                standardType,
+                partNumber: partNumberProp,
+                enabledDirections: enabledScanDirections,
+                directionColors,
+              });
+            } else {
+              // Without a confirmed V2500 context, fall back to a generic disk
+              // drawing instead of showing exact NDIP/V2500 geometry.
+              drawDiskTechnicalDrawing(generator, drawingDimensions, layout);
+            }
             break;
 
           // ============================================

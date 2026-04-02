@@ -48,7 +48,7 @@ const allPartTypes: PartTypeOption[] = [
   { value: "sphere", label: "Sphere", description: "Spherical parts", color: "#3498DB", icon: "🔵", gradient: "from-cyan-500/20 via-cyan-400/10 to-transparent" },
   { value: "impeller", label: "Impeller", description: "Complex stepped disk with R surfaces (aero engine)", color: "#E74C3C", icon: "🌀", gradient: "from-red-500/20 via-red-400/10 to-transparent" },
   { value: "blisk", label: "Blisk (Bladed Disk)", description: "Integrated blade-disk for aero engines", color: "#2980B9", icon: "🔷", gradient: "from-blue-600/20 via-blue-500/10 to-transparent" },
-  { value: "hpt_disk", label: "HPT Disk", description: "Turbine disk with stepped bore (V2500 NDIP)", color: "#D35400", icon: "🔶", gradient: "from-orange-600/20 via-orange-500/10 to-transparent" },
+  { value: "hpt_disk", label: "HPT Disk", description: "Turbine disk with stepped bore profile", color: "#D35400", icon: "🔶", gradient: "from-orange-600/20 via-orange-500/10 to-transparent" },
 ];
 
 // Use lightweight proxy geometry for heavy aero shapes in tiny preview thumbnails.

@@ -28,6 +28,7 @@ import {
   Header,
   Footer,
   PageNumber,
+  PageTextDirectionType,
   BorderStyle,
   convertInchesToTwip,
   VerticalAlign,
@@ -138,6 +139,12 @@ const formatTechnique = (technique?: string): string => {
   };
   return techniqueMap[technique] || technique;
 };
+
+const createLtrTable = (options: any): Table =>
+  new Table({
+    ...options,
+    visuallyRightToLeft: false,
+  });
 
 // Convert base64 image to array buffer for Word document
 const base64ToArrayBuffer = (base64: string): ArrayBuffer => {
@@ -388,7 +395,7 @@ const createCoverHeader = (
     })
   );
 
-  return new Table({
+  return createLtrTable({
     width: { size: 100, type: WidthType.PERCENTAGE },
     layout: TableLayoutType.FIXED,
     rows: [
@@ -428,7 +435,7 @@ const createCoverHeader = (
 // SECTION TITLE (matching PDF addSectionTitle)
 // ============================================================================
 const createSectionTitle = (title: string): Table => {
-  return new Table({
+  return createLtrTable({
     width: { size: 100, type: WidthType.PERCENTAGE },
     rows: [
       new TableRow({
@@ -491,7 +498,7 @@ const createSectionTitle = (title: string): Table => {
 // SUBSECTION TITLE (matching PDF addSubsectionTitle)
 // ============================================================================
 const createSubsectionTitle = (title: string): Table => {
-  return new Table({
+  return createLtrTable({
     width: { size: 100, type: WidthType.PERCENTAGE },
     rows: [
       new TableRow({
@@ -605,7 +612,7 @@ const createDocumentSummaryTable = (
     });
   });
 
-  return new Table({
+  return createLtrTable({
     width: { size: 100, type: WidthType.PERCENTAGE },
     rows: tableRows,
     borders: {
@@ -760,7 +767,7 @@ const createKeyValueTable = (
     );
   });
 
-  return new Table({
+  return createLtrTable({
     width: { size: 100, type: WidthType.PERCENTAGE },
     rows: tableRows,
     borders: {
@@ -778,7 +785,7 @@ const createKeyValueTable = (
 // WARNING BOX
 // ============================================================================
 const createWarningBox = (text: string): Table => {
-  return new Table({
+  return createLtrTable({
     width: { size: 100, type: WidthType.PERCENTAGE },
     rows: [
       new TableRow({
@@ -819,7 +826,7 @@ const createWarningBox = (text: string): Table => {
 // PART SKETCH SECTION HEADER
 // ============================================================================
 const createNoticeBox = (text: string): Table => {
-  return new Table({
+  return createLtrTable({
     width: { size: 100, type: WidthType.PERCENTAGE },
     rows: [
       new TableRow({
@@ -887,7 +894,7 @@ const createImageSection = (
         maxHeight
       );
 
-      elements.push(new Table({
+      elements.push(createLtrTable({
         width: { size: 100, type: WidthType.PERCENTAGE },
         rows: [
           new TableRow({
@@ -937,7 +944,7 @@ const createImageSection = (
 };
 
 const createPartSketchSectionHeader = (): Table => {
-  return new Table({
+  return createLtrTable({
     width: { size: 100, type: WidthType.PERCENTAGE },
     rows: [
       new TableRow({
@@ -1168,7 +1175,7 @@ const buildApprovalsSection = (documentation: ExtendedDocumentationData, approva
     }),
   ];
 
-  elements.push(new Table({
+  elements.push(createLtrTable({
     width: { size: 100, type: WidthType.PERCENTAGE },
     rows: [revisionHeaderRow, ...revisionDataRows],
   }));
@@ -1220,7 +1227,7 @@ const buildApprovalsSection = (documentation: ExtendedDocumentationData, approva
     })),
   }));
 
-  elements.push(new Table({
+  elements.push(createLtrTable({
     width: { size: 100, type: WidthType.PERCENTAGE },
     rows: [signatureHeaderRow, ...signatureDataRows],
   }));
@@ -1476,8 +1483,8 @@ export function buildTechniqueSheetWordDocument(
   if (scanParameters.couplingMethod === 'phased_array' && scanParameters.phasedArray) {
     const pa = scanParameters.phasedArray;
     const paSettings: [string, string][] = [];
-    if (pa.refractedAngleStart) paSettings.push(['Refracted Angle Start', `${pa.refractedAngleStart} deg`]);
-    if (pa.refractedAngleEnd) paSettings.push(['Refracted Angle End', `${pa.refractedAngleEnd} deg`]);
+    if (pa.refractedAngleStart !== undefined) paSettings.push(['Refracted Angle Start', `${pa.refractedAngleStart} deg`]);
+    if (pa.refractedAngleEnd !== undefined) paSettings.push(['Refracted Angle End', `${pa.refractedAngleEnd} deg`]);
     if (pa.aperture) paSettings.push(['Aperture', String(pa.aperture)]);
     if (pa.focusLaws) paSettings.push(['Focus Laws', formatValue(pa.focusLaws)]);
 
@@ -1708,7 +1715,7 @@ export function buildTechniqueSheetWordDocument(
             children: buildDetailParagraphs([
               ['Entry', formatEntrySurface(detail.entrySurface)],
               ['Wave', detail.waveMode ? `${waveType} | ${detail.waveMode}` : waveType],
-              ['Angle', detail.angle !== undefined ? `${detail.angle}°` : '-'],
+              ['Angle', detail.angle !== undefined ? `${detail.angle} deg` : '-'],
               ['Water Path', detail.waterPath !== undefined ? `${detail.waterPath} mm` : '-'],
               ['Remarks', detail.remarkDetails || '-'],
             ]),
@@ -1792,7 +1799,7 @@ export function buildTechniqueSheetWordDocument(
       });
     });
 
-    children.push(new Table({
+    children.push(createLtrTable({
       width: { size: 100, type: WidthType.PERCENTAGE },
       layout: TableLayoutType.FIXED,
       rows: [headerRow, ...consolidatedRows],
@@ -1914,7 +1921,7 @@ export function buildTechniqueSheetWordDocument(
       })),
     }));
 
-    children.push(new Table({
+    children.push(createLtrTable({
       width: { size: 100, type: WidthType.PERCENTAGE },
       rows: [fbhHeaderRow, ...fbhDataRows],
     }));
@@ -2015,8 +2022,11 @@ export function buildTechniqueSheetWordDocument(
           run: {
             font: 'Calibri',
             size: 21,
+            rightToLeft: false,
           },
           paragraph: {
+            alignment: AlignmentType.LEFT,
+            bidirectional: false,
             spacing: { line: 276 },
           },
         },
@@ -2035,12 +2045,13 @@ export function buildTechniqueSheetWordDocument(
             width: convertInchesToTwip(8.27),
             height: convertInchesToTwip(11.69),
           },
+          textDirection: PageTextDirectionType.LEFT_TO_RIGHT_TOP_TO_BOTTOM,
         },
       },
       headers: {
         default: new Header({
           children: [
-            new Table({
+            createLtrTable({
               width: { size: 100, type: WidthType.PERCENTAGE },
               borders: {
                 top: { style: BorderStyle.NONE },
@@ -2093,7 +2104,7 @@ export function buildTechniqueSheetWordDocument(
       footers: {
         default: new Footer({
           children: [
-            new Table({
+            createLtrTable({
               width: { size: 100, type: WidthType.PERCENTAGE },
               borders: {
                 top: { style: BorderStyle.SINGLE, size: 6, color: WORD_COLORS.divider },

@@ -28,6 +28,7 @@ import { useOllamaVision } from "@/components/scan-overlay/hooks/useOllamaVision
 import { generateArrowsForGeometry, syncArrowsWithScanDetails } from "@/utils/scanArrowPlacement";
 import { getV2500ScanDetailDefaults } from "@/utils/pwScanDetailDefaults";
 import { isV2500NdipStandard } from "@/utils/pwNdipDefaults";
+import { getActiveMroStage, hasKnownActiveMroContext } from "@/utils/mroPolicy";
 import { getActiveScanDetails, getActiveScanDirections } from "@/utils/scanDetailsSelection";
 import type { ScanArrow } from "@/types/scanOverlay";
 
@@ -98,6 +99,7 @@ interface ScanDetailsTabProps {
   onChange: (data: ScanDetailsData) => void;
   partType?: PartGeometry | "";
   standard?: StandardType;
+  partNumber?: string;
   equipmentFrequency?: string;
   dimensions?: {
     diameter?: number;
@@ -140,6 +142,7 @@ export const ScanDetailsTab = ({
   onChange,
   partType,
   standard = "AMS-STD-2154E",
+  partNumber,
   equipmentFrequency,
   dimensions,
 }: ScanDetailsTabProps) => {
@@ -310,9 +313,10 @@ export const ScanDetailsTab = ({
   ) as Record<string, string>;
 
   const isV2500Standard = isV2500NdipStandard(standard);
+  const hasKnownV2500Context = hasKnownActiveMroContext(standard, partNumber);
   const isHptDiskPart = partType === "hpt_disk";
   const showV2500BoreDiagram = !isHptDiskPart && isV2500Standard;
-  const v2500Stage: 1 | 2 | null = standard === "NDIP-1226" ? 1 : standard === "NDIP-1227" ? 2 : null;
+  const v2500Stage: 1 | 2 | null = getActiveMroStage(standard, partNumber);
 
   // Custom drawing handlers
   const handleImageUpload = useCallback((imageBase64: string, width: number, height: number) => {
@@ -563,18 +567,23 @@ export const ScanDetailsTab = ({
         ? "NDIP-1227 Figure 2 reference"
         : standard === "NDIP-1226"
           ? "NDIP-1226 Figure 2 reference"
-          : "PW HPT disk bore reference";
+          : hasKnownV2500Context
+            ? "V2500 HPT reference from recognized part number"
+            : "Generic HPT disk reference";
 
     return (
       <div className="rounded-lg border-2 border-gray-200 bg-white p-3">
         <div className="mb-3">
-          <h4 className="text-sm font-semibold text-slate-800">HPT Disk Bore Profile</h4>
+          <h4 className="text-sm font-semibold text-slate-800">
+            {hasKnownV2500Context ? "HPT Disk Bore Profile" : "HPT Disk Profile"}
+          </h4>
           <p className="text-xs text-slate-500">{referenceLabel}</p>
         </div>
         <div className="overflow-hidden rounded-md border border-gray-200 bg-gray-50">
           <RealTimeTechnicalDrawing
             partType="hpt_disk"
             standardType={standard}
+            partNumber={partNumber}
             enabledScanDirections={enabledScanDirections}
             directionColors={directionColors}
             dimensions={{

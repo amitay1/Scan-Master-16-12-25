@@ -43,6 +43,7 @@ import {
   BEAM_TYPE_LABELS,
 } from "@/utils/beamTypeClassification";
 import { getInspectionThickness } from "@/utils/inspectionThickness";
+import { getActiveMroStage, hasKnownActiveMroContext, isActiveMroStandard } from "@/utils/mroPolicy";
 
 // ============================================================================
 // HELPER FUNCTIONS FOR FBH AUTO-FILL
@@ -1085,7 +1086,8 @@ export const CalibrationTab = ({
     return pwStandards.includes(standard);
   }, [standard]);
   const isHptDiskGeometry = mappedPartGeometry === 'hpt_disk' || inspectionSetup.partType === 'hpt_disk';
-  const shouldUsePwCalibrationReference = isPWStandard || isHptDiskGeometry;
+  const hasKnownV2500Context = hasKnownActiveMroContext(standard, inspectionSetup.partNumber);
+  const shouldUsePwCalibrationReference = isPWStandard;
 
   const showStraightBeam = beamRequirement === "both" || beamRequirement === "straight_only";
   const showAngleBeam = beamRequirement === "both" || beamRequirement === "angle_only" || shouldUsePwCalibrationReference;
@@ -1103,26 +1105,20 @@ export const CalibrationTab = ({
 
   // Check specific P&W standard types
   const isPWASIM = standard === 'PWA-SIM';
-  const isV2500Standard = standard === 'NDIP-1226' || standard === 'NDIP-1227';
+  const isV2500Standard = isActiveMroStandard(standard);
   const isGTFStandard = standard === 'NDIP-1254' || standard === 'NDIP-1257' || standard === 'NDIP-1260';
 
-  const v2500Stage: 1 | 2 | null = useMemo(() => {
-    if (standard === 'NDIP-1226') return 1;
-    if (standard === 'NDIP-1227') return 2;
-
-    const pn = (inspectionSetup.partNumber || '').toUpperCase().replace(/\s+/g, '');
-    if (pn.includes('2A5001')) return 1;
-    if (pn.includes('2A4802')) return 2;
-
-    return null;
-  }, [standard, inspectionSetup.partNumber]);
+  const v2500Stage: 1 | 2 | null = useMemo(
+    () => getActiveMroStage(standard, inspectionSetup.partNumber),
+    [standard, inspectionSetup.partNumber],
+  );
 
   // Get P&W standard reference for drawing
   const pwStandardRef = useMemo(() => {
-    if (standard === 'NDIP-1226') return 'NDIP-1226';
-    if (standard === 'NDIP-1227') return 'NDIP-1227';
-    return 'NDIP-1226'; // Default for other P&W standards
-  }, [standard]);
+    if (v2500Stage === 1) return 'NDIP-1226';
+    if (v2500Stage === 2) return 'NDIP-1227';
+    return null;
+  }, [v2500Stage]);
 
   // Local PDF copies (public/standards) for quick access to the OEM procedures.
   // Note: Only NDIP-1226/1227 PDFs are currently bundled.
@@ -1214,7 +1210,7 @@ export const CalibrationTab = ({
       );
     }
 
-    // P&W V2500/GTF or explicit HPT disk geometry - show PW calibration reference flow
+    // P&W procedures only: show OEM calibration reference flow.
     if (shouldUsePwCalibrationReference) {
       return (
         <div className="space-y-4">
@@ -1230,7 +1226,6 @@ export const CalibrationTab = ({
                   {standard === 'NDIP-1254' && 'PW1100G GTF HPT 1st Stage Hub - NDIP-1254 (AUSI)'}
                   {standard === 'NDIP-1257' && 'PW1100G GTF HPT 2nd Stage Hub - NDIP-1257 (AUSI)'}
                   {standard === 'NDIP-1260' && 'PW1100G GTF HPC 8th Stage IBR-8 - NDIP-1260 (AUSI)'}
-                  {!isPWStandard && isHptDiskGeometry && 'HPT Disk geometry selected - using V2500 Figure 1 calibration reference'}
                 </p>
               </div>
             </div>
@@ -1312,27 +1307,16 @@ export const CalibrationTab = ({
                 <p className="text-xs opacity-90">Powder metal contamination screening - Automated inspection only</p>
               </div>
             )}
-            {!isPWStandard && isHptDiskGeometry && (
-              <div className="mt-3 p-2 bg-white/15 rounded-lg">
-                <p className="text-sm font-semibold">
-                  HPT geometry override active
-                </p>
-                <p className="text-xs opacity-90">
-                  The UI now uses the IAE2P16675 Figure 1 reference block because the selected part geometry is `hpt_disk`,
-                  even though the active procedure is not an NDIP V2500 standard.
-                </p>
-              </div>
-            )}
           </div>
 
           {/* V2500 standards have published Figure 1 geometry (IAE2P16675). */}
-          {(isV2500Standard || isHptDiskGeometry) && !isGTFStandard && (
+          {isV2500Standard && pwStandardRef && !isGTFStandard && (
             <PWCalibrationBlockDrawing
               width={950}
               height={700}
               showDimensions={true}
               showTitleBlock={true}
-              standardRef={pwStandardRef as "NDIP-1226" | "NDIP-1227"}
+              standardRef={pwStandardRef}
               title="IAE2P16675 - 45 deg Angle Calibration Block"
             />
           )}
@@ -1361,7 +1345,7 @@ export const CalibrationTab = ({
           )}
 
           {/* V2500 Bore Profile Cross-Section (per NDIP Figure 2) */}
-           {(isV2500Standard || isHptDiskGeometry) && (
+           {isV2500Standard && (
              <div className="space-y-3">
                <h4 className="font-semibold text-gray-700 flex items-center gap-2">
                  <Target className="h-4 w-4" />
@@ -1395,6 +1379,30 @@ export const CalibrationTab = ({
               <li>Post-calibration tolerance: +/-1 dB of initial</li>
             </ul>
           </div>
+        </div>
+      );
+    }
+
+    if (isHptDiskGeometry && !hasKnownV2500Context) {
+      return (
+        <div className="space-y-4">
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+            Exact V2500 / NDIP calibration references are hidden because the current setup does not confirm
+            `NDIP-1226`, `NDIP-1227`, or a recognized V2500 part number (`2A5001` / `2A4802`).
+          </div>
+          <DynamicCalibrationBlockDrawing
+            partGeometry={mappedPartGeometry}
+            partDimensions={partDimensionsForDrawing}
+            standard={standard}
+            acceptanceClass={acceptanceClass || "A"}
+            partMaterial={inspectionSetup.material || "steel"}
+            forcedBlockType={scanAwareBlockTypeOverride}
+            width={950}
+            height={700}
+            showDimensions={true}
+            showSpecsTable={true}
+            title={`${standard} - Calculated Calibration Block`}
+          />
         </div>
       );
     }

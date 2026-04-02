@@ -146,6 +146,51 @@ function resolveMroDirectory() {
   return null;
 }
 
+const MRO_SUPPORTED_NAME_PATTERNS = [
+  /\bNDIP[-\s]?1226\b/i,
+  /\bNDIP[-\s]?1227\b/i,
+  /\b2A5001\b/i,
+  /\b2A4802\b/i,
+  /\bV2500\b/i,
+];
+const MRO_DUPLICATE_SUFFIX_PATTERN = /_(\d+)(?=\.[^.]+$)/;
+
+function isSupportedMroAssetName(name) {
+  return MRO_SUPPORTED_NAME_PATTERNS.some((pattern) => pattern.test(name));
+}
+
+function normalizeMroAssetVariantName(name) {
+  return name.replace(MRO_DUPLICATE_SUFFIX_PATTERN, '');
+}
+
+function compareMroEntryPriority(left, right) {
+  const leftIsDuplicate = MRO_DUPLICATE_SUFFIX_PATTERN.test(left.name);
+  const rightIsDuplicate = MRO_DUPLICATE_SUFFIX_PATTERN.test(right.name);
+
+  if (leftIsDuplicate !== rightIsDuplicate) {
+    return leftIsDuplicate ? 1 : -1;
+  }
+
+  return left.name.localeCompare(right.name);
+}
+
+function getVisibleMroEntries(mroDir) {
+  const entries = fs.readdirSync(mroDir, { withFileTypes: true });
+  const visibleByCanonicalName = new Map();
+
+  entries
+    .filter((entry) => entry.isFile() && isSupportedMroAssetName(entry.name))
+    .sort(compareMroEntryPriority)
+    .forEach((entry) => {
+      const canonicalName = normalizeMroAssetVariantName(entry.name);
+      if (!visibleByCanonicalName.has(canonicalName)) {
+        visibleByCanonicalName.set(canonicalName, entry);
+      }
+    });
+
+  return Array.from(visibleByCanonicalName.values()).sort((left, right) => left.name.localeCompare(right.name));
+}
+
 function buildMroAssetResponse(fileName, stats) {
   const safeName = path.basename(fileName);
   const extension = path.extname(safeName).toLowerCase();
@@ -1607,9 +1652,7 @@ function startEmbeddedServer() {
             });
           }
 
-          const assets = fs
-            .readdirSync(mroDir, { withFileTypes: true })
-            .filter((entry) => entry.isFile())
+          const assets = getVisibleMroEntries(mroDir)
             .map((entry) => {
               const absolutePath = path.join(mroDir, entry.name);
               const stats = fs.statSync(absolutePath);
@@ -1621,7 +1664,7 @@ function startEmbeddedServer() {
             available: true,
             baseDir: mroDir,
             assets,
-            message: 'Local MRO assets detected. This directory is served only when present on the machine and is excluded from packaged updates.',
+            message: 'Local MRO assets detected. Only approved NDIP-1226/NDIP-1227 V2500 files are exposed; duplicate or legacy files remain hidden.',
           });
         } catch (error) {
           return res.status(500).json({
@@ -1645,6 +1688,11 @@ function startEmbeddedServer() {
 
           if (!safeName || safeName !== requestedName) {
             return res.status(400).json({ error: 'Invalid MRO file name' });
+          }
+
+          const visibleNames = new Set(getVisibleMroEntries(mroDir).map((entry) => entry.name));
+          if (!visibleNames.has(safeName)) {
+            return res.status(404).json({ error: 'MRO file not found' });
           }
 
           const absolutePath = path.join(mroDir, safeName);

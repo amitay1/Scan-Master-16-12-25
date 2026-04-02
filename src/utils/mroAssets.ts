@@ -1,3 +1,9 @@
+import {
+  ACTIVE_MRO_PART_NUMBERS,
+  inferMroStandardFromPartNumber,
+  isActiveMroStandard,
+} from "@/utils/mroPolicy";
+
 export interface RawMroAssetEntry {
   name: string;
   extension: string;
@@ -40,7 +46,7 @@ export const MRO_CATEGORY_LABELS: Record<MroAssetCategory, string> = {
   other: "Other Files",
 };
 
-const PART_NUMBER_PATTERN = /\b(2A5001|2A4802|A5-0765|A5-0784)\b/gi;
+const PART_NUMBER_PATTERN = /\b(2A5001|2A4802)\b/gi;
 const STANDARD_PATTERNS: Array<{ regex: RegExp; standard: string }> = [
   { regex: /\bNDIP[-\s]?1226\b/i, standard: "NDIP-1226" },
   { regex: /\bNDIP[-\s]?1227\b/i, standard: "NDIP-1227" },
@@ -72,9 +78,14 @@ export function inferMroPartNumbers(name: string): string[] {
 }
 
 export function inferMroStandards(name: string): string[] {
-  return dedupe(
-    STANDARD_PATTERNS.filter(({ regex }) => regex.test(name)).map(({ standard }) => standard),
-  );
+  const partNumberStandards = inferMroPartNumbers(name)
+    .map((partNumber) => inferMroStandardFromPartNumber(partNumber))
+    .filter((standard): standard is string => Boolean(standard));
+
+  return dedupe([
+    ...STANDARD_PATTERNS.filter(({ regex }) => regex.test(name)).map(({ standard }) => standard),
+    ...partNumberStandards,
+  ]);
 }
 
 export function inferMroAssetDescription(
@@ -95,7 +106,7 @@ export function inferMroAssetDescription(
 
   const base =
     category === "3d-model"
-      ? "External MRO 3D reference model"
+      ? "Approved local MRO 3D reference model"
       : category === "gating-scheme"
         ? "Inspection gating reference sheet"
         : category === "procedure"
@@ -106,7 +117,7 @@ export function inferMroAssetDescription(
               ? "Qualification or supporting reference document"
               : "Local MRO supporting file";
 
-  return suffix.length > 0 ? `${base} • ${suffix.join(" • ")}` : base;
+  return suffix.length > 0 ? `${base} | ${suffix.join(" | ")}` : base;
 }
 
 export function enrichMroAsset(raw: RawMroAssetEntry): MroAssetEntry {
@@ -147,10 +158,8 @@ export function getRelevantMroAssets(
   const normalizedPartType = context.partType?.trim().toLowerCase();
   const isV2500HptContext =
     normalizedPartType === "hpt_disk" ||
-    normalizedPartNumber === "2A5001" ||
-    normalizedPartNumber === "2A4802" ||
-    normalizedStandard === "NDIP-1226" ||
-    normalizedStandard === "NDIP-1227";
+    ACTIVE_MRO_PART_NUMBERS.some((partNumber) => partNumber === normalizedPartNumber) ||
+    isActiveMroStandard(normalizedStandard);
 
   return assets.filter((asset) => {
     const partMatch =
