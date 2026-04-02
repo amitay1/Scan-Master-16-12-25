@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 interface PartTypeVisualSelectorProps {
   value: string;
   material?: string;
+  allowedPartTypes?: PartGeometry[];
   onChange: (value: PartGeometry) => void;
 }
 
@@ -266,6 +267,7 @@ function ShapeOption({
 export const PartTypeVisualSelector: React.FC<PartTypeVisualSelectorProps> = ({
   value,
   material,
+  allowedPartTypes,
   onChange,
 }) => {
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -275,6 +277,13 @@ export const PartTypeVisualSelector: React.FC<PartTypeVisualSelectorProps> = ({
   const dropdownMenuRef = useRef<HTMLDivElement>(null);
   const triggerButtonRef = useRef<HTMLButtonElement>(null);
   const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
+  const visiblePartTypes = React.useMemo(() => {
+    if (!allowedPartTypes || allowedPartTypes.length === 0) {
+      return allPartTypes;
+    }
+
+    return allPartTypes.filter((option) => allowedPartTypes.includes(option.value));
+  }, [allowedPartTypes]);
   const selectedType = allPartTypes.find(t => t.value === value);
 
   const handleSelect = (partType: PartGeometry) => {
@@ -460,7 +469,7 @@ export const PartTypeVisualSelector: React.FC<PartTypeVisualSelectorProps> = ({
             </div>
 
             <div className="p-1.5 space-y-0.5">
-              {allPartTypes.map((option) => (
+              {visiblePartTypes.map((option) => (
                 <ShapeOption
                   key={option.value}
                   option={option}
@@ -537,7 +546,7 @@ export const PartTypeVisualSelector: React.FC<PartTypeVisualSelectorProps> = ({
                 }
               }}
             >
-              {allPartTypes.map((option, index) => (
+              {visiblePartTypes.map((option, index) => (
                 <motion.div
                   key={option.value}
                   variants={{

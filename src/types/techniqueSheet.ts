@@ -99,6 +99,51 @@ export interface PhasedArraySettings {
   aperture?: number;               // Number of active elements
 }
 
+export interface HptDiskGeometryData {
+  // Envelope / section control diameters
+  rimRootDiameterMm?: number;
+  hubOuterDiameterMm?: number;
+  webDiameterMm?: number;
+  boreEntryDiameterMm?: number;
+  boreExitDiameterMm?: number;
+  minBoreDiameterMm?: number;
+
+  // Axial section thicknesses / heights
+  hubHeightMm?: number;
+  rimHeightMm?: number;
+  webMinThicknessMm?: number;
+
+  // Angles
+  frontFaceAngleDeg?: number;
+  rearFaceAngleDeg?: number;
+  boreTaperAngleDeg?: number;
+  webTransitionAngleDeg?: number;
+  serrationFlankAngleDeg?: number;
+
+  // Blend radii / critical corners
+  frontFilletRadiusMm?: number;
+  rearFilletRadiusMm?: number;
+  boreEntryRadiusMm?: number;
+  boreBlendRadiusMm?: number;
+  rimBlendRadiusMm?: number;
+  toothRootRadiusMm?: number;
+
+  // Serration / outer edge features
+  serrationCount?: number;
+  serrationPitchMm?: number;
+  serrationHeightMm?: number;
+  serrationTopWidthMm?: number;
+
+  // Inspection-specific reference dimensions
+  inspectionBoreRadiusMm?: number;
+  inspectionOffsetMm?: number;
+  radialCoverageMm?: number;
+
+  // Free-form notes for profile details not covered by fixed fields
+  geometryNotes?: string;
+  criticalZoneNotes?: string;
+}
+
 export interface InspectionSetupData {
   techniqueCardId?: string;  // Technique Card ID for printed reports
   partNumber: string;
@@ -120,6 +165,7 @@ export interface InspectionSetupData {
   partLength: number;
   partWidth: number;
   diameter?: number;
+  hptDiskGeometry?: HptDiskGeometryData;
   
   // Hollow/Hole parameters (for tubes, hollow cylinders, etc.)
   isHollow?: boolean;

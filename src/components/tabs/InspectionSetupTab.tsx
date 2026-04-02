@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { InspectionSetupData, MaterialType, PartGeometry, AcceptanceClass, StandardType } from "@/types/techniqueSheet";
+import { Textarea } from "@/components/ui/textarea";
 import { Upload, X, Plus, HardDrive, ExternalLink, Download, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -20,11 +21,20 @@ import { logInfo, logWarn } from "@/lib/logger";
 import type { ScanDetailsData } from "@/types/scanDetails";
 import { getInspectionThickness } from "@/utils/inspectionThickness";
 import {
+  getInspectionSetupStandardProfile,
+  normalizeInspectionSetupForStandard,
+} from "@/utils/inspectionSetupProfiles";
+import {
   ACTIVE_MRO_STANDARD_CODES,
   deriveCalibrationScanDirectionInfo,
   isSupportedMroAssetName,
 } from "@/utils/mroPolicy";
-import { getV2500InspectionSetupDefaults, getV2500PartTypeLabel, isV2500NdipStandard } from "@/utils/pwNdipDefaults";
+import {
+  getV2500HptReferenceDefaults,
+  getV2500InspectionSetupDefaults,
+  getV2500PartTypeLabel,
+  isV2500NdipStandard,
+} from "@/utils/pwNdipDefaults";
 import {
   enrichMroAsset,
   fetchMroAssetCatalog,
@@ -210,10 +220,10 @@ function getPartFieldConfig(partType: string): PartFieldConfig {
 
     case 'hpt_disk':
       return {
-        showThickness: true, thicknessLabel: 'Height (mm)',
+        showThickness: true, thicknessLabel: 'Overall Height (mm)',
         showLength: false, lengthLabel: '',
         showWidth: false,
-        showOD: true, odLabel: 'OD (mm)',
+        showOD: true, odLabel: 'Max OD / Tip OD (mm)',
         canBeHollow: false, alwaysHollow: true,
         hollowType: 'circular', isCone: false,
       };
@@ -302,6 +312,73 @@ function getPartFieldConfig(partType: string): PartFieldConfig {
       };
   }
 }
+
+const HPT_DISK_FIELD_GROUPS = [
+  {
+    title: "Envelope & Sections",
+    description: "Capture the major control diameters and axial section heights of the disk body.",
+    fields: [
+      { key: "rimRootDiameterMm", label: "Root / Base OD (mm)", help: "Diameter at the base of the serrations or blade attachment roots.", step: 0.1, required: true },
+      { key: "hubOuterDiameterMm", label: "Hub OD (mm)", help: "Outer diameter of the raised hub / bore mouth region.", step: 0.1 },
+      { key: "webDiameterMm", label: "Web Diameter (mm)", help: "Reference diameter through the web / dish region.", step: 0.1 },
+      { key: "hubHeightMm", label: "Hub Height (mm)", help: "Axial height from the main face to the hub crest.", step: 0.1 },
+      { key: "rimHeightMm", label: "Rim Height (mm)", help: "Axial thickness / height of the outer rim section.", step: 0.1 },
+      { key: "webMinThicknessMm", label: "Web Min Thickness (mm)", help: "Minimum metal section through the web.", step: 0.1, required: true },
+    ],
+  },
+  {
+    title: "Bore Profile",
+    description: "Define the stepped bore geometry instead of relying on one generic wall thickness.",
+    fields: [
+      { key: "boreEntryDiameterMm", label: "Bore Entry ID (mm)", help: "ID at the bore entry face.", step: 0.1 },
+      { key: "boreExitDiameterMm", label: "Bore Exit ID (mm)", help: "ID at the opposite bore face.", step: 0.1 },
+      { key: "minBoreDiameterMm", label: "Minimum Bore ID (mm)", help: "Smallest diameter anywhere through the bore profile.", step: 0.1, required: true },
+    ],
+  },
+  {
+    title: "Angles",
+    description: "Record the dominant face, bore, and serration angles used to define the profile.",
+    fields: [
+      { key: "frontFaceAngleDeg", label: "Front Face Angle (deg)", help: "Dish / face angle on the front side.", step: 0.1 },
+      { key: "rearFaceAngleDeg", label: "Rear Face Angle (deg)", help: "Dish / face angle on the rear side.", step: 0.1 },
+      { key: "boreTaperAngleDeg", label: "Bore Taper Angle (deg)", help: "Bore taper, chamfer, or entry angle.", step: 0.1 },
+      { key: "webTransitionAngleDeg", label: "Web Transition Angle (deg)", help: "Primary transition angle from hub to web or web to rim.", step: 0.1 },
+      { key: "serrationFlankAngleDeg", label: "Serration Flank Angle (deg)", help: "Flank angle of the outer teeth / serrations.", step: 0.1 },
+    ],
+  },
+  {
+    title: "Blend Radii",
+    description: "Call out the critical radii so transitions, corners, and stress-relief features are not lost.",
+    fields: [
+      { key: "frontFilletRadiusMm", label: "Front Fillet Radius (mm)", help: "Primary front-side blend radius.", step: 0.1 },
+      { key: "rearFilletRadiusMm", label: "Rear Fillet Radius (mm)", help: "Primary rear-side blend radius.", step: 0.1 },
+      { key: "boreEntryRadiusMm", label: "Bore Entry Radius (mm)", help: "Blend radius at the bore entry mouth.", step: 0.1 },
+      { key: "boreBlendRadiusMm", label: "Bore Blend Radius (mm)", help: "Main internal bore transition radius.", step: 0.1, required: true },
+      { key: "rimBlendRadiusMm", label: "Rim Blend Radius (mm)", help: "Blend radius at the rim or outer dish transition.", step: 0.1 },
+      { key: "toothRootRadiusMm", label: "Tooth Root Radius (mm)", help: "Radius at the serration / tooth root.", step: 0.1 },
+    ],
+  },
+  {
+    title: "Serrations",
+    description: "Capture the repeating OD tooth / serration features that define the outer profile.",
+    fields: [
+      { key: "serrationCount", label: "Serration Count", help: "Total number of teeth / serrations around the OD.", step: 1, required: true },
+      { key: "serrationPitchMm", label: "Serration Pitch (mm)", help: "Pitch measured along the OD serration pattern.", step: 0.1 },
+      { key: "serrationHeightMm", label: "Serration Height (mm)", help: "Radial height / depth of serrations.", step: 0.1 },
+      { key: "serrationTopWidthMm", label: "Serration Top Width (mm)", help: "Land or top width of a single serration.", step: 0.1 },
+    ],
+  },
+  {
+    title: "Standard Inspection References",
+    description: "Show only when the active standard defines explicit bore reference values for scan planning.",
+    visibleWhen: "ndip",
+    fields: [
+      { key: "inspectionBoreRadiusMm", label: "Inspection Bore Radius (mm)", help: "Nominal bore radius used by the active NDIP scan plan.", step: 0.01 },
+      { key: "inspectionOffsetMm", label: "Inspection Offset (mm)", help: "Bore offset used to generate the refracted angle in the scan plan.", step: 0.01 },
+      { key: "radialCoverageMm", label: "Radial Coverage (mm)", help: "Required radial coverage from the active scan plan.", step: 0.01 },
+    ],
+  },
+];
 
 /**
  * AUTOMATIC SHAPE CLASSIFICATION - ASTM E2375-16 Standard
@@ -671,8 +748,26 @@ export const InspectionSetupTab = ({
     onChange({ ...data, [field]: value });
   };
 
+  const updateHptDiskGeometryField = (field: string, value: any) => {
+    onChange({
+      ...data,
+      hptDiskGeometry: {
+        ...(data.hptDiskGeometry || {}),
+        [field]: value,
+      },
+    });
+  };
+
   const isV2500Standard = isV2500NdipStandard(standardType);
   const v2500PartTypeLabel = getV2500PartTypeLabel(standardType);
+  const inspectionSetupProfile = React.useMemo(
+    () => getInspectionSetupStandardProfile(standardType),
+    [standardType],
+  );
+  const v2500HptReferenceDefaults = React.useMemo(
+    () => getV2500HptReferenceDefaults(standardType),
+    [standardType],
+  );
   const activeMroLabel = ACTIVE_MRO_STANDARD_CODES.join(" / ");
   const mroAssets = React.useMemo(
     () =>
@@ -694,6 +789,13 @@ export const InspectionSetupTab = ({
   const visibleMroGroups = React.useMemo(
     () => Object.entries(groupedMroAssets).filter(([, assets]) => assets.length > 0),
     [groupedMroAssets],
+  );
+  const visibleHptDiskFieldGroups = React.useMemo(
+    () =>
+      HPT_DISK_FIELD_GROUPS.filter(
+        (group) => group.visibleWhen !== "ndip" || inspectionSetupProfile.showNdipHptInspectionFields,
+      ),
+    [inspectionSetupProfile.showNdipHptInspectionFields],
   );
   const threeDModelAssets = React.useMemo(
     () => groupedMroAssets["3d-model"] || [],
@@ -731,6 +833,14 @@ export const InspectionSetupTab = ({
   }, [data, onChange, selectedLocalModelExists]);
 
   useEffect(() => {
+    const normalizedSetup = normalizeInspectionSetupForStandard(data, standardType);
+
+    if (normalizedSetup.partType !== data.partType) {
+      onChange(normalizedSetup);
+    }
+  }, [data, onChange, standardType]);
+
+  useEffect(() => {
     const defaults = getV2500InspectionSetupDefaults(standardType);
     if (!defaults) {
       return;
@@ -749,6 +859,50 @@ export const InspectionSetupTab = ({
     data,
     onChange,
     standardType,
+  ]);
+
+  useEffect(() => {
+    if (data.partType !== "hpt_disk") {
+      return;
+    }
+
+    const referenceDefaults = v2500HptReferenceDefaults;
+    const currentGeometry = data.hptDiskGeometry || {};
+    const nextGeometry = { ...currentGeometry };
+    let geometryChanged = false;
+
+    if (referenceDefaults?.hptDiskGeometry) {
+      for (const [field, value] of Object.entries(referenceDefaults.hptDiskGeometry)) {
+        if ((nextGeometry as Record<string, unknown>)[field] == null && value != null) {
+          (nextGeometry as Record<string, unknown>)[field] = value;
+          geometryChanged = true;
+        }
+      }
+    }
+
+    const shouldSeedInnerDiameter =
+      (data.innerDiameter == null || data.innerDiameter <= 0) &&
+      typeof referenceDefaults?.innerDiameter === "number" &&
+      referenceDefaults.innerDiameter > 0;
+
+    const shouldClearGenericWall =
+      typeof data.wallThickness === "number" &&
+      data.wallThickness > 0;
+
+    if (!geometryChanged && !shouldSeedInnerDiameter && !shouldClearGenericWall) {
+      return;
+    }
+
+    onChange({
+      ...data,
+      innerDiameter: shouldSeedInnerDiameter ? referenceDefaults?.innerDiameter : data.innerDiameter,
+      wallThickness: shouldClearGenericWall ? undefined : data.wallThickness,
+      hptDiskGeometry: nextGeometry,
+    });
+  }, [
+    data,
+    onChange,
+    v2500HptReferenceDefaults,
   ]);
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -849,6 +1003,10 @@ export const InspectionSetupTab = ({
   const canBeHollow = fieldConfig.canBeHollow;
   const isCone = fieldConfig.isCone;
   const isAlwaysHollow = fieldConfig.alwaysHollow;
+  const hasPartTypeSelection = Boolean(data.partType);
+  const isHptDisk = data.partType === "hpt_disk";
+  const circularIdLabel = isHptDisk ? "Nominal Bore ID (mm)" : "ID (mm)";
+  const showGenericCircularWall = !isHptDisk;
 
   // Auto-enable isHollow when selecting an always-hollow shape
   React.useEffect(() => {
@@ -875,6 +1033,10 @@ export const InspectionSetupTab = ({
 
   // Auto-calculate wall thickness if inner and outer dimensions are set
   React.useEffect(() => {
+    if (data.partType === "hpt_disk") {
+      return;
+    }
+
     // Only auto-calculate for hollow parts with valid diameter values
     if (data.isHollow && data.diameter && data.innerDiameter && data.innerDiameter > 0) {
       const calculatedWallThickness = (data.diameter - data.innerDiameter) / 2;
@@ -1186,18 +1348,26 @@ export const InspectionSetupTab = ({
                 </p>
               </div>
             ) : (
-              <PartTypeVisualSelector
-                value={data.partType}
-                material={data.material}
-                onChange={(value) => {
-                  onChange({ 
-                    ...data, 
-                    partType: value,
-                    customShapeDescription: value === "custom" ? data.customShapeDescription : undefined,
-                    customShapeParameters: value === "custom" ? data.customShapeParameters : undefined
-                  });
-                }}
-              />
+              <>
+                <PartTypeVisualSelector
+                  value={data.partType}
+                  material={data.material}
+                  allowedPartTypes={inspectionSetupProfile.allowedPartTypes}
+                  onChange={(value) => {
+                    onChange({ 
+                      ...data, 
+                      partType: value,
+                      customShapeDescription: value === "custom" ? data.customShapeDescription : undefined,
+                      customShapeParameters: value === "custom" ? data.customShapeParameters : undefined
+                    });
+                  }}
+                />
+                {inspectionSetupProfile.partTypeScopeNote && (
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    {inspectionSetupProfile.partTypeScopeNote}
+                  </p>
+                )}
+              </>
             )}
           </FieldWithHelp>
         </div>
@@ -1255,7 +1425,7 @@ export const InspectionSetupTab = ({
           </>
         )}
 
-        {fieldConfig.showThickness && (
+        {hasPartTypeSelection && fieldConfig.showThickness && (
           <FieldWithHelp
             label={fieldConfig.thicknessLabel}
             fieldKey="thickness"
@@ -1277,7 +1447,7 @@ export const InspectionSetupTab = ({
           </FieldWithHelp>
         )}
 
-        {fieldConfig.showLength && (
+        {hasPartTypeSelection && fieldConfig.showLength && (
           <FieldWithHelp
             label={fieldConfig.lengthLabel}
             fieldKey="thickness"
@@ -1293,7 +1463,7 @@ export const InspectionSetupTab = ({
           </FieldWithHelp>
         )}
 
-        {fieldConfig.showWidth && (
+        {hasPartTypeSelection && fieldConfig.showWidth && (
           <FieldWithHelp
             label="Width (mm)"
             fieldKey="thickness"
@@ -1334,7 +1504,7 @@ export const InspectionSetupTab = ({
           />
         </FieldWithHelp>
 
-        {showDiameter && (
+        {hasPartTypeSelection && showDiameter && (
           <FieldWithHelp
             label={fieldConfig.odLabel}
             fieldKey="thickness"
@@ -1363,7 +1533,7 @@ export const InspectionSetupTab = ({
         )}
 
         {/* Cone dimensions - Cone is always hollow (like a tapered tube) */}
-        {isCone && (
+        {hasPartTypeSelection && isCone && (
           <>
             <FieldWithHelp
               label="Base OD (mm)"
@@ -1473,7 +1643,7 @@ export const InspectionSetupTab = ({
         )}
 
         {/* Hollow/Solid Toggle - only for shapes that CAN be hollow (not always-hollow or cone) */}
-        {canBeHollow && !isAlwaysHollow && !isCone && (
+        {hasPartTypeSelection && canBeHollow && !isAlwaysHollow && !isCone && (
           <div className="flex items-center gap-2">
             <input
               type="checkbox"
@@ -1489,10 +1659,10 @@ export const InspectionSetupTab = ({
         )}
 
         {/* Hollow Dimensions - Circular (ID + Wall) */}
-        {data.isHollow && fieldConfig.hollowType === 'circular' && (
+        {hasPartTypeSelection && data.isHollow && fieldConfig.hollowType === 'circular' && (
           <>
             <FieldWithHelp
-              label="ID (mm)"
+              label={circularIdLabel}
               fieldKey="thickness"
               required
             >
@@ -1529,24 +1699,26 @@ export const InspectionSetupTab = ({
               )}
             </FieldWithHelp>
 
-            <FieldWithHelp
-              label="Wall (mm)"
-              fieldKey="thickness"
-            >
-              <Input
-                type="number"
-                value={data.wallThickness?.toFixed(2) || 0}
-                onChange={(e) => updateField("wallThickness", parseFloat(e.target.value) || 0)}
-                min={0}
-                step={0.1}
-                className="bg-background"
-              />
-            </FieldWithHelp>
+            {showGenericCircularWall && (
+              <FieldWithHelp
+                label="Wall (mm)"
+                fieldKey="thickness"
+              >
+                <Input
+                  type="number"
+                  value={data.wallThickness?.toFixed(2) || 0}
+                  onChange={(e) => updateField("wallThickness", parseFloat(e.target.value) || 0)}
+                  min={0}
+                  step={0.1}
+                  className="bg-background"
+                />
+              </FieldWithHelp>
+            )}
           </>
         )}
 
         {/* Hollow Dimensions - Rectangular (Inner L + Inner W + Wall) */}
-        {data.isHollow && fieldConfig.hollowType === 'rectangular' && (
+        {hasPartTypeSelection && data.isHollow && fieldConfig.hollowType === 'rectangular' && (
               <>
                 <FieldWithHelp
                   label="Inner L (mm)"
@@ -1629,6 +1801,94 @@ export const InspectionSetupTab = ({
                 </FieldWithHelp>
               </>
             )}
+
+        {hasPartTypeSelection && isHptDisk && (
+          <div className="md:col-span-2 space-y-5 rounded-xl border border-primary/20 bg-primary/5 p-4">
+            <div className="space-y-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="text-sm font-semibold text-foreground">HPT Disk Geometry Profile</h3>
+                <Badge variant="outline" className="border-primary/30 bg-background/70 text-primary">
+                  Complex Geometry
+                </Badge>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Use these fields for the stepped bore, serrations, radii, and transition angles. A single tube-like wall thickness is intentionally not used for this geometry.
+              </p>
+              {inspectionSetupProfile.showNdipHptInspectionFields && v2500HptReferenceDefaults && (
+                <p className="text-xs text-muted-foreground">
+                  NDIP reference values for bore radius, offset, coverage, and nominal bore ID were seeded automatically for the active V2500 stage. Override them only if you have a more authoritative OEM drawing or measured model.
+                </p>
+              )}
+            </div>
+
+            {visibleHptDiskFieldGroups.map((group) => (
+              <div key={group.title} className="space-y-3 rounded-lg border border-border/70 bg-background/70 p-4">
+                <div>
+                  <h4 className="text-sm font-medium text-foreground">{group.title}</h4>
+                  <p className="text-xs text-muted-foreground">{group.description}</p>
+                </div>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                  {group.fields.map((field) => (
+                    <FieldWithHelp
+                      key={field.key}
+                      label={field.label}
+                      help={field.help}
+                      fieldKey="thickness"
+                      required={field.required}
+                    >
+                      <Input
+                        type="number"
+                        value={data.hptDiskGeometry?.[field.key] ?? ""}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          if (value === "" || value === null) {
+                            updateHptDiskGeometryField(field.key, undefined);
+                            return;
+                          }
+
+                          const parsed = field.step === 1 ? parseInt(value, 10) : parseFloat(value);
+                          if (!Number.isNaN(parsed)) {
+                            updateHptDiskGeometryField(field.key, parsed);
+                          }
+                        }}
+                        min={0}
+                        step={field.step || 0.1}
+                        placeholder={field.label}
+                        className="bg-background"
+                      />
+                    </FieldWithHelp>
+                  ))}
+                </div>
+              </div>
+            ))}
+
+            <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+              <FieldWithHelp
+                label="Geometry Notes"
+                fieldKey="partType"
+              >
+                <Textarea
+                  value={data.hptDiskGeometry?.geometryNotes || ""}
+                  onChange={(e) => updateHptDiskGeometryField("geometryNotes", e.target.value || undefined)}
+                  placeholder="Describe stepped faces, extra grooves, asymmetric transitions, undercuts, reliefs, or any profile detail not captured above."
+                  className="min-h-[104px] bg-background"
+                />
+              </FieldWithHelp>
+
+              <FieldWithHelp
+                label="Critical Zones / Missing Details"
+                fieldKey="partType"
+              >
+                <Textarea
+                  value={data.hptDiskGeometry?.criticalZoneNotes || ""}
+                  onChange={(e) => updateHptDiskGeometryField("criticalZoneNotes", e.target.value || undefined)}
+                  placeholder="List critical corners, scan-sensitive zones, tooth anomalies, local radii, or remaining geometry details that still need confirmation."
+                  className="min-h-[104px] bg-background"
+                />
+              </FieldWithHelp>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Technical Drawing with Dimensions */}
@@ -1669,7 +1929,7 @@ export const InspectionSetupTab = ({
         </Card>
       )}
 
-      {(isLoadingMroCatalog || mroCatalog || mroAssets.length > 0) && (
+      {inspectionSetupProfile.showMroReferenceLibrary && (isLoadingMroCatalog || mroCatalog || mroAssets.length > 0) && (
         <Card className="workstation-card mt-5 overflow-visible border-0 p-5">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div>

@@ -339,6 +339,125 @@ class TechniqueSheetPDFBuilder {
     this.totalPages = page - 1;
   }
 
+  private hasActiveScanPlanDocuments(): boolean {
+    const scanPlanDocs = this.data.scanPlan?.documents || [];
+    return scanPlanDocs.some((doc) => doc && doc.isActive);
+  }
+
+  private hasScanDetailSection(): boolean {
+    return Boolean(this.data.scanDetails || this.data.e2375Diagram || this.data.scanDirectionsDrawing);
+  }
+
+  private getMainSectionOrder(): Array<
+    | 'part-information'
+    | 'scan-parameters'
+    | 'equipment'
+    | 'acceptance'
+    | 'scan-details'
+    | 'documentation'
+    | 'reference-standard'
+    | 'scan-plan'
+    | 'approvals'
+  > {
+    const order: Array<
+      | 'part-information'
+      | 'scan-parameters'
+      | 'equipment'
+      | 'acceptance'
+      | 'scan-details'
+      | 'documentation'
+      | 'reference-standard'
+      | 'scan-plan'
+      | 'approvals'
+    > = [
+      'part-information',
+      'scan-parameters',
+      'equipment',
+      'acceptance',
+    ];
+
+    if (this.hasScanDetailSection()) {
+      order.push('scan-details');
+    }
+
+    order.push('documentation', 'reference-standard');
+
+    if (this.hasActiveScanPlanDocuments()) {
+      order.push('scan-plan');
+    }
+
+    order.push('approvals');
+    return order;
+  }
+
+  private getMainSectionNumber(
+    sectionKey:
+      | 'part-information'
+      | 'scan-parameters'
+      | 'equipment'
+      | 'acceptance'
+      | 'scan-details'
+      | 'documentation'
+      | 'reference-standard'
+      | 'scan-plan'
+      | 'approvals',
+  ): number {
+    const index = this.getMainSectionOrder().indexOf(sectionKey);
+    return index >= 0 ? index + 1 : 0;
+  }
+
+  private getTechnicalDrawingSectionNumber(): string {
+    return `${this.getMainSectionNumber('part-information')}.1`;
+  }
+
+  private getScanSectionNumberFor(kind: 'scan-details' | 'e2375' | 'scan-directions'): string {
+    const main = `${this.getMainSectionNumber('scan-details')}`;
+    let childIndex = 0;
+
+    if (this.data.scanDetails) {
+      if (kind === 'scan-details') {
+        return main;
+      }
+      childIndex += 1;
+    }
+
+    if (this.data.e2375Diagram) {
+      if (kind === 'e2375') {
+        return childIndex === 0 ? main : `${main}.${childIndex}`;
+      }
+      childIndex += 1;
+    }
+
+    if (kind === 'scan-directions') {
+      return childIndex === 0 ? main : `${main}.${childIndex}`;
+    }
+
+    return main;
+  }
+
+  private getReferenceStandardSectionNumber(): number {
+    return this.getMainSectionNumber('reference-standard');
+  }
+
+  private getCalibrationDiagramSectionNumber(): string {
+    return `${this.getReferenceStandardSectionNumber()}.1`;
+  }
+
+  private getAngleBeamDiagramSectionNumber(): string {
+    return `${this.getReferenceStandardSectionNumber()}.2`;
+  }
+
+  private formatSectionLabel(number: number | string, title: string): string {
+    const normalized = String(number);
+    return normalized.includes('.') ? `${normalized} ${title}` : `${normalized}. ${title}`;
+  }
+
+  private formatTocNumber(number: number | string, title: string): string {
+    const normalized = String(number);
+    const prefix = normalized.includes('.') ? '   ' : '';
+    return `${prefix}${this.formatSectionLabel(normalized, title)}`;
+  }
+
   // Build the complete PDF
   // ORDER MATCHES UI TABS: Setup → Equipment → Scan Params → Acceptance → Scan Details → Documentation → Reference Standard → Scan Plan
   public build(): void {
@@ -877,39 +996,77 @@ class TechniqueSheetPDFBuilder {
     y += sketchAreaHeight + 8;
 
     // ===== KEY DIMENSIONS BOX =====
-    const dimensionRows = getPartDimensionRows(setup);
+      const dimensionRows = getPartDimensionRows({ ...setup, standard: this.data.standard });
     if (dimensionRows.length > 0) {
+      const visibleDimensionRows = dimensionRows.slice(0, 4);
+      const lineSpacing = 4.5;
+      const lineStartX = PAGE.marginLeft + 45;
+      const maxInlineWidth = PAGE.contentWidth - 50;
+      const dimensionLines: Array<Array<[string, string]>> = [];
+      let currentLine: Array<[string, string]> = [];
+      let currentLineWidth = 0;
+
+      this.pdf.setFontSize(8);
+      visibleDimensionRows.forEach(([label, value]) => {
+        const labelText = `${label}: `;
+        const separatorWidth = currentLine.length > 0 ? this.pdf.getTextWidth(' | ') : 0;
+
+        this.pdf.setFont('helvetica', 'normal');
+        const labelWidth = this.pdf.getTextWidth(labelText);
+        this.pdf.setFont('helvetica', 'bold');
+        const valueWidth = this.pdf.getTextWidth(value);
+        const tokenWidth = separatorWidth + labelWidth + valueWidth + 3;
+
+        if (currentLine.length > 0 && currentLineWidth + tokenWidth > maxInlineWidth) {
+          dimensionLines.push(currentLine);
+          currentLine = [[label, value]];
+          currentLineWidth = labelWidth + valueWidth + 3;
+        } else {
+          currentLine.push([label, value]);
+          currentLineWidth += tokenWidth;
+        }
+      });
+
+      if (currentLine.length > 0) {
+        dimensionLines.push(currentLine);
+      }
+
+      const keyDimensionHeight = Math.max(8, 4 + dimensionLines.length * lineSpacing);
       this.pdf.setFillColor(...COLORS.sectionBg);
-      this.pdf.rect(PAGE.marginLeft, y, PAGE.contentWidth, 8, 'F');
+      this.pdf.rect(PAGE.marginLeft, y, PAGE.contentWidth, keyDimensionHeight, 'F');
 
       this.pdf.setFontSize(9);
       this.pdf.setFont('helvetica', 'bold');
       this.pdf.setTextColor(...COLORS.primary);
       this.pdf.text('Key Dimensions:', PAGE.marginLeft + 4, y + 5.5);
 
-      // Display dimensions inline
-      let dimX = PAGE.marginLeft + 45;
-      this.pdf.setFont('helvetica', 'normal');
-      this.pdf.setTextColor(...COLORS.text);
       this.pdf.setFontSize(8);
+      dimensionLines.forEach((line, lineIndex) => {
+        let dimX = lineStartX;
+        const lineY = y + 5.5 + lineIndex * lineSpacing;
 
-      dimensionRows.slice(0, 4).forEach((dim, i) => {
-        if (i > 0) {
+        line.forEach(([label, value], itemIndex) => {
+          if (itemIndex > 0) {
+            this.pdf.setTextColor(...COLORS.lightText);
+            this.pdf.setFont('helvetica', 'normal');
+            this.pdf.text(' | ', dimX, lineY);
+            dimX += this.pdf.getTextWidth(' | ');
+          }
+
+          const labelText = `${label}: `;
           this.pdf.setTextColor(...COLORS.lightText);
-          this.pdf.text(' | ', dimX, y + 5.5);
-          dimX += 5;
-        }
-        this.pdf.setTextColor(...COLORS.lightText);
-        this.pdf.text(`${dim[0]}: `, dimX, y + 5.5);
-        dimX += this.pdf.getTextWidth(`${dim[0]}: `);
-        this.pdf.setTextColor(...COLORS.text);
-        this.pdf.setFont('helvetica', 'bold');
-        this.pdf.text(dim[1], dimX, y + 5.5);
-        dimX += this.pdf.getTextWidth(dim[1]) + 3;
-        this.pdf.setFont('helvetica', 'normal');
+          this.pdf.setFont('helvetica', 'normal');
+          this.pdf.text(labelText, dimX, lineY);
+          dimX += this.pdf.getTextWidth(labelText);
+
+          this.pdf.setTextColor(...COLORS.text);
+          this.pdf.setFont('helvetica', 'bold');
+          this.pdf.text(value, dimX, lineY);
+          dimX += this.pdf.getTextWidth(value) + 3;
+        });
       });
 
-      y += 12;
+      y += keyDimensionHeight + 4;
     }
 
     // ===== V2500 NDIP OEM REQUIREMENTS BOX =====
@@ -948,88 +1105,76 @@ class TechniqueSheetPDFBuilder {
         startY: y,
         body: pwRows,
         theme: 'plain',
-        styles: { fontSize: 7.5, cellPadding: { top: 1.5, bottom: 1.5, left: 3, right: 3 } },
+        tableWidth: PAGE.contentWidth,
+        styles: {
+          fontSize: 7.5,
+          cellPadding: { top: 1.8, bottom: 1.8, left: 3, right: 3 },
+          overflow: 'linebreak',
+          valign: 'middle',
+        },
         columnStyles: {
-          0: { fontStyle: 'bold', cellWidth: 40, textColor: COLORS.lightText },
+          0: { fontStyle: 'bold', cellWidth: 42, textColor: COLORS.lightText },
           1: { cellWidth: 'auto', textColor: COLORS.text },
         },
         alternateRowStyles: { fillColor: [245, 247, 250] },
-        margin: { left: PAGE.marginLeft, right: PAGE.marginRight },
+        margin: { left: PAGE.marginLeft, right: PAGE.marginRight, bottom: 18 },
       });
 
-      y = this.getTableEndY(y, 5);
+      y = this.getTableEndY(y, 6);
     }
 
-    // ===== APPROVAL SIGNATURES BOX (FRISA style) =====
-    y = PAGE.height - 55;
+    // ===== COVER REVISION SUMMARY =====
+    const coverApprovalStartY = y + 6;
+    const coverApprovalBlockHeight = 28;
+    const footerStartY = PAGE.height - 16;
 
-    this.pdf.setFillColor(...COLORS.sectionBg);
-    this.pdf.rect(PAGE.marginLeft, y, PAGE.contentWidth, 8, 'F');
-    this.pdf.setFillColor(...COLORS.accentGold);
-    this.pdf.rect(PAGE.marginLeft, y, 4, 8, 'F');
+    if (coverApprovalStartY + coverApprovalBlockHeight <= footerStartY) {
+      y = coverApprovalStartY;
 
-    this.pdf.setFontSize(9);
-    this.pdf.setFont('helvetica', 'bold');
-    this.pdf.setTextColor(...COLORS.primaryDark);
-    this.pdf.text('APPROVALS', PAGE.marginLeft + 8, y + 5.5);
+      this.pdf.setFillColor(...COLORS.sectionBg);
+      this.pdf.rect(PAGE.marginLeft, y, PAGE.contentWidth, 8, 'F');
+      this.pdf.setFillColor(...COLORS.accentGold);
+      this.pdf.rect(PAGE.marginLeft, y, 4, 8, 'F');
 
-    y += 10;
+      this.pdf.setFontSize(9);
+      this.pdf.setFont('helvetica', 'bold');
+      this.pdf.setTextColor(...COLORS.primaryDark);
+      this.pdf.text('APPROVALS', PAGE.marginLeft + 8, y + 5.5);
 
-    // Signature table
-    const sigColWidths = [18, 35, 50, 35, 35, 10];
-    const sigHeaders = ['Rev', 'Date', 'Description', 'Prepared', 'Approved', 'Sign'];
+      y += 10;
 
-    // Header row
-    this.pdf.setFillColor(...COLORS.primary);
-    this.pdf.rect(PAGE.marginLeft, y, PAGE.contentWidth, 7, 'F');
-
-    let sigX = PAGE.marginLeft;
-    this.pdf.setFontSize(7);
-    this.pdf.setFont('helvetica', 'bold');
-    this.pdf.setTextColor(255, 255, 255);
-    sigHeaders.forEach((header, i) => {
-      this.pdf.text(header, sigX + 2, y + 5);
-      sigX += sigColWidths[i];
-    });
-
-    y += 7;
-
-    // Data row
-    this.pdf.setDrawColor(...COLORS.tableBorder);
-    this.pdf.rect(PAGE.marginLeft, y, PAGE.contentWidth, 10);
-
-    sigX = PAGE.marginLeft;
-    const sigData = [
-      doc.revision || 'A',
-      formatDate(doc.inspectionDate),
-      'Initial Release',
-      doc.inspectorName || '',
-      '',  // Approved by - left blank for signature
-      '',  // Signature - left blank
-    ];
-
-    this.pdf.setFontSize(8);
-    this.pdf.setFont('helvetica', 'normal');
-    this.pdf.setTextColor(...COLORS.text);
-    sigData.forEach((cell, i) => {
-      // Vertical dividers
-      if (i > 0) {
-        this.pdf.line(sigX, y, sigX, y + 10);
-      }
-      this.pdf.text(cell, sigX + 2, y + 6.5);
-      sigX += sigColWidths[i];
-    });
-
-    // Empty row for additional revisions
-    y += 10;
-    this.pdf.rect(PAGE.marginLeft, y, PAGE.contentWidth, 10);
-    sigX = PAGE.marginLeft;
-    sigColWidths.forEach((width, i) => {
-      if (i > 0) {
-        this.pdf.line(sigX, y, sigX, y + 10);
-      }
-      sigX += width;
-    });
+      autoTable(this.pdf, {
+        startY: y,
+        head: [['Rev', 'Date', 'Description', 'Prepared', 'Approved', 'Sign']],
+        body: [[
+          doc.revision || 'A',
+          formatDate(doc.inspectionDate),
+          'Initial Release',
+          doc.inspectorName || '',
+          '',
+          '',
+        ]],
+        theme: 'grid',
+        tableWidth: PAGE.contentWidth,
+        styles: {
+          fontSize: 7.5,
+          cellPadding: { top: 2, bottom: 2, left: 2, right: 2 },
+          minCellHeight: 8,
+          overflow: 'linebreak',
+          valign: 'middle',
+        },
+        headStyles: { fillColor: COLORS.primary, textColor: [255, 255, 255], fontSize: 7.5 },
+        columnStyles: {
+          0: { cellWidth: 12, halign: 'center', fontStyle: 'bold' },
+          1: { cellWidth: 26 },
+          2: { cellWidth: 52 },
+          3: { cellWidth: 32 },
+          4: { cellWidth: 32 },
+          5: { cellWidth: 26 },
+        },
+        margin: { left: PAGE.marginLeft, right: PAGE.marginRight, bottom: 16 },
+      });
+    }
 
     // ===== CONFIDENTIALITY FOOTER =====
     y = PAGE.height - 12;
@@ -1071,63 +1216,93 @@ class TechniqueSheetPDFBuilder {
     y = this.addSectionTitle('TABLE OF CONTENTS', y);
     y += 5;
 
-    // TOC ORDER MATCHES UI TABS: Setup → Equipment → Scan Params → Acceptance → Scan Details → Documentation → Reference Standard → Scan Plan
+    // TOC ORDER MATCHES THE ACTUAL PDF BUILD ORDER.
     const tocItems: { title: string; page: number }[] = [];
-    let sectionNum = 1;
 
-    // 1. Part Information (Setup tab)
-    tocItems.push({ title: `${sectionNum}. Part Information`, page: this.pageMapping.get('setup') || 3 });
+    const partInfoSectionNum = this.getMainSectionNumber('part-information');
+    tocItems.push({
+      title: this.formatTocNumber(partInfoSectionNum, 'Part Information'),
+      page: this.pageMapping.get('setup') || 3,
+    });
     if (this.data.capturedDrawing) {
-      tocItems.push({ title: `   ${sectionNum}.1 Technical Drawing`, page: this.pageMapping.get('technical-drawing') || 4 });
+      tocItems.push({
+        title: this.formatTocNumber(this.getTechnicalDrawingSectionNumber(), 'Technical Drawing'),
+        page: this.pageMapping.get('technical-drawing') || 4,
+      });
     }
-    sectionNum++;
 
-    // 2. Scan Parameters
-    tocItems.push({ title: `${sectionNum}. Scan Parameters`, page: this.pageMapping.get('scan-parameters') || 4 });
-    sectionNum++;
+    const scanParametersSectionNum = this.getMainSectionNumber('scan-parameters');
+    tocItems.push({
+      title: this.formatTocNumber(scanParametersSectionNum, 'Scan Parameters'),
+      page: this.pageMapping.get('scan-parameters') || 4,
+    });
 
-    // 3. Equipment
-    tocItems.push({ title: `${sectionNum}. Equipment`, page: this.pageMapping.get('equipment') || 5 });
-    sectionNum++;
+    const equipmentSectionNum = this.getMainSectionNumber('equipment');
+    tocItems.push({
+      title: this.formatTocNumber(equipmentSectionNum, 'Equipment'),
+      page: this.pageMapping.get('equipment') || 5,
+    });
 
-    // 4. Acceptance Criteria
-    tocItems.push({ title: `${sectionNum}. Acceptance Criteria`, page: this.pageMapping.get('acceptance') || 6 });
-    sectionNum++;
+    const acceptanceSectionNum = this.getMainSectionNumber('acceptance');
+    tocItems.push({
+      title: this.formatTocNumber(acceptanceSectionNum, 'Acceptance Criteria'),
+      page: this.pageMapping.get('acceptance') || 6,
+    });
 
-    // 5. Scan Details
-    if (this.data.scanDetails) {
-      tocItems.push({ title: `${sectionNum}. Scan Details & Directions`, page: this.pageMapping.get('scan-details') || 7 });
+    if (this.hasScanDetailSection()) {
+      if (this.data.scanDetails) {
+        tocItems.push({
+          title: this.formatTocNumber(this.getScanSectionNumberFor('scan-details'), 'Scan Details & Directions'),
+          page: this.pageMapping.get('scan-details') || 7,
+        });
+      }
       if (this.data.e2375Diagram) {
-        tocItems.push({ title: `   ${sectionNum}.1 E2375 Scan Directions Diagram`, page: this.pageMapping.get('e2375-diagram') || 8 });
+        tocItems.push({
+          title: this.formatTocNumber(this.getScanSectionNumberFor('e2375'), 'ASTM E2375 Scan Directions Diagram'),
+          page: this.pageMapping.get('e2375-diagram') || 8,
+        });
       }
       if (this.data.scanDirectionsDrawing) {
-        const subNum = this.data.e2375Diagram ? `${sectionNum}.2` : `${sectionNum}.1`;
-        tocItems.push({ title: `   ${subNum} Inspection Plan Drawing`, page: this.pageMapping.get('scan-directions-drawing') || 9 });
+        tocItems.push({
+          title: this.formatTocNumber(this.getScanSectionNumberFor('scan-directions'), 'Inspection Plan Drawing'),
+          page: this.pageMapping.get('scan-directions-drawing') || 9,
+        });
       }
-      sectionNum++;
     }
 
-    // 6. Documentation
-    tocItems.push({ title: `${sectionNum}. Documentation`, page: this.pageMapping.get('documentation') || 10 });
-    sectionNum++;
+    const documentationSectionNum = this.getMainSectionNumber('documentation');
+    tocItems.push({
+      title: this.formatTocNumber(documentationSectionNum, 'Documentation'),
+      page: this.pageMapping.get('documentation') || 10,
+    });
 
-    // 7. Reference Standard (Calibration)
-    tocItems.push({ title: `${sectionNum}. Reference Standard`, page: this.pageMapping.get('calibration') || 11 });
-    tocItems.push({ title: `   ${sectionNum}.1 Calibration Block Diagram`, page: this.pageMapping.get('calibration-diagram') || 12 });
+    const referenceStandardSectionNum = this.getReferenceStandardSectionNumber();
+    tocItems.push({
+      title: this.formatTocNumber(referenceStandardSectionNum, 'Reference Standard'),
+      page: this.pageMapping.get('calibration') || 11,
+    });
+    tocItems.push({
+      title: this.formatTocNumber(this.getCalibrationDiagramSectionNumber(), 'Calibration Block Diagram'),
+      page: this.pageMapping.get('calibration-diagram') || 12,
+    });
     if (this.data.angleBeamDiagram) {
-      tocItems.push({ title: `   ${sectionNum}.2 Angle Beam Calibration Block`, page: this.pageMapping.get('angle-beam-diagram') || 13 });
-    }
-    sectionNum++;
-
-    // 8. Scan Plan (if available)
-    const scanPlanDocsForToc = this.data.scanPlan?.documents || [];
-    if (scanPlanDocsForToc.filter(d => d && d.isActive).length > 0) {
-      tocItems.push({ title: `${sectionNum}. Scan Plan & Reference Documents`, page: this.pageMapping.get('scan-plan') || 14 });
-      sectionNum++;
+      tocItems.push({
+        title: this.formatTocNumber(this.getAngleBeamDiagramSectionNumber(), 'Angle Beam Calibration Block'),
+        page: this.pageMapping.get('angle-beam-diagram') || 13,
+      });
     }
 
-    // Approvals (last)
-    tocItems.push({ title: `${sectionNum}. Approval Signatures`, page: this.pageMapping.get('approvals') || 15 });
+    if (this.hasActiveScanPlanDocuments()) {
+      tocItems.push({
+        title: this.formatTocNumber(this.getMainSectionNumber('scan-plan'), 'Scan Plan & Reference Documents'),
+        page: this.pageMapping.get('scan-plan') || 14,
+      });
+    }
+
+    tocItems.push({
+      title: this.formatTocNumber(this.getMainSectionNumber('approvals'), 'Approvals & Document Control'),
+      page: this.pageMapping.get('approvals') || 15,
+    });
 
     this.pdf.setFontSize(11);
     tocItems.forEach((item) => {
@@ -1171,7 +1346,7 @@ class TechniqueSheetPDFBuilder {
     this.addHeader();
     let y = PAGE.contentStart;
 
-    y = this.addSectionTitle('1. PART INFORMATION', y);
+    y = this.addSectionTitle(this.formatSectionLabel(this.getMainSectionNumber('part-information'), 'PART INFORMATION'), y);
 
     const setup = this.data.inspectionSetup;
 
@@ -1206,7 +1381,7 @@ class TechniqueSheetPDFBuilder {
     // Dimensions Table
     y = this.addSubsectionTitle('Dimensions', y);
 
-    const dimensionRows = getPartDimensionRows(setup);
+    const dimensionRows = getPartDimensionRows({ ...setup, standard: this.data.standard });
     if (dimensionRows.length > 0) {
       autoTable(this.pdf, {
         startY: y,
@@ -1288,7 +1463,7 @@ class TechniqueSheetPDFBuilder {
     this.addHeader();
     let y = PAGE.contentStart;
 
-    y = this.addSectionTitle('2. EQUIPMENT', y);
+    y = this.addSectionTitle(this.formatSectionLabel(this.getMainSectionNumber('equipment'), 'EQUIPMENT'), y);
 
     const eq = this.data.equipment;
 
@@ -1400,7 +1575,7 @@ class TechniqueSheetPDFBuilder {
     this.addHeader();
     let y = PAGE.contentStart;
 
-    y = this.addSectionTitle('3. CALIBRATION', y);
+    y = this.addSectionTitle(this.formatSectionLabel(this.getReferenceStandardSectionNumber(), 'REFERENCE STANDARD'), y);
 
     const cal = this.data.calibration;
 
@@ -1578,7 +1753,7 @@ class TechniqueSheetPDFBuilder {
     let y = PAGE.contentStart;
     const cal = this.data.calibration;
 
-    y = this.addSectionTitle('3.1 CALIBRATION BLOCK DIAGRAM', y);
+    y = this.addSectionTitle(this.formatSectionLabel(this.getCalibrationDiagramSectionNumber(), 'CALIBRATION BLOCK DIAGRAM'), y);
 
     // Helper to render a single image centered on page
     const renderImage = (imgData: string, maxH: number): number => {
@@ -1660,7 +1835,7 @@ class TechniqueSheetPDFBuilder {
     this.addHeader();
     let y = PAGE.contentStart;
 
-    y = this.addSectionTitle('3.2 ANGLE BEAM CALIBRATION BLOCK', y);
+    y = this.addSectionTitle(this.formatSectionLabel(this.getAngleBeamDiagramSectionNumber(), 'ANGLE BEAM CALIBRATION BLOCK'), y);
 
     // Add subtitle
     this.pdf.setFontSize(FONTS.small.size);
@@ -1719,8 +1894,7 @@ class TechniqueSheetPDFBuilder {
     let y = PAGE.contentStart;
 
     // Dynamic section numbering - E2375 is a subsection of Scan Details
-    const sectionNum = this.data.scanDetails ? '5.1' : '5';
-    y = this.addSectionTitle(`${sectionNum} ASTM E2375 SCAN DIRECTIONS DIAGRAM`, y);
+    y = this.addSectionTitle(this.formatSectionLabel(this.getScanSectionNumberFor('e2375'), 'ASTM E2375 SCAN DIRECTIONS DIAGRAM'), y);
 
     // Add subtitle with standard reference
     this.pdf.setFontSize(FONTS.small.size);
@@ -1794,7 +1968,7 @@ class TechniqueSheetPDFBuilder {
     this.addHeader();
     let y = PAGE.contentStart;
 
-    y = this.addSectionTitle('4. SCAN PARAMETERS', y);
+    y = this.addSectionTitle(this.formatSectionLabel(this.getMainSectionNumber('scan-parameters'), 'SCAN PARAMETERS'), y);
 
     const scan = this.data.scanParameters;
 
@@ -1933,7 +2107,7 @@ class TechniqueSheetPDFBuilder {
     this.addHeader();
     let y = PAGE.contentStart;
 
-    y = this.addSectionTitle('5. ACCEPTANCE CRITERIA', y);
+    y = this.addSectionTitle(this.formatSectionLabel(this.getMainSectionNumber('acceptance'), 'ACCEPTANCE CRITERIA'), y);
 
     const acc = this.data.acceptanceCriteria;
     const classInfo = formatAcceptanceClass(acc.acceptanceClass);
@@ -2117,7 +2291,7 @@ class TechniqueSheetPDFBuilder {
     this.addHeader();
     let y = PAGE.contentStart;
 
-    y = this.addSectionTitle('5. SCAN DETAILS & DIRECTIONS', y);
+    y = this.addSectionTitle(this.formatSectionLabel(this.getScanSectionNumberFor('scan-details'), 'SCAN DETAILS & DIRECTIONS'), y);
 
     if (!this.data.scanDetails) {
       this.pdf.setFontSize(10);
@@ -2526,17 +2700,22 @@ class TechniqueSheetPDFBuilder {
       head: [['Dir', 'U.T Parameter', 'Range', 'Delay', 'PRF', 'dB', 'Index', 'Filter', 'Reject', 'TCG']],
       body: utRows,
       theme: 'grid',
-      styles: { fontSize: 6.5, cellPadding: 1.5 },
+      tableWidth: PAGE.contentWidth,
+      styles: {
+        fontSize: 6.8,
+        cellPadding: { top: 1.8, bottom: 1.8, left: 1.6, right: 1.6 },
+        overflow: 'linebreak',
+        valign: 'middle',
+      },
       headStyles: { fillColor: [99, 102, 241], textColor: [255, 255, 255], fontSize: 6.5 },
       columnStyles: {
         0: { fontStyle: 'bold', cellWidth: 10, halign: 'center' },
-        1: { cellWidth: 32 },
-        2: { cellWidth: 16, halign: 'center' },
-        3: { cellWidth: 16, halign: 'center' },
-        4: { cellWidth: 34, halign: 'center' },
-        4: { cellWidth: 14, halign: 'center' },
-        5: { cellWidth: 14, halign: 'center' },
-        6: { cellWidth: 16, halign: 'center' },
+        1: { cellWidth: 34 },
+        2: { cellWidth: 15, halign: 'center' },
+        3: { cellWidth: 15, halign: 'center' },
+        4: { cellWidth: 18, halign: 'center' },
+        5: { cellWidth: 12, halign: 'center' },
+        6: { cellWidth: 15, halign: 'center' },
         7: { cellWidth: 16, halign: 'center' },
         8: { cellWidth: 16, halign: 'center' },
         9: { cellWidth: 14, halign: 'center' },
@@ -2605,10 +2784,7 @@ class TechniqueSheetPDFBuilder {
     let y = PAGE.contentStart;
 
     // Dynamic section numbering — avoid collision with e2375 which uses 6.1
-    const dirSectionNum = this.data.scanDetails
-      ? (this.data.e2375Diagram ? '5.2' : '5.1')
-      : '5';
-    y = this.addSectionTitle(`${dirSectionNum}. SCAN DIRECTIONS - INSPECTION PLAN`, y);
+    y = this.addSectionTitle(this.formatSectionLabel(this.getScanSectionNumberFor('scan-directions'), 'SCAN DIRECTIONS - INSPECTION PLAN'), y);
 
     if (this.data.scanDirectionsDrawing) {
       try {
@@ -2673,13 +2849,7 @@ class TechniqueSheetPDFBuilder {
     let y = PAGE.contentStart;
 
     // Dynamic section numbering based on what's included
-    const hasScans = this.data.scanDetails;
-    const hasDirections = this.data.scanDirectionsDrawing;
-    let sectionNum = '7';
-    if (hasScans && hasDirections) sectionNum = '8';
-    else if (hasScans || hasDirections) sectionNum = '7';
-
-    y = this.addSectionTitle(`${sectionNum}. TECHNICAL DRAWING`, y);
+    y = this.addSectionTitle(this.formatSectionLabel(this.getTechnicalDrawingSectionNumber(), 'TECHNICAL DRAWING'), y);
 
     if (this.data.capturedDrawing) {
       try {
@@ -2734,12 +2904,7 @@ class TechniqueSheetPDFBuilder {
     let y = PAGE.contentStart;
 
     // Calculate dynamic section number
-    let sectionNum = 7;
-    if (this.data.scanDetails) sectionNum++;
-    if (this.data.scanDirectionsDrawing) sectionNum++;
-    if (this.data.capturedDrawing) sectionNum++;
-
-    y = this.addSectionTitle(`${sectionNum}. SCAN PLAN & REFERENCE DOCUMENTS`, y);
+    y = this.addSectionTitle(this.formatSectionLabel(this.getMainSectionNumber('scan-plan'), 'SCAN PLAN & REFERENCE DOCUMENTS'), y);
 
     // Safe check for scanPlan and documents
     const documents = this.data.scanPlan?.documents || [];
@@ -2838,16 +3003,7 @@ class TechniqueSheetPDFBuilder {
     this.addHeader();
     let y = PAGE.contentStart;
 
-    // Calculate section number based on what's included
-    let docSectionNum = 6;
-    if (this.data.scanDetails) docSectionNum++;
-    if (this.data.scanDirectionsDrawing && !this.data.scanDetails) docSectionNum++;
-    if (this.data.capturedDrawing) docSectionNum++;
-    // Account for scan plan page - safe check
-    const scanPlanDocsForDoc = this.data.scanPlan?.documents || [];
-    if (scanPlanDocsForDoc.filter(d => d && d.isActive).length > 0) docSectionNum++;
-
-    y = this.addSectionTitle(`${docSectionNum}. DOCUMENTATION`, y);
+    y = this.addSectionTitle(this.formatSectionLabel(this.getMainSectionNumber('documentation'), 'DOCUMENTATION'), y);
 
     const doc = this.data.documentation;
 
@@ -2920,15 +3076,7 @@ class TechniqueSheetPDFBuilder {
     this.addHeader();
     let y = PAGE.contentStart;
 
-    // Calculate section number based on what's included
-    let approvalSectionNum = 7;
-    if (this.data.scanDetails) approvalSectionNum++;
-    if (this.data.scanDirectionsDrawing && !this.data.scanDetails) approvalSectionNum++;
-    if (this.data.capturedDrawing) approvalSectionNum++;
-    const scanPlanDocsForApproval = this.data.scanPlan?.documents || [];
-    if (scanPlanDocsForApproval.filter(d => d && d.isActive).length > 0) approvalSectionNum++;
-
-    y = this.addSectionTitle(`${approvalSectionNum}. APPROVALS & DOCUMENT CONTROL`, y);
+    y = this.addSectionTitle(this.formatSectionLabel(this.getMainSectionNumber('approvals'), 'APPROVALS & DOCUMENT CONTROL'), y);
 
     const doc = this.data.documentation;
     const setup = this.data.inspectionSetup;
@@ -2947,15 +3095,22 @@ class TechniqueSheetPDFBuilder {
       head: [['Rev', 'Date', 'Description', 'Prepared By', 'Approved By', 'Sign']],
       body: revisionRows,
       theme: 'grid',
-      styles: { fontSize: 8, cellPadding: 3, minCellHeight: 10 },
+      tableWidth: PAGE.contentWidth,
+      styles: {
+        fontSize: 8,
+        cellPadding: { top: 2.5, bottom: 2.5, left: 2, right: 2 },
+        minCellHeight: 10,
+        overflow: 'linebreak',
+        valign: 'middle',
+      },
       headStyles: { fillColor: COLORS.primary, textColor: [255, 255, 255], fontSize: 8 },
       columnStyles: {
         0: { cellWidth: 12, halign: 'center', fontStyle: 'bold' },
-        1: { cellWidth: 28 },
-        2: { cellWidth: 45 },
-        3: { cellWidth: 35 },
-        4: { cellWidth: 35 },
-        5: { cellWidth: 25 },
+        1: { cellWidth: 26 },
+        2: { cellWidth: 50 },
+        3: { cellWidth: 32 },
+        4: { cellWidth: 32 },
+        5: { cellWidth: 28 },
       },
       margin: { left: PAGE.marginLeft, right: PAGE.marginRight, bottom: PAGE.footerHeight + 5 },
     });
@@ -2980,7 +3135,14 @@ class TechniqueSheetPDFBuilder {
       head: [['Role', 'Name (Print)', 'Cert. Number', 'Date', 'Signature']],
       body: signatureRows,
       theme: 'grid',
-      styles: { fontSize: 8, cellPadding: 4, minCellHeight: 12 },
+      tableWidth: PAGE.contentWidth,
+      styles: {
+        fontSize: 8,
+        cellPadding: { top: 3, bottom: 3, left: 2.5, right: 2.5 },
+        minCellHeight: 12,
+        overflow: 'linebreak',
+        valign: 'middle',
+      },
       headStyles: { fillColor: COLORS.secondary, textColor: [255, 255, 255], fontSize: 8 },
       columnStyles: {
         0: { fontStyle: 'bold', cellWidth: 42 },

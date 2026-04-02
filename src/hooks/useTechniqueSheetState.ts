@@ -26,6 +26,7 @@ import {
 } from "@/data/standardsDifferences";
 import { PW_ANGLE_CALIBRATION_BLOCK } from "@/rules/pw/pwCalibrationBlocks";
 import { getInspectionThickness } from "@/utils/inspectionThickness";
+import { normalizeInspectionSetupForStandard } from "@/utils/inspectionSetupProfiles";
 import { normalizeScanDetailsForStandard } from "@/utils/pwScanDetailDefaults";
 import { getV2500InspectionSetupDefaults } from "@/utils/pwNdipDefaults";
 import { readTechniqueSheetDraft } from "@/utils/updateRecovery";
@@ -41,6 +42,7 @@ const defaultInspectionSetup: InspectionSetupData = {
   partLength: 100.0,
   partWidth: 50.0,
   diameter: 0,
+  hptDiskGeometry: undefined,
 };
 
 const defaultEquipment: EquipmentData = {
@@ -442,12 +444,12 @@ export function useTechniqueSheetState({
 
     const applyInspectionSetup = (prev: InspectionSetupData): InspectionSetupData => {
       const pwDefaults = getV2500InspectionSetupDefaults(nextStandard);
-      if (!pwDefaults) return prev;
-
-      return {
+      const mergedSetup = pwDefaults ? {
         ...prev,
         ...pwDefaults,
-      };
+      } : prev;
+
+      return normalizeInspectionSetupForStandard(mergedSetup, nextStandard);
     };
 
     const getValidClassForStandard = (std: StandardType, currentClass: string | undefined) => {

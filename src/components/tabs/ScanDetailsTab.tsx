@@ -25,7 +25,7 @@ import { CustomDrawingUpload, ArrowOverlay, GeometrySelector } from "@/component
 import { useOllamaVision } from "@/components/scan-overlay/hooks/useOllamaVision";
 import { generateArrowsForGeometry, syncArrowsWithScanDetails } from "@/utils/scanArrowPlacement";
 import { getV2500ScanDetailDefaults } from "@/utils/pwScanDetailDefaults";
-import { getActiveMroStage, hasKnownActiveMroContext } from "@/utils/mroPolicy";
+import { getActiveMroStage, hasKnownActiveMroContext, isActiveMroStandard } from "@/utils/mroPolicy";
 import { getActiveScanDetails, getActiveScanDirections } from "@/utils/scanDetailsSelection";
 import type { ScanArrow } from "@/types/scanOverlay";
 
@@ -310,6 +310,7 @@ export const ScanDetailsTab = ({
   ) as Record<string, string>;
 
   const hasKnownV2500Context = hasKnownActiveMroContext(standard, partNumber);
+  const isV2500Standard = isActiveMroStandard(standard);
   const isHptDiskPart = partType === "hpt_disk";
   const v2500Stage: 1 | 2 | null = getActiveMroStage(standard, partNumber);
 

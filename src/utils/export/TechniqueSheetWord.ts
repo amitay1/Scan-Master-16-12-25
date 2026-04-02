@@ -146,6 +146,13 @@ const createLtrTable = (options: any): Table =>
     visuallyRightToLeft: false,
   });
 
+const createLtrParagraph = (options: any = {}): Paragraph =>
+  new Paragraph({
+    alignment: AlignmentType.LEFT,
+    bidirectional: false,
+    ...options,
+  });
+
 // Convert base64 image to array buffer for Word document
 const base64ToArrayBuffer = (base64: string): ArrayBuffer => {
   const base64Data = base64.includes(',') ? base64.split(',')[1] : base64;
@@ -582,7 +589,7 @@ const createDocumentSummaryTable = (
 
         return new TableCell({
           children: [
-            new Paragraph({
+            createLtrParagraph({
               children: [
                 new TextRun({
                   text: cell,
@@ -643,7 +650,7 @@ const createKeyValueTable = (
         children: [
           new TableCell({
             children: [
-              new Paragraph({
+              createLtrParagraph({
                 children: [
                   new TextRun({
                     text: 'Parameter',
@@ -671,7 +678,7 @@ const createKeyValueTable = (
           }),
           new TableCell({
             children: [
-              new Paragraph({
+              createLtrParagraph({
                 children: [
                   new TextRun({
                     text: 'Value',
@@ -709,7 +716,7 @@ const createKeyValueTable = (
         children: [
           new TableCell({
             children: [
-              new Paragraph({
+              createLtrParagraph({
                 children: [
                   new TextRun({
                     text: label,
@@ -737,7 +744,7 @@ const createKeyValueTable = (
           }),
           new TableCell({
             children: [
-              new Paragraph({
+              createLtrParagraph({
                 children: [
                   new TextRun({
                     text: value,
@@ -1007,8 +1014,11 @@ const createPartSketchSectionHeader = (): Table => {
 // ============================================================================
 // KEY DIMENSIONS LINE
 // ============================================================================
-const createKeyDimensionsLine = (setup: InspectionSetupData): Paragraph | null => {
-  const dimensionRows = getPartDimensionRows(setup);
+const createKeyDimensionsLine = (
+  setup: InspectionSetupData,
+  standard?: string,
+): Paragraph | null => {
+  const dimensionRows = getPartDimensionRows({ ...setup, standard });
   if (dimensionRows.length === 0) return null;
 
   const parts: TextRun[] = [
@@ -1332,7 +1342,7 @@ export function buildTechniqueSheetWordDocument(
   children.push(new Paragraph({ children: [], spacing: { after: 100 } }));
 
   // Key Dimensions line
-  const keyDimsLine = createKeyDimensionsLine(inspectionSetup);
+  const keyDimsLine = createKeyDimensionsLine(inspectionSetup, data.standard);
   if (keyDimsLine) {
     children.push(keyDimsLine);
   }
@@ -1357,7 +1367,7 @@ export function buildTechniqueSheetWordDocument(
   children.push(new Paragraph({ children: [], spacing: { after: 200 } }));
 
   // Dimensions subsection
-  const dimensionRows = getPartDimensionRows(inspectionSetup);
+    const dimensionRows = getPartDimensionRows({ ...inspectionSetup, standard: data.standard });
   if (dimensionRows.length > 0) {
     children.push(createSubsectionTitle('Dimensions'));
     children.push(new Paragraph({ children: [], spacing: { after: 100 } }));

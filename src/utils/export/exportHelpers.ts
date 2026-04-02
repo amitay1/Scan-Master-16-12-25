@@ -227,7 +227,7 @@ export function isCylindrical(partType: string | undefined): boolean {
   const cylindricalTypes = [
     'tube', 'pipe', 'ring', 'ring_forging', 'sleeve', 'bushing',
     'cylinder', 'round_bar', 'shaft', 'disk', 'disk_forging',
-    'round_forging_stock', 'sphere', 'cone', 'hexagon'
+    'round_forging_stock', 'sphere', 'cone', 'hexagon', 'impeller', 'blisk', 'hpt_disk'
   ];
   return cylindricalTypes.includes(partType);
 }
@@ -287,11 +287,13 @@ function getDimensionLabels(partType?: string): {
 
   let thicknessLabel = 'Thickness';
   if (heightTypes.includes(partType)) thicknessLabel = 'Height';
+  if (partType === 'hpt_disk') thicknessLabel = 'Overall Height';
 
   let lengthLabel = 'Length';
   if (axialWidthTypes.includes(partType)) lengthLabel = 'Axial Width';
 
   let odLabel = 'Outer Diameter (OD)';
+  if (partType === 'hpt_disk') odLabel = 'Max OD / Tip OD';
   if (partType === 'hexagon') odLabel = 'Across Flats';
   else if (partType === 'sphere') odLabel = 'Diameter';
 
@@ -302,6 +304,7 @@ function getDimensionLabels(partType?: string): {
  * Get part dimensions as formatted rows based on part type
  */
 export function getPartDimensionRows(setup: {
+  standard?: string;
   partType?: string;
   partThickness?: number;
   partLength?: number;
@@ -315,9 +318,42 @@ export function getPartDimensionRows(setup: {
   coneHeight?: number;
   innerLength?: number;
   innerWidth?: number;
+  hptDiskGeometry?: {
+    rimRootDiameterMm?: number;
+    hubOuterDiameterMm?: number;
+    webDiameterMm?: number;
+    boreEntryDiameterMm?: number;
+    boreExitDiameterMm?: number;
+    minBoreDiameterMm?: number;
+    hubHeightMm?: number;
+    rimHeightMm?: number;
+    webMinThicknessMm?: number;
+    frontFaceAngleDeg?: number;
+    rearFaceAngleDeg?: number;
+    boreTaperAngleDeg?: number;
+    webTransitionAngleDeg?: number;
+    serrationFlankAngleDeg?: number;
+    frontFilletRadiusMm?: number;
+    rearFilletRadiusMm?: number;
+    boreEntryRadiusMm?: number;
+    boreBlendRadiusMm?: number;
+    rimBlendRadiusMm?: number;
+    toothRootRadiusMm?: number;
+    serrationCount?: number;
+    serrationPitchMm?: number;
+    serrationHeightMm?: number;
+    serrationTopWidthMm?: number;
+    inspectionBoreRadiusMm?: number;
+    inspectionOffsetMm?: number;
+    radialCoverageMm?: number;
+    geometryNotes?: string;
+    criticalZoneNotes?: string;
+  };
 }): Array<[string, string]> {
   const rows: Array<[string, string]> = [];
   const labels = getDimensionLabels(setup.partType);
+  const hpt = setup.hptDiskGeometry;
+  const showStandardHptInspectionRows = setup.standard === 'NDIP-1226' || setup.standard === 'NDIP-1227';
 
   // Common dimensions with geometry-aware labels
   if (setup.partThickness) {
@@ -336,9 +372,9 @@ export function getPartDimensionRows(setup: {
       rows.push([labels.odLabel, formatNumber(setup.diameter, 1, 'mm')]);
     }
     if (setup.innerDiameter) {
-      rows.push(['Inner Diameter (ID)', formatNumber(setup.innerDiameter, 1, 'mm')]);
+      rows.push([setup.partType === 'hpt_disk' ? 'Nominal Bore ID' : 'Inner Diameter (ID)', formatNumber(setup.innerDiameter, 1, 'mm')]);
     }
-    if (setup.wallThickness) {
+    if (setup.wallThickness && setup.partType !== 'hpt_disk') {
       rows.push(['Wall Thickness', formatNumber(setup.wallThickness, 2, 'mm')]);
     }
   }
@@ -370,6 +406,52 @@ export function getPartDimensionRows(setup: {
   // Hollow indicator
   if (setup.isHollow !== undefined) {
     rows.push(['Hollow Part', setup.isHollow ? 'Yes' : 'No']);
+  }
+
+  if (setup.partType === 'hpt_disk' && hpt) {
+    const hptRows: Array<[string, string]> = [];
+    const maybePush = (label: string, value: number | string | undefined, unit?: string, precision: number = 1) => {
+      if (value === undefined || value === null || value === '') return;
+      if (typeof value === 'number') {
+        hptRows.push([label, formatNumber(value, precision, unit)]);
+        return;
+      }
+      hptRows.push([label, String(value)]);
+    };
+
+    maybePush('Root / Base OD', hpt.rimRootDiameterMm, 'mm');
+    maybePush('Hub OD', hpt.hubOuterDiameterMm, 'mm');
+    maybePush('Web Diameter', hpt.webDiameterMm, 'mm');
+    maybePush('Bore Entry ID', hpt.boreEntryDiameterMm, 'mm');
+    maybePush('Bore Exit ID', hpt.boreExitDiameterMm, 'mm');
+    maybePush('Minimum Bore ID', hpt.minBoreDiameterMm, 'mm');
+    maybePush('Hub Height', hpt.hubHeightMm, 'mm');
+    maybePush('Rim Height', hpt.rimHeightMm, 'mm');
+    maybePush('Web Min Thickness', hpt.webMinThicknessMm, 'mm');
+    maybePush('Front Face Angle', hpt.frontFaceAngleDeg, 'deg');
+    maybePush('Rear Face Angle', hpt.rearFaceAngleDeg, 'deg');
+    maybePush('Bore Taper Angle', hpt.boreTaperAngleDeg, 'deg');
+    maybePush('Web Transition Angle', hpt.webTransitionAngleDeg, 'deg');
+    maybePush('Serration Flank Angle', hpt.serrationFlankAngleDeg, 'deg');
+    maybePush('Front Fillet Radius', hpt.frontFilletRadiusMm, 'mm');
+    maybePush('Rear Fillet Radius', hpt.rearFilletRadiusMm, 'mm');
+    maybePush('Bore Entry Radius', hpt.boreEntryRadiusMm, 'mm');
+    maybePush('Bore Blend Radius', hpt.boreBlendRadiusMm, 'mm');
+    maybePush('Rim Blend Radius', hpt.rimBlendRadiusMm, 'mm');
+    maybePush('Tooth Root Radius', hpt.toothRootRadiusMm, 'mm');
+    maybePush('Serration Count', hpt.serrationCount, undefined, 0);
+    maybePush('Serration Pitch', hpt.serrationPitchMm, 'mm');
+    maybePush('Serration Height', hpt.serrationHeightMm, 'mm');
+    maybePush('Serration Top Width', hpt.serrationTopWidthMm, 'mm');
+    if (showStandardHptInspectionRows) {
+      maybePush('Inspection Bore Radius', hpt.inspectionBoreRadiusMm, 'mm', 2);
+      maybePush('Inspection Offset', hpt.inspectionOffsetMm, 'mm', 2);
+      maybePush('Radial Coverage', hpt.radialCoverageMm, 'mm', 2);
+    }
+    maybePush('Geometry Notes', hpt.geometryNotes);
+    maybePush('Critical Zone Notes', hpt.criticalZoneNotes);
+
+    rows.push(...hptRows);
   }
 
   return rows;

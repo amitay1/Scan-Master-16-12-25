@@ -1,5 +1,5 @@
 import type { GateSettings, ScanDetail } from "@/types/scanDetails";
-import type { InspectionSetupData, StandardType } from "@/types/techniqueSheet";
+import type { HptDiskGeometryData, InspectionSetupData, StandardType } from "@/types/techniqueSheet";
 
 type V2500Standard = "NDIP-1226" | "NDIP-1227";
 
@@ -31,6 +31,28 @@ const V2500_SETUP_DEFAULTS: Record<V2500Standard, Partial<InspectionSetupData>> 
 const V2500_PART_TYPE_LABELS: Record<V2500Standard, string> = {
   "NDIP-1226": "HPT Disk First Stage",
   "NDIP-1227": "HPT Disk Second Stage",
+};
+
+const V2500_HPT_REFERENCE_DEFAULTS: Record<
+  V2500Standard,
+  { innerDiameter?: number; hptDiskGeometry: Partial<HptDiskGeometryData> }
+> = {
+  "NDIP-1226": {
+    innerDiameter: 147.83,
+    hptDiskGeometry: {
+      inspectionBoreRadiusMm: 73.91,
+      inspectionOffsetMm: 23.95,
+      radialCoverageMm: 66.04,
+    },
+  },
+  "NDIP-1227": {
+    innerDiameter: 140.87,
+    hptDiskGeometry: {
+      inspectionBoreRadiusMm: 70.43,
+      inspectionOffsetMm: 22.81,
+      radialCoverageMm: 66.04,
+    },
+  },
 };
 
 const NDIP_1226_GATE_SCHEME: Record<string, GateSettings[]> = {
@@ -110,6 +132,16 @@ export const getV2500InspectionSetupDefaults = (
   }
 
   return V2500_SETUP_DEFAULTS[standard];
+};
+
+export const getV2500HptReferenceDefaults = (
+  standard?: StandardType | string | null
+): { innerDiameter?: number; hptDiskGeometry: Partial<HptDiskGeometryData> } | null => {
+  if (!isV2500NdipStandard(standard)) {
+    return null;
+  }
+
+  return V2500_HPT_REFERENCE_DEFAULTS[standard];
 };
 
 const cloneGate = (gate: GateSettings): GateSettings => ({ ...gate });
