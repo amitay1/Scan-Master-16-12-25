@@ -281,7 +281,8 @@ export const RealTimeTechnicalDrawing = ({
             drawImpellerTechnicalDrawing(generator, drawingDimensions, layout);
             break;
 
-          // HPT DISK - V2500 bore profile (NDIP-1226/1227)
+          // HPT DISK - use bundled standard artwork only; otherwise fall back
+          // to a generic disk drawing instead of reconstructing a bore figure.
           // ============================================
           case 'hpt_disk':
             if (hasKnownActiveMroContext(standardType, partNumberProp)) {

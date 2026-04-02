@@ -73,7 +73,7 @@ export function ProfileIndicator({ variant = 'default', className }: ProfileIndi
                 <Button
                   variant="outline"
                   size="sm"
-                  className={cn('gap-2 px-2', className)}
+                  className={cn('min-w-0 gap-2 px-2', className)}
                 >
                   <div
                     className={cn(
@@ -84,7 +84,7 @@ export function ProfileIndicator({ variant = 'default', className }: ProfileIndi
                     {currentProfile.initials}
                   </div>
                   {variant === 'default' && (
-                    <span className="max-w-[100px] truncate text-sm">
+                    <span className="block max-w-[100px] truncate text-sm" title={currentProfile.name}>
                       {currentProfile.name}
                     </span>
                   )}

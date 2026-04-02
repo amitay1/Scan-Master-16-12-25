@@ -420,7 +420,7 @@ const Index = () => {
   const loadTestCard = useCallback((cardIndex: number) => {
     const card = quickFillPresets[cardIndex - 1];
     if (!card) {
-      toast.error(`Test card ${cardIndex} not found`);
+      toast.error(`QA preset ${cardIndex} not found`);
       return;
     }
     applyTestCard(card);
@@ -438,7 +438,7 @@ const Index = () => {
       if (Array.isArray(cards) && cards.length > 0) {
         applySampleCard(cards[0]);
         toast.success(`Loaded sample card: ${cards[0].name}`, {
-          description: `${cards.length} sample cards available. Use Ctrl+Shift+1/2/3 to load others.`,
+          description: `${cards.length} sample cards available. Use the QA preset panel for full geometry coverage.`,
         });
         logInfo("Loaded sample card", { cardName: cards[0].name });
       } else {
@@ -452,11 +452,14 @@ const Index = () => {
 
   // Keyboard shortcuts for test cards
   useEffect(() => {
+    const quickFillShortcutKeys = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "="];
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.ctrlKey && e.shiftKey) {
-        if (e.key === "1") { e.preventDefault(); loadTestCard(1); }
-        else if (e.key === "2") { e.preventDefault(); loadTestCard(2); }
-        else if (e.key === "3") { e.preventDefault(); loadTestCard(3); }
+        const shortcutIndex = quickFillShortcutKeys.indexOf(e.key);
+        if (shortcutIndex >= 0) {
+          e.preventDefault();
+          loadTestCard(shortcutIndex + 1);
+        }
       }
     };
     window.addEventListener("keydown", handleKeyDown);
@@ -482,6 +485,7 @@ const Index = () => {
     amber: "border-amber-200 bg-amber-50/80 hover:border-amber-300 hover:bg-amber-100/80 text-amber-950",
     slate: "border-slate-300 bg-slate-50/85 hover:border-slate-400 hover:bg-slate-100/90 text-slate-900",
   } as const;
+  const quickFillShortcutHint = "Ctrl+Shift+1-9,0,-,=";
 
   const renderQuickFillPanel = (compact = false) => (
     <div className={`rounded-xl border border-dashed border-border/80 bg-muted/30 ${compact ? "p-3" : "mt-6 p-3"}`}>
@@ -491,13 +495,13 @@ const Index = () => {
             <FlaskConical className="h-4 w-4 text-primary" />
             <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Quick Fill</p>
           </div>
-          <h3 className="text-sm font-semibold">Temporary QA Presets</h3>
+          <h3 className="text-sm font-semibold">Geometry QA Presets</h3>
           <p className="text-xs text-muted-foreground">
-            One click fills a complete realistic card, including report sections.
+            One click fills a complete realistic card for every supported geometry, including report sections.
           </p>
         </div>
         <div className="rounded-full bg-background px-2 py-1 text-[10px] font-medium text-muted-foreground whitespace-nowrap">
-          Ctrl+Shift+1/2/3
+          {quickFillShortcutHint}
         </div>
       </div>
 
@@ -1157,7 +1161,7 @@ const Index = () => {
           <DialogHeader>
             <DialogTitle>QA Presets</DialogTitle>
             <DialogDescription>
-              Temporary one-click cards for testing realistic inspection scenarios without filling the form manually.
+              One-click QA cards for every supported geometry, with complete scan, plan, and report data.
             </DialogDescription>
           </DialogHeader>
           {renderQuickFillPanel(true)}

@@ -16,7 +16,6 @@ import { PWCalibrationBlockDrawing } from "../drawings/PWCalibrationBlockDrawing
 import { PWASIMCalibrationBlockDrawing } from "../drawings/PWASIMCalibrationBlockDrawing";
 import { DynamicCalibrationBlockDrawing } from "../drawings/DynamicCalibrationBlockDrawing";
 import { RingSegmentBlockDrawing } from "../drawings/RingSegmentBlockDrawing";
-import { V2500BoreScanDiagram } from "../V2500BoreScanDiagram";
 // StraightBeamConversionTable columns are now merged inline into FBHHoleTable
 // via the showSensitivityColumns prop (see FBHHoleTableWithPreviews).
 import { AngleBeamCalibrationTable } from "../AngleBeamCalibrationTable";
@@ -1271,16 +1270,6 @@ export const CalibrationTab = ({
                   variant="secondary"
                   size="sm"
                   className="bg-white/15 text-white border border-white/20 hover:bg-white/25"
-                  onClick={() => openPwPdf(pwFigurePages.figure2)}
-                  title="Figure 2 - Scan Plan"
-                >
-                  Figure 2
-                </Button>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  className="bg-white/15 text-white border border-white/20 hover:bg-white/25"
                   onClick={() => openPwPdf('#page=17')}
                   title="Figure 3 - Pixel Grouping Examples"
                 >
@@ -1343,24 +1332,6 @@ export const CalibrationTab = ({
               />
             </div>
           )}
-
-          {/* V2500 Bore Profile Cross-Section (per NDIP Figure 2) */}
-           {isV2500Standard && (
-             <div className="space-y-3">
-               <h4 className="font-semibold text-gray-700 flex items-center gap-2">
-                 <Target className="h-4 w-4" />
-                 Bore Scan Plan - NDIP Figure 2 Cross-Sections
-               </h4>
-              {v2500Stage === 1 && <V2500BoreScanDiagram stage={1} />}
-              {v2500Stage === 2 && <V2500BoreScanDiagram stage={2} />}
-              {v2500Stage === null && (
-                <>
-                  <V2500BoreScanDiagram stage={1} />
-                  <V2500BoreScanDiagram stage={2} />
-                </>
-              )}
-             </div>
-           )}
 
           {/* P&W specific requirements */}
           <div className="bg-amber-50 border-2 border-amber-200 rounded-xl p-4">

@@ -94,11 +94,11 @@ export function ProfileSelectionDialog({
         >
           <DialogHeader className="border-b border-white/8 bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.18),transparent_40%),linear-gradient(180deg,rgba(15,23,42,0.98),rgba(12,18,28,0.96))] px-6 py-5">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-              <div className="flex items-start gap-4">
+              <div className="flex min-w-0 items-start gap-4">
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-500/15 ring-1 ring-blue-400/20">
                   <User className="h-5 w-5 text-blue-300" />
                 </div>
-                <div className="space-y-2">
+                <div className="min-w-0 space-y-2">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="rounded-full border border-blue-400/20 bg-blue-500/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-blue-200">
                       Session Access
@@ -117,16 +117,24 @@ export function ProfileSelectionDialog({
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-                  <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">Suggested</div>
-                  <div className="mt-1 text-sm font-semibold text-white">
+              <div className="grid w-full min-w-0 grid-cols-2 gap-3 lg:max-w-[320px]">
+                <div className="min-w-0 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                  <div className="truncate text-[11px] uppercase tracking-[0.24em] text-slate-500">Suggested</div>
+                  <div
+                    className="mt-1 block truncate text-sm font-semibold text-white"
+                    title={(preferredProfileId && profiles.find((profile) => profile.id === preferredProfileId)?.name) || 'Auto'}
+                  >
                     {(preferredProfileId && profiles.find((profile) => profile.id === preferredProfileId)?.name) || 'Auto'}
                   </div>
                 </div>
-                <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-                  <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">Active</div>
-                  <div className="mt-1 text-sm font-semibold text-white">{currentProfile?.name || 'None'}</div>
+                <div className="min-w-0 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                  <div className="truncate text-[11px] uppercase tracking-[0.24em] text-slate-500">Active</div>
+                  <div
+                    className="mt-1 block truncate text-sm font-semibold text-white"
+                    title={currentProfile?.name || 'None'}
+                  >
+                    {currentProfile?.name || 'None'}
+                  </div>
                 </div>
               </div>
             </div>
@@ -168,10 +176,12 @@ export function ProfileSelectionDialog({
                       >
                         <ProfileAvatar profile={profile} selected={isSelected} />
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium truncate text-white">{profile.name}</span>
+                          <div className="flex min-w-0 items-center gap-2">
+                            <span className="min-w-0 flex-1 truncate font-medium text-white" title={profile.name}>
+                              {profile.name}
+                            </span>
                             {preferredProfileId === profile.id && (
-                              <span className="rounded-full border border-blue-400/20 bg-blue-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-blue-200">
+                              <span className="shrink-0 rounded-full border border-blue-400/20 bg-blue-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-blue-200">
                                 Suggested
                               </span>
                             )}

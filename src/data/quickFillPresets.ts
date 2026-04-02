@@ -3,6 +3,7 @@ import {
   getDefaultInspectionReportData,
   type InspectionReportData,
 } from "@/types/inspectionReport";
+import { generatedQuickFillPresets } from "@/data/generatedQuickFillPresets";
 import type {
   AcceptanceCriteriaData,
   CalibrationData,
@@ -14,6 +15,7 @@ import type {
   StandardType,
 } from "@/types/techniqueSheet";
 import type { ScanDetailsData } from "@/types/scanDetails";
+import { getV2500GateSettingsForDirection } from "@/utils/pwNdipDefaults";
 
 export interface QuickFillPreset {
   id: string;
@@ -1881,6 +1883,9 @@ export const quickFillPresets: QuickFillPreset[] = [
     scanDetails: ringScanDetails,
     inspectionReport: ringReport,
     overrides: {
+      inspectionSetup: {
+        partType: "ring_forging",
+      },
       acceptanceCriteria: {
         standardNotes: "Preset quick-fill card for ring forging phased-array and angle-beam validation.",
         includeStandardNotesInReport: true,
@@ -1909,6 +1914,24 @@ export const quickFillPresets: QuickFillPreset[] = [
       },
     },
   }),
-];
+  ...generatedQuickFillPresets,
+].sort((left, right) => {
+  const geometryOrder = [
+    "plate",
+    "box",
+    "cylinder",
+    "tube",
+    "ring_forging",
+    "disk_forging",
+    "hexagon",
+    "cone",
+    "sphere",
+    "impeller",
+    "blisk",
+    "hpt_disk",
+  ];
+
+  return geometryOrder.indexOf(left.inspectionSetup.partType || "") - geometryOrder.indexOf(right.inspectionSetup.partType || "");
+});
 
 export default quickFillPresets;

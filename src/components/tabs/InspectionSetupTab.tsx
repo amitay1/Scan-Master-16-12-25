@@ -703,9 +703,22 @@ export const InspectionSetupTab = ({
     () => relevantMroAssets.filter((asset) => asset.category === "3d-model"),
     [relevantMroAssets],
   );
+  const activeLocalModel = React.useMemo(
+    () => threeDModelAssets.find((asset) => asset.name === data.localModelAssetName) || null,
+    [threeDModelAssets, data.localModelAssetName],
+  );
   const selectedLocalModelExists = React.useMemo(
     () => threeDModelAssets.some((asset) => asset.name === data.localModelAssetName),
     [threeDModelAssets, data.localModelAssetName],
+  );
+  const setLocalModelAsset = React.useCallback(
+    (assetName?: string) => {
+      onChange({
+        ...data,
+        localModelAssetName: assetName,
+      });
+    },
+    [data, onChange],
   );
 
   useEffect(() => {
@@ -1698,10 +1711,7 @@ export const InspectionSetupTab = ({
                   <Select
                     value={data.localModelAssetName || "__parametric__"}
                     onValueChange={(value) => {
-                      onChange({
-                        ...data,
-                        localModelAssetName: value === "__parametric__" ? undefined : value,
-                      });
+                      setLocalModelAsset(value === "__parametric__" ? undefined : value);
                     }}
                   >
                     <SelectTrigger className="bg-background">
@@ -1713,20 +1723,20 @@ export const InspectionSetupTab = ({
                         const isRelevant = relevantThreeDModelAssets.some((relevant) => relevant.name === asset.name);
                         return (
                           <SelectItem key={asset.name} value={asset.name}>
-                            {asset.name}{isRelevant ? " • Relevant" : ""}
+                            {asset.name}{isRelevant ? " (Relevant)" : ""}
                           </SelectItem>
                         );
                       })}
                     </SelectContent>
                   </Select>
 
-                  {data.localModelAssetName ? (
+                  {activeLocalModel ? (
                     <p className="text-xs text-muted-foreground">
-                      Active local model: <span className="font-medium text-foreground">{data.localModelAssetName}</span>
+                      Active local model: <span className="font-medium text-foreground">{activeLocalModel.name}</span>
                     </p>
                   ) : relevantThreeDModelAssets.length > 1 ? (
                     <p className="text-xs text-amber-600 dark:text-amber-400">
-                      More than one relevant STL was found for this setup. Pick the correct model explicitly.
+                      More than one relevant STL was found for this setup. The files are available below, but one must be selected explicitly before the 3D viewer will load it.
                     </p>
                   ) : (
                     <p className="text-xs text-muted-foreground">
@@ -1753,12 +1763,25 @@ export const InspectionSetupTab = ({
                             <p className="truncate text-sm font-medium">{asset.name}</p>
                             <Badge variant="outline">{asset.categoryLabel}</Badge>
                             <Badge variant="secondary">{asset.extension.replace(".", "").toUpperCase()}</Badge>
+                            {asset.category === "3d-model" && data.localModelAssetName === asset.name && (
+                              <Badge>Active In Viewer</Badge>
+                            )}
                           </div>
                           <p className="mt-1 text-xs text-muted-foreground">
                             {asset.description} | {formatMroAssetSize(asset.size)}
                           </p>
                         </div>
                         <div className="flex gap-2">
+                          {asset.category === "3d-model" && (
+                            <Button
+                              size="sm"
+                              variant={data.localModelAssetName === asset.name ? "default" : "secondary"}
+                              onClick={() => setLocalModelAsset(asset.name)}
+                            >
+                              <HardDrive className="mr-1 h-3.5 w-3.5" />
+                              {data.localModelAssetName === asset.name ? "Selected For Viewer" : "Use In 3D Viewer"}
+                            </Button>
+                          )}
                           <Button
                             size="sm"
                             variant="outline"
@@ -1804,6 +1827,9 @@ export const InspectionSetupTab = ({
                             <div className="flex flex-wrap items-center gap-2">
                               <p className="truncate text-sm font-medium">{asset.name}</p>
                               <Badge variant="secondary">{asset.extension.replace(".", "").toUpperCase()}</Badge>
+                              {asset.category === "3d-model" && data.localModelAssetName === asset.name && (
+                                <Badge>Active In Viewer</Badge>
+                              )}
                               {asset.partNumbers.map((partNumber) => (
                                 <Badge key={`${asset.name}-${partNumber}`} variant="outline">
                                   {partNumber}
@@ -1820,6 +1846,16 @@ export const InspectionSetupTab = ({
                             </p>
                           </div>
                           <div className="flex gap-2">
+                            {asset.category === "3d-model" && (
+                              <Button
+                                size="sm"
+                                variant={data.localModelAssetName === asset.name ? "default" : "secondary"}
+                                onClick={() => setLocalModelAsset(asset.name)}
+                              >
+                                <HardDrive className="mr-1 h-3.5 w-3.5" />
+                                {data.localModelAssetName === asset.name ? "Selected For Viewer" : "Use In 3D Viewer"}
+                              </Button>
+                            )}
                             <Button
                               size="sm"
                               variant="outline"

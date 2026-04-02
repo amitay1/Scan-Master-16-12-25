@@ -11,6 +11,7 @@
  */
 
 import { TechnicalDrawingGenerator, Dimensions, LayoutConfig } from './TechnicalDrawingGenerator';
+import { drawDiskTechnicalDrawing } from './diskDrawing';
 import type { StandardType } from '@/types/techniqueSheet';
 
 export function drawHptDiskTechnicalDrawing(
@@ -27,41 +28,15 @@ export function drawHptDiskTechnicalDrawing(
 ): void {
   const stage = resolveV2500Stage(options);
 
-  if (stage === 1 && drawStage1ReferenceFigure(generator, layout, options)) {
+  if (stage === 1 && drawStage1ReferenceFigure(generator, dimensions, layout, options)) {
     return;
   }
-
-  // Use NDIP nominal bore diameters as sane defaults when the user hasn't entered an ID.
-  // NDIP defines bore radius (inches) per stage.
-  const defaultBoreIdMm = stage === 2
-    ? (2 * 2.773 * 25.4) // NDIP-1227: bore radius 2.773"
-    : (2 * 2.91 * 25.4); // NDIP-1226: bore radius 2.910"
-
-  const toNum = (v: unknown, fallback: number) => {
-    if (typeof v === 'number' && Number.isFinite(v)) return v;
-    if (typeof v === 'string') {
-      const n = Number.parseFloat(v);
-      if (Number.isFinite(n)) return n;
-    }
-    return fallback;
-  };
-
-  const minMm = 0.1;
-  let od = Math.max(toNum(dimensions.outerDiameter ?? dimensions.diameter, 200), minMm);
-  let id = Math.max(toNum(dimensions.innerDiameter, defaultBoreIdMm), minMm);
-  const thickness = Math.max(toNum(dimensions.thickness ?? dimensions.length, 60), minMm);
-
-  // Keep the profile drawable; this diagram is conceptual and requires OD > ID.
-  if (id >= od) {
-    id = Math.max(od * 0.75, minMm);
-  }
-
-  drawBoreOpeningView(generator, od, id, layout.frontView);
-  drawBoreProfileView(generator, stage, od, id, thickness, layout.sideView, options);
+  drawDiskTechnicalDrawing(generator, dimensions, layout);
 }
 
 function drawStage1ReferenceFigure(
   generator: TechnicalDrawingGenerator,
+  dimensions: Dimensions,
   layout: LayoutConfig,
   options?: {
     standardType?: StandardType;
@@ -127,8 +102,7 @@ function drawStage1ReferenceFigure(
 
   raster.onError = () => {
     raster.remove();
-    drawBoreOpeningView(generator, 200, 2 * 2.91 * 25.4, layout.frontView);
-    drawBoreProfileView(generator, 1, 200, 2 * 2.91 * 25.4, 60, layout.sideView, options);
+    drawDiskTechnicalDrawing(generator, dimensions, layout);
     generator.render();
   };
 

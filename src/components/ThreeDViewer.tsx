@@ -305,6 +305,10 @@ export const ThreeDViewer = memo(function ThreeDViewer(props: ThreeDViewerProps)
   }, [props.externalModelAssetName, externalModelAssets, relevantExternalModelAssets]);
 
   const showExternalModel = Boolean(resolvedExternalModel) && externalModelStatus !== "error";
+  const relevantExternalModelLabel = useMemo(
+    () => relevantExternalModelAssets.map((asset) => asset.name).join(", "),
+    [relevantExternalModelAssets],
+  );
 
   const handleReset = useCallback(() => {
     if (controlsRef.current) {
@@ -349,7 +353,7 @@ export const ThreeDViewer = memo(function ThreeDViewer(props: ThreeDViewerProps)
       ? "Failed to load selected STL. Showing parametric fallback."
       : "Loaded from local MRO library"
     : relevantExternalModelAssets.length > 1 && !props.externalModelAssetName
-      ? "Multiple local STL models are available. Choose one in Setup."
+      ? `Multiple local STL models are available but none is selected yet: ${relevantExternalModelLabel}. Choose one in Setup.`
       : props.dimensions
         ? `${props.dimensions.thickness}mm thick`
         : "";

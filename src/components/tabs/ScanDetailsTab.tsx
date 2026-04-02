@@ -14,12 +14,10 @@ import { TubeScanDiagram } from "@/components/TubeScanDiagram";
 import { ConeScanDiagram } from "@/components/ConeScanDiagram";
 import { BoxScanDiagram } from "@/components/BoxScanDiagram";
 import { CylinderScanDiagram } from "@/components/CylinderScanDiagram";
-import { V2500BoreScanDiagram } from "@/components/V2500BoreScanDiagram";
 import { RingScanDiagram } from "@/components/RingScanDiagram";
 import { HexBarScanDiagram } from "@/components/HexBarScanDiagram";
 import { ImpellerScanDiagram } from "@/components/ImpellerScanDiagram";
 import { BliskScanDiagram } from "@/components/BliskScanDiagram";
-import { RealTimeTechnicalDrawing } from "@/components/RealTimeTechnicalDrawing";
 import { getFrequencyOptionsForStandard } from "@/utils/frequencyUtils";
 import { calculateNearField } from "@/utils/coverageCalculator";
 import { equipmentParametersByStandard } from "@/data/standardsDifferences";
@@ -27,7 +25,6 @@ import { CustomDrawingUpload, ArrowOverlay, GeometrySelector } from "@/component
 import { useOllamaVision } from "@/components/scan-overlay/hooks/useOllamaVision";
 import { generateArrowsForGeometry, syncArrowsWithScanDetails } from "@/utils/scanArrowPlacement";
 import { getV2500ScanDetailDefaults } from "@/utils/pwScanDetailDefaults";
-import { isV2500NdipStandard } from "@/utils/pwNdipDefaults";
 import { getActiveMroStage, hasKnownActiveMroContext } from "@/utils/mroPolicy";
 import { getActiveScanDetails, getActiveScanDirections } from "@/utils/scanDetailsSelection";
 import type { ScanArrow } from "@/types/scanOverlay";
@@ -312,10 +309,8 @@ export const ScanDetailsTab = ({
     scanDetails.map(d => [d.scanningDirection, d.color || "#111827"])
   ) as Record<string, string>;
 
-  const isV2500Standard = isV2500NdipStandard(standard);
   const hasKnownV2500Context = hasKnownActiveMroContext(standard, partNumber);
   const isHptDiskPart = partType === "hpt_disk";
-  const showV2500BoreDiagram = !isHptDiskPart && isV2500Standard;
   const v2500Stage: 1 | 2 | null = getActiveMroStage(standard, partNumber);
 
   // Custom drawing handlers
@@ -562,43 +557,39 @@ export const ScanDetailsTab = ({
   };
 
   const renderHptDiskReferenceDiagram = () => {
+    const standardImagePath = v2500Stage === 1 ? "/standards/hpt-disk-setup-stage1.png" : null;
     const referenceLabel =
-      standard === "NDIP-1227"
-        ? "NDIP-1227 Figure 2 reference"
-        : standard === "NDIP-1226"
-          ? "NDIP-1226 Figure 2 reference"
+      v2500Stage === 1
+        ? "Bundled standard reference image"
+        : standard === "NDIP-1227"
+          ? "No bundled standard reference image for NDIP-1227"
+          : standard === "NDIP-1226"
+            ? "No bundled standard reference image for NDIP-1226"
           : hasKnownV2500Context
-            ? "V2500 HPT reference from recognized part number"
-            : "Generic HPT disk reference";
+            ? "No bundled standard reference image for recognized V2500 context"
+            : "No bundled standard reference image";
 
     return (
       <div className="rounded-lg border-2 border-gray-200 bg-white p-3">
         <div className="mb-3">
           <h4 className="text-sm font-semibold text-slate-800">
-            {hasKnownV2500Context ? "HPT Disk Bore Profile" : "HPT Disk Profile"}
+            {standardImagePath ? "HPT Disk Standard Reference" : "HPT Disk Reference"}
           </h4>
           <p className="text-xs text-slate-500">{referenceLabel}</p>
         </div>
-        <div className="overflow-hidden rounded-md border border-gray-200 bg-gray-50">
-          <RealTimeTechnicalDrawing
-            partType="hpt_disk"
-            standardType={standard}
-            partNumber={partNumber}
-            enabledScanDirections={enabledScanDirections}
-            directionColors={directionColors}
-            dimensions={{
-              length: dimensions?.length || 100,
-              width: dimensions?.width || 50,
-              thickness: dimensions?.thickness || dimensions?.height || 10,
-              diameter: dimensions?.outerDiameter || dimensions?.diameter,
-              innerDiameter: dimensions?.innerDiameter,
-              isHollow: dimensions?.isHollow,
-              wallThickness: dimensions?.wallThickness,
-            }}
-            showGrid={false}
-            showDimensions={true}
-          />
-        </div>
+        {standardImagePath ? (
+          <div className="overflow-hidden rounded-md border border-gray-200 bg-gray-50">
+            <img
+              src={standardImagePath}
+              alt="HPT disk standard reference"
+              className="block h-auto w-full"
+            />
+          </div>
+        ) : (
+          <div className="rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+            Bore reconstruction drawings were removed. This screen now shows only bundled standard images, and none are currently available for this context.
+          </div>
+        )}
         <div className="mt-3 flex flex-wrap gap-2">
           {activeScanDetails.length > 0 ? activeScanDetails.map((detail) => (
             <Badge
@@ -878,47 +869,7 @@ export const ScanDetailsTab = ({
       if (isHptDiskPart) {
         return renderHptDiskReferenceDiagram();
       }
-
-      if (!showV2500BoreDiagram) {
-        return renderDiskReferenceDiagram();
-      }
-
-      return (
-        <div className="mt-2 space-y-4">
-          {v2500Stage === 1 && (
-            <V2500BoreScanDiagram
-              stage={1}
-              highlightedZone={highlightedDirection}
-              enabledDirections={enabledScanDirections}
-              directionColors={directionColors}
-            />
-          )}
-          {v2500Stage === 2 && (
-            <V2500BoreScanDiagram
-              stage={2}
-              highlightedZone={highlightedDirection}
-              enabledDirections={enabledScanDirections}
-              directionColors={directionColors}
-            />
-          )}
-          {v2500Stage === null && (
-            <>
-              <V2500BoreScanDiagram
-                stage={1}
-                highlightedZone={highlightedDirection}
-                enabledDirections={enabledScanDirections}
-                directionColors={directionColors}
-              />
-              <V2500BoreScanDiagram
-                stage={2}
-                highlightedZone={highlightedDirection}
-                enabledDirections={enabledScanDirections}
-                directionColors={directionColors}
-              />
-            </>
-          )}
-        </div>
-      );
+      return renderDiskReferenceDiagram();
     } else if (isImpellerType(partType)) {
       return <ImpellerScanDiagram scanDetails={scanDetails} highlightedDirection={highlightedDirection} />;
     } else if (isBliskType(partType)) {
