@@ -16,6 +16,11 @@ import type {
 } from "@/types/techniqueSheet";
 import type { ScanDetailsData } from "@/types/scanDetails";
 import { getV2500GateSettingsForDirection } from "@/utils/pwNdipDefaults";
+import {
+  buildQuickFillReportTransducerFields,
+  normalizeQuickFillEquipment,
+  normalizeQuickFillInspectionSetup,
+} from "@/data/quickFillPresetNormalization";
 
 export interface QuickFillPreset {
   id: string;
@@ -99,12 +104,11 @@ const buildEquipmentDetails = (
   generatorModel: card.equipment.model,
   generatorSerial: card.equipment.serialNumber,
   generatorCalibrationDate: card.calibration.lastCalibrationDate,
-  immersionTransducerModel: card.equipment.transducerType === "immersion" ? (card.equipment.probeModel || "IMM-PROBE") : "",
-  immersionTransducerSerial: card.equipment.transducerType === "immersion" ? `${card.equipment.serialNumber}-IMM` : "",
-  immersionTransducerCalibrationDate: card.equipment.transducerType === "immersion" ? card.calibration.lastCalibrationDate : "",
-  contactTransducerModel: card.equipment.transducerType === "contact" ? (card.equipment.probeModel || "CONTACT-PROBE") : "",
-  contactTransducerSerial: card.equipment.transducerType === "contact" ? `${card.equipment.serialNumber}-CT` : "",
-  contactTransducerCalibrationDate: card.equipment.transducerType === "contact" ? card.calibration.lastCalibrationDate : "",
+  ...buildQuickFillReportTransducerFields(
+    card.equipment,
+    card.calibration.lastCalibrationDate,
+    card.inspectionSetup.partNumber,
+  ),
   frequency: `${card.equipment.frequency} MHz`,
   probeDiameter: `${card.equipment.transducerDiameter} in`,
   waterPath: card.scanParameters.waterPath ? `${card.scanParameters.waterPath} mm` : "N/A",
@@ -206,24 +210,45 @@ const createPreset = (
     scanDetails: ScanDetailsData;
     overrides?: TechniqueOverrides;
   },
-): QuickFillPreset => ({
-  id: card.id,
-  name: card.name,
-  description: card.description,
-  buttonLabel: meta.buttonLabel,
-  buttonSubtitle: meta.buttonSubtitle,
-  accent: meta.accent,
-  standard: card.standard,
-  inspectionSetup: { ...clone(card.inspectionSetup), ...clone(meta.overrides?.inspectionSetup || {}) },
-  equipment: { ...clone(card.equipment), ...clone(meta.overrides?.equipment || {}) },
-  calibration: { ...clone(card.calibration), ...clone(meta.overrides?.calibration || {}) },
-  scanParameters: { ...clone(card.scanParameters), ...clone(meta.overrides?.scanParameters || {}) },
-  acceptanceCriteria: { ...clone(card.acceptanceCriteria), ...clone(meta.overrides?.acceptanceCriteria || {}) },
-  documentation: { ...clone(card.documentation), ...clone(meta.overrides?.documentation || {}) },
-  scanDetails: clone(meta.scanDetails),
-  scanPlan: clone(meta.scanPlan),
-  inspectionReport: clone(meta.inspectionReport),
-});
+): QuickFillPreset => {
+  const scanParameters = {
+    ...clone(card.scanParameters),
+    ...clone(meta.overrides?.scanParameters || {}),
+  };
+  const inspectionSetup = normalizeQuickFillInspectionSetup(
+    {
+      ...clone(card.inspectionSetup),
+      ...clone(meta.overrides?.inspectionSetup || {}),
+    },
+    card.standard,
+  );
+  const equipment = normalizeQuickFillEquipment(
+    {
+      ...clone(card.equipment),
+      ...clone(meta.overrides?.equipment || {}),
+    },
+    scanParameters.technique,
+  );
+
+  return {
+    id: card.id,
+    name: card.name,
+    description: card.description,
+    buttonLabel: meta.buttonLabel,
+    buttonSubtitle: meta.buttonSubtitle,
+    accent: meta.accent,
+    standard: card.standard,
+    inspectionSetup,
+    equipment,
+    calibration: { ...clone(card.calibration), ...clone(meta.overrides?.calibration || {}) },
+    scanParameters,
+    acceptanceCriteria: { ...clone(card.acceptanceCriteria), ...clone(meta.overrides?.acceptanceCriteria || {}) },
+    documentation: { ...clone(card.documentation), ...clone(meta.overrides?.documentation || {}) },
+    scanDetails: clone(meta.scanDetails),
+    scanPlan: clone(meta.scanPlan),
+    inspectionReport: clone(meta.inspectionReport),
+  };
+};
 
 const tubeScanDetails: ScanDetailsData = {
   scanDetails: [
