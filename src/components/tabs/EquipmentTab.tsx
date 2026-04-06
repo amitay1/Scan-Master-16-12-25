@@ -14,6 +14,7 @@ import {
   getRecommendedFrequencyForStandard,
 } from "@/data/standardsDifferences";
 import { getFrequencyOptionsForStandard } from "@/utils/frequencyUtils";
+import { includeCurrentOption } from "@/utils/selectOptions";
 
 // LocalStorage keys for custom items
 const STORAGE_KEYS = {
@@ -151,6 +152,14 @@ export const EquipmentTab = ({ data, onChange, partThickness, standard = "AMS-ST
 
   // Get all wedge types (default + custom)
   const allWedgeTypes = [...defaultWedgeTypes, ...customWedgeTypes];
+  const availableWedgeTypes = useMemo(() => {
+    const wedgeValues = includeCurrentOption(
+      allWedgeTypes.map((wedge) => wedge.value),
+      data.wedgeType,
+    );
+
+    return wedgeValues.map((value) => allWedgeTypes.find((wedge) => wedge.value === value) || { value, label: value });
+  }, [allWedgeTypes, data.wedgeType]);
 
   // Get equipment parameters for current standard
   const equipmentParams = useMemo(() => {
@@ -721,7 +730,7 @@ export const EquipmentTab = ({ data, onChange, partThickness, standard = "AMS-ST
                         <SelectValue placeholder="Select wedge type..." />
                       </SelectTrigger>
                       <SelectContent className="max-h-[300px]">
-                        {allWedgeTypes.map((wedge) => (
+                        {availableWedgeTypes.map((wedge) => (
                           <SelectItem key={wedge.value} value={wedge.value}>
                             {wedge.label}
                           </SelectItem>

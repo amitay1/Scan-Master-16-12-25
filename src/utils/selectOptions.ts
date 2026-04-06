@@ -4,13 +4,17 @@ export function includeCurrentOption(options: string[], currentValue?: string): 
     return options;
   }
 
-  const hasCurrent = options.some(
-    (option) => option.trim().toLowerCase() === normalizedCurrent.toLowerCase(),
+  const hasExactCurrent = options.some(
+    (option) => option.trim() === normalizedCurrent,
   );
 
-  if (hasCurrent) {
+  if (hasExactCurrent) {
     return options;
   }
 
-  return [normalizedCurrent, ...options];
+  const filteredOptions = options.filter(
+    (option) => option.trim().toLowerCase() !== normalizedCurrent.toLowerCase(),
+  );
+
+  return [normalizedCurrent, ...filteredOptions];
 }

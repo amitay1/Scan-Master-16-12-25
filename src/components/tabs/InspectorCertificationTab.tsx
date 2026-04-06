@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Plus, Trash2, Upload, X } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { InspectorCertification, SignatureRecord } from "@/types/inspectionReport";
+import { includeCurrentOption } from "@/utils/selectOptions";
 
 interface InspectorCertificationTabProps {
   inspectorCertification: InspectorCertification;
@@ -89,6 +90,10 @@ export const InspectorCertificationTab = ({
     'PCN',
     'ASNT',
   ];
+  const availableCertificationStandards = includeCurrentOption(
+    certificationStandards,
+    inspectorCertification.certificationStandard,
+  );
 
   return (
     <div className="space-y-4 p-2">
@@ -133,7 +138,7 @@ export const InspectorCertificationTab = ({
                 <SelectValue placeholder="Select standard" />
               </SelectTrigger>
               <SelectContent>
-                {certificationStandards.map(std => (
+                {availableCertificationStandards.map(std => (
                   <SelectItem key={std} value={std}>{std}</SelectItem>
                 ))}
               </SelectContent>

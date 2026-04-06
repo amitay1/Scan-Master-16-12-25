@@ -9,6 +9,7 @@ import {
   SurfaceCondition,
   TestType,
 } from "@/types/inspectionReport";
+import { includeCurrentOption } from "@/utils/selectOptions";
 
 interface CoverPageTabProps {
   data: InspectionReportData;
@@ -19,6 +20,7 @@ export const CoverPageTab = ({ data, onChange }: CoverPageTabProps) => {
   const updateField = <K extends keyof InspectionReportData>(field: K, value: InspectionReportData[K]) => {
     onChange({ ...data, [field]: value });
   };
+  const availableResults = includeCurrentOption(["Accepted", "Rejected"], data.results);
 
   const toggleSurfaceCondition = (condition: SurfaceCondition) => {
     const current = data.surfaceConditions || [];
@@ -451,8 +453,15 @@ export const CoverPageTab = ({ data, onChange }: CoverPageTabProps) => {
                   <SelectValue placeholder="Select result" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Accepted">Accepted / CONFORME</SelectItem>
-                  <SelectItem value="Rejected">Rejected / NON-CONFORME</SelectItem>
+                  {availableResults.map((result) => (
+                    <SelectItem key={result} value={result}>
+                      {result === "Accepted"
+                        ? "Accepted / CONFORME"
+                        : result === "Rejected"
+                          ? "Rejected / NON-CONFORME"
+                          : result}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

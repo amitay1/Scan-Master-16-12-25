@@ -27,6 +27,7 @@ import { generateArrowsForGeometry, syncArrowsWithScanDetails } from "@/utils/sc
 import { getV2500ScanDetailDefaults } from "@/utils/pwScanDetailDefaults";
 import { getActiveMroStage, hasKnownActiveMroContext, isActiveMroStandard } from "@/utils/mroPolicy";
 import { getActiveScanDetails, getActiveScanDirections } from "@/utils/scanDetailsSelection";
+import { includeCurrentOption } from "@/utils/selectOptions";
 import type { ScanArrow } from "@/types/scanOverlay";
 
 interface ExtendedScanDetail extends ScanDetail {
@@ -129,6 +130,10 @@ const FIXED_SCAN_DETAILS: ExtendedScanDetail[] = [
   { scanningDirection: "I", waveMode: "Shear wave 45 CCW", frequency: "", make: "", probe: "", remarkDetails: "", enabled: false, entrySurface: "top", angle: 0, color: "#84cc16" },
   { scanningDirection: "L", waveMode: "Shear wave 45 CCW", frequency: "", make: "", probe: "", remarkDetails: "", enabled: false, entrySurface: "radial", angle: 0, color: "#a855f7" },
 ];
+
+const scanDetailIndexModeOptions = ["AUTO", "1MM", "2MM", "5MM"];
+const scanDetailFilterOptions = ["1MHZ", "2MHZ", "3MHZ", "4MHZ", "5MHZ", "7.5MHZ", "10MHZ", "15MHZ", "WIDEBAND", "OFF", "NONE"];
+const scanDetailRejectOptions = ["0%", "5%", "10%", "20%"];
 
 const getDefaultScanDetailsForStandard = (standard: StandardType): ExtendedScanDetail[] => {
   return (getV2500ScanDetailDefaults(standard) as ExtendedScanDetail[] | null) ?? FIXED_SCAN_DETAILS;
@@ -610,7 +615,12 @@ export const ScanDetailsTab = ({
   };
 
   // Render expanded details panel - Dark theme design
-  const renderExpandedDetails = (detail: ExtendedScanDetail, index: number) => (
+  const renderExpandedDetails = (detail: ExtendedScanDetail, index: number) => {
+    const availableIndexModes = includeCurrentOption(scanDetailIndexModeOptions, detail.indexMode);
+    const availableFilters = includeCurrentOption(scanDetailFilterOptions, detail.filter);
+    const availableRejectValues = includeCurrentOption(scanDetailRejectOptions, detail.reject);
+
+    return (
     <tr className="bg-slate-900/50 border-b border-slate-700">
       <td colSpan={7} className="p-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -790,10 +800,11 @@ export const ScanDetailsTab = ({
                 <Select value={detail.indexMode || ""} onValueChange={(v) => updateScanDetail(index, "indexMode", v)}>
                   <SelectTrigger className="h-8 text-xs bg-slate-900/60 border-slate-600 text-slate-100"><SelectValue placeholder="Select" /></SelectTrigger>
                   <SelectContent className="bg-slate-800 border-slate-600">
-                    <SelectItem value="AUTO" className="text-xs text-slate-100">AUTO</SelectItem>
-                    <SelectItem value="1MM" className="text-xs text-slate-100">1MM</SelectItem>
-                    <SelectItem value="2MM" className="text-xs text-slate-100">2MM</SelectItem>
-                    <SelectItem value="5MM" className="text-xs text-slate-100">5MM</SelectItem>
+                    {availableIndexModes.map((value) => (
+                      <SelectItem key={value} value={value} className="text-xs text-slate-100">
+                        {value}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -812,17 +823,11 @@ export const ScanDetailsTab = ({
                 <Select value={detail.filter || ""} onValueChange={(v) => updateScanDetail(index, "filter", v)}>
                   <SelectTrigger className="h-8 text-xs bg-slate-900/60 border-slate-600 text-slate-100"><SelectValue placeholder="Select" /></SelectTrigger>
                   <SelectContent className="bg-slate-800 border-slate-600">
-                    <SelectItem value="1MHZ" className="text-xs text-slate-100">1MHZ</SelectItem>
-                    <SelectItem value="2MHZ" className="text-xs text-slate-100">2MHZ</SelectItem>
-                    <SelectItem value="3MHZ" className="text-xs text-slate-100">3MHZ</SelectItem>
-                    <SelectItem value="4MHZ" className="text-xs text-slate-100">4MHZ</SelectItem>
-                    <SelectItem value="5MHZ" className="text-xs text-slate-100">5MHZ</SelectItem>
-                    <SelectItem value="7.5MHZ" className="text-xs text-slate-100">7.5MHZ</SelectItem>
-                    <SelectItem value="10MHZ" className="text-xs text-slate-100">10MHZ</SelectItem>
-                    <SelectItem value="15MHZ" className="text-xs text-slate-100">15MHZ</SelectItem>
-                    <SelectItem value="WIDEBAND" className="text-xs text-slate-100">WIDEBAND</SelectItem>
-                    <SelectItem value="OFF" className="text-xs text-slate-100">OFF</SelectItem>
-                    <SelectItem value="NONE" className="text-xs text-slate-100">NONE</SelectItem>
+                    {availableFilters.map((value) => (
+                      <SelectItem key={value} value={value} className="text-xs text-slate-100">
+                        {value}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -831,10 +836,11 @@ export const ScanDetailsTab = ({
                 <Select value={detail.reject || ""} onValueChange={(v) => updateScanDetail(index, "reject", v)}>
                   <SelectTrigger className="h-8 text-xs bg-slate-900/60 border-slate-600 text-slate-100"><SelectValue placeholder="Select" /></SelectTrigger>
                   <SelectContent className="bg-slate-800 border-slate-600">
-                    <SelectItem value="0%" className="text-xs text-slate-100">0%</SelectItem>
-                    <SelectItem value="5%" className="text-xs text-slate-100">5%</SelectItem>
-                    <SelectItem value="10%" className="text-xs text-slate-100">10%</SelectItem>
-                    <SelectItem value="20%" className="text-xs text-slate-100">20%</SelectItem>
+                    {availableRejectValues.map((value) => (
+                      <SelectItem key={value} value={value} className="text-xs text-slate-100">
+                        {value}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -854,7 +860,8 @@ export const ScanDetailsTab = ({
         </div>
       </td>
     </tr>
-  );
+    );
+  };
 
   // Render predefined diagram based on part type
   const renderPredefinedDiagram = () => {

@@ -16,6 +16,7 @@ import {
   ZoningRequirements,
   ForgingType,
 } from "@/types/inspectionReport";
+import { includeCurrentOption } from "@/utils/selectOptions";
 
 interface AerospaceForgingTabProps {
   testLocationTiming: TestLocationTiming;
@@ -74,6 +75,71 @@ export const AerospaceForgingTab = ({
   ];
 
   const fbhSizes = ['1/64"', '2/64"', '3/64"', '4/64"', '5/64"', '6/64"', '7/64"', '8/64"'];
+  const inspectionLocationOptions = ["plant", "field", "customer", "lab"];
+  const inspectionLocationLabels: Record<string, string> = {
+    plant: "Plant / Factory",
+    field: "Field",
+    customer: "Customer Site",
+    lab: "Laboratory",
+  };
+  const couplantTypeOptions = ["water", "glycerin", "gel", "oil", "propylene-glycol", "other"];
+  const couplantTypeLabels: Record<string, string> = {
+    water: "Water",
+    glycerin: "Glycerin",
+    gel: "Ultrasonic Gel",
+    oil: "Oil",
+    "propylene-glycol": "Propylene Glycol",
+    other: "Other",
+  };
+  const grainFlowDirectionOptions = ["axial", "radial", "circumferential", "mixed"];
+  const grainFlowDirectionLabels: Record<string, string> = {
+    axial: "Axial",
+    radial: "Radial",
+    circumferential: "Circumferential",
+    mixed: "Mixed",
+  };
+  const scanningSensitivityOptions = ["+6 dB", "+8 dB", "+10 dB", "+12 dB"];
+  const recordingLevelOptions = ["10%", "20%", "25%", "50%"];
+  const rejectionLevelOptions = ["80%", "100%"];
+  const overlapPercentageOptions = ["10%", "15%", "20%", "25%", "50%"];
+  const numberOfZoneOptions = ["1", "2", "3", "4"];
+
+  const availableInspectionLocations = includeCurrentOption(
+    inspectionLocationOptions,
+    testLocationTiming.inspectionLocation,
+  );
+  const availableCouplantTypes = includeCurrentOption(
+    couplantTypeOptions,
+    couplantDetails.couplantType,
+  );
+  const availableGrainFlowDirections = includeCurrentOption(
+    grainFlowDirectionOptions,
+    forgingDetails.grainFlowDirection,
+  );
+  const availableReferenceFbhSizes = includeCurrentOption(
+    fbhSizes,
+    sensitivitySettings.referenceFbhSize,
+  );
+  const availableScanningSensitivities = includeCurrentOption(
+    scanningSensitivityOptions,
+    sensitivitySettings.scanningSensitivity,
+  );
+  const availableRecordingLevels = includeCurrentOption(
+    recordingLevelOptions,
+    sensitivitySettings.recordingLevel,
+  );
+  const availableRejectionLevels = includeCurrentOption(
+    rejectionLevelOptions,
+    sensitivitySettings.rejectionLevel,
+  );
+  const availableOverlapPercentages = includeCurrentOption(
+    overlapPercentageOptions,
+    scanCoverage.overlapPercentage,
+  );
+  const availableZoneCounts = includeCurrentOption(
+    numberOfZoneOptions,
+    zoningRequirements.numberOfZones?.toString(),
+  );
   const showLegacyForgingFields = false;
 
   return (
@@ -102,10 +168,11 @@ export const AerospaceForgingTab = ({
                 <SelectValue placeholder="Select location" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="plant">Plant / Factory</SelectItem>
-                <SelectItem value="field">Field</SelectItem>
-                <SelectItem value="customer">Customer Site</SelectItem>
-                <SelectItem value="lab">Laboratory</SelectItem>
+                {availableInspectionLocations.map((location) => (
+                  <SelectItem key={location} value={location}>
+                    {inspectionLocationLabels[location] || location}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -196,12 +263,11 @@ export const AerospaceForgingTab = ({
                 <SelectValue placeholder="Select type" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="water">Water</SelectItem>
-                <SelectItem value="glycerin">Glycerin</SelectItem>
-                <SelectItem value="gel">Ultrasonic Gel</SelectItem>
-                <SelectItem value="oil">Oil</SelectItem>
-                <SelectItem value="propylene-glycol">Propylene Glycol</SelectItem>
-                <SelectItem value="other">Other</SelectItem>
+                {availableCouplantTypes.map((couplantType) => (
+                  <SelectItem key={couplantType} value={couplantType}>
+                    {couplantTypeLabels[couplantType] || couplantType}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -256,10 +322,11 @@ export const AerospaceForgingTab = ({
                 <SelectValue placeholder="Select direction" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="axial">Axial</SelectItem>
-                <SelectItem value="radial">Radial</SelectItem>
-                <SelectItem value="circumferential">Circumferential</SelectItem>
-                <SelectItem value="mixed">Mixed</SelectItem>
+                {availableGrainFlowDirections.map((direction) => (
+                  <SelectItem key={direction} value={direction}>
+                    {grainFlowDirectionLabels[direction] || direction}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -345,7 +412,7 @@ export const AerospaceForgingTab = ({
                 <SelectValue placeholder="Select FBH" />
               </SelectTrigger>
               <SelectContent>
-                {fbhSizes.map(size => (
+                {availableReferenceFbhSizes.map(size => (
                   <SelectItem key={size} value={size}>{size}</SelectItem>
                 ))}
               </SelectContent>
@@ -379,10 +446,9 @@ export const AerospaceForgingTab = ({
                 <SelectValue placeholder="Select" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="+6 dB">+6 dB</SelectItem>
-                <SelectItem value="+8 dB">+8 dB</SelectItem>
-                <SelectItem value="+10 dB">+10 dB</SelectItem>
-                <SelectItem value="+12 dB">+12 dB</SelectItem>
+                {availableScanningSensitivities.map((value) => (
+                  <SelectItem key={value} value={value}>{value}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -396,10 +462,9 @@ export const AerospaceForgingTab = ({
                 <SelectValue placeholder="Select" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="10%">10%</SelectItem>
-                <SelectItem value="20%">20%</SelectItem>
-                <SelectItem value="25%">25%</SelectItem>
-                <SelectItem value="50%">50%</SelectItem>
+                {availableRecordingLevels.map((value) => (
+                  <SelectItem key={value} value={value}>{value}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -413,8 +478,9 @@ export const AerospaceForgingTab = ({
                 <SelectValue placeholder="Select" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="80%">80%</SelectItem>
-                <SelectItem value="100%">100%</SelectItem>
+                {availableRejectionLevels.map((value) => (
+                  <SelectItem key={value} value={value}>{value}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -560,11 +626,11 @@ export const AerospaceForgingTab = ({
                 <SelectValue placeholder="Select" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="10%">10% (Minimum)</SelectItem>
-                <SelectItem value="15%">15%</SelectItem>
-                <SelectItem value="20%">20%</SelectItem>
-                <SelectItem value="25%">25%</SelectItem>
-                <SelectItem value="50%">50%</SelectItem>
+                {availableOverlapPercentages.map((value) => (
+                  <SelectItem key={value} value={value}>
+                    {value === "10%" ? "10% (Minimum)" : value}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -630,10 +696,9 @@ export const AerospaceForgingTab = ({
                 <SelectValue placeholder="Select" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="1">1</SelectItem>
-                <SelectItem value="2">2</SelectItem>
-                <SelectItem value="3">3</SelectItem>
-                <SelectItem value="4">4</SelectItem>
+                {availableZoneCounts.map((value) => (
+                  <SelectItem key={value} value={value}>{value}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

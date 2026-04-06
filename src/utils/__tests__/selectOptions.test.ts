@@ -12,9 +12,17 @@ describe("includeCurrentOption", () => {
   });
 
   it("does not duplicate values when the current value already exists", () => {
-    expect(includeCurrentOption(["Annealed", "T6"], "annealed")).toEqual([
+    expect(includeCurrentOption(["Annealed", "T6"], "Annealed")).toEqual([
       "Annealed",
       "T6",
+    ]);
+  });
+
+  it("replaces case-only matches with the exact current value", () => {
+    expect(includeCurrentOption(["axial", "radial", "circumferential"], "Circumferential")).toEqual([
+      "Circumferential",
+      "axial",
+      "radial",
     ]);
   });
 });

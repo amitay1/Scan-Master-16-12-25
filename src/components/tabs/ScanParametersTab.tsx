@@ -12,6 +12,7 @@ import {
   scanParametersByStandard,
   calibrationByStandard,
 } from "@/data/standardsDifferences";
+import { includeCurrentOption } from "@/utils/selectOptions";
 
 interface ScanParametersTabProps {
   data: ScanParametersData;
@@ -100,6 +101,14 @@ export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E", 
   const selectedSpeedPreset = scanSpeedPresets.includes(Number(data.scanSpeed))
     ? String(Number(data.scanSpeed))
     : "custom";
+  const availableScanTypes = useMemo(
+    () => includeCurrentOption(["manual", "semi_automated", "fully_automated"], data.scanType),
+    [data.scanType],
+  );
+  const availableScanPatterns = useMemo(
+    () => includeCurrentOption(["raster", "bidirectional", "spiral", "helical", "custom"], data.scanPattern),
+    [data.scanPattern],
+  );
 
   const prfRecommendationTable = useMemo(
     () => [
@@ -280,27 +289,49 @@ export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E", 
               <SelectValue placeholder="Select type..." />
             </SelectTrigger>
             <SelectContent className="bg-popover z-50">
-              <SelectItem value="manual">
-                Manual (
-                {scanParams.maxSpeedManual.value > 0
-                  ? `max ${scanParams.maxSpeedManual.value} ${scanParams.maxSpeedManual.unit}`
-                  : "speed not specified by standard"}
-                )
-              </SelectItem>
-              <SelectItem value="semi_automated">
-                Semi-Automated (
-                {scanParams.maxSpeedManual.value > 0
-                  ? `max ${scanParams.maxSpeedManual.value} ${scanParams.maxSpeedManual.unit}`
-                  : "speed not specified by standard"}
-                )
-              </SelectItem>
-              <SelectItem value="fully_automated">
-                Fully Automated (
-                {scanParams.maxSpeedAutomated.value > 0
-                  ? `max ${scanParams.maxSpeedAutomated.value} ${scanParams.maxSpeedAutomated.unit}`
-                  : "speed not specified by standard"}
-                )
-              </SelectItem>
+              {availableScanTypes.map((option) => {
+                if (option === "manual") {
+                  return (
+                    <SelectItem key={option} value={option}>
+                      Manual (
+                      {scanParams.maxSpeedManual.value > 0
+                        ? `max ${scanParams.maxSpeedManual.value} ${scanParams.maxSpeedManual.unit}`
+                        : "speed not specified by standard"}
+                      )
+                    </SelectItem>
+                  );
+                }
+
+                if (option === "semi_automated") {
+                  return (
+                    <SelectItem key={option} value={option}>
+                      Semi-Automated (
+                      {scanParams.maxSpeedManual.value > 0
+                        ? `max ${scanParams.maxSpeedManual.value} ${scanParams.maxSpeedManual.unit}`
+                        : "speed not specified by standard"}
+                      )
+                    </SelectItem>
+                  );
+                }
+
+                if (option === "fully_automated") {
+                  return (
+                    <SelectItem key={option} value={option}>
+                      Fully Automated (
+                      {scanParams.maxSpeedAutomated.value > 0
+                        ? `max ${scanParams.maxSpeedAutomated.value} ${scanParams.maxSpeedAutomated.unit}`
+                        : "speed not specified by standard"}
+                      )
+                    </SelectItem>
+                  );
+                }
+
+                return (
+                  <SelectItem key={option} value={option}>
+                    {option}
+                  </SelectItem>
+                );
+              })}
             </SelectContent>
           </Select>
         </FieldWithHelp>
@@ -597,6 +628,9 @@ export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E", 
               <SelectValue placeholder="Select pattern..." />
             </SelectTrigger>
             <SelectContent className="bg-popover z-50">
+              {!["raster", "bidirectional", "spiral", "helical", "custom"].includes(data.scanPattern) && data.scanPattern && (
+                <SelectItem value={data.scanPattern}>{data.scanPattern}</SelectItem>
+              )}
               <SelectItem value="raster">
                 Raster {isAustenitic && "⭐"}
               </SelectItem>

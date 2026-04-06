@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Plus, Trash2 } from "lucide-react";
 import { IndicationRecord } from "@/types/inspectionReport";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { includeCurrentOption } from "@/utils/selectOptions";
 import {
   Table,
   TableBody,
@@ -20,6 +21,17 @@ interface IndicationsTabProps {
 }
 
 export const IndicationsTab = ({ indications, onChange }: IndicationsTabProps) => {
+  const standardFbhEquivalentOptions = ["< 1/64", "1/64", "2/64", "3/64", "4/64", "5/64", "> 5/64"];
+  const fbhEquivalentLabels: Record<string, string> = {
+    "< 1/64": '< 1/64"',
+    "1/64": '1/64"',
+    "2/64": '2/64"',
+    "3/64": '3/64"',
+    "4/64": '4/64"',
+    "5/64": '5/64"',
+    "> 5/64": '> 5/64"',
+  };
+
   const addIndication = () => {
     const newIndication: IndicationRecord = {
       id: Date.now().toString(),
@@ -46,6 +58,9 @@ export const IndicationsTab = ({ indications, onChange }: IndicationsTabProps) =
   const updateIndication = (id: string, field: keyof IndicationRecord, value: any) => {
     onChange(indications.map(i => i.id === id ? { ...i, [field]: value } : i));
   };
+
+  const getAvailableFbhEquivalentOptions = (currentValue?: string) =>
+    includeCurrentOption(standardFbhEquivalentOptions, currentValue);
 
   return (
     <div className="space-y-4 p-2">
@@ -89,8 +104,13 @@ export const IndicationsTab = ({ indications, onChange }: IndicationsTabProps) =
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {indications.map((indication) => (
-                  <TableRow key={indication.id}>
+                {indications.map((indication) => {
+                  const availableFbhEquivalentOptions = getAvailableFbhEquivalentOptions(
+                    indication.fbhEquivalentSize,
+                  );
+
+                  return (
+                    <TableRow key={indication.id}>
                     <TableCell className="font-medium text-xs">
                       {indication.indicationNumber}
                     </TableCell>
@@ -159,13 +179,11 @@ export const IndicationsTab = ({ indications, onChange }: IndicationsTabProps) =
                           <SelectValue placeholder="FBH" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="< 1/64">{'<'} 1/64"</SelectItem>
-                          <SelectItem value="1/64">1/64"</SelectItem>
-                          <SelectItem value="2/64">2/64"</SelectItem>
-                          <SelectItem value="3/64">3/64"</SelectItem>
-                          <SelectItem value="4/64">4/64"</SelectItem>
-                          <SelectItem value="5/64">5/64"</SelectItem>
-                          <SelectItem value="> 5/64">{'>'} 5/64"</SelectItem>
+                          {availableFbhEquivalentOptions.map((option) => (
+                            <SelectItem key={option} value={option}>
+                              {fbhEquivalentLabels[option] || option}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </TableCell>
@@ -210,8 +228,9 @@ export const IndicationsTab = ({ indications, onChange }: IndicationsTabProps) =
                         <Trash2 className="h-3 w-3 text-destructive" />
                       </Button>
                     </TableCell>
-                  </TableRow>
-                ))}
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </div>
