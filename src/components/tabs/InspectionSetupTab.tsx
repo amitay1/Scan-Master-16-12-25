@@ -44,6 +44,7 @@ import {
   sortMroAssets,
   type RawMroAssetCatalogResponse,
 } from "@/utils/mroAssets";
+import { includeCurrentOption } from "@/utils/selectOptions";
 
 // LocalStorage keys for custom items persistence
 const STORAGE_KEYS = {
@@ -742,6 +743,14 @@ export const InspectionSetupTab = ({
 
   // Get all heat treatments (default + custom)
   const allHeatTreatments = [...defaultHeatTreatments, ...customHeatTreatments];
+  const availableMaterialSpecs = React.useMemo(
+    () => includeCurrentOption(getAllSpecsForMaterial(data.material), data.materialSpec),
+    [data.material, data.materialSpec, customMaterialSpecs],
+  );
+  const availableHeatTreatments = React.useMemo(
+    () => includeCurrentOption(allHeatTreatments, data.heatTreatment),
+    [allHeatTreatments, data.heatTreatment],
+  );
   const lastAutoDensityMaterialRef = useRef<string | null>(null);
 
   const updateField = (field: keyof InspectionSetupData, value: any) => {
@@ -1256,7 +1265,7 @@ export const InspectionSetupTab = ({
                 <SelectValue placeholder={data.material ? "Select specification..." : "Select material first"} />
               </SelectTrigger>
               <SelectContent className="max-h-[300px]">
-                {data.material && getAllSpecsForMaterial(data.material).map((spec) => (
+                {data.material && availableMaterialSpecs.map((spec) => (
                   <SelectItem key={spec} value={spec}>
                     {spec}
                   </SelectItem>
@@ -1314,7 +1323,7 @@ export const InspectionSetupTab = ({
                 <SelectValue placeholder="Select heat treatment..." />
               </SelectTrigger>
               <SelectContent className="max-h-[300px]">
-                {allHeatTreatments.map((ht) => (
+                {availableHeatTreatments.map((ht) => (
                   <SelectItem key={ht} value={ht}>
                     {ht}
                   </SelectItem>
