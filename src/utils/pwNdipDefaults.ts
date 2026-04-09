@@ -28,6 +28,20 @@ const V2500_SETUP_DEFAULTS: Record<V2500Standard, Partial<InspectionSetupData>> 
   },
 };
 
+export const V2500_CHUCK_RISER_OPTIONS = [
+  "IAE1P16217 + IAE1P16014 (Stage 1 handling tools)",
+  "IAE1P16221 + IAE1P16366 (Stage 2 handling tools)",
+] as const;
+
+export const V2500_CHUCK_RISER_DEFAULTS: Record<V2500Standard, string> = {
+  "NDIP-1226": V2500_CHUCK_RISER_OPTIONS[0],
+  "NDIP-1227": V2500_CHUCK_RISER_OPTIONS[1],
+};
+
+export const V2500_MARKING_PENCIL = "PMS-4059";
+export const V2500_CALIBRATION_BLOCK_PART_NUMBER = "IAE2P16675";
+export const V2500_CALIBRATION_BLOCK_HOLDER = "IAE2P16674 - 45-degree Calibration Block Holder";
+
 const V2500_PART_TYPE_LABELS: Record<V2500Standard, string> = {
   "NDIP-1226": "HPT Disk First Stage",
   "NDIP-1227": "HPT Disk Second Stage",

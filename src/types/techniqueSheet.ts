@@ -227,6 +227,10 @@ export interface EquipmentData {
   bandwidth?: 'low' | 'medium' | 'high';
   focusSize?: string;
   velocity?: number;             // Acoustic velocity (m/s)
+  ndipTransducerSerialNumber?: string;
+  ndipMirrorSerialNumber?: string;
+  ndipChuckRiser?: string;
+  ndipMarkingPencil?: string;
 }
 
 // FBH Hole data structure for calibration blocks
@@ -271,6 +275,7 @@ export interface CalibrationData {
   curveOuterDiameterMm?: number;
   curveWallThicknessMm?: number;
   blockSerialNumber: string;
+  blockHolder?: string;
   lastCalibrationDate: string;
   autoRecommendedReason?: string; // NEW: Reason why this block was auto-selected (for tooltip)
   selectedBlockType?: 'curved' | 'flat'; // Block surface type selection for tubes (curved vs flat)

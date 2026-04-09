@@ -21,12 +21,20 @@ function Write-Success { param($msg) Write-Host $msg -ForegroundColor Green }
 function Write-Info { param($msg) Write-Host $msg -ForegroundColor Cyan }
 function Write-Warn { param($msg) Write-Host $msg -ForegroundColor Yellow }
 function Write-Err { param($msg) Write-Host $msg -ForegroundColor Red }
+$script:GitHubAuthTokenCache = $null
 function Format-FileSize {
     param([long]$Bytes)
     if ($Bytes -ge 1GB) { return "{0:N1} GB" -f ($Bytes / 1GB) }
     if ($Bytes -ge 1MB) { return "{0:N1} MB" -f ($Bytes / 1MB) }
     if ($Bytes -ge 1KB) { return "{0:N1} KB" -f ($Bytes / 1KB) }
     return "$Bytes B"
+}
+function Format-TransferRate {
+    param([double]$BytesPerSecond)
+    if ($BytesPerSecond -ge 1GB) { return "{0:N1} GB/s" -f ($BytesPerSecond / 1GB) }
+    if ($BytesPerSecond -ge 1MB) { return "{0:N1} MB/s" -f ($BytesPerSecond / 1MB) }
+    if ($BytesPerSecond -ge 1KB) { return "{0:N1} KB/s" -f ($BytesPerSecond / 1KB) }
+    return "{0:N0} B/s" -f $BytesPerSecond
 }
 function Get-FileSha256 {
     param([string]$Path)
@@ -72,6 +80,176 @@ function Invoke-GhCli {
         }
     }
 }
+function Get-GitHubAuthToken {
+    param([switch]$Refresh)
+
+    if (-not $Refresh -and $script:GitHubAuthTokenCache) {
+        return $script:GitHubAuthTokenCache
+    }
+
+    foreach ($envVarName in @("GH_TOKEN", "GITHUB_TOKEN")) {
+        $envValue = [Environment]::GetEnvironmentVariable($envVarName)
+        if (-not [string]::IsNullOrWhiteSpace($envValue)) {
+            $script:GitHubAuthTokenCache = $envValue.Trim()
+            return $script:GitHubAuthTokenCache
+        }
+    }
+
+    $tokenResult = Invoke-GhCli -Arguments @("auth", "token") -SilentStdErr
+    $token = (($tokenResult.Output | Select-Object -First 1) -as [string])
+    if ($tokenResult.ExitCode -eq 0 -and -not [string]::IsNullOrWhiteSpace($token)) {
+        $script:GitHubAuthTokenCache = $token.Trim()
+        return $script:GitHubAuthTokenCache
+    }
+
+    return $null
+}
+function Get-GitHubApiHeaders {
+    param([string]$Token)
+
+    return @{
+        Authorization = "Bearer $Token"
+        Accept = "application/vnd.github+json"
+        "User-Agent" = "ScanMaster-Release-Tool"
+        "X-GitHub-Api-Version" = "2022-11-28"
+    }
+}
+function Invoke-GitHubApiRequest {
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateSet("GET", "POST", "DELETE", "PATCH")]
+        [string]$Method,
+        [Parameter(Mandatory = $true)]
+        [string]$Uri,
+        [Parameter(Mandatory = $true)]
+        [string]$Token,
+        [object]$Body = $null,
+        [switch]$AllowNotFound
+    )
+
+    try {
+        $requestParams = @{
+            Uri = $Uri
+            Method = $Method
+            Headers = (Get-GitHubApiHeaders -Token $Token)
+            ErrorAction = "Stop"
+        }
+
+        if ($null -ne $Body) {
+            if ($Body -is [string]) {
+                $requestParams.Body = $Body
+            } else {
+                $requestParams.Body = $Body | ConvertTo-Json -Depth 100
+            }
+            $requestParams.ContentType = "application/json; charset=utf-8"
+        }
+
+        $response = Invoke-WebRequest @requestParams
+        $responseContent = [string]$response.Content
+        $responseJson = $null
+        if (-not [string]::IsNullOrWhiteSpace($responseContent)) {
+            try {
+                $responseJson = $responseContent | ConvertFrom-Json
+            } catch {
+                $responseJson = $null
+            }
+        }
+
+        return [PSCustomObject]@{
+            Success = $true
+            StatusCode = [int]$response.StatusCode
+            Content = $responseContent
+            Json = $responseJson
+            Error = $null
+            NotFound = $false
+        }
+    } catch {
+        $statusCode = $null
+        $responseContent = $null
+        $webResponse = $_.Exception.Response
+
+        if ($webResponse) {
+            try {
+                $statusCode = [int]$webResponse.StatusCode
+            } catch {
+                $statusCode = $null
+            }
+
+            $responseStream = $webResponse.GetResponseStream()
+            if ($responseStream) {
+                $reader = New-Object System.IO.StreamReader($responseStream)
+                try {
+                    $responseContent = $reader.ReadToEnd()
+                } finally {
+                    $reader.Dispose()
+                    $responseStream.Dispose()
+                }
+            }
+        }
+
+        if ($AllowNotFound -and $statusCode -eq 404) {
+            return [PSCustomObject]@{
+                Success = $false
+                StatusCode = 404
+                Content = $responseContent
+                Json = $null
+                Error = $_.Exception.Message
+                NotFound = $true
+            }
+        }
+
+        return [PSCustomObject]@{
+            Success = $false
+            StatusCode = $statusCode
+            Content = $responseContent
+            Json = $null
+            Error = $_.Exception.Message
+            NotFound = $false
+        }
+    }
+}
+function Get-GitHubReleaseInfo {
+    param(
+        [string]$TagName,
+        [string]$Repo,
+        [switch]$Quiet
+    )
+
+    if (-not $TagName -or -not $Repo) {
+        return $null
+    }
+
+    $token = Get-GitHubAuthToken
+    if (-not $token) {
+        if (-not $Quiet) {
+            Write-Warn "  GitHub auth token not available; falling back to gh for release lookup."
+        }
+        return $null
+    }
+
+    $uri = "https://api.github.com/repos/$Repo/releases/tags/$TagName"
+    $releaseResponse = Invoke-GitHubApiRequest -Method "GET" -Uri $uri -Token $token -AllowNotFound
+    if (-not $releaseResponse.Success) {
+        if (-not $releaseResponse.NotFound -and -not $Quiet) {
+            $detail = if ($releaseResponse.Content) { " $($releaseResponse.Content)" } else { "" }
+            Write-Warn "  Could not fetch GitHub release details from API.$detail"
+        }
+        return $null
+    }
+
+    $assetMap = @{}
+    foreach ($asset in @($releaseResponse.Json.assets)) {
+        if ($asset.name) {
+            $assetMap[$asset.name] = $asset
+        }
+    }
+
+    return [PSCustomObject]@{
+        ReleaseId = [int64]$releaseResponse.Json.id
+        AssetMap = $assetMap
+        UploadUrl = [string]$releaseResponse.Json.upload_url
+    }
+}
 function Get-ReleaseAssetMap {
     param(
         [string]$TagName,
@@ -81,6 +259,11 @@ function Get-ReleaseAssetMap {
     $assetMap = @{}
     if (-not $TagName -or -not $Repo) {
         return $assetMap
+    }
+
+    $releaseInfo = Get-GitHubReleaseInfo -TagName $TagName -Repo $Repo -Quiet
+    if ($releaseInfo) {
+        return $releaseInfo.AssetMap
     }
 
     $assetsResult = Invoke-GhCli -Arguments @("release", "view", $TagName, "--repo", $Repo, "--json", "assets") -SilentStdErr
@@ -134,6 +317,192 @@ function Test-ReleaseAssetMatchesLocal {
     return [PSCustomObject]@{
         Matches = ([int64]$Asset.size -eq $localFile.Length)
         LocalHash = $localHash
+    }
+}
+function Get-PercentComplete {
+    param(
+        [long]$CompletedBytes,
+        [long]$TotalBytes
+    )
+
+    if ($TotalBytes -le 0) {
+        return 100
+    }
+
+    return [int][Math]::Min(100, [Math]::Floor(($CompletedBytes * 100.0) / $TotalBytes))
+}
+function Update-ReleaseUploadProgress {
+    param(
+        [string]$FileLabel,
+        [int]$FileIndex,
+        [int]$FileCount,
+        [long]$FileBytesSent,
+        [long]$FileTotalBytes,
+        [long]$CompletedBytesBeforeFile,
+        [long]$OverallTotalBytes,
+        [datetime]$UploadStartedAt
+    )
+
+    $overallBytesSent = [Math]::Min($OverallTotalBytes, $CompletedBytesBeforeFile + $FileBytesSent)
+    $filePercent = Get-PercentComplete -CompletedBytes $FileBytesSent -TotalBytes $FileTotalBytes
+    $overallPercent = Get-PercentComplete -CompletedBytes $overallBytesSent -TotalBytes $OverallTotalBytes
+    $elapsedSeconds = [Math]::Max(((Get-Date) - $UploadStartedAt).TotalSeconds, 0.001)
+    $rateText = Format-TransferRate -BytesPerSecond ($FileBytesSent / $elapsedSeconds)
+
+    $overallStatus = "{0}/{1} files | {2} / {3} ({4}%)" -f $FileIndex, $FileCount, (Format-FileSize $overallBytesSent), (Format-FileSize $OverallTotalBytes), $overallPercent
+    $fileStatus = "{0} / {1} ({2}%) at {3}" -f (Format-FileSize $FileBytesSent), (Format-FileSize $FileTotalBytes), $filePercent, $rateText
+
+    Write-Progress -Id 0 -Activity "Uploading release assets to GitHub" -Status $overallStatus -PercentComplete $overallPercent
+    Write-Progress -Id 1 -ParentId 0 -Activity "Uploading $FileLabel" -Status $fileStatus -PercentComplete $filePercent
+}
+function Complete-ReleaseUploadProgress {
+    Write-Progress -Id 1 -Activity "Uploading release asset" -Completed
+    Write-Progress -Id 0 -Activity "Uploading release assets to GitHub" -Completed
+}
+function Remove-GitHubReleaseAsset {
+    param(
+        [string]$Repo,
+        [int64]$AssetId,
+        [string]$Token
+    )
+
+    if (-not $Repo -or -not $AssetId -or -not $Token) {
+        return $false
+    }
+
+    $deleteUri = "https://api.github.com/repos/$Repo/releases/assets/$AssetId"
+    $deleteResult = Invoke-GitHubApiRequest -Method "DELETE" -Uri $deleteUri -Token $Token
+    return $deleteResult.Success
+}
+function Upload-GitHubReleaseAssetWithProgress {
+    param(
+        [Parameter(Mandatory = $true)]
+        [int64]$ReleaseId,
+        [Parameter(Mandatory = $true)]
+        [string]$Repo,
+        [Parameter(Mandatory = $true)]
+        [string]$FilePath,
+        [Parameter(Mandatory = $true)]
+        [string]$AssetLabel,
+        [Parameter(Mandatory = $true)]
+        [string]$Token,
+        [Parameter(Mandatory = $true)]
+        [int]$FileIndex,
+        [Parameter(Mandatory = $true)]
+        [int]$FileCount,
+        [Parameter(Mandatory = $true)]
+        [long]$CompletedBytesBeforeFile,
+        [Parameter(Mandatory = $true)]
+        [long]$OverallTotalBytes
+    )
+
+    $localFile = Get-Item $FilePath
+    $uploadUri = "https://uploads.github.com/repos/$Repo/releases/$ReleaseId/assets?name=$([System.Uri]::EscapeDataString($localFile.Name))"
+    $request = [System.Net.HttpWebRequest]::Create($uploadUri)
+    $request.Method = "POST"
+    $request.ContentType = "application/octet-stream"
+    $request.ContentLength = $localFile.Length
+    $request.UserAgent = "ScanMaster-Release-Tool"
+    $request.Accept = "application/vnd.github+json"
+    $request.AllowWriteStreamBuffering = $false
+    $request.Timeout = 900000
+    $request.ReadWriteTimeout = 900000
+    $request.Headers["Authorization"] = "Bearer $Token"
+    $request.Headers["X-GitHub-Api-Version"] = "2022-11-28"
+
+    $buffer = New-Object byte[] (1024 * 1024)
+    $fileStream = $null
+    $requestStream = $null
+    $response = $null
+    $bytesSent = 0L
+    $uploadStartedAt = Get-Date
+    $lastProgressUpdateAt = $uploadStartedAt.AddSeconds(-1)
+
+    try {
+        $fileStream = [System.IO.File]::OpenRead($FilePath)
+        $requestStream = $request.GetRequestStream()
+
+        Update-ReleaseUploadProgress -FileLabel $AssetLabel -FileIndex $FileIndex -FileCount $FileCount -FileBytesSent 0 -FileTotalBytes $localFile.Length -CompletedBytesBeforeFile $CompletedBytesBeforeFile -OverallTotalBytes $OverallTotalBytes -UploadStartedAt $uploadStartedAt
+
+        while (($bytesRead = $fileStream.Read($buffer, 0, $buffer.Length)) -gt 0) {
+            $requestStream.Write($buffer, 0, $bytesRead)
+            $bytesSent += $bytesRead
+
+            $now = Get-Date
+            if (($now - $lastProgressUpdateAt).TotalMilliseconds -ge 150 -or $bytesSent -eq $localFile.Length) {
+                Update-ReleaseUploadProgress -FileLabel $AssetLabel -FileIndex $FileIndex -FileCount $FileCount -FileBytesSent $bytesSent -FileTotalBytes $localFile.Length -CompletedBytesBeforeFile $CompletedBytesBeforeFile -OverallTotalBytes $OverallTotalBytes -UploadStartedAt $uploadStartedAt
+                $lastProgressUpdateAt = $now
+            }
+        }
+
+        $requestStream.Flush()
+        $response = $request.GetResponse()
+        $responseStream = $response.GetResponseStream()
+        $reader = New-Object System.IO.StreamReader($responseStream)
+        try {
+            $responseContent = $reader.ReadToEnd()
+        } finally {
+            $reader.Dispose()
+            $responseStream.Dispose()
+        }
+
+        $responseJson = $null
+        if (-not [string]::IsNullOrWhiteSpace($responseContent)) {
+            try {
+                $responseJson = $responseContent | ConvertFrom-Json
+            } catch {
+                $responseJson = $null
+            }
+        }
+
+        return [PSCustomObject]@{
+            Success = $true
+            StatusCode = 201
+            Content = $responseContent
+            Json = $responseJson
+            Error = $null
+        }
+    } catch {
+        $statusCode = $null
+        $responseContent = $null
+        $webResponse = $_.Exception.Response
+
+        if ($webResponse) {
+            try {
+                $statusCode = [int]$webResponse.StatusCode
+            } catch {
+                $statusCode = $null
+            }
+
+            $errorStream = $webResponse.GetResponseStream()
+            if ($errorStream) {
+                $reader = New-Object System.IO.StreamReader($errorStream)
+                try {
+                    $responseContent = $reader.ReadToEnd()
+                } finally {
+                    $reader.Dispose()
+                    $errorStream.Dispose()
+                }
+            }
+        }
+
+        return [PSCustomObject]@{
+            Success = $false
+            StatusCode = $statusCode
+            Content = $responseContent
+            Json = $null
+            Error = $_.Exception.Message
+        }
+    } finally {
+        if ($requestStream) {
+            $requestStream.Dispose()
+        }
+        if ($fileStream) {
+            $fileStream.Dispose()
+        }
+        if ($response) {
+            $response.Dispose()
+        }
     }
 }
 
@@ -461,7 +830,6 @@ if ($ghAvailable) {
     # Upload installer files only if build validation passed
     if ($buildOK -and $freshOutputDir -and (Test-Path $freshOutputDir)) {
         Write-Info "Uploading installer files to release..."
-        $remoteAssets = Get-ReleaseAssetMap -TagName $releaseTag -Repo $githubRepo
 
         $filesToUpload = @(
             @{ Path = (Join-Path $freshOutputDir "ScanMaster-Setup-$newVersion.exe");           Name = "Setup EXE" },
@@ -470,9 +838,35 @@ if ($ghAvailable) {
             @{ Path = (Join-Path $freshOutputDir "latest.yml");                                 Name = "latest.yml" }
         )
 
+        $overallUploadBytesTotal = 0L
+        foreach ($candidateFile in $filesToUpload) {
+            if (Test-Path $candidateFile.Path) {
+                $overallUploadBytesTotal += (Get-Item $candidateFile.Path).Length
+            }
+        }
+
+        $completedUploadBytes = 0L
+        $releaseApiToken = Get-GitHubAuthToken
+        $releaseApiInfo = Get-GitHubReleaseInfo -TagName $releaseTag -Repo $githubRepo -Quiet
+        if (-not $releaseApiInfo) {
+            Start-Sleep -Seconds 2
+            $releaseApiInfo = Get-GitHubReleaseInfo -TagName $releaseTag -Repo $githubRepo -Quiet
+        }
+
+        $useApiUpload = $null -ne $releaseApiInfo -and -not [string]::IsNullOrWhiteSpace($releaseApiToken)
+        if ($useApiUpload) {
+            Write-Info "  Live upload progress enabled."
+        } else {
+            Write-Warn "  Live upload progress unavailable; falling back to gh upload output."
+        }
+
+        $remoteAssets = if ($releaseApiInfo) { $releaseApiInfo.AssetMap } else { Get-ReleaseAssetMap -TagName $releaseTag -Repo $githubRepo }
         $uploadFailed = $false
         $failedUploads = @()
-        foreach ($file in $filesToUpload) {
+        for ($fileIndex = 0; $fileIndex -lt $filesToUpload.Count; $fileIndex++) {
+            $file = $filesToUpload[$fileIndex]
+            $progressFileIndex = $fileIndex + 1
+
             if (Test-Path $file.Path) {
                 $localFile = Get-Item $file.Path
                 $assetName = $localFile.Name
@@ -491,10 +885,20 @@ if ($ghAvailable) {
                         $localHash = Get-FileSha256 -Path $file.Path
                         if ($localHash -and ($localHash -eq $remoteDigest.ToLowerInvariant())) {
                             Write-Success "  Already uploaded: $($file.Name) [$sizeText]"
+                            $completedUploadBytes += $localFile.Length
+                            $overallPercent = Get-PercentComplete -CompletedBytes $completedUploadBytes -TotalBytes $overallUploadBytesTotal
+                            $overallStatus = "{0}/{1} files | {2} / {3} ({4}%)" -f $progressFileIndex, $filesToUpload.Count, (Format-FileSize $completedUploadBytes), (Format-FileSize $overallUploadBytesTotal), $overallPercent
+                            Write-Progress -Id 0 -Activity "Uploading release assets to GitHub" -Status $overallStatus -PercentComplete $overallPercent
+                            Write-Progress -Id 1 -ParentId 0 -Activity "Uploading $($file.Name)" -Status "Already uploaded on GitHub" -PercentComplete 100
                             continue
                         }
                     } elseif ([int64]$existingAsset.size -eq $localFile.Length) {
                         Write-Success "  Already uploaded: $($file.Name) [$sizeText]"
+                        $completedUploadBytes += $localFile.Length
+                        $overallPercent = Get-PercentComplete -CompletedBytes $completedUploadBytes -TotalBytes $overallUploadBytesTotal
+                        $overallStatus = "{0}/{1} files | {2} / {3} ({4}%)" -f $progressFileIndex, $filesToUpload.Count, (Format-FileSize $completedUploadBytes), (Format-FileSize $overallUploadBytesTotal), $overallPercent
+                        Write-Progress -Id 0 -Activity "Uploading release assets to GitHub" -Status $overallStatus -PercentComplete $overallPercent
+                        Write-Progress -Id 1 -ParentId 0 -Activity "Uploading $($file.Name)" -Status "Already uploaded on GitHub" -PercentComplete 100
                         continue
                     }
 
@@ -504,18 +908,41 @@ if ($ghAvailable) {
                 $uploadSucceeded = $false
                 $maxUploadAttempts = 2
                 for ($attempt = 1; $attempt -le $maxUploadAttempts; $attempt++) {
+                    $useApiUploadForThisAttempt = $useApiUpload
+
                     if ($attempt -gt 1) {
                         Write-Warn "  Retrying $($file.Name) (attempt $attempt of $maxUploadAttempts)..."
                     }
 
+                    if ($existingAsset -and $useApiUploadForThisAttempt) {
+                        $deletedExistingAsset = Remove-GitHubReleaseAsset -Repo $githubRepo -AssetId ([int64]$existingAsset.id) -Token $releaseApiToken
+                        if (-not $deletedExistingAsset) {
+                            Write-Warn "  Could not delete existing asset via GitHub API; falling back to gh --clobber for $($file.Name)."
+                            $useApiUploadForThisAttempt = $false
+                        } else {
+                            $existingAsset = $null
+                        }
+                    }
+
                     Write-Info "  Uploading: $($file.Name) [$sizeText]"
                     $uploadStarted = Get-Date
-                    $uploadResult = Invoke-GhCli -Arguments @("release", "upload", $releaseTag, $file.Path, "--repo", $githubRepo, "--clobber")
-                    $uploadExitCode = $uploadResult.ExitCode
+                    if ($useApiUploadForThisAttempt) {
+                        $uploadResult = Upload-GitHubReleaseAssetWithProgress -ReleaseId $releaseApiInfo.ReleaseId -Repo $githubRepo -FilePath $file.Path -AssetLabel $file.Name -Token $releaseApiToken -FileIndex $progressFileIndex -FileCount $filesToUpload.Count -CompletedBytesBeforeFile $completedUploadBytes -OverallTotalBytes $overallUploadBytesTotal
+                        $uploadExitCode = if ($uploadResult.Success) { 0 } else { 1 }
+                    } else {
+                        $uploadResult = Invoke-GhCli -Arguments @("release", "upload", $releaseTag, $file.Path, "--repo", $githubRepo, "--clobber")
+                        $uploadExitCode = $uploadResult.ExitCode
+                    }
                     $elapsed = (Get-Date) - $uploadStarted
                     $elapsedText = "{0:mm\:ss}" -f $elapsed
 
-                    $remoteAssets = Get-ReleaseAssetMap -TagName $releaseTag -Repo $githubRepo
+                    $releaseApiInfo = Get-GitHubReleaseInfo -TagName $releaseTag -Repo $githubRepo -Quiet
+                    if ($releaseApiInfo) {
+                        $remoteAssets = $releaseApiInfo.AssetMap
+                    } else {
+                        $remoteAssets = Get-ReleaseAssetMap -TagName $releaseTag -Repo $githubRepo
+                    }
+
                     $verifiedAsset = $null
                     if ($remoteAssets.ContainsKey($assetName)) {
                         $verifiedAsset = $remoteAssets[$assetName]
@@ -531,6 +958,7 @@ if ($ghAvailable) {
                             } else {
                                 Write-Success "  Uploaded: $($file.Name) in $elapsedText"
                             }
+                            $completedUploadBytes += $localFile.Length
                             $uploadSucceeded = $true
                             break
                         }
@@ -569,6 +997,8 @@ if ($ghAvailable) {
                 Write-Warn "  Not found: $($file.Path) (skipping)"
             }
         }
+
+        Complete-ReleaseUploadProgress
 
         if ($uploadFailed) {
             Write-Host ""

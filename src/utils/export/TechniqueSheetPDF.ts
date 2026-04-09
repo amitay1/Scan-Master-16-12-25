@@ -897,13 +897,14 @@ class TechniqueSheetPDFBuilder {
     y += 14;
 
     // Summary table with key information
+    const isV2500Summary = this.isV2500MroStandard();
     const summaryData = [
       ['Customer', formatValue(doc.customerName), 'Purchase Order', formatValue(doc.purchaseOrder)],
       ['Part Number', formatValue(setup.partNumber), 'Part Name', formatValue(setup.partName)],
       ['Material', formatMaterial(setup.material, setup.customMaterialName), 'Material Spec', formatValue(setup.materialSpec)],
       ['Part Type', formatPartType(setup.partType), 'Drawing No', formatValue(setup.drawingNumber)],
-      ['Process Spec', formatValue(this.data.standard), 'Acceptance Class', formatAcceptanceClass(acceptance.acceptanceClass).class],
-      ['Inspection Type', formatScanMethod(this.data.scanParameters.scanMethod), 'Criticality', formatAcceptanceClass(acceptance.acceptanceClass).description.split(' - ')[0] || '-'],
+      ['Process Spec', formatValue(this.data.standard), isV2500Summary ? 'Rejection Basis' : 'Acceptance Class', isV2500Summary ? 'NDIP Pixel Criteria' : formatAcceptanceClass(acceptance.acceptanceClass).class],
+      ['Inspection Type', formatScanMethod(this.data.scanParameters.scanMethod), isV2500Summary ? 'Rejection Mode' : 'Criticality', isV2500Summary ? 'Amplitude + TOF C-Scan' : formatAcceptanceClass(acceptance.acceptanceClass).description.split(' - ')[0] || '-'],
     ];
 
     // Draw summary table
@@ -1244,8 +1245,9 @@ class TechniqueSheetPDFBuilder {
     });
 
     const acceptanceSectionNum = this.getMainSectionNumber('acceptance');
+    const acceptanceSectionTitle = this.isV2500MroStandard() ? 'Rejection Criteria' : 'Acceptance Criteria';
     tocItems.push({
-      title: this.formatTocNumber(acceptanceSectionNum, 'Acceptance Criteria'),
+      title: this.formatTocNumber(acceptanceSectionNum, acceptanceSectionTitle),
       page: this.pageMapping.get('acceptance') || 6,
     });
 
@@ -2107,13 +2109,20 @@ class TechniqueSheetPDFBuilder {
     this.addHeader();
     let y = PAGE.contentStart;
 
-    y = this.addSectionTitle(this.formatSectionLabel(this.getMainSectionNumber('acceptance'), 'ACCEPTANCE CRITERIA'), y);
+    const isV2500Acceptance = this.isV2500MroStandard();
+    y = this.addSectionTitle(
+      this.formatSectionLabel(
+        this.getMainSectionNumber('acceptance'),
+        isV2500Acceptance ? 'REJECTION CRITERIA' : 'ACCEPTANCE CRITERIA'
+      ),
+      y
+    );
 
     const acc = this.data.acceptanceCriteria;
     const classInfo = formatAcceptanceClass(acc.acceptanceClass);
 
     // Acceptance Class Badge
-    if (classInfo.class !== '-') {
+    if (!isV2500Acceptance && classInfo.class !== '-') {
       this.pdf.setFillColor(...COLORS.primary);
       this.pdf.roundedRect(PAGE.marginLeft, y, 80, 20, 3, 3, 'F');
       this.pdf.setTextColor(255, 255, 255);
@@ -2133,34 +2142,35 @@ class TechniqueSheetPDFBuilder {
     }
 
     // Criteria Table
-    const criteriaInfo = buildTableRows([
-      ['Single Discontinuity', acc.singleDiscontinuity],
-      ['Multiple Discontinuities', acc.multipleDiscontinuities],
-      ['Linear Discontinuity', acc.linearDiscontinuity],
-      ['Back Reflection Loss', acc.backReflectionLoss ? `${acc.backReflectionLoss}%` : undefined],
-      ['Noise Level', acc.noiseLevel],
-    ], { showEmpty: true });
+    if (!isV2500Acceptance) {
+      const criteriaInfo = buildTableRows([
+        ['Single Discontinuity', acc.singleDiscontinuity],
+        ['Multiple Discontinuities', acc.multipleDiscontinuities],
+        ['Linear Discontinuity', acc.linearDiscontinuity],
+        ['Back Reflection Loss', acc.backReflectionLoss ? `${acc.backReflectionLoss}%` : undefined],
+        ['Noise Level', acc.noiseLevel],
+      ], { showEmpty: true });
 
-    autoTable(this.pdf, {
-      startY: y,
-      head: [['Criterion', 'Limit']],
-      body: criteriaInfo,
-      theme: 'grid',
-      styles: { fontSize: 9, cellPadding: 3 },
-      headStyles: { fillColor: COLORS.primary, textColor: [255, 255, 255] },
-      columnStyles: {
-        0: { fontStyle: 'bold', cellWidth: 70 },
-        1: { cellWidth: 'auto' },
-      },
-      margin: { left: PAGE.marginLeft, right: PAGE.marginRight, bottom: PAGE.footerHeight + 5 },
-    });
+      autoTable(this.pdf, {
+        startY: y,
+        head: [['Criterion', 'Limit']],
+        body: criteriaInfo,
+        theme: 'grid',
+        styles: { fontSize: 9, cellPadding: 3 },
+        headStyles: { fillColor: COLORS.primary, textColor: [255, 255, 255] },
+        columnStyles: {
+          0: { fontStyle: 'bold', cellWidth: 70 },
+          1: { cellWidth: 'auto' },
+        },
+        margin: { left: PAGE.marginLeft, right: PAGE.marginRight, bottom: PAGE.footerHeight + 5 },
+      });
 
-    y = this.getTableEndY(y);
+      y = this.getTableEndY(y);
+    }
 
     // V2500 NDIP Pixel-Based Rejection Criteria (additional detail)
-    const isV2500Acceptance = this.isV2500MroStandard();
     if (isV2500Acceptance) {
-      y = this.addSubsectionTitle('NDIP Pixel-Based Rejection Criteria', y);
+      y = this.addSubsectionTitle('NDIP Rejection Criteria', y);
 
       const pwCriteriaRows = [
         ['Amplitude C-Scan', ''],
@@ -2175,6 +2185,10 @@ class TechniqueSheetPDFBuilder {
         ['  SNR threshold', '>=1.5:1'],
         ['  Low noise threshold', '5.0% FSH'],
         ['  Low noise rejection level', '7.5% FSH (when avg noise <5%)'],
+        ['Post-Calibration / Reporting', ''],
+        ['  Post-calibration tolerance', '+/-1 dB'],
+        ['  Re-scan trigger', 'Any channel outside +/-1 dB'],
+        ['  Reporting', 'Transfer data to PW MPE-NDE via MFT'],
       ];
 
       autoTable(this.pdf, {
@@ -2187,8 +2201,8 @@ class TechniqueSheetPDFBuilder {
           1: { cellWidth: 'auto', textColor: COLORS.text },
         },
         didParseCell: (data) => {
-          // Bold section headers (Amplitude C-Scan, TOF C-Scan)
-          if (data.row.index === 0 || data.row.index === 6) {
+          // Bold section headers
+          if (data.row.index === 0 || data.row.index === 6 || data.row.index === 12) {
             data.cell.styles.fillColor = [230, 235, 245];
             data.cell.styles.fontStyle = 'bold';
             data.cell.styles.textColor = COLORS.primary;
@@ -2201,14 +2215,14 @@ class TechniqueSheetPDFBuilder {
     }
 
     // Special Requirements
-    if (acc.specialRequirements) {
+    if (!isV2500Acceptance && acc.specialRequirements) {
       y = this.addSubsectionTitle('Special Requirements', y);
       this.pdf.setFontSize(9);
       this.pdf.text(acc.specialRequirements, PAGE.marginLeft, y + 5, { maxWidth: PAGE.contentWidth });
       y += 20;
     }
 
-    if (acc.includeStandardNotesInReport && acc.standardNotes) {
+    if (!isV2500Acceptance && acc.includeStandardNotesInReport && acc.standardNotes) {
       y = this.addSubsectionTitle('Standard Notes', y);
       this.pdf.setFontSize(8);
       this.pdf.text(acc.standardNotes, PAGE.marginLeft, y + 5, { maxWidth: PAGE.contentWidth });

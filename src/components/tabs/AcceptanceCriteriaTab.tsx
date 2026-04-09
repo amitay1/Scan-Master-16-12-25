@@ -210,6 +210,50 @@ export const AcceptanceCriteriaTab = ({
     [standard]
   );
 
+  const isPwNdip = standard === "NDIP-1226" || standard === "NDIP-1227";
+
+  if (isPwNdip) {
+    return (
+      <div className="space-y-4 p-2">
+        <div className="bg-primary/5 border border-primary/20 rounded p-3">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h3 className="text-sm font-semibold text-foreground">Active NDIP Rejection Criteria</h3>
+              <p className="text-xs text-muted-foreground mt-1">{getStandardLabel(standard)}</p>
+            </div>
+            <Badge variant="outline" className="text-xs">
+              Rejection Criteria
+            </Badge>
+          </div>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="rounded-lg border border-blue-500/30 bg-blue-500/5 p-4">
+            <h4 className="text-sm font-semibold text-foreground">Amplitude C-Scan</h4>
+            <ul className="mt-3 list-disc space-y-2 pl-4 text-sm text-muted-foreground">
+              <li>Minimum pixel grouping: 3 pixels (2x1 or 1x2).</li>
+              <li>Adjacent pixel depth tolerance: 0.025 inch.</li>
+              <li>Calibration amplitude: 80% FSH using No. 1 FBH.</li>
+              <li>Reject threshold: 20% FSH.</li>
+              <li>Evaluation threshold: 15% FSH.</li>
+            </ul>
+          </div>
+
+          <div className="rounded-lg border border-violet-500/30 bg-violet-500/5 p-4">
+            <h4 className="text-sm font-semibold text-foreground">TOF / Post-Calibration</h4>
+            <ul className="mt-3 list-disc space-y-2 pl-4 text-sm text-muted-foreground">
+              <li>Minimum TOF grouping: 15 connected pixels across at least 3 scan lines.</li>
+              <li>Signal-to-noise threshold: at least 1.5:1.</li>
+              <li>Low-noise threshold: 5.0% FSH average noise.</li>
+              <li>When average noise is below 5.0% FSH, use 7.5% FSH as the low-noise rejection level.</li>
+              <li>Post-calibration tolerance remains within +/-1 dB of initial calibration.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-2 p-2">
       <div className="bg-primary/5 border border-primary/20 rounded p-2">

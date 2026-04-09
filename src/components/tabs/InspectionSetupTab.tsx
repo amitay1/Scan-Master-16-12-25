@@ -1014,6 +1014,7 @@ export const InspectionSetupTab = ({
   const isAlwaysHollow = fieldConfig.alwaysHollow;
   const hasPartTypeSelection = Boolean(data.partType);
   const isHptDisk = data.partType === "hpt_disk";
+  const hideNdipScalarFields = isV2500Standard;
   const circularIdLabel = isHptDisk ? "Nominal Bore ID (mm)" : "ID (mm)";
   const showGenericCircularWall = !isHptDisk;
 
@@ -1434,7 +1435,7 @@ export const InspectionSetupTab = ({
           </>
         )}
 
-        {hasPartTypeSelection && fieldConfig.showThickness && (
+        {hasPartTypeSelection && fieldConfig.showThickness && !hideNdipScalarFields && (
           <FieldWithHelp
             label={fieldConfig.thicknessLabel}
             fieldKey="thickness"
@@ -1500,20 +1501,22 @@ export const InspectionSetupTab = ({
           />
         </FieldWithHelp>
 
-        <FieldWithHelp
-          label="Density (kg/m³)"
-          fieldKey="material"
-        >
-          <Input
-            type="number"
-            value={data.materialDensity || ""}
-            onChange={(e) => updateField("materialDensity", parseFloat(e.target.value) || undefined)}
-            placeholder={materialProps ? `${materialProps.density * 1000}` : ""}
-            className="bg-background"
-          />
-        </FieldWithHelp>
+        {!hideNdipScalarFields && (
+          <FieldWithHelp
+            label="Density (kg/m³)"
+            fieldKey="material"
+          >
+            <Input
+              type="number"
+              value={data.materialDensity || ""}
+              onChange={(e) => updateField("materialDensity", parseFloat(e.target.value) || undefined)}
+              placeholder={materialProps ? `${materialProps.density * 1000}` : ""}
+              className="bg-background"
+            />
+          </FieldWithHelp>
+        )}
 
-        {hasPartTypeSelection && showDiameter && (
+        {hasPartTypeSelection && showDiameter && !hideNdipScalarFields && (
           <FieldWithHelp
             label={fieldConfig.odLabel}
             fieldKey="thickness"
@@ -1542,7 +1545,7 @@ export const InspectionSetupTab = ({
         )}
 
         {/* Cone dimensions - Cone is always hollow (like a tapered tube) */}
-        {hasPartTypeSelection && isCone && (
+        {hasPartTypeSelection && isCone && !hideNdipScalarFields && (
           <>
             <FieldWithHelp
               label="Base OD (mm)"
@@ -1668,7 +1671,7 @@ export const InspectionSetupTab = ({
         )}
 
         {/* Hollow Dimensions - Circular (ID + Wall) */}
-        {hasPartTypeSelection && data.isHollow && fieldConfig.hollowType === 'circular' && (
+        {hasPartTypeSelection && data.isHollow && fieldConfig.hollowType === 'circular' && !hideNdipScalarFields && (
           <>
             <FieldWithHelp
               label={circularIdLabel}
@@ -1727,7 +1730,7 @@ export const InspectionSetupTab = ({
         )}
 
         {/* Hollow Dimensions - Rectangular (Inner L + Inner W + Wall) */}
-        {hasPartTypeSelection && data.isHollow && fieldConfig.hollowType === 'rectangular' && (
+        {hasPartTypeSelection && data.isHollow && fieldConfig.hollowType === 'rectangular' && !hideNdipScalarFields && (
               <>
                 <FieldWithHelp
                   label="Inner L (mm)"

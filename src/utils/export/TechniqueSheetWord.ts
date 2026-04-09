@@ -571,14 +571,15 @@ const createDocumentSummaryTable = (
   standard: string
 ): Table => {
   const { inspectionSetup: setup, documentation: doc, acceptanceCriteria: acceptance, scanParameters } = data;
+  const isV2500Ndip = standard === 'NDIP-1226' || standard === 'NDIP-1227';
 
   const rows: string[][] = [
     ['Customer', formatValue(doc.customerName), 'Purchase Order', formatValue(doc.purchaseOrder)],
     ['Part Number', formatValue(setup.partNumber), 'Part Name', formatValue(setup.partName)],
     ['Material', formatMaterial(setup.material, setup.customMaterialName), 'Material Spec', formatValue(setup.materialSpec)],
     ['Part Type', formatPartType(setup.partType), 'Drawing No', formatValue(setup.drawingNumber)],
-    ['Process Spec', formatValue(standard), 'Acceptance Class', formatAcceptanceClass(acceptance.acceptanceClass).class],
-    ['Inspection Type', formatScanMethod(scanParameters.scanMethod), 'Criticality', formatAcceptanceClass(acceptance.acceptanceClass).description.split(' - ')[0] || '-'],
+    ['Process Spec', formatValue(standard), isV2500Ndip ? 'Rejection Basis' : 'Acceptance Class', isV2500Ndip ? 'NDIP Pixel Criteria' : formatAcceptanceClass(acceptance.acceptanceClass).class],
+    ['Inspection Type', formatScanMethod(scanParameters.scanMethod), isV2500Ndip ? 'Rejection Mode' : 'Criticality', isV2500Ndip ? 'Amplitude + TOF C-Scan' : formatAcceptanceClass(acceptance.acceptanceClass).description.split(' - ')[0] || '-'],
   ];
 
   const tableRows = rows.map((row, rowIndex) => {
@@ -1306,6 +1307,7 @@ export function buildTechniqueSheetWordDocument(
   options: WordExportOptions = {}
 ): BuiltTechniqueSheetWordDocument {
   const { inspectionSetup, equipment, calibration, scanParameters, acceptanceCriteria, documentation, scanDetails } = data;
+  const isV2500Ndip = data.standard === 'NDIP-1226' || data.standard === 'NDIP-1227';
 
   const children: (Paragraph | Table)[] = [];
 
@@ -1507,11 +1509,11 @@ export function buildTechniqueSheetWordDocument(
   }
 
   // ========== 4. ACCEPTANCE CRITERIA ==========
-  children.push(createSectionTitle('4. ACCEPTANCE CRITERIA'));
+  children.push(createSectionTitle(isV2500Ndip ? '4. REJECTION CRITERIA' : '4. ACCEPTANCE CRITERIA'));
   children.push(new Paragraph({ children: [], spacing: { after: 200 } }));
 
   const classInfo = formatAcceptanceClass(acceptanceCriteria.acceptanceClass);
-  if (classInfo.class !== '-') {
+  if (!isV2500Ndip && classInfo.class !== '-') {
     children.push(new Paragraph({
       children: [
         new TextRun({ text: 'ACCEPTANCE CLASS: ', bold: true, size: 24 }),
@@ -1522,18 +1524,39 @@ export function buildTechniqueSheetWordDocument(
     }));
   }
 
-  children.push(createKeyValueTable([
-    ['Single Discontinuity', formatValue(acceptanceCriteria.singleDiscontinuity)],
-    ['Multiple Discontinuities', formatValue(acceptanceCriteria.multipleDiscontinuities)],
-    ['Linear Discontinuity', formatValue(acceptanceCriteria.linearDiscontinuity)],
-    ['Back Reflection Loss', acceptanceCriteria.backReflectionLoss ? `${acceptanceCriteria.backReflectionLoss}%` : '-'],
-    ['Noise Level', formatValue(acceptanceCriteria.noiseLevel)],
-  ]));
+  if (isV2500Ndip) {
+    children.push(createSubsectionTitle('NDIP Rejection Criteria'));
+    children.push(new Paragraph({ children: [], spacing: { after: 100 } }));
+    children.push(createKeyValueTable([
+      ['Amplitude C-Scan - Min pixel grouping', '3 pixels (2x1 or 1x2)'],
+      ['Amplitude C-Scan - Adjacent pixel depth tolerance', '0.025"'],
+      ['Amplitude C-Scan - Calibration amplitude', '80% FSH (#1 FBH)'],
+      ['Amplitude C-Scan - Reject threshold', '20% FSH (25% of calibration)'],
+      ['Amplitude C-Scan - Evaluation threshold', '15% FSH'],
+      ['TOF C-Scan - Min pixel grouping', '15 pixels connected'],
+      ['TOF C-Scan - Min adjacent scan lines', '3'],
+      ['TOF C-Scan - SNR threshold', '>=1.5:1'],
+      ['TOF C-Scan - Low noise threshold', '5.0% FSH'],
+      ['TOF C-Scan - Low noise rejection level', '7.5% FSH (when avg noise <5%)'],
+      ['Post-calibration tolerance', '+/-1 dB'],
+      ['Re-scan trigger', 'Any channel outside +/-1 dB'],
+      ['Reporting', 'Transfer data to PW MPE-NDE via MFT'],
+    ]));
+    children.push(new Paragraph({ children: [], spacing: { after: 200 } }));
+  } else {
+    children.push(createKeyValueTable([
+      ['Single Discontinuity', formatValue(acceptanceCriteria.singleDiscontinuity)],
+      ['Multiple Discontinuities', formatValue(acceptanceCriteria.multipleDiscontinuities)],
+      ['Linear Discontinuity', formatValue(acceptanceCriteria.linearDiscontinuity)],
+      ['Back Reflection Loss', acceptanceCriteria.backReflectionLoss ? `${acceptanceCriteria.backReflectionLoss}%` : '-'],
+      ['Noise Level', formatValue(acceptanceCriteria.noiseLevel)],
+    ]));
 
-  children.push(new Paragraph({ children: [], spacing: { after: 200 } }));
+    children.push(new Paragraph({ children: [], spacing: { after: 200 } }));
+  }
 
   // Special Requirements
-  if (acceptanceCriteria.specialRequirements) {
+  if (!isV2500Ndip && acceptanceCriteria.specialRequirements) {
     children.push(createSubsectionTitle('Special Requirements'));
     children.push(new Paragraph({ children: [], spacing: { after: 100 } }));
     children.push(new Paragraph({
@@ -1542,7 +1565,7 @@ export function buildTechniqueSheetWordDocument(
     }));
   }
 
-  if (acceptanceCriteria.includeStandardNotesInReport && acceptanceCriteria.standardNotes) {
+  if (!isV2500Ndip && acceptanceCriteria.includeStandardNotesInReport && acceptanceCriteria.standardNotes) {
     children.push(createSubsectionTitle('Standard Notes'));
     children.push(new Paragraph({ children: [], spacing: { after: 100 } }));
     children.push(new Paragraph({

@@ -99,6 +99,8 @@ export interface ScanDetail {
 
   /** U.T parameter text */
   utParameter?: string;
+  /** Immersion incident angle in degrees */
+  incidentAngle?: number;
   /** U.T range */
   utRange?: number;
   /** U.T delay */

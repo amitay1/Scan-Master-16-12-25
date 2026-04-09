@@ -237,6 +237,39 @@ export const ScanDetailsTab = ({
     onChange({ ...data, scanDetails: normalizedScanDetails });
   }, [data, equipmentFrequency, frequencyOptions, onChange, standardEquipmentParams]);
 
+  useEffect(() => {
+    const existingScanDetails = data.scanDetails ?? [];
+    if (existingScanDetails.length === 0) {
+      return;
+    }
+
+    let hasChanges = false;
+    const normalizedScanDetails = existingScanDetails.map((detail) => {
+      const isShearWave = /shear wave/i.test(detail.waveMode || "");
+      const nextVelocity = isShearWave ? 5920 / 2 : detail.velocity;
+      const nextIncidentAngle = isPwNdip
+        ? ([18, 19, 20, 21].includes(Number(detail.incidentAngle)) ? detail.incidentAngle : 18)
+        : detail.incidentAngle;
+
+      if (detail.velocity === nextVelocity && detail.incidentAngle === nextIncidentAngle) {
+        return detail;
+      }
+
+      hasChanges = true;
+      return {
+        ...detail,
+        velocity: nextVelocity,
+        incidentAngle: nextIncidentAngle,
+      };
+    });
+
+    if (!hasChanges) {
+      return;
+    }
+
+    onChange({ ...data, scanDetails: normalizedScanDetails });
+  }, [data, isPwNdip, onChange]);
+
   const scanDetails = defaultScanDetails.map((fixed) => {
     const existing = data.scanDetails?.find((d) => d.scanningDirection === fixed.scanningDirection);
     return ({ ...fixed, ...existing } as ExtendedScanDetail);
@@ -316,6 +349,7 @@ export const ScanDetailsTab = ({
 
   const hasKnownV2500Context = hasKnownActiveMroContext(standard, partNumber);
   const isV2500Standard = isActiveMroStandard(standard);
+  const isPwNdip = standard === "NDIP-1226" || standard === "NDIP-1227";
   const isHptDiskPart = partType === "hpt_disk";
   const v2500Stage: 1 | 2 | null = getActiveMroStage(standard, partNumber);
 
@@ -619,12 +653,17 @@ export const ScanDetailsTab = ({
     const availableIndexModes = includeCurrentOption(scanDetailIndexModeOptions, detail.indexMode);
     const availableFilters = includeCurrentOption(scanDetailFilterOptions, detail.filter);
     const availableRejectValues = includeCurrentOption(scanDetailRejectOptions, detail.reject);
+    const availableIncidentAngles = includeCurrentOption(
+      ["18", "19", "20", "21"],
+      detail.incidentAngle !== undefined ? String(detail.incidentAngle) : ""
+    );
 
     return (
     <tr className="bg-slate-900/50 border-b border-slate-700">
       <td colSpan={7} className="p-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Probe Details Section */}
+          {!isPwNdip && (
           <div className="bg-slate-800/80 rounded-lg p-4 border border-blue-500/30">
             <h4 className="text-sm font-semibold text-blue-400 mb-3 flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-blue-400"></span>
@@ -725,6 +764,7 @@ export const ScanDetailsTab = ({
               </div>
             </div>
           </div>
+          )}
 
           {/* Gates Section */}
           <div className="bg-slate-800/80 rounded-lg p-4 border border-emerald-500/30">
@@ -785,6 +825,26 @@ export const ScanDetailsTab = ({
                   placeholder="e.g., 0"
                 />
               </div>
+              {isPwNdip && (
+                <div>
+                  <Label className="text-[10px] text-slate-400 uppercase tracking-wide">Incident Angle (deg)</Label>
+                  <Select
+                    value={detail.incidentAngle !== undefined ? String(detail.incidentAngle) : ""}
+                    onValueChange={(value) => updateScanDetail(index, "incidentAngle", Number(value))}
+                  >
+                    <SelectTrigger className="h-8 text-xs bg-slate-900/60 border-slate-600 text-slate-100">
+                      <SelectValue placeholder="Select" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-slate-800 border-slate-600">
+                      {availableIncidentAngles.map((value) => (
+                        <SelectItem key={value} value={value} className="text-xs text-slate-100">
+                          {value}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               <div>
                 <Label className="text-[10px] text-slate-400 uppercase tracking-wide">PRF (Hz)</Label>
                 <Input

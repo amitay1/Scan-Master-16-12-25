@@ -353,21 +353,22 @@ export function getPartDimensionRows(setup: {
   const rows: Array<[string, string]> = [];
   const labels = getDimensionLabels(setup.partType);
   const hpt = setup.hptDiskGeometry;
+  const isV2500Standard = setup.standard === 'NDIP-1226' || setup.standard === 'NDIP-1227';
   const showStandardHptInspectionRows = setup.standard === 'NDIP-1226' || setup.standard === 'NDIP-1227';
 
   // Common dimensions with geometry-aware labels
-  if (setup.partThickness) {
+  if (!isV2500Standard && setup.partThickness) {
     rows.push([labels.thicknessLabel, formatNumber(setup.partThickness, 1, 'mm')]);
   }
-  if (setup.partLength) {
+  if (!isV2500Standard && setup.partLength) {
     rows.push([labels.lengthLabel, formatNumber(setup.partLength, 1, 'mm')]);
   }
-  if (setup.partWidth) {
+  if (!isV2500Standard && setup.partWidth) {
     rows.push(['Width', formatNumber(setup.partWidth, 1, 'mm')]);
   }
 
   // Cylindrical dimensions
-  if (isCylindrical(setup.partType)) {
+  if (!isV2500Standard && isCylindrical(setup.partType)) {
     if (setup.diameter) {
       rows.push([labels.odLabel, formatNumber(setup.diameter, 1, 'mm')]);
     }
@@ -380,15 +381,15 @@ export function getPartDimensionRows(setup: {
   }
 
   // Rectangular hollow inner dimensions
-  if (setup.innerLength) {
+  if (!isV2500Standard && setup.innerLength) {
     rows.push(['Inner Length', formatNumber(setup.innerLength, 1, 'mm')]);
   }
-  if (setup.innerWidth) {
+  if (!isV2500Standard && setup.innerWidth) {
     rows.push(['Inner Width', formatNumber(setup.innerWidth, 1, 'mm')]);
   }
 
   // Cone dimensions
-  if (isCone(setup.partType)) {
+  if (!isV2500Standard && isCone(setup.partType)) {
     if (setup.coneBottomDiameter) {
       rows.push(['Bottom Diameter', formatNumber(setup.coneBottomDiameter, 1, 'mm')]);
     }
@@ -404,7 +405,7 @@ export function getPartDimensionRows(setup: {
   }
 
   // Hollow indicator
-  if (setup.isHollow !== undefined) {
+  if (!isV2500Standard && setup.isHollow !== undefined) {
     rows.push(['Hollow Part', setup.isHollow ? 'Yes' : 'No']);
   }
 

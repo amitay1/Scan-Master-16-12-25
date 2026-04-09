@@ -2,7 +2,7 @@
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { EquipmentData, StandardType, TechniqueType } from "@/types/techniqueSheet";
+import { CalibrationData, EquipmentData, StandardType, TechniqueType } from "@/types/techniqueSheet";
 import { FieldWithHelp } from "@/components/FieldWithHelp";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,11 +15,19 @@ import {
 } from "@/data/standardsDifferences";
 import { getFrequencyOptionsForStandard } from "@/utils/frequencyUtils";
 import { includeCurrentOption } from "@/utils/selectOptions";
+import { PW_45_DEGREE_MIRROR, PW_PRIMARY_TRANSDUCER } from "@/rules/pw/pwTransducers";
+import {
+  V2500_CALIBRATION_BLOCK_HOLDER,
+  V2500_CALIBRATION_BLOCK_PART_NUMBER,
+  V2500_CHUCK_RISER_OPTIONS,
+  V2500_MARKING_PENCIL,
+} from "@/utils/pwNdipDefaults";
 
 // LocalStorage keys for custom items
 const STORAGE_KEYS = {
   customTransducerTypes: 'scanmaster_custom_transducer_types',
   customWedgeTypes: 'scanmaster_custom_wedge_types',
+  customChuckRisers: 'scanmaster_custom_chuck_risers',
 };
 
 interface EquipmentTabProps {
@@ -28,6 +36,8 @@ interface EquipmentTabProps {
   partThickness: number;
   standard?: StandardType;
   scanTechnique?: TechniqueType;
+  calibrationData?: CalibrationData;
+  onCalibrationChange?: (data: CalibrationData) => void;
 }
 
 const transducerTypes = ["immersion", "contact", "dual_element"];
@@ -88,17 +98,32 @@ const defaultWedgeTypes = [
   { value: "Custom", label: "Custom" },
 ];
 
-export const EquipmentTab = ({ data, onChange, partThickness, standard = "AMS-STD-2154E", scanTechnique }: EquipmentTabProps) => {
+const NDIP_EQUIPMENT_BY_MANUFACTURER: Record<string, string> = {
+  "Inspection Research & Technologies Ltd": "LS-200 Immersion Tank and Ultrasonic Scanner",
+  Matec: "IMT3007-SS-TT-L-ARN or equivalent",
+};
+
+export const EquipmentTab = ({
+  data,
+  onChange,
+  partThickness,
+  standard = "AMS-STD-2154E",
+  scanTechnique,
+  calibrationData,
+  onCalibrationChange,
+}: EquipmentTabProps) => {
   // State to control Phased Array section visibility
   const [showPASection, setShowPASection] = useState(false);
 
   // State for custom items (persisted in localStorage)
   const [customTransducerTypes, setCustomTransducerTypes] = useState<string[]>([]);
   const [customWedgeTypes, setCustomWedgeTypes] = useState<{ value: string; label: string }[]>([]);
+  const [customChuckRisers, setCustomChuckRisers] = useState<string[]>([]);
 
   // State for "Add to list" input mode
   const [addingTransducer, setAddingTransducer] = useState(false);
   const [addingWedge, setAddingWedge] = useState(false);
+  const [addingChuckRiser, setAddingChuckRiser] = useState(false);
   const [newItemValue, setNewItemValue] = useState("");
 
   // Load custom items from localStorage on mount
@@ -106,9 +131,11 @@ export const EquipmentTab = ({ data, onChange, partThickness, standard = "AMS-ST
     try {
       const storedTransducers = localStorage.getItem(STORAGE_KEYS.customTransducerTypes);
       const storedWedges = localStorage.getItem(STORAGE_KEYS.customWedgeTypes);
+      const storedChuckRisers = localStorage.getItem(STORAGE_KEYS.customChuckRisers);
 
       if (storedTransducers) setCustomTransducerTypes(JSON.parse(storedTransducers));
       if (storedWedges) setCustomWedgeTypes(JSON.parse(storedWedges));
+      if (storedChuckRisers) setCustomChuckRisers(JSON.parse(storedChuckRisers));
     } catch (error) {
       console.warn("Failed to load custom equipment items from localStorage:", error);
     }
@@ -119,6 +146,42 @@ export const EquipmentTab = ({ data, onChange, partThickness, standard = "AMS-ST
       setShowPASection(true);
     }
   }, [scanTechnique]);
+
+  useEffect(() => {
+    if (!isPwNdip) {
+      return;
+    }
+
+    const manufacturer = data.manufacturer || "Inspection Research & Technologies Ltd";
+    const model = NDIP_EQUIPMENT_BY_MANUFACTURER[manufacturer] || NDIP_EQUIPMENT_BY_MANUFACTURER["Inspection Research & Technologies Ltd"];
+    const normalizedMarkingPencil = data.ndipMarkingPencil || V2500_MARKING_PENCIL;
+    const nextTransducerTypes = ["immersion"];
+    const needsEquipmentNormalization =
+      data.model !== model ||
+      data.transducerType !== "immersion" ||
+      JSON.stringify(data.transducerTypes || []) !== JSON.stringify(nextTransducerTypes) ||
+      data.probeModel !== PW_PRIMARY_TRANSDUCER.partNumber ||
+      data.ndipMarkingPencil !== normalizedMarkingPencil;
+
+    if (needsEquipmentNormalization) {
+      onChange({
+        ...data,
+        manufacturer,
+        model,
+        probeModel: PW_PRIMARY_TRANSDUCER.partNumber,
+        transducerType: "immersion",
+        transducerTypes: nextTransducerTypes,
+        ndipMarkingPencil: normalizedMarkingPencil,
+      });
+    }
+
+    if (calibrationData && onCalibrationChange && calibrationData.blockHolder !== V2500_CALIBRATION_BLOCK_HOLDER) {
+      onCalibrationChange({
+        ...calibrationData,
+        blockHolder: V2500_CALIBRATION_BLOCK_HOLDER,
+      });
+    }
+  }, [calibrationData, data, isPwNdip, onCalibrationChange, onChange]);
 
   // Helper to add custom transducer type
   const addCustomTransducerType = (name: string) => {
@@ -147,11 +210,24 @@ export const EquipmentTab = ({ data, onChange, partThickness, standard = "AMS-ST
     setNewItemValue("");
   };
 
+  const addCustomChuckRiser = (name: string) => {
+    if (!name.trim()) return;
+    const value = name.trim();
+    if (V2500_CHUCK_RISER_OPTIONS.includes(value) || customChuckRisers.includes(value)) return;
+    const updated = [...customChuckRisers, value];
+    setCustomChuckRisers(updated);
+    localStorage.setItem(STORAGE_KEYS.customChuckRisers, JSON.stringify(updated));
+    updateField("ndipChuckRiser", value);
+    setAddingChuckRiser(false);
+    setNewItemValue("");
+  };
+
   // Get all transducer types (default + custom)
   const allTransducerTypes = [...transducerTypes, ...customTransducerTypes];
 
   // Get all wedge types (default + custom)
   const allWedgeTypes = [...defaultWedgeTypes, ...customWedgeTypes];
+  const allChuckRiserOptions = [...V2500_CHUCK_RISER_OPTIONS, ...customChuckRisers];
   const availableWedgeTypes = useMemo(() => {
     const wedgeValues = includeCurrentOption(
       allWedgeTypes.map((wedge) => wedge.value),
@@ -252,6 +328,8 @@ export const EquipmentTab = ({ data, onChange, partThickness, standard = "AMS-ST
 
   // Warn if frequency is invalid for standard
   const showFrequencyWarning = !isFrequencyValid && data.frequency;
+  const isPwNdip = standard === "NDIP-1226" || standard === "NDIP-1227";
+  const resolvedNdipModel = NDIP_EQUIPMENT_BY_MANUFACTURER[data.manufacturer] || NDIP_EQUIPMENT_BY_MANUFACTURER["Inspection Research & Technologies Ltd"];
 
   return (
     <div className="space-y-2 p-2">
@@ -296,12 +374,36 @@ export const EquipmentTab = ({ data, onChange, partThickness, standard = "AMS-ST
           fieldKey="manufacturer"
           required
         >
-          <Input
-            value={data.manufacturer}
-            onChange={(e) => updateField("manufacturer", e.target.value)}
-            placeholder="Olympus, GE Inspection Technologies, etc."
-            className="bg-background"
-          />
+          {isPwNdip ? (
+            <Select
+              value={data.manufacturer || "Inspection Research & Technologies Ltd"}
+              onValueChange={(value) =>
+                onChange({
+                  ...data,
+                  manufacturer: value,
+                  model: NDIP_EQUIPMENT_BY_MANUFACTURER[value],
+                })
+              }
+            >
+              <SelectTrigger className="bg-background">
+                <SelectValue placeholder="Select manufacturer..." />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.keys(NDIP_EQUIPMENT_BY_MANUFACTURER).map((manufacturer) => (
+                  <SelectItem key={manufacturer} value={manufacturer}>
+                    {manufacturer}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <Input
+              value={data.manufacturer}
+              onChange={(e) => updateField("manufacturer", e.target.value)}
+              placeholder="Olympus, GE Inspection Technologies, etc."
+              className="bg-background"
+            />
+          )}
         </FieldWithHelp>
 
         <FieldWithHelp
@@ -310,10 +412,11 @@ export const EquipmentTab = ({ data, onChange, partThickness, standard = "AMS-ST
           required
         >
           <Input
-            value={data.model}
+            value={isPwNdip ? resolvedNdipModel : data.model}
             onChange={(e) => updateField("model", e.target.value)}
             placeholder="OmniScan X3, USM Vision, etc."
-            className="bg-background"
+            className={isPwNdip ? "bg-muted/40" : "bg-background"}
+            readOnly={isPwNdip}
           />
         </FieldWithHelp>
 
@@ -343,11 +446,13 @@ export const EquipmentTab = ({ data, onChange, partThickness, standard = "AMS-ST
 
 
         <FieldWithHelp
-          label="Transducer Type (multi-select)"
+          label={isPwNdip ? "Transducer Type" : "Transducer Type (multi-select)"}
           fieldKey="transducerType"
           required
         >
-          {addingTransducer ? (
+          {isPwNdip ? (
+            <Input value="immersion" readOnly className="bg-muted/40" />
+          ) : addingTransducer ? (
             <div className="flex gap-1">
               <Input
                 value={newItemValue}
@@ -419,39 +524,41 @@ export const EquipmentTab = ({ data, onChange, partThickness, standard = "AMS-ST
           )}
         </FieldWithHelp>
 
-        <FieldWithHelp
-          label="Transducer Shape and Size (multi-select)"
-          fieldKey="transducerDiameter"
-          help="Select one or more standard shape/size options"
-          required
-        >
-          <div className="space-y-2">
-            <div className="flex flex-wrap gap-2">
-              {transducerShapeOptions.map((option) => {
-                const selected = selectedTransducerShapes.includes(option.value);
-                return (
-                  <button
-                    key={option.value}
-                    type="button"
-                    onClick={() => toggleTransducerShape(option.value)}
-                    className={`px-2 py-1 rounded border text-xs transition-colors ${
-                      selected
-                        ? "bg-primary text-primary-foreground border-primary"
-                        : "bg-background border-border hover:bg-muted/50"
-                    }`}
-                  >
-                    {option.label}
-                  </button>
-                );
-              })}
+        {!isPwNdip && (
+          <FieldWithHelp
+            label="Transducer Shape and Size (multi-select)"
+            fieldKey="transducerDiameter"
+            help="Select one or more standard shape/size options"
+            required
+          >
+            <div className="space-y-2">
+              <div className="flex flex-wrap gap-2">
+                {transducerShapeOptions.map((option) => {
+                  const selected = selectedTransducerShapes.includes(option.value);
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => toggleTransducerShape(option.value)}
+                      className={`px-2 py-1 rounded border text-xs transition-colors ${
+                        selected
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-background border-border hover:bg-muted/50"
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  );
+                })}
+              </div>
+              {selectedTransducerShapes.length === 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Select one or more transducer shape/size options.
+                </p>
+              )}
             </div>
-            {selectedTransducerShapes.length === 0 && (
-              <p className="text-xs text-muted-foreground">
-                Select one or more transducer shape/size options.
-              </p>
-            )}
-          </div>
-        </FieldWithHelp>
+          </FieldWithHelp>
+        )}
 
         <FieldWithHelp
           label="Couplant Type"
@@ -503,7 +610,197 @@ export const EquipmentTab = ({ data, onChange, partThickness, standard = "AMS-ST
 
       </div>
 
+      {isPwNdip && (
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+          <Card className="border-blue-500/30 bg-blue-500/5 p-4">
+            <div className="mb-3">
+              <h4 className="text-sm font-semibold">Transducer</h4>
+              <p className="text-xs text-muted-foreground">NDIP approved transducer configuration.</p>
+            </div>
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <FieldWithHelp label="P/N" fieldKey="transducerType">
+                <div>
+                  <Input value={PW_PRIMARY_TRANSDUCER.partNumber} readOnly className="bg-muted/40" />
+                  <p className="mt-1 text-xs text-muted-foreground">Ref. 2.4.2</p>
+                </div>
+              </FieldWithHelp>
+              <FieldWithHelp label="Frequency" fieldKey="transducerType">
+                <Input value={`${PW_PRIMARY_TRANSDUCER.frequency} MHZ`} readOnly className="bg-muted/40" />
+              </FieldWithHelp>
+              <FieldWithHelp label="Focus" fieldKey="transducerType">
+                <Input value={`${PW_PRIMARY_TRANSDUCER.focalLength}''`} readOnly className="bg-muted/40" />
+              </FieldWithHelp>
+              <FieldWithHelp label="Bandwidth" fieldKey="transducerType">
+                <Input value={PW_PRIMARY_TRANSDUCER.bandwidth} readOnly className="bg-muted/40" />
+              </FieldWithHelp>
+              <FieldWithHelp label="Serial Number" fieldKey="transducerType">
+                <Input
+                  value={data.ndipTransducerSerialNumber || ""}
+                  onChange={(e) => updateField("ndipTransducerSerialNumber", e.target.value)}
+                  placeholder="Enter serial number"
+                  className="bg-background"
+                />
+              </FieldWithHelp>
+            </div>
+          </Card>
+
+          <Card className="border-emerald-500/30 bg-emerald-500/5 p-4">
+            <div className="mb-3">
+              <h4 className="text-sm font-semibold">Transducer Mirror</h4>
+              <p className="text-xs text-muted-foreground">Fixed 45-degree mirror assembly for the NDIP setup.</p>
+            </div>
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <FieldWithHelp label="P/N" fieldKey="transducerType">
+                <Input value={PW_45_DEGREE_MIRROR.partNumber} readOnly className="bg-muted/40" />
+              </FieldWithHelp>
+              <FieldWithHelp label="Serial Number" fieldKey="transducerType">
+                <Input
+                  value={data.ndipMirrorSerialNumber || ""}
+                  onChange={(e) => updateField("ndipMirrorSerialNumber", e.target.value)}
+                  placeholder="Enter serial number"
+                  className="bg-background"
+                />
+              </FieldWithHelp>
+              <FieldWithHelp label="Mirror Angle" fieldKey="transducerType">
+                <Input value={`${PW_45_DEGREE_MIRROR.angle} degrees`} readOnly className="bg-muted/40" />
+              </FieldWithHelp>
+              <FieldWithHelp label="Length" fieldKey="transducerType">
+                <Input value={`${PW_45_DEGREE_MIRROR.length}''`} readOnly className="bg-muted/40" />
+              </FieldWithHelp>
+            </div>
+          </Card>
+
+          <Card className="border-amber-500/30 bg-amber-500/5 p-4">
+            <div className="mb-3">
+              <h4 className="text-sm font-semibold">Handling / Marking</h4>
+              <p className="text-xs text-muted-foreground">NDIP handling and consumable items.</p>
+            </div>
+            <div className="grid grid-cols-1 gap-3">
+              <FieldWithHelp label="Chuck Riser" fieldKey="manufacturer">
+                {addingChuckRiser ? (
+                  <div className="space-y-2">
+                    <div className="flex gap-1">
+                      <Input
+                        value={newItemValue}
+                        onChange={(e) => setNewItemValue(e.target.value)}
+                        placeholder="Enter chuck riser..."
+                        className="bg-background flex-1"
+                        autoFocus
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") addCustomChuckRiser(newItemValue);
+                          if (e.key === "Escape") {
+                            setAddingChuckRiser(false);
+                            setNewItemValue("");
+                          }
+                        }}
+                      />
+                      <Button size="sm" onClick={() => addCustomChuckRiser(newItemValue)} className="h-9">
+                        <Plus className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          setAddingChuckRiser(false);
+                          setNewItemValue("");
+                        }}
+                        className="h-9"
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Ref. 2.6.1</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Select
+                      value={data.ndipChuckRiser || ""}
+                      onValueChange={(value) => updateField("ndipChuckRiser", value)}
+                    >
+                      <SelectTrigger className="bg-background">
+                        <SelectValue placeholder="Select chuck riser..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {allChuckRiserOptions.map((option) => (
+                          <SelectItem key={option} value={option}>
+                            {option}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-xs text-muted-foreground">Ref. 2.6.1, using options from 2.8 / 2.9</p>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-7 px-2 text-xs"
+                        onClick={() => {
+                          setAddingChuckRiser(true);
+                          setNewItemValue("");
+                        }}
+                      >
+                        <Plus className="mr-1 h-3 w-3" />
+                        Add to list
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </FieldWithHelp>
+
+              <FieldWithHelp label="Marking Pencil" fieldKey="manufacturer">
+                <Input value={data.ndipMarkingPencil || V2500_MARKING_PENCIL} readOnly className="bg-muted/40" />
+              </FieldWithHelp>
+            </div>
+          </Card>
+
+          <Card className="border-violet-500/30 bg-violet-500/5 p-4">
+            <div className="mb-3">
+              <h4 className="text-sm font-semibold">Calibration Block</h4>
+              <p className="text-xs text-muted-foreground">Standard part number, serial tracking, and holder.</p>
+            </div>
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <FieldWithHelp label="P/N" fieldKey="manufacturer">
+                <Input value={V2500_CALIBRATION_BLOCK_PART_NUMBER} readOnly className="bg-muted/40" />
+              </FieldWithHelp>
+              <FieldWithHelp label="Serial Number" fieldKey="manufacturer">
+                <Input
+                  value={calibrationData?.blockSerialNumber || ""}
+                  onChange={(e) =>
+                    onCalibrationChange?.({
+                      ...(calibrationData || {
+                        standardType: "",
+                        referenceMaterial: "",
+                        fbhSizes: "",
+                        metalTravelDistance: 0,
+                        blockDimensions: "",
+                        blockDimensionsMode: "flat",
+                        blockSerialNumber: "",
+                        blockHolder: V2500_CALIBRATION_BLOCK_HOLDER,
+                        lastCalibrationDate: "",
+                      }),
+                      blockSerialNumber: e.target.value,
+                      blockHolder: V2500_CALIBRATION_BLOCK_HOLDER,
+                    })
+                  }
+                  placeholder="Enter serial number"
+                  className="bg-background"
+                />
+              </FieldWithHelp>
+              <FieldWithHelp label="Holder" fieldKey="manufacturer">
+                <Input
+                  value={calibrationData?.blockHolder || V2500_CALIBRATION_BLOCK_HOLDER}
+                  readOnly
+                  className="bg-muted/40 md:col-span-2"
+                />
+              </FieldWithHelp>
+            </div>
+          </Card>
+        </div>
+      )}
+
       {/* Phased Array Settings Section (Collapsible) */}
+      {!isPwNdip && (
       <div className="border border-purple-500/30 rounded-lg overflow-hidden bg-purple-500/5">
         <button
           type="button"
@@ -787,6 +1084,7 @@ export const EquipmentTab = ({ data, onChange, partThickness, standard = "AMS-ST
           </div>
         )}
       </div>
+      )}
 
       {/* Equipment Requirements Summary - Shows only current standard */}
       <div className="border border-border rounded-lg overflow-hidden">

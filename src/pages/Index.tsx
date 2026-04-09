@@ -31,6 +31,7 @@ import { InspectorCertificationTab } from "@/components/tabs/InspectorCertificat
 import { AerospaceForgingTab } from "@/components/tabs/AerospaceForgingTab";
 import { ScanDetailsTab } from "@/components/tabs/ScanDetailsTab";
 import { ScanPlanTab } from "@/components/tabs/ScanPlanTab";
+import { NdipReferenceTab } from "@/components/tabs/NdipReferenceTab";
 import { Collapsible3DPanel } from "@/components/ui/ResizablePanel";
 import { CollapsibleSidebar } from "@/components/CollapsibleSidebar";
 import type { StandardType, MaterialType } from "@/types/techniqueSheet";
@@ -165,6 +166,7 @@ const Index = () => {
   const currentDraftData = useMemo(() => buildCardData(), [buildCardData]);
   const currentCardSnapshot = useMemo(() => JSON.stringify(currentDraftData), [currentDraftData]);
   const isDirty = lastSavedSnapshot !== null && currentCardSnapshot !== lastSavedSnapshot;
+  const isPwNdip = standard === "NDIP-1226" || standard === "NDIP-1227";
 
   const markCurrentAsSaved = useCallback((snapshot = currentCardSnapshot) => {
     setLastSavedSnapshot(snapshot);
@@ -614,7 +616,7 @@ const Index = () => {
               <h3 className="font-semibold text-xs mb-2">Standard</h3>
               <StandardSelector value={standard} onChange={applyStandardChange} />
             </div>
-            {reportMode === "Technique" && (
+            {reportMode === "Technique" && !isPwNdip && (
               <div className="border-t border-border pt-3">
                 <AcceptanceClassSelector
                   value={(!isSplitMode || activePart === "A") ? acceptanceCriteria.acceptanceClass : acceptanceCriteriaB.acceptanceClass}
@@ -640,7 +642,7 @@ const Index = () => {
           title="Standard & Class"
         >
           <StandardSelector value={standard} onChange={applyStandardChange} variant="compact" />
-          {reportMode === "Technique" && (
+          {reportMode === "Technique" && !isPwNdip && (
             <div className="mt-6 pt-4 border-t border-border">
               <AcceptanceClassSelector
                 value={(!isSplitMode || activePart === "A") ? acceptanceCriteria.acceptanceClass : acceptanceCriteriaB.acceptanceClass}
@@ -671,9 +673,12 @@ const Index = () => {
                           <TabsTrigger value="scan" className={`${workbenchTabTriggerClass} whitespace-nowrap`}>Scan Params</TabsTrigger>
                           <TabsTrigger value="equipment" className={workbenchTabTriggerClass}>Equipment</TabsTrigger>
                           <TabsTrigger value="calibration" className={`${workbenchTabTriggerClass} whitespace-nowrap`}>Reference Standard</TabsTrigger>
-                          <TabsTrigger value="acceptance" className={workbenchTabTriggerClass}>Acceptance</TabsTrigger>
+                          <TabsTrigger value="acceptance" className={workbenchTabTriggerClass}>{isPwNdip ? "Rejection Criteria" : "Acceptance"}</TabsTrigger>
                           <TabsTrigger value="scandetails" className={`${workbenchTabTriggerClass} whitespace-nowrap`}>Scan Details</TabsTrigger>
                           <TabsTrigger value="docs" className={workbenchTabTriggerClass}>Documentation</TabsTrigger>
+                          {isPwNdip && (
+                            <TabsTrigger value="ndip-reference" className={`${workbenchTabTriggerClass} whitespace-nowrap`}>NDIP Notes</TabsTrigger>
+                          )}
                           <TabsTrigger value="scanplan" className={`${workbenchTabTriggerClass} whitespace-nowrap`}>Scan Plan</TabsTrigger>
                         </TabsList>
                       </div>
@@ -828,6 +833,8 @@ const Index = () => {
                           partThickness={currentData.inspectionSetup.partThickness}
                           standard={standard}
                           scanTechnique={currentData.scanParameters.technique}
+                          calibrationData={currentData.calibration}
+                          onCalibrationChange={currentData.setCalibration}
                         />
                       </TabsContent>
 
@@ -856,6 +863,12 @@ const Index = () => {
                           onChange={currentData.setDocumentation}
                         />
                       </TabsContent>
+
+                      {isPwNdip && (
+                        <TabsContent value="ndip-reference" className="m-0">
+                          <NdipReferenceTab standard={standard} />
+                        </TabsContent>
+                      )}
 
                       <TabsContent value="scanplan" className="m-0">
                         <ScanPlanTab

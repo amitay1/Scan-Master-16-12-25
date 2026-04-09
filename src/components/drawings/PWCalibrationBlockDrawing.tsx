@@ -485,9 +485,17 @@ export function PWCalibrationBlockDrawing({
             const front = { x: 0, y: 0 };
             const topRise = 90;
             const depth = 82;
+            const frontBottomInsetLeft = 54;
+            const frontBottomInsetRight = 34;
             const backTopLeft = { x: -depth, y: -topRise };
-            const backTopRight = { x: 36, y: -topRise };
-            const backBottomLeft = { x: -depth, y: faceH - topRise };
+            const backTopRight = { x: faceW - depth + 34, y: -topRise };
+            const backBottomLeft = { x: frontBottomInsetLeft - depth, y: faceH - topRise };
+            const frontFacePoints = [
+              { x: front.x, y: front.y },
+              { x: front.x + faceW, y: front.y },
+              { x: front.x + faceW - frontBottomInsetRight, y: front.y + faceH },
+              { x: front.x + frontBottomInsetLeft, y: front.y + faceH },
+            ];
 
             return (
               <>
@@ -496,8 +504,8 @@ export function PWCalibrationBlockDrawing({
                   points={[
                     `${backTopLeft.x},${backTopLeft.y}`,
                     `${backTopRight.x},${backTopRight.y}`,
-                    `${front.x + faceW},${front.y}`,
-                    `${front.x},${front.y}`,
+                    `${frontFacePoints[1].x},${frontFacePoints[1].y}`,
+                    `${frontFacePoints[0].x},${frontFacePoints[0].y}`,
                   ].join(" ")}
                   fill="#ffffff"
                   stroke={stroke}
@@ -508,8 +516,8 @@ export function PWCalibrationBlockDrawing({
                 <polygon
                   points={[
                     `${backTopLeft.x},${backTopLeft.y}`,
-                    `${front.x},${front.y}`,
-                    `${front.x},${front.y + faceH}`,
+                    `${frontFacePoints[0].x},${frontFacePoints[0].y}`,
+                    `${frontFacePoints[3].x},${frontFacePoints[3].y}`,
                     `${backBottomLeft.x},${backBottomLeft.y}`,
                   ].join(" ")}
                   fill="#ffffff"
@@ -518,7 +526,12 @@ export function PWCalibrationBlockDrawing({
                 />
 
                 {/* Front face (hole face) */}
-                <rect x={front.x} y={front.y} width={faceW} height={faceH} fill="#ffffff" stroke={stroke} strokeWidth="2" />
+                <polygon
+                  points={frontFacePoints.map((point) => `${point.x},${point.y}`).join(" ")}
+                  fill="#ffffff"
+                  stroke={stroke}
+                  strokeWidth="2"
+                />
 
                 {/* 45-degree label on top (matches the OEM isometric annotation) */}
                 <text x={front.x + faceW - 68} y={front.y - 8} fontSize="16" fontWeight="700" fontFamily="monospace" fill={stroke}>
@@ -530,8 +543,10 @@ export function PWCalibrationBlockDrawing({
                   .filter((h) => isoHoleLayout[h.id])
                   .map((h) => {
                     const pos = isoHoleLayout[h.id];
-                    const cx = front.x + faceW * pos.x;
                     const cy = front.y + faceH * pos.y;
+                    const leftEdgeX = front.x + frontBottomInsetLeft * pos.y;
+                    const rightEdgeX = front.x + faceW - frontBottomInsetRight * pos.y;
+                    const cx = leftEdgeX + (rightEdgeX - leftEdgeX) * pos.x;
                     const r = 6;
                     const isHighlighted = highlighted.has(h.id);
 

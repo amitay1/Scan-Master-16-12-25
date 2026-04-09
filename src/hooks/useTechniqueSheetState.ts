@@ -25,10 +25,17 @@ import {
   scanParametersByStandard,
 } from "@/data/standardsDifferences";
 import { PW_ANGLE_CALIBRATION_BLOCK } from "@/rules/pw/pwCalibrationBlocks";
+import { PW_45_DEGREE_MIRROR, PW_PRIMARY_TRANSDUCER } from "@/rules/pw/pwTransducers";
 import { getInspectionThickness } from "@/utils/inspectionThickness";
 import { normalizeInspectionSetupForStandard } from "@/utils/inspectionSetupProfiles";
 import { normalizeScanDetailsForStandard } from "@/utils/pwScanDetailDefaults";
-import { getV2500InspectionSetupDefaults } from "@/utils/pwNdipDefaults";
+import {
+  getV2500InspectionSetupDefaults,
+  isV2500NdipStandard,
+  V2500_CALIBRATION_BLOCK_HOLDER,
+  V2500_CHUCK_RISER_DEFAULTS,
+  V2500_MARKING_PENCIL,
+} from "@/utils/pwNdipDefaults";
 import { readTechniqueSheetDraft } from "@/utils/updateRecovery";
 
 const defaultInspectionSetup: InspectionSetupData = {
@@ -62,6 +69,7 @@ const defaultEquipment: EquipmentData = {
   horizontalLinearity: 85,
   entrySurfaceResolution: 0.125,
   backSurfaceResolution: 0.05,
+  ndipMarkingPencil: "",
 };
 
 const defaultCalibration: CalibrationData = {
@@ -72,6 +80,7 @@ const defaultCalibration: CalibrationData = {
   blockDimensions: "",
   blockDimensionsMode: "flat",
   blockSerialNumber: "",
+  blockHolder: "",
   lastCalibrationDate: "",
 };
 
@@ -441,13 +450,30 @@ export function useTechniqueSheetState({
   const applyStandardChange = useCallback((nextStandard: StandardType) => {
     // 1) Update UI-level standard state
     setStandard(nextStandard);
+    const isPwNdip = isV2500NdipStandard(nextStandard);
+    const previousPwDefaults = getV2500InspectionSetupDefaults(standard);
+
+    if (!isPwNdip && activeTab === "ndip-reference") {
+      setActiveTab("setup");
+    }
 
     const applyInspectionSetup = (prev: InspectionSetupData): InspectionSetupData => {
+      let baseSetup = { ...prev };
+
+      if (!isPwNdip && previousPwDefaults) {
+        if (baseSetup.partName === previousPwDefaults.partName) {
+          baseSetup.partName = "";
+        }
+        if (baseSetup.partNumber === previousPwDefaults.partNumber) {
+          baseSetup.partNumber = "";
+        }
+      }
+
       const pwDefaults = getV2500InspectionSetupDefaults(nextStandard);
       const mergedSetup = pwDefaults ? {
-        ...prev,
+        ...baseSetup,
         ...pwDefaults,
-      } : prev;
+      } : baseSetup;
 
       return normalizeInspectionSetupForStandard(mergedSetup, nextStandard);
     };
@@ -485,7 +511,6 @@ export function useTechniqueSheetState({
     const applyScanParameters = (prev: ScanParametersData): ScanParametersData => {
       const rules = scanParametersByStandard[nextStandard];
       if (!rules) return prev;
-      const isPwNdip = nextStandard === "NDIP-1226" || nextStandard === "NDIP-1227";
 
       const minOverlap = Number.isFinite(rules.minOverlap) ? rules.minOverlap : 0;
       const maxIndex = Math.max(0, Math.min(100, 100 - minOverlap));
@@ -532,23 +557,41 @@ export function useTechniqueSheetState({
     };
 
     const applyEquipment = (prev: EquipmentData): EquipmentData => {
-      const isPwNdip = nextStandard === "NDIP-1226" || nextStandard === "NDIP-1227";
       const eqRules = equipmentParametersByStandard[nextStandard];
       const typicalFrequency = eqRules?.frequencyRange?.typical;
       const normalizedFrequency = Number.isFinite(typicalFrequency)
         ? (Number.isInteger(typicalFrequency) ? typicalFrequency.toFixed(1) : String(typicalFrequency))
         : prev.frequency;
 
+      const ndipEquipmentByManufacturer: Record<string, string> = {
+        "Inspection Research & Technologies Ltd": "LS-200 Immersion Tank and Ultrasonic Scanner",
+        Matec: "IMT3007-SS-TT-L-ARN or equivalent",
+      };
+      const ndipManufacturers = Object.keys(ndipEquipmentByManufacturer);
+      const manufacturer = isPwNdip
+        ? (ndipManufacturers.includes(prev.manufacturer) ? prev.manufacturer : ndipManufacturers[0])
+        : prev.manufacturer;
+
       return {
         ...prev,
         frequency: normalizedFrequency,
-        transducerType: isPwNdip ? (prev.transducerType || "immersion") : prev.transducerType,
-        couplant: isPwNdip ? (prev.couplant || "Water (Immersion)") : prev.couplant,
+        manufacturer,
+        model: isPwNdip ? ndipEquipmentByManufacturer[manufacturer] : prev.model,
+        probeModel: isPwNdip ? PW_PRIMARY_TRANSDUCER.partNumber : prev.probeModel,
+        transducerType: isPwNdip ? "immersion" : prev.transducerType,
+        transducerTypes: isPwNdip ? ["immersion"] : prev.transducerTypes,
+        transducerShapeAndSize: isPwNdip ? "" : prev.transducerShapeAndSize,
+        couplant: isPwNdip ? "Water (Immersion)" : prev.couplant,
+        bandwidth: isPwNdip ? PW_PRIMARY_TRANSDUCER.bandwidth : prev.bandwidth,
+        focusSize: isPwNdip ? `${PW_PRIMARY_TRANSDUCER.focalLength}''` : prev.focusSize,
+        velocity: isPwNdip ? 5920 / 2 : prev.velocity,
+        wedgeModel: isPwNdip ? PW_45_DEGREE_MIRROR.partNumber : prev.wedgeModel,
+        ndipMarkingPencil: isPwNdip ? (prev.ndipMarkingPencil || V2500_MARKING_PENCIL) : prev.ndipMarkingPencil,
+        ndipChuckRiser: isPwNdip ? (prev.ndipChuckRiser || V2500_CHUCK_RISER_DEFAULTS[nextStandard]) : prev.ndipChuckRiser,
       };
     };
 
     const applyCalibration = (prev: CalibrationData, thicknessMm: number, acceptanceClass: string): CalibrationData => {
-      const isPwNdip = nextStandard === "NDIP-1226" || nextStandard === "NDIP-1227";
       const calReq = calibrationByStandard[nextStandard];
 
       if (isPwNdip) {
@@ -589,6 +632,7 @@ export function useTechniqueSheetState({
           fbhHoles,
           metalTravelDistance: avgMetalTravel,
           blockDimensions: dimStr || prev.blockDimensions,
+          blockHolder: prev.blockHolder || V2500_CALIBRATION_BLOCK_HOLDER,
           autoRecommendedReason:
             `PW ${nextStandard} calibration: ${PW_ANGLE_CALIBRATION_BLOCK.partNumber} ` +
             `(holes L-S, J & K omitted). Post-calibration tolerance ±1 dB.`,
@@ -605,6 +649,25 @@ export function useTechniqueSheetState({
       };
     };
 
+    const applyScanDetails = (prev: ScanDetailsData): ScanDetailsData => {
+      const normalized = normalizeScanDetailsForStandard(prev.scanDetails, nextStandard);
+      const scanDetails = normalized ?? prev.scanDetails ?? [];
+
+      return {
+        ...prev,
+        scanDetails: scanDetails.map((detail) => {
+          const isShearWave = /shear wave/i.test(detail.waveMode || "");
+          return {
+            ...detail,
+            velocity: isShearWave ? 5920 / 2 : detail.velocity,
+            incidentAngle: isPwNdip
+              ? ([18, 19, 20, 21].includes(Number(detail.incidentAngle)) ? detail.incidentAngle : 18)
+              : detail.incidentAngle,
+          };
+        }),
+      };
+    };
+
     // Apply standard-dependent updates to BOTH parts (keeps split mode consistent)
     setInspectionSetup(applyInspectionSetup);
     setInspectionSetupB(applyInspectionSetup);
@@ -618,6 +681,9 @@ export function useTechniqueSheetState({
     setEquipment(applyEquipment);
     setEquipmentB(applyEquipment);
 
+    setScanDetails(applyScanDetails);
+    setScanDetailsB(applyScanDetails);
+
     // Calibration uses thickness + acceptance class; derive from each part\'s current setup.
     setCalibration((prev) => {
       const t = getInspectionThickness(inspectionSetup, 25);
@@ -630,18 +696,11 @@ export function useTechniqueSheetState({
       return applyCalibration(prev, t, nextClass);
     });
 
-    // Keep scan-direction rows aligned with the selected standard so stale
-    // directions from a previous standard do not persist.
-    setScanDetails((prev) => {
-      const normalized = normalizeScanDetailsForStandard(prev.scanDetails, nextStandard);
-      return normalized ? { ...prev, scanDetails: normalized } : prev;
-    });
-    setScanDetailsB((prev) => {
-      const normalized = normalizeScanDetailsForStandard(prev.scanDetails, nextStandard);
-      return normalized ? { ...prev, scanDetails: normalized } : prev;
-    });
   }, [
+    activeTab,
+    setActiveTab,
     setStandard,
+    standard,
     setInspectionSetup,
     setInspectionSetupB,
     setAcceptanceCriteria,

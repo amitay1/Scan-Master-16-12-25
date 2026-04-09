@@ -92,10 +92,11 @@ export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E", 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [standard]);
 
-  // Show phased array fields when PA technique is selected
-  const showPhasedArray = data.technique === "phased_array";
+  // Hidden per UI request in Scan Parameters
+  const showPhasedArray = false;
+  const isPwNdip = standard === "NDIP-1226" || standard === "NDIP-1227";
   // Show bubbler fields when bubbler technique is selected
-  const showBubblerFields = data.technique === "bubbler";
+  const showBubblerFields = !isPwNdip && data.technique === "bubbler";
   const isAustenitic = standard === "BS-EN-10228-4";
   const scanSpeedPresets = [50, 100, 150, 200, 300];
   const selectedSpeedPreset = scanSpeedPresets.includes(Number(data.scanSpeed))
@@ -126,7 +127,30 @@ export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E", 
     return prfRecommendationTable.find((row) => speed <= row.maxScanSpeed) || null;
   }, [data.scanSpeed, prfRecommendationTable]);
 
-  // Update phased array settings
+  useEffect(() => {
+    if (!isPwNdip) {
+      return;
+    }
+
+    const nextScanMethods = ["immersion"];
+    const needsNormalization =
+      data.scanMethod !== "immersion" ||
+      data.technique !== "conventional" ||
+      JSON.stringify(data.scanMethods || []) !== JSON.stringify(nextScanMethods);
+
+    if (!needsNormalization) {
+      return;
+    }
+
+    onChange({
+      ...data,
+      scanMethod: "immersion",
+      scanMethods: nextScanMethods,
+      technique: "conventional",
+    });
+  }, [data, isPwNdip, onChange]);
+
+  // Keep phased array field updaters intact while the UI is hidden.
   const updatePhasedArrayField = (field: keyof PhasedArraySettings, value: unknown) => {
     onChange({
       ...data,
@@ -137,7 +161,6 @@ export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E", 
     });
   };
 
-  // Update phased array scan types
   const updatePhasedArrayScanType = (scanType: 'sScan' | 'linearScan' | 'compoundScan', checked: boolean) => {
     onChange({
       ...data,
@@ -178,6 +201,14 @@ export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E", 
           <button
             type="button"
             onClick={() => {
+              if (isPwNdip) {
+                onChange({
+                  ...data,
+                  scanMethods: ["immersion"],
+                  scanMethod: "immersion",
+                });
+                return;
+              }
               const current = data.scanMethods || [];
               const newMethods = current.includes('immersion')
                 ? current.filter(m => m !== 'immersion')
@@ -196,27 +227,29 @@ export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E", 
           >
             IMMERSION
           </button>
-          <button
-            type="button"
-            onClick={() => {
-              const current = data.scanMethods || [];
-              const newMethods = current.includes('contact')
-                ? current.filter(m => m !== 'contact')
-                : [...current, 'contact'];
-              onChange({
-                ...data,
-                scanMethods: newMethods,
-                scanMethod: newMethods.length > 0 ? newMethods[0] : data.scanMethod
-              });
-            }}
-            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all border ${
-              (data.scanMethods || []).includes('contact')
-                ? 'bg-blue-600 text-white border-blue-600'
-                : 'bg-gray-100 hover:bg-gray-200 text-gray-800 border-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-600'
-            }`}
-          >
-            CONTACT
-          </button>
+          {!isPwNdip && (
+            <button
+              type="button"
+              onClick={() => {
+                const current = data.scanMethods || [];
+                const newMethods = current.includes('contact')
+                  ? current.filter(m => m !== 'contact')
+                  : [...current, 'contact'];
+                onChange({
+                  ...data,
+                  scanMethods: newMethods,
+                  scanMethod: newMethods.length > 0 ? newMethods[0] : data.scanMethod
+                });
+              }}
+              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all border ${
+                (data.scanMethods || []).includes('contact')
+                  ? 'bg-blue-600 text-white border-blue-600'
+                  : 'bg-gray-100 hover:bg-gray-200 text-gray-800 border-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-600'
+              }`}
+            >
+              CONTACT
+            </button>
+          )}
         </div>
         {(data.scanMethods || []).length === 0 && (
           <p className="text-xs text-muted-foreground mt-1">Select one or more scan methods</p>
@@ -238,39 +271,43 @@ export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E", 
           >
             Conventional
           </button>
-          <button
-            type="button"
-            onClick={() => updateField("technique", "bubbler")}
-            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
-              data.technique === 'bubbler'
-                ? 'bg-purple-600 text-white'
-                : 'bg-muted hover:bg-muted/80 text-foreground'
-            }`}
-          >
-            Bubbler
-          </button>
-          <button
-            type="button"
-            onClick={() => updateField("technique", "squirter")}
-            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
-              data.technique === 'squirter'
-                ? 'bg-purple-600 text-white'
-                : 'bg-muted hover:bg-muted/80 text-foreground'
-            }`}
-          >
-            Squirter
-          </button>
-          <button
-            type="button"
-            onClick={() => updateField("technique", "phased_array")}
-            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
-              data.technique === 'phased_array'
-                ? 'bg-purple-600 text-white'
-                : 'bg-muted hover:bg-muted/80 text-foreground'
-            }`}
-          >
-            Phased Array
-          </button>
+          {!isPwNdip && (
+            <>
+              <button
+                type="button"
+                onClick={() => updateField("technique", "bubbler")}
+                className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+                  data.technique === 'bubbler'
+                    ? 'bg-purple-600 text-white'
+                    : 'bg-muted hover:bg-muted/80 text-foreground'
+                }`}
+              >
+                Bubbler
+              </button>
+              <button
+                type="button"
+                onClick={() => updateField("technique", "squirter")}
+                className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+                  data.technique === 'squirter'
+                    ? 'bg-purple-600 text-white'
+                    : 'bg-muted hover:bg-muted/80 text-foreground'
+                }`}
+              >
+                Squirter
+              </button>
+              <button
+                type="button"
+                onClick={() => updateField("technique", "phased_array")}
+                className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+                  data.technique === 'phased_array'
+                    ? 'bg-purple-600 text-white'
+                    : 'bg-muted hover:bg-muted/80 text-foreground'
+                }`}
+              >
+                Phased Array
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -567,30 +604,32 @@ export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E", 
           )}
         </FieldWithHelp>
 
-        <FieldWithHelp
-          label="Scan Index (% of beam width)"
-          fieldKey="scanIndex"
-          help={
-            hasOverlapRequirement
-              ? `Per ${standard}: Minimum ${scanParams.minOverlap}% overlap required (max index ${100 - scanParams.minOverlap}%)`
-              : `Per ${standard}: overlap percent is not explicitly specified. Use NDIP absolute limits (max scan increment 0.020", max index increment 0.020"/rev).`
-          }
-          required
-        >
-          <Input
-            type="number"
-            value={data.scanIndex}
-            onChange={(e) => updateField("scanIndex", parseFloat(e.target.value) || 0)}
-            min={1}
-            max={hasOverlapRequirement ? 100 - scanParams.minOverlap : 100}
-            className={`bg-background ${!compliance.overlapOk ? "border-destructive" : ""}`}
-          />
-          {hasOverlapRequirement && !compliance.overlapOk && (
-            <p className="text-xs text-destructive mt-1">
-              Results in {100 - data.scanIndex}% overlap. Minimum {scanParams.minOverlap}% required per {standard}
-            </p>
-          )}
-        </FieldWithHelp>
+        {!isPwNdip && (
+          <FieldWithHelp
+            label="Scan Index (% of beam width)"
+            fieldKey="scanIndex"
+            help={
+              hasOverlapRequirement
+                ? `Per ${standard}: Minimum ${scanParams.minOverlap}% overlap required (max index ${100 - scanParams.minOverlap}%)`
+                : `Per ${standard}: overlap percent is not explicitly specified. Use NDIP absolute limits (max scan increment 0.020", max index increment 0.020"/rev).`
+            }
+            required
+          >
+            <Input
+              type="number"
+              value={data.scanIndex}
+              onChange={(e) => updateField("scanIndex", parseFloat(e.target.value) || 0)}
+              min={1}
+              max={hasOverlapRequirement ? 100 - scanParams.minOverlap : 100}
+              className={`bg-background ${!compliance.overlapOk ? "border-destructive" : ""}`}
+            />
+            {hasOverlapRequirement && !compliance.overlapOk && (
+              <p className="text-xs text-destructive mt-1">
+                Results in {100 - data.scanIndex}% overlap. Minimum {scanParams.minOverlap}% required per {standard}
+              </p>
+            )}
+          </FieldWithHelp>
+        )}
 
         <FieldWithHelp
           label="Coverage (%)"
