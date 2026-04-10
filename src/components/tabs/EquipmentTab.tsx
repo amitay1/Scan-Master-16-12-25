@@ -125,6 +125,10 @@ export const EquipmentTab = ({
   const [addingWedge, setAddingWedge] = useState(false);
   const [addingChuckRiser, setAddingChuckRiser] = useState(false);
   const [newItemValue, setNewItemValue] = useState("");
+  const isPwNdip = standard === "NDIP-1226" || standard === "NDIP-1227";
+  const resolvedNdipModel =
+    NDIP_EQUIPMENT_BY_MANUFACTURER[data.manufacturer] ||
+    NDIP_EQUIPMENT_BY_MANUFACTURER["Inspection Research & Technologies Ltd"];
 
   // Load custom items from localStorage on mount
   useEffect(() => {
@@ -328,8 +332,6 @@ export const EquipmentTab = ({
 
   // Warn if frequency is invalid for standard
   const showFrequencyWarning = !isFrequencyValid && data.frequency;
-  const isPwNdip = standard === "NDIP-1226" || standard === "NDIP-1227";
-  const resolvedNdipModel = NDIP_EQUIPMENT_BY_MANUFACTURER[data.manufacturer] || NDIP_EQUIPMENT_BY_MANUFACTURER["Inspection Research & Technologies Ltd"];
 
   return (
     <div className="space-y-2 p-2">

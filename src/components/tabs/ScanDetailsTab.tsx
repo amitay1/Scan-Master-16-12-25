@@ -159,6 +159,11 @@ export const ScanDetailsTab = ({
     (data.customDrawingData?.confirmedGeometry as PartGeometry) || null
   );
   const [scanArrows, setScanArrows] = useState<ScanArrow[]>([]);
+  const hasKnownV2500Context = hasKnownActiveMroContext(standard, partNumber);
+  const isV2500Standard = isActiveMroStandard(standard);
+  const isPwNdip = standard === "NDIP-1226" || standard === "NDIP-1227";
+  const isHptDiskPart = partType === "hpt_disk";
+  const v2500Stage: 1 | 2 | null = getActiveMroStage(standard, partNumber);
 
   // AI vision hook (supports Claude + Ollama)
   const {
@@ -346,12 +351,6 @@ export const ScanDetailsTab = ({
   const directionColors = Object.fromEntries(
     scanDetails.map(d => [d.scanningDirection, d.color || "#111827"])
   ) as Record<string, string>;
-
-  const hasKnownV2500Context = hasKnownActiveMroContext(standard, partNumber);
-  const isV2500Standard = isActiveMroStandard(standard);
-  const isPwNdip = standard === "NDIP-1226" || standard === "NDIP-1227";
-  const isHptDiskPart = partType === "hpt_disk";
-  const v2500Stage: 1 | 2 | null = getActiveMroStage(standard, partNumber);
 
   // Custom drawing handlers
   const handleImageUpload = useCallback((imageBase64: string, width: number, height: number) => {
