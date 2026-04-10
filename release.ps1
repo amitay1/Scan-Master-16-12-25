@@ -414,6 +414,8 @@ function Upload-GitHubReleaseAssetWithProgress {
     $fileStream = $null
     $requestStream = $null
     $response = $null
+    $responseStream = $null
+    $reader = $null
     $bytesSent = 0L
     $uploadStartedAt = Get-Date
     $lastProgressUpdateAt = $uploadStartedAt.AddSeconds(-1)
@@ -495,13 +497,39 @@ function Upload-GitHubReleaseAssetWithProgress {
         }
     } finally {
         if ($requestStream) {
-            $requestStream.Dispose()
+            try {
+                $requestStream.Dispose()
+            } catch {
+                Write-Warn "  Upload request stream cleanup warning: $($_.Exception.Message)"
+            }
         }
         if ($fileStream) {
-            $fileStream.Dispose()
+            try {
+                $fileStream.Dispose()
+            } catch {
+                Write-Warn "  Upload file stream cleanup warning: $($_.Exception.Message)"
+            }
+        }
+        if ($reader) {
+            try {
+                $reader.Dispose()
+            } catch {
+                Write-Warn "  Upload response reader cleanup warning: $($_.Exception.Message)"
+            }
+        }
+        if ($responseStream) {
+            try {
+                $responseStream.Dispose()
+            } catch {
+                Write-Warn "  Upload response stream cleanup warning: $($_.Exception.Message)"
+            }
         }
         if ($response) {
-            $response.Dispose()
+            try {
+                $response.Dispose()
+            } catch {
+                Write-Warn "  Upload response cleanup warning: $($_.Exception.Message)"
+            }
         }
     }
 }
@@ -927,8 +955,28 @@ if ($ghAvailable) {
                     Write-Info "  Uploading: $($file.Name) [$sizeText]"
                     $uploadStarted = Get-Date
                     if ($useApiUploadForThisAttempt) {
-                        $uploadResult = Upload-GitHubReleaseAssetWithProgress -ReleaseId $releaseApiInfo.ReleaseId -Repo $githubRepo -FilePath $file.Path -AssetLabel $file.Name -Token $releaseApiToken -FileIndex $progressFileIndex -FileCount $filesToUpload.Count -CompletedBytesBeforeFile $completedUploadBytes -OverallTotalBytes $overallUploadBytesTotal
+                        try {
+                            $uploadResult = Upload-GitHubReleaseAssetWithProgress -ReleaseId $releaseApiInfo.ReleaseId -Repo $githubRepo -FilePath $file.Path -AssetLabel $file.Name -Token $releaseApiToken -FileIndex $progressFileIndex -FileCount $filesToUpload.Count -CompletedBytesBeforeFile $completedUploadBytes -OverallTotalBytes $overallUploadBytesTotal
+                        } catch {
+                            $uploadResult = [PSCustomObject]@{
+                                Success = $false
+                                StatusCode = $null
+                                Content = $null
+                                Json = $null
+                                Error = $_.Exception.Message
+                            }
+                        }
                         $uploadExitCode = if ($uploadResult.Success) { 0 } else { 1 }
+                        if (-not $uploadResult.Success) {
+                            Write-Warn "  GitHub API upload failed for $($file.Name): $($uploadResult.Error)"
+                            if ($uploadResult.Content) {
+                                Write-Warn "  GitHub API response: $($uploadResult.Content)"
+                            }
+                            if ($attempt -lt $maxUploadAttempts) {
+                                Write-Warn "  Falling back to gh release upload on the next attempt for $($file.Name)."
+                                $useApiUpload = $false
+                            }
+                        }
                     } else {
                         $uploadResult = Invoke-GhCli -Arguments @("release", "upload", $releaseTag, $file.Path, "--repo", $githubRepo, "--clobber")
                         $uploadExitCode = $uploadResult.ExitCode
