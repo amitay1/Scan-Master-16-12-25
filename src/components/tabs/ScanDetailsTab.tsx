@@ -526,7 +526,6 @@ export const ScanDetailsTab = ({
               )
             }
             className={inputClassName}
-            placeholder={usePositionStartStop ? "Position" : "Start"}
           />
           <Input
             type="number"
@@ -540,7 +539,6 @@ export const ScanDetailsTab = ({
               )
             }
             className={inputClassName}
-            placeholder={usePositionStartStop ? "Start" : "Length"}
           />
           <Input
             type="number"
@@ -554,7 +552,6 @@ export const ScanDetailsTab = ({
               )
             }
             className={inputClassName}
-            placeholder={usePositionStartStop ? "Stop" : "Level %"}
           />
         </div>
       </div>
@@ -675,7 +672,6 @@ export const ScanDetailsTab = ({
                   value={detail.partNumber || ""}
                   onChange={(e) => updateScanDetail(index, "partNumber", e.target.value)}
                   className="h-8 text-xs bg-slate-900/60 border-slate-600 text-slate-100 placeholder:text-slate-500"
-                  placeholder="P/N"
                 />
               </div>
               <div>
@@ -684,7 +680,6 @@ export const ScanDetailsTab = ({
                   value={detail.serialNumber || ""}
                   onChange={(e) => updateScanDetail(index, "serialNumber", e.target.value)}
                   className="h-8 text-xs bg-slate-900/60 border-slate-600 text-slate-100 placeholder:text-slate-500"
-                  placeholder="S/N"
                 />
               </div>
               <div>
@@ -694,7 +689,6 @@ export const ScanDetailsTab = ({
                   value={detail.activeElementDiameter?.toString() || ""}
                   onChange={(e) => updateScanDetail(index, "activeElementDiameter", parseFloat(e.target.value) || 0)}
                   className="h-8 text-xs bg-slate-900/60 border-slate-600 text-slate-100 placeholder:text-slate-500"
-                  placeholder="10"
                 />
               </div>
               <div>
@@ -703,7 +697,6 @@ export const ScanDetailsTab = ({
                   value={detail.bandwidth || ""}
                   onChange={(e) => updateScanDetail(index, "bandwidth", e.target.value)}
                   className="h-8 text-xs bg-slate-900/60 border-slate-600 text-slate-100 placeholder:text-slate-500"
-                  placeholder="e.g., 2-10 MHz"
                 />
               </div>
               <div>
@@ -712,7 +705,6 @@ export const ScanDetailsTab = ({
                   value={detail.focusSize || ""}
                   onChange={(e) => updateScanDetail(index, "focusSize", e.target.value)}
                   className="h-8 text-xs bg-slate-900/60 border-slate-600 text-slate-100 placeholder:text-slate-500"
-                  placeholder="e.g., 8 inch"
                 />
               </div>
               {/* Frequency hidden from UI per requirements — kept in data model for transducer selection */}
@@ -723,7 +715,6 @@ export const ScanDetailsTab = ({
                   value={detail.velocity?.toString() || ""}
                   onChange={(e) => updateScanDetail(index, "velocity", parseFloat(e.target.value) || 0)}
                   className="h-8 text-xs bg-slate-900/60 border-slate-600 text-slate-100 placeholder:text-slate-500"
-                  placeholder="5920"
                 />
               </div>
               <div>
@@ -740,7 +731,6 @@ export const ScanDetailsTab = ({
                             ? "bg-emerald-900/40 border-emerald-500/50 ring-1 ring-emerald-500/30"
                             : "bg-slate-800"
                         }`}
-                        placeholder="Auto (N = D²/4\u03BB)"
                       />
                       {nf !== null && (
                         <span className="absolute -top-1.5 right-1 px-1 text-[8px] font-bold bg-emerald-500 text-white rounded">
@@ -792,7 +782,6 @@ export const ScanDetailsTab = ({
                   value={detail.scanningFile || ""}
                   onChange={(e) => updateScanDetail(index, "scanningFile", e.target.value)}
                   className="h-8 text-xs bg-slate-900/60 border-slate-600 text-slate-100 placeholder:text-slate-500"
-                  placeholder="File name"
                 />
               </div>
               <div>
@@ -801,7 +790,6 @@ export const ScanDetailsTab = ({
                   value={detail.utParameter || detail.pulsarParams || ""}
                   onChange={(e) => updateScanDetail(index, "utParameter", e.target.value)}
                   className="h-8 text-xs bg-slate-900/60 border-slate-600 text-slate-100 placeholder:text-slate-500"
-                  placeholder="300V,SQUARE,130NS"
                 />
               </div>
               <div>
@@ -811,7 +799,6 @@ export const ScanDetailsTab = ({
                   value={detail.utRange?.toString() || ""}
                   onChange={(e) => updateScanDetail(index, "utRange", parseFloat(e.target.value) || 0)}
                   className="h-8 text-xs bg-slate-900/60 border-slate-600 text-slate-100 placeholder:text-slate-500"
-                  placeholder="e.g., 380"
                 />
               </div>
               <div>
@@ -821,7 +808,6 @@ export const ScanDetailsTab = ({
                   value={detail.utDelay?.toString() || ""}
                   onChange={(e) => updateScanDetail(index, "utDelay", parseFloat(e.target.value) || 0)}
                   className="h-8 text-xs bg-slate-900/60 border-slate-600 text-slate-100 placeholder:text-slate-500"
-                  placeholder="e.g., 0"
                 />
               </div>
               {isPwNdip && (
@@ -832,7 +818,7 @@ export const ScanDetailsTab = ({
                     onValueChange={(value) => updateScanDetail(index, "incidentAngle", Number(value))}
                   >
                     <SelectTrigger className="h-8 text-xs bg-slate-900/60 border-slate-600 text-slate-100">
-                      <SelectValue placeholder="Select" />
+                      <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="bg-slate-800 border-slate-600">
                       {availableIncidentAngles.map((value) => (
@@ -851,13 +837,12 @@ export const ScanDetailsTab = ({
                   value={detail.prf?.toString() || ""}
                   onChange={(e) => updateScanDetail(index, "prf", parseInt(e.target.value) || 0)}
                   className="h-8 text-xs bg-slate-900/60 border-slate-600 text-slate-100 placeholder:text-slate-500"
-                  placeholder="150"
                 />
               </div>
               <div>
                 <Label className="text-[10px] text-slate-400 uppercase tracking-wide">Index</Label>
                 <Select value={detail.indexMode || ""} onValueChange={(v) => updateScanDetail(index, "indexMode", v)}>
-                  <SelectTrigger className="h-8 text-xs bg-slate-900/60 border-slate-600 text-slate-100"><SelectValue placeholder="Select" /></SelectTrigger>
+                  <SelectTrigger className="h-8 text-xs bg-slate-900/60 border-slate-600 text-slate-100"><SelectValue /></SelectTrigger>
                   <SelectContent className="bg-slate-800 border-slate-600">
                     {availableIndexModes.map((value) => (
                       <SelectItem key={value} value={value} className="text-xs text-slate-100">
@@ -874,13 +859,12 @@ export const ScanDetailsTab = ({
                   value={detail.db?.toString() || ""}
                   onChange={(e) => updateScanDetail(index, "db", parseFloat(e.target.value) || 0)}
                   className="h-8 text-xs bg-slate-900/60 border-slate-600 text-slate-100 placeholder:text-slate-500"
-                  placeholder="0"
                 />
               </div>
               <div>
                 <Label className="text-[10px] text-slate-400 uppercase tracking-wide">Filter</Label>
                 <Select value={detail.filter || ""} onValueChange={(v) => updateScanDetail(index, "filter", v)}>
-                  <SelectTrigger className="h-8 text-xs bg-slate-900/60 border-slate-600 text-slate-100"><SelectValue placeholder="Select" /></SelectTrigger>
+                  <SelectTrigger className="h-8 text-xs bg-slate-900/60 border-slate-600 text-slate-100"><SelectValue /></SelectTrigger>
                   <SelectContent className="bg-slate-800 border-slate-600">
                     {availableFilters.map((value) => (
                       <SelectItem key={value} value={value} className="text-xs text-slate-100">
@@ -893,7 +877,7 @@ export const ScanDetailsTab = ({
               <div>
                 <Label className="text-[10px] text-slate-400 uppercase tracking-wide">Reject</Label>
                 <Select value={detail.reject || ""} onValueChange={(v) => updateScanDetail(index, "reject", v)}>
-                  <SelectTrigger className="h-8 text-xs bg-slate-900/60 border-slate-600 text-slate-100"><SelectValue placeholder="Select" /></SelectTrigger>
+                  <SelectTrigger className="h-8 text-xs bg-slate-900/60 border-slate-600 text-slate-100"><SelectValue /></SelectTrigger>
                   <SelectContent className="bg-slate-800 border-slate-600">
                     {availableRejectValues.map((value) => (
                       <SelectItem key={value} value={value} className="text-xs text-slate-100">
@@ -1165,7 +1149,6 @@ export const ScanDetailsTab = ({
                           value={detail.make || ""}
                           onChange={(e) => updateScanDetail(index, "make", e.target.value)}
                           className="h-7 text-xs px-1 bg-slate-800/60 border-slate-600 text-slate-100 placeholder:text-slate-500"
-                          placeholder="OLYMPUS"
                         />
                       </td>
 
@@ -1176,7 +1159,6 @@ export const ScanDetailsTab = ({
                           value={detail.waterPath?.toString() || ""}
                           onChange={(e) => updateScanDetail(index, "waterPath", e.target.value ? parseFloat(e.target.value) : undefined)}
                           className="h-7 text-xs px-1 bg-slate-800/60 border-slate-600 text-slate-100 placeholder:text-slate-500"
-                          placeholder="mm"
                         />
                       </td>
 
@@ -1186,7 +1168,6 @@ export const ScanDetailsTab = ({
                           value={detail.remarkDetails || ""}
                           onChange={(e) => updateScanDetail(index, "remarkDetails", e.target.value)}
                           className="h-7 text-xs px-1 bg-slate-800/60 border-slate-600 text-slate-100 placeholder:text-slate-500"
-                          placeholder="Notes..."
                         />
                       </td>
                     </tr>

@@ -126,7 +126,6 @@ export const DocumentationTab = ({ data, onChange }: DocumentationTabProps) => {
           <Input
             value={data.inspectorName}
             onChange={(e) => updateField("inspectorName", e.target.value)}
-            placeholder="John Smith"
             className="bg-background"
           />
         </FieldWithHelp>
@@ -139,7 +138,6 @@ export const DocumentationTab = ({ data, onChange }: DocumentationTabProps) => {
           <Input
             value={data.inspectorCertification}
             onChange={(e) => updateField("inspectorCertification", e.target.value)}
-            placeholder="UT-1234 Level II"
             className="bg-background"
           />
         </FieldWithHelp>
@@ -154,7 +152,6 @@ export const DocumentationTab = ({ data, onChange }: DocumentationTabProps) => {
               <Input
                 value={newItemValue}
                 onChange={(e) => setNewItemValue(e.target.value)}
-                placeholder="Enter inspector level..."
                 className="bg-background flex-1"
                 autoFocus
                 onKeyDown={(e) => {
@@ -182,7 +179,7 @@ export const DocumentationTab = ({ data, onChange }: DocumentationTabProps) => {
               }}
             >
               <SelectTrigger className="bg-background">
-                <SelectValue placeholder="Select level..." />
+                <SelectValue />
               </SelectTrigger>
               <SelectContent className="bg-popover z-50 max-h-[300px]">
                 {allInspectorLevels.map((level) => (
@@ -217,7 +214,7 @@ export const DocumentationTab = ({ data, onChange }: DocumentationTabProps) => {
               }}
             >
               <SelectTrigger className="bg-background">
-                <SelectValue placeholder="Select organization..." />
+                <SelectValue />
               </SelectTrigger>
               <SelectContent className="bg-popover z-50">
                 {certifyingOrganizationOptions.map((org) => (
@@ -233,7 +230,6 @@ export const DocumentationTab = ({ data, onChange }: DocumentationTabProps) => {
               <Input
                 value={data.certifyingOrganization}
                 onChange={(e) => updateField("certifyingOrganization", e.target.value)}
-                placeholder="Enter certifying organization..."
                 className="bg-background"
               />
             )}
@@ -260,7 +256,6 @@ export const DocumentationTab = ({ data, onChange }: DocumentationTabProps) => {
           <Input
             value={data.customerName || ""}
             onChange={(e) => updateField("customerName", e.target.value)}
-            placeholder="Customer / Client Name"
             className="bg-background"
           />
         </FieldWithHelp>
@@ -272,7 +267,6 @@ export const DocumentationTab = ({ data, onChange }: DocumentationTabProps) => {
           <Input
             value={data.purchaseOrder || ""}
             onChange={(e) => updateField("purchaseOrder", e.target.value)}
-            placeholder="PO-12345"
             className="bg-background"
           />
         </FieldWithHelp>
@@ -284,7 +278,6 @@ export const DocumentationTab = ({ data, onChange }: DocumentationTabProps) => {
           <Input
             value={data.serialNumber || ""}
             onChange={(e) => updateField("serialNumber", e.target.value)}
-            placeholder="SN-001, SN-002"
             className="bg-background"
           />
         </FieldWithHelp>
@@ -296,7 +289,6 @@ export const DocumentationTab = ({ data, onChange }: DocumentationTabProps) => {
           <Input
             value={data.procedureNumber}
             onChange={(e) => updateField("procedureNumber", e.target.value)}
-            placeholder="UT-001 Rev C"
             className="bg-background"
           />
         </FieldWithHelp>
@@ -308,7 +300,6 @@ export const DocumentationTab = ({ data, onChange }: DocumentationTabProps) => {
           <Input
             value={data.drawingReference}
             onChange={(e) => updateField("drawingReference", e.target.value)}
-            placeholder="DWG-5678"
             className="bg-background"
           />
         </FieldWithHelp>
@@ -320,7 +311,6 @@ export const DocumentationTab = ({ data, onChange }: DocumentationTabProps) => {
           <Input
             value={data.revision}
             onChange={(e) => updateField("revision", e.target.value)}
-            placeholder="A"
             className="bg-background"
           />
         </FieldWithHelp>
@@ -333,7 +323,6 @@ export const DocumentationTab = ({ data, onChange }: DocumentationTabProps) => {
         <Textarea
           value={data.additionalNotes}
           onChange={(e) => updateField("additionalNotes", e.target.value)}
-          placeholder="Enter any additional notes, observations, or special instructions..."
           rows={5}
           className="bg-background"
         />

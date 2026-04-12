@@ -1618,7 +1618,7 @@ export const CalibrationTab = ({
               onValueChange={handleReferenceMaterialChange}
             >
               <SelectTrigger className="bg-background">
-                <SelectValue placeholder="Select material..." />
+                <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 {REFERENCE_MATERIAL_OPTIONS.map((material) => (
@@ -1634,7 +1634,6 @@ export const CalibrationTab = ({
               <Input
                 value={data.referenceMaterial}
                 onChange={(e) => updateField("referenceMaterial", e.target.value)}
-                placeholder="Enter custom reference material..."
                 className="bg-background"
               />
             )}
@@ -1650,7 +1649,7 @@ export const CalibrationTab = ({
             onValueChange={(value) => handleBlockDimensionsModeChange(value as BlockDimensionsMode)}
           >
             <SelectTrigger className="bg-background">
-              <SelectValue placeholder="Select block dimensions type..." />
+              <SelectValue />
             </SelectTrigger>
             <SelectContent>
               {BLOCK_DIMENSIONS_MODE_OPTIONS.map((option) => (
@@ -1677,7 +1676,6 @@ export const CalibrationTab = ({
                 onChange={(e) => handleCurveDimensionChange("curveInnerDiameterMm", e.target.value)}
                 min={0}
                 step={0.1}
-                placeholder="Inner diameter"
                 className="bg-background"
               />
             </FieldWithHelp>
@@ -1692,7 +1690,6 @@ export const CalibrationTab = ({
                 onChange={(e) => handleCurveDimensionChange("curveOuterDiameterMm", e.target.value)}
                 min={0}
                 step={0.1}
-                placeholder="Outer diameter"
                 className="bg-background"
               />
             </FieldWithHelp>
@@ -1707,7 +1704,6 @@ export const CalibrationTab = ({
                 onChange={(e) => handleCurveDimensionChange("curveWallThicknessMm", e.target.value)}
                 min={0}
                 step={0.1}
-                placeholder="Wall thickness"
                 className="bg-background"
               />
             </FieldWithHelp>
@@ -1731,7 +1727,6 @@ export const CalibrationTab = ({
             <Input
               value={data.blockDimensions}
               onChange={(e) => updateField("blockDimensions", e.target.value)}
-              placeholder={blockDimensionsMode === "custom" ? "Enter custom dimensions..." : "100 x 50 x 50"}
               className="bg-background"
             />
             <div className="text-xs text-muted-foreground mt-1">
@@ -1748,7 +1743,6 @@ export const CalibrationTab = ({
             <Input
               value={data.blockSerialNumber}
               onChange={(e) => updateField("blockSerialNumber", e.target.value)}
-              placeholder="CAL-2024-001"
               className="bg-background flex-1"
             />
             <Button

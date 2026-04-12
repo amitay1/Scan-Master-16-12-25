@@ -1123,7 +1123,6 @@ export const InspectionSetupTab = ({
           <Input
             value={data.techniqueCardId ?? ''}
             onChange={(e) => updateField("techniqueCardId", e.target.value)}
-            placeholder="TC-001"
             className="bg-background"
           />
         </FieldWithHelp>
@@ -1136,7 +1135,6 @@ export const InspectionSetupTab = ({
           <Input
             value={data.partNumber}
             onChange={(e) => updateField("partNumber", e.target.value)}
-            placeholder="P/N 12345-678"
             className="bg-background"
           />
         </FieldWithHelp>
@@ -1149,7 +1147,6 @@ export const InspectionSetupTab = ({
           <Input
             value={data.partName}
             onChange={(e) => updateField("partName", e.target.value)}
-            placeholder="Landing Gear Support Bracket"
             className="bg-background"
           />
         </FieldWithHelp>
@@ -1164,7 +1161,6 @@ export const InspectionSetupTab = ({
               <Input
                 value={newItemValue}
                 onChange={(e) => setNewItemValue(e.target.value)}
-                placeholder="Enter material name..."
                 className="bg-background flex-1"
                 autoFocus
                 onKeyDown={(e) => {
@@ -1192,7 +1188,7 @@ export const InspectionSetupTab = ({
               }}
             >
               <SelectTrigger className="bg-background">
-                <SelectValue placeholder="Select material..." />
+                <SelectValue />
               </SelectTrigger>
               <SelectContent className="max-h-[300px]">
                 {allMaterials.map((mat) => (
@@ -1212,7 +1208,6 @@ export const InspectionSetupTab = ({
             <Input
               value={data.customMaterialName || ""}
               onChange={(e) => updateField("customMaterialName", e.target.value)}
-              placeholder="Enter custom material name..."
               className="bg-background mt-2"
             />
           )}
@@ -1234,7 +1229,6 @@ export const InspectionSetupTab = ({
               <Input
                 value={newItemValue}
                 onChange={(e) => setNewItemValue(e.target.value)}
-                placeholder="Enter specification..."
                 className="bg-background flex-1"
                 autoFocus
                 onKeyDown={(e) => {
@@ -1263,7 +1257,7 @@ export const InspectionSetupTab = ({
               disabled={!data.material}
             >
               <SelectTrigger className="bg-background">
-                <SelectValue placeholder={data.material ? "Select specification..." : "Select material first"} />
+                <SelectValue />
               </SelectTrigger>
               <SelectContent className="max-h-[300px]">
                 {data.material && availableMaterialSpecs.map((spec) => (
@@ -1293,7 +1287,6 @@ export const InspectionSetupTab = ({
               <Input
                 value={newItemValue}
                 onChange={(e) => setNewItemValue(e.target.value)}
-                placeholder="Enter heat treatment..."
                 className="bg-background flex-1"
                 autoFocus
                 onKeyDown={(e) => {
@@ -1321,7 +1314,7 @@ export const InspectionSetupTab = ({
               }}
             >
               <SelectTrigger className="bg-background">
-                <SelectValue placeholder="Select heat treatment..." />
+                <SelectValue />
               </SelectTrigger>
               <SelectContent className="max-h-[300px]">
                 {availableHeatTreatments.map((ht) => (
@@ -1392,7 +1385,6 @@ export const InspectionSetupTab = ({
               <Input
                 value={data.customShapeDescription || ""}
                 onChange={(e) => updateField("customShapeDescription", e.target.value)}
-                placeholder="Complex dome with multiple radii..."
                 className="bg-background"
               />
             </FieldWithHelp>
@@ -1496,7 +1488,6 @@ export const InspectionSetupTab = ({
           <Input
             value={data.drawingNumber || ""}
             onChange={(e) => updateField("drawingNumber", e.target.value)}
-            placeholder="DWG-12345"
             className="bg-background"
           />
         </FieldWithHelp>
@@ -1510,7 +1501,6 @@ export const InspectionSetupTab = ({
               type="number"
               value={data.materialDensity || ""}
               onChange={(e) => updateField("materialDensity", parseFloat(e.target.value) || undefined)}
-              placeholder={materialProps ? `${materialProps.density * 1000}` : ""}
               className="bg-background"
             />
           </FieldWithHelp>
@@ -1538,7 +1528,6 @@ export const InspectionSetupTab = ({
               }}
               min={0}
               step={0.1}
-              placeholder="Enter outer diameter"
               className="bg-background"
             />
           </FieldWithHelp>
@@ -1568,7 +1557,6 @@ export const InspectionSetupTab = ({
                 }}
                 min={0}
                 step={0.1}
-                placeholder="Base outer dia."
                 className="bg-background"
               />
             </FieldWithHelp>
@@ -1595,7 +1583,6 @@ export const InspectionSetupTab = ({
                 min={1}
                 max={data.coneBottomDiameter ? data.coneBottomDiameter - 0.1 : undefined}
                 step={0.1}
-                placeholder="Top outer dia."
                 className="bg-background"
               />
             </FieldWithHelp>
@@ -1621,7 +1608,6 @@ export const InspectionSetupTab = ({
                 }}
                 min={0}
                 step={0.1}
-                placeholder="Length"
                 className="bg-background"
               />
             </FieldWithHelp>
@@ -1647,7 +1633,6 @@ export const InspectionSetupTab = ({
                 }}
                 min={0}
                 step={0.1}
-                placeholder="Wall thickness"
                 className="bg-background"
               />
             </FieldWithHelp>
@@ -1701,7 +1686,6 @@ export const InspectionSetupTab = ({
                 min={0}
                 max={data.diameter ? data.diameter - 0.1 : undefined}
                 step={0.1}
-                placeholder="Enter inner diameter"
                 className="bg-background"
               />
               {data.innerDiameter && data.diameter && data.innerDiameter >= data.diameter && (
@@ -1718,7 +1702,7 @@ export const InspectionSetupTab = ({
               >
                 <Input
                   type="number"
-                  value={data.wallThickness?.toFixed(2) || 0}
+                  value={data.wallThickness ? data.wallThickness.toFixed(2) : ""}
                   onChange={(e) => updateField("wallThickness", parseFloat(e.target.value) || 0)}
                   min={0}
                   step={0.1}
@@ -1754,7 +1738,6 @@ export const InspectionSetupTab = ({
                     min={0}
                     max={data.partLength ? data.partLength - 0.1 : undefined}
                     step={0.1}
-                    placeholder="Enter inner length"
                     className="bg-background"
                   />
                 </FieldWithHelp>
@@ -1781,7 +1764,6 @@ export const InspectionSetupTab = ({
                     min={0}
                     max={data.partWidth ? data.partWidth - 0.1 : undefined}
                     step={0.1}
-                    placeholder="Enter inner width"
                     className="bg-background"
                   />
                 </FieldWithHelp>
@@ -1807,7 +1789,6 @@ export const InspectionSetupTab = ({
                     }}
                     min={0}
                     step={0.1}
-                    placeholder="Enter wall thickness"
                     className="bg-background"
                   />
                 </FieldWithHelp>
@@ -1865,7 +1846,6 @@ export const InspectionSetupTab = ({
                         }}
                         min={0}
                         step={field.step || 0.1}
-                        placeholder={field.label}
                         className="bg-background"
                       />
                     </FieldWithHelp>
@@ -1882,7 +1862,6 @@ export const InspectionSetupTab = ({
                 <Textarea
                   value={data.hptDiskGeometry?.geometryNotes || ""}
                   onChange={(e) => updateHptDiskGeometryField("geometryNotes", e.target.value || undefined)}
-                  placeholder="Describe stepped faces, extra grooves, asymmetric transitions, undercuts, reliefs, or any profile detail not captured above."
                   className="min-h-[104px] bg-background"
                 />
               </FieldWithHelp>
@@ -1894,7 +1873,6 @@ export const InspectionSetupTab = ({
                 <Textarea
                   value={data.hptDiskGeometry?.criticalZoneNotes || ""}
                   onChange={(e) => updateHptDiskGeometryField("criticalZoneNotes", e.target.value || undefined)}
-                  placeholder="List critical corners, scan-sensitive zones, tooth anomalies, local radii, or remaining geometry details that still need confirmation."
                   className="min-h-[104px] bg-background"
                 />
               </FieldWithHelp>
@@ -1981,13 +1959,13 @@ export const InspectionSetupTab = ({
                   </div>
 
                   <Select
-                    value={data.localModelAssetName || "__parametric__"}
+                    value={data.localModelAssetName || ""}
                     onValueChange={(value) => {
                       setLocalModelAsset(value === "__parametric__" ? undefined : value);
                     }}
                   >
                     <SelectTrigger className="bg-background">
-                      <SelectValue placeholder="Select STL model source..." />
+                      <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="__parametric__">Parametric Preview Only</SelectItem>

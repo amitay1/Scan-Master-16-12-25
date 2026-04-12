@@ -323,7 +323,7 @@ export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E", 
             onValueChange={(value) => updateField("scanType", value)}
           >
             <SelectTrigger className="bg-background">
-              <SelectValue placeholder="Select type..." />
+              <SelectValue />
             </SelectTrigger>
             <SelectContent className="bg-popover z-50">
               {availableScanTypes.map((option) => {
@@ -404,7 +404,6 @@ export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E", 
                     }}
                     min={0}
                     step={0.1}
-                    placeholder="e.g., 25"
                     className="bg-background"
                   />
                 </FieldWithHelp>
@@ -445,7 +444,6 @@ export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E", 
                     min={0}
                     max={90}
                     step={1}
-                    placeholder="e.g., 40"
                     className="bg-background"
                   />
                 </FieldWithHelp>
@@ -472,7 +470,6 @@ export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E", 
                     min={0}
                     max={90}
                     step={1}
-                    placeholder="e.g., 70"
                     className="bg-background"
                   />
                 </FieldWithHelp>
@@ -499,7 +496,6 @@ export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E", 
                     min={1}
                     max={128}
                     step={1}
-                    placeholder="e.g., 16"
                     className="bg-background"
                   />
                 </FieldWithHelp>
@@ -512,7 +508,6 @@ export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E", 
                   <Input
                     value={data.phasedArray?.focusLaws ?? ''}
                     onChange={(e) => updatePhasedArrayField("focusLaws", e.target.value)}
-                    placeholder="e.g., Linear 0°, Sectorial 40-70°"
                     className="bg-background"
                   />
                 </FieldWithHelp>
@@ -573,7 +568,7 @@ export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E", 
               }}
             >
               <SelectTrigger className="bg-background">
-                <SelectValue placeholder="Select speed preset..." />
+                <SelectValue />
               </SelectTrigger>
               <SelectContent className="bg-popover z-50">
                 {scanSpeedPresets.map((speed) => (
@@ -593,7 +588,6 @@ export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E", 
                 min={hasSpeedLimit ? 1 : 0}
                 max={hasSpeedLimit ? maxSpeed : undefined}
                 className={`bg-background ${!compliance.speedOk ? "border-destructive" : ""}`}
-                placeholder="Enter custom scan speed"
               />
             )}
           </div>
@@ -664,7 +658,7 @@ export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E", 
             onValueChange={(value) => updateField("scanPattern", value)}
           >
             <SelectTrigger className="bg-background">
-              <SelectValue placeholder="Select pattern..." />
+              <SelectValue />
             </SelectTrigger>
             <SelectContent className="bg-popover z-50">
               {!["raster", "bidirectional", "spiral", "helical", "custom"].includes(data.scanPattern) && data.scanPattern && (
@@ -705,7 +699,6 @@ export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E", 
                 }
               }}
               min={0}
-              placeholder="e.g., 25"
               className="bg-background"
             />
           </FieldWithHelp>

@@ -127,8 +127,9 @@ export const EquipmentTab = ({
   const [newItemValue, setNewItemValue] = useState("");
   const isPwNdip = standard === "NDIP-1226" || standard === "NDIP-1227";
   const resolvedNdipModel =
-    NDIP_EQUIPMENT_BY_MANUFACTURER[data.manufacturer] ||
-    NDIP_EQUIPMENT_BY_MANUFACTURER["Inspection Research & Technologies Ltd"];
+    (data.manufacturer ? NDIP_EQUIPMENT_BY_MANUFACTURER[data.manufacturer] : undefined) ||
+    data.model ||
+    "";
 
   // Load custom items from localStorage on mount
   useEffect(() => {
@@ -156,8 +157,8 @@ export const EquipmentTab = ({
       return;
     }
 
-    const manufacturer = data.manufacturer || "Inspection Research & Technologies Ltd";
-    const model = NDIP_EQUIPMENT_BY_MANUFACTURER[manufacturer] || NDIP_EQUIPMENT_BY_MANUFACTURER["Inspection Research & Technologies Ltd"];
+    const manufacturer = data.manufacturer;
+    const model = manufacturer ? (NDIP_EQUIPMENT_BY_MANUFACTURER[manufacturer] || data.model || "") : "";
     const normalizedMarkingPencil = data.ndipMarkingPencil || V2500_MARKING_PENCIL;
     const nextTransducerTypes = ["immersion"];
     const needsEquipmentNormalization =
@@ -378,7 +379,7 @@ export const EquipmentTab = ({
         >
           {isPwNdip ? (
             <Select
-              value={data.manufacturer || "Inspection Research & Technologies Ltd"}
+              value={data.manufacturer}
               onValueChange={(value) =>
                 onChange({
                   ...data,
@@ -388,7 +389,7 @@ export const EquipmentTab = ({
               }
             >
               <SelectTrigger className="bg-background">
-                <SelectValue placeholder="Select manufacturer..." />
+                <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 {Object.keys(NDIP_EQUIPMENT_BY_MANUFACTURER).map((manufacturer) => (
@@ -402,7 +403,6 @@ export const EquipmentTab = ({
             <Input
               value={data.manufacturer}
               onChange={(e) => updateField("manufacturer", e.target.value)}
-              placeholder="Olympus, GE Inspection Technologies, etc."
               className="bg-background"
             />
           )}
@@ -416,7 +416,6 @@ export const EquipmentTab = ({
           <Input
             value={isPwNdip ? resolvedNdipModel : data.model}
             onChange={(e) => updateField("model", e.target.value)}
-            placeholder="OmniScan X3, USM Vision, etc."
             className={isPwNdip ? "bg-muted/40" : "bg-background"}
             readOnly={isPwNdip}
           />
@@ -429,7 +428,6 @@ export const EquipmentTab = ({
           <Input
             value={data.serialNumber}
             onChange={(e) => updateField("serialNumber", e.target.value)}
-            placeholder="SN-12345"
             className="bg-background"
           />
         </FieldWithHelp>
@@ -441,7 +439,6 @@ export const EquipmentTab = ({
           <Input
             value={data.softwareVersion || ""}
             onChange={(e) => updateField("softwareVersion", e.target.value)}
-            placeholder="e.g., 4.0R22"
             className="bg-background"
           />
         </FieldWithHelp>
@@ -459,7 +456,6 @@ export const EquipmentTab = ({
               <Input
                 value={newItemValue}
                 onChange={(e) => setNewItemValue(e.target.value)}
-                placeholder="Enter transducer type..."
                 className="bg-background flex-1"
                 autoFocus
                 onKeyDown={(e) => {
@@ -583,7 +579,7 @@ export const EquipmentTab = ({
               }}
             >
               <SelectTrigger className="bg-background">
-                <SelectValue placeholder="Select couplant..." />
+                <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 {couplantOptions.map((option) => (
@@ -603,7 +599,6 @@ export const EquipmentTab = ({
                     couplant: e.target.value,
                   })
                 }
-                placeholder="Enter custom couplant..."
                 className="bg-background"
               />
             )}
@@ -639,7 +634,6 @@ export const EquipmentTab = ({
                 <Input
                   value={data.ndipTransducerSerialNumber || ""}
                   onChange={(e) => updateField("ndipTransducerSerialNumber", e.target.value)}
-                  placeholder="Enter serial number"
                   className="bg-background"
                 />
               </FieldWithHelp>
@@ -659,7 +653,6 @@ export const EquipmentTab = ({
                 <Input
                   value={data.ndipMirrorSerialNumber || ""}
                   onChange={(e) => updateField("ndipMirrorSerialNumber", e.target.value)}
-                  placeholder="Enter serial number"
                   className="bg-background"
                 />
               </FieldWithHelp>
@@ -685,7 +678,6 @@ export const EquipmentTab = ({
                       <Input
                         value={newItemValue}
                         onChange={(e) => setNewItemValue(e.target.value)}
-                        placeholder="Enter chuck riser..."
                         className="bg-background flex-1"
                         autoFocus
                         onKeyDown={(e) => {
@@ -720,7 +712,7 @@ export const EquipmentTab = ({
                       onValueChange={(value) => updateField("ndipChuckRiser", value)}
                     >
                       <SelectTrigger className="bg-background">
-                        <SelectValue placeholder="Select chuck riser..." />
+                        <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         {allChuckRiserOptions.map((option) => (
@@ -785,7 +777,6 @@ export const EquipmentTab = ({
                       blockHolder: V2500_CALIBRATION_BLOCK_HOLDER,
                     })
                   }
-                  placeholder="Enter serial number"
                   className="bg-background"
                 />
               </FieldWithHelp>
@@ -867,7 +858,6 @@ export const EquipmentTab = ({
                     min={1}
                     max={256}
                     step={1}
-                    placeholder="e.g., 64"
                     className="bg-background flex-1"
                     disabled={data.numberOfElementsApplicable === false}
                   />
@@ -919,7 +909,6 @@ export const EquipmentTab = ({
                     min={0.1}
                     max={5}
                     step={0.01}
-                    placeholder="e.g., 0.6"
                     className="bg-background flex-1"
                     disabled={data.elementPitchApplicable === false}
                   />
@@ -957,7 +946,6 @@ export const EquipmentTab = ({
                   <Input
                     value={data.wedgeModel || ""}
                     onChange={(e) => updateField("wedgeModel", e.target.value)}
-                    placeholder="e.g., SA32-N55S"
                     className="bg-background flex-1"
                     disabled={data.wedgeModelApplicable === false}
                   />
@@ -997,7 +985,6 @@ export const EquipmentTab = ({
                       <Input
                         value={newItemValue}
                         onChange={(e) => setNewItemValue(e.target.value)}
-                        placeholder="Enter wedge type..."
                         className="bg-background flex-1"
                         autoFocus
                         onKeyDown={(e) => {
@@ -1026,7 +1013,7 @@ export const EquipmentTab = ({
                       disabled={data.wedgeTypeApplicable === false}
                     >
                       <SelectTrigger className="bg-background flex-1">
-                        <SelectValue placeholder="Select wedge type..." />
+                        <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="max-h-[300px]">
                         {availableWedgeTypes.map((wedge) => (
@@ -1076,7 +1063,6 @@ export const EquipmentTab = ({
                   <Input
                     value={data.delayLine || ""}
                     onChange={(e) => updateField("delayLine", e.target.value)}
-                    placeholder="e.g., DL-25, Water column"
                     className="bg-background flex-1"
                     disabled={data.delayLineApplicable === false}
                   />
@@ -1142,7 +1128,6 @@ export const EquipmentTab = ({
             <Textarea
               value={data.selectionNotes || ""}
               onChange={(e) => updateField("selectionNotes", e.target.value)}
-              placeholder="Optional notes to print with the report..."
               rows={3}
               className="bg-background"
             />

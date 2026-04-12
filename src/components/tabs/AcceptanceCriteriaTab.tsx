@@ -272,7 +272,7 @@ export const AcceptanceCriteriaTab = ({
         <FieldWithHelp label="Acceptance Class / Quality Level" fieldKey="acceptanceClass" required>
           <Select value={data.acceptanceClass} onValueChange={(value) => updateField("acceptanceClass", value)}>
             <SelectTrigger className="bg-background">
-              <SelectValue placeholder="Select class..." />
+              <SelectValue />
             </SelectTrigger>
             <SelectContent className="bg-popover z-50">
               {acceptanceClasses.map((cls) => (
@@ -299,7 +299,6 @@ export const AcceptanceCriteriaTab = ({
           <Input
             value={currentCriteria?.backReflectionLoss || data.backReflectionLoss || ""}
             onChange={(e) => updateField("backReflectionLoss", e.target.value)}
-            placeholder="Select acceptance class first"
             className="bg-background"
           />
         </FieldWithHelp>
@@ -313,7 +312,6 @@ export const AcceptanceCriteriaTab = ({
           <Input
             value={data.singleDiscontinuity}
             onChange={(e) => updateField("singleDiscontinuity", e.target.value)}
-            placeholder="Select acceptance class first"
             className="bg-background"
           />
         </FieldWithHelp>
@@ -331,7 +329,6 @@ export const AcceptanceCriteriaTab = ({
           <Input
             value={data.multipleDiscontinuities}
             onChange={(e) => updateField("multipleDiscontinuities", e.target.value)}
-            placeholder="Select acceptance class first"
             className="bg-background"
           />
         </FieldWithHelp>
@@ -345,7 +342,6 @@ export const AcceptanceCriteriaTab = ({
           <Input
             value={data.linearDiscontinuity}
             onChange={(e) => updateField("linearDiscontinuity", e.target.value)}
-            placeholder="Select acceptance class first"
             className="bg-background"
           />
         </FieldWithHelp>
@@ -421,7 +417,6 @@ export const AcceptanceCriteriaTab = ({
         <Textarea
           value={data.specialRequirements}
           onChange={(e) => updateField("specialRequirements", e.target.value)}
-          placeholder="Enter any special requirements, deviations, or additional notes..."
           rows={4}
           className="bg-background"
         />
