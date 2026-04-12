@@ -60,12 +60,27 @@ export function useStandardAutoFill({
   setScanParametersB,
   setAcceptanceCriteriaB,
 }: UseStandardAutoFillParams) {
+  const hasPrimaryStandardData = Boolean(
+    inspectionSetup.partNumber?.trim() ||
+    inspectionSetup.partName?.trim() ||
+    inspectionSetup.material ||
+    inspectionSetup.materialSpec?.trim()
+  );
+
+  const hasSecondaryStandardData = Boolean(
+    inspectionSetupB.partNumber?.trim() ||
+    inspectionSetupB.partName?.trim() ||
+    inspectionSetupB.material ||
+    inspectionSetupB.materialSpec?.trim()
+  );
+
   // Auto-fill when standard changes
   useEffect(() => {
     if (standard && standardRules[standard]) {
       const rules = standardRules[standard];
       const defaultClass = getDefaultAcceptanceClass(standard);
       if (!isSplitMode || activePart === "A") {
+        if (!hasPrimaryStandardData) return;
         setAcceptanceCriteria(prev => ({
           ...prev,
           acceptanceClass: prev.acceptanceClass || (defaultClass as any),
@@ -75,6 +90,7 @@ export function useStandardAutoFill({
           coverage: prev.coverage === 100 ? rules.scanCoverageDefault : prev.coverage,
         }));
       } else {
+        if (!hasSecondaryStandardData) return;
         setAcceptanceCriteriaB(prev => ({
           ...prev,
           acceptanceClass: prev.acceptanceClass || (defaultClass as any),
@@ -85,7 +101,17 @@ export function useStandardAutoFill({
         }));
       }
     }
-  }, [standard, isSplitMode, activePart, setAcceptanceCriteria, setScanParameters, setAcceptanceCriteriaB, setScanParametersB]);
+  }, [
+    standard,
+    isSplitMode,
+    activePart,
+    hasPrimaryStandardData,
+    hasSecondaryStandardData,
+    setAcceptanceCriteria,
+    setScanParameters,
+    setAcceptanceCriteriaB,
+    setScanParametersB,
+  ]);
 
   // Auto-fill frequency when material changes – Part A
   useEffect(() => {

@@ -588,7 +588,7 @@ export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E", 
             {selectedSpeedPreset === "custom" && (
               <Input
                 type="number"
-                value={data.scanSpeed}
+                value={data.scanSpeed || ""}
                 onChange={(e) => updateField("scanSpeed", parseFloat(e.target.value) || 0)}
                 min={hasSpeedLimit ? 1 : 0}
                 max={hasSpeedLimit ? maxSpeed : undefined}
@@ -617,7 +617,7 @@ export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E", 
           >
             <Input
               type="number"
-              value={data.scanIndex}
+              value={data.scanIndex || ""}
               onChange={(e) => updateField("scanIndex", parseFloat(e.target.value) || 0)}
               min={1}
               max={hasOverlapRequirement ? 100 - scanParams.minOverlap : 100}
@@ -639,7 +639,7 @@ export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E", 
         >
           <Input
             type="number"
-            value={data.coverage}
+            value={data.coverage || ""}
             onChange={(e) => updateField("coverage", parseFloat(e.target.value) || 0)}
             min={0}
             max={100}
@@ -725,7 +725,7 @@ export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E", 
           <div className="space-y-2">
             <Input
               type="number"
-              value={data.pulseRepetitionRate}
+              value={data.pulseRepetitionRate || ""}
               onChange={(e) => updateField("pulseRepetitionRate", parseFloat(e.target.value) || 0)}
               min={100}
               max={10000}

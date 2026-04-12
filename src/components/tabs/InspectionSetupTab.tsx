@@ -1443,7 +1443,7 @@ export const InspectionSetupTab = ({
           >
             <Input
               type="number"
-              value={data.partThickness}
+              value={data.partThickness || ""}
               onChange={(e) => updateField("partThickness", parseFloat(e.target.value) || 0)}
               min={6.35}
               step={0.1}
@@ -1464,7 +1464,7 @@ export const InspectionSetupTab = ({
           >
             <Input
               type="number"
-              value={data.partLength}
+              value={data.partLength || ""}
               onChange={(e) => updateField("partLength", parseFloat(e.target.value) || 0)}
               min={0}
               step={0.1}
@@ -1480,7 +1480,7 @@ export const InspectionSetupTab = ({
           >
             <Input
               type="number"
-              value={data.partWidth}
+              value={data.partWidth || ""}
               onChange={(e) => updateField("partWidth", parseFloat(e.target.value) || 0)}
               min={0}
               step={0.1}

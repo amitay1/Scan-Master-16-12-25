@@ -94,12 +94,6 @@ export const DocumentationTab = ({ data, onChange }: DocumentationTabProps) => {
     }
   };
 
-  // Set today's date as default
-  const today = new Date().toISOString().split('T')[0];
-  if (!data.inspectionDate) {
-    updateField("inspectionDate", today);
-  }
-
   return (
     <div className="space-y-2 p-2">
       {/* Profile Quick Fill Banner */}

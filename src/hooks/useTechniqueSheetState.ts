@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, Dispatch, SetStateAction } from "react";
+import { useState, useMemo, useCallback, useRef, Dispatch, SetStateAction } from "react";
 import type {
   StandardType,
   InspectionSetupData,
@@ -45,9 +45,9 @@ const defaultInspectionSetup: InspectionSetupData = {
   materialSpec: "",
   partType: "",
   localModelAssetName: undefined,
-  partThickness: 25.0,
-  partLength: 100.0,
-  partWidth: 50.0,
+  partThickness: 0,
+  partLength: 0,
+  partWidth: 0,
   diameter: 0,
   hptDiskGeometry: undefined,
 };
@@ -60,15 +60,15 @@ const defaultEquipment: EquipmentData = {
   transducerType: "",
   transducerTypes: [],
   transducerShapeAndSize: "",
-  transducerDiameter: 0.5,
+  transducerDiameter: 0,
   couplant: "",
   customCouplant: "",
   includeSelectionNotesInReport: false,
   selectionNotes: "",
-  verticalLinearity: 95,
-  horizontalLinearity: 85,
-  entrySurfaceResolution: 0.125,
-  backSurfaceResolution: 0.05,
+  verticalLinearity: 0,
+  horizontalLinearity: 0,
+  entrySurfaceResolution: 0,
+  backSurfaceResolution: 0,
   ndipMarkingPencil: "",
 };
 
@@ -89,12 +89,12 @@ const defaultScanParameters: ScanParametersData = {
   scanMethods: [],
   technique: "conventional",
   scanType: "",
-  scanSpeed: 100,
-  scanIndex: 70,
-  coverage: 100,
+  scanSpeed: 0,
+  scanIndex: 0,
+  coverage: 0,
   scanPattern: "",
   waterPath: 0,
-  pulseRepetitionRate: 1000,
+  pulseRepetitionRate: 0,
   gainSettings: "",
   alarmGateSettings: "",
 };
@@ -104,7 +104,7 @@ const defaultAcceptanceCriteria: AcceptanceCriteriaData = {
   singleDiscontinuity: "",
   multipleDiscontinuities: "",
   linearDiscontinuity: "",
-  backReflectionLoss: 50,
+  backReflectionLoss: 0,
   noiseLevel: "",
   specialRequirements: "",
   standardNotes: "",
@@ -116,10 +116,10 @@ const defaultDocumentation = (): DocumentationData => ({
   inspectorCertification: "",
   inspectorLevel: "",
   certifyingOrganization: "",
-  inspectionDate: new Date().toISOString().split("T")[0],
+  inspectionDate: "",
   procedureNumber: "",
   drawingReference: "",
-  revision: "A",
+  revision: "",
   additionalNotes: "",
   approvalRequired: false,
 });
@@ -182,6 +182,36 @@ interface UseTechniqueSheetStateParams {
   setActivePart: Dispatch<SetStateAction<"A" | "B">>;
 }
 
+interface TechniqueSheetPartState {
+  inspectionSetup: InspectionSetupData;
+  equipment: EquipmentData;
+  calibration: CalibrationData;
+  scanParameters: ScanParametersData;
+  acceptanceCriteria: AcceptanceCriteriaData;
+  documentation: DocumentationData;
+  scanDetails: ScanDetailsData;
+  scanPlan: ScanPlanData;
+}
+
+interface StandardScopedTechniqueState {
+  partA: TechniqueSheetPartState;
+  partB: TechniqueSheetPartState;
+  inspectionReport: InspectionReportData;
+}
+
+const cloneTechniqueValue = <T,>(value: T): T => JSON.parse(JSON.stringify(value));
+
+const createDefaultPartState = (): TechniqueSheetPartState => ({
+  inspectionSetup: cloneTechniqueValue(defaultInspectionSetup),
+  equipment: cloneTechniqueValue(defaultEquipment),
+  calibration: cloneTechniqueValue(defaultCalibration),
+  scanParameters: cloneTechniqueValue(defaultScanParameters),
+  acceptanceCriteria: cloneTechniqueValue(defaultAcceptanceCriteria),
+  documentation: defaultDocumentation(),
+  scanDetails: cloneTechniqueValue(defaultScanDetails),
+  scanPlan: cloneTechniqueValue(defaultScanPlan),
+});
+
 export function useTechniqueSheetState({
   isSplitMode,
   activePart,
@@ -194,6 +224,7 @@ export function useTechniqueSheetState({
   setIsSplitMode,
   setActivePart,
 }: UseTechniqueSheetStateParams) {
+  const standardStateCacheRef = useRef<Partial<Record<StandardType, StandardScopedTechniqueState>>>({});
   const [hasHydratedInitialDraft, setHasHydratedInitialDraft] = useState(false);
   const [inspectionSetup, setInspectionSetup] = useState<InspectionSetupData>({ ...defaultInspectionSetup });
   const [equipment, setEquipment] = useState<EquipmentData>({ ...defaultEquipment });
@@ -296,6 +327,7 @@ export function useTechniqueSheetState({
     inspectionReport,
   ]);
   const applyLoadedSheet = useCallback((record: TechniqueSheetRecord) => {
+    standardStateCacheRef.current = {};
     const data = record.data;
     if (!data) {
       toast.error("Saved card is missing data.");
@@ -329,6 +361,7 @@ export function useTechniqueSheetState({
     setInspectionReport(data.inspectionReport || getDefaultInspectionReportData());
   }, [setStandard, setActiveTab, setReportMode, setIsSplitMode, setActivePart]);
   const applyLocalCard = useCallback((data: any) => {
+    standardStateCacheRef.current = {};
     if (data.standard) setStandard(data.standard as StandardType);
     if (data.activeTab) setActiveTab(data.activeTab);
     if (data.reportMode) setReportMode(data.reportMode);
@@ -356,6 +389,7 @@ export function useTechniqueSheetState({
     if (data.inspectionReport) setInspectionReport(data.inspectionReport);
   }, [setStandard, setActiveTab, setReportMode, setIsSplitMode, setActivePart]);
   const loadDraftFromLocalStorage = useCallback(() => {
+    standardStateCacheRef.current = {};
     const data = readTechniqueSheetDraft<any>();
     if (!data) {
       setHasHydratedInitialDraft(true);
@@ -406,6 +440,7 @@ export function useTechniqueSheetState({
     inspectionReport?: InspectionReportData;
   }) => {
     const cloneData = <T,>(value: T): T => JSON.parse(JSON.stringify(value));
+    standardStateCacheRef.current = {};
 
     setStandard(card.standard);
     setIsSplitMode(false);
@@ -432,6 +467,7 @@ export function useTechniqueSheetState({
     setScanPlanB(cloneData(defaultScanPlan));
   }, [reportMode, setStandard, setIsSplitMode, setActivePart, setActiveTab]);
   const applySampleCard = useCallback((card: any) => {
+    standardStateCacheRef.current = {};
     setStandard(card.standard || "AMS-STD-2154E");
     if (card.inspectionSetup) setInspectionSetup(card.inspectionSetup);
     if (card.equipment) setEquipment(card.equipment);
@@ -443,11 +479,94 @@ export function useTechniqueSheetState({
   /**
    * Apply a user-initiated standard change.
    *
-   * When switching standards, update all standard-dependent fields immediately
-   * (even if a tab isn\'t mounted), so no stale values remain from the previous
-   * standard.
+   * A standard switch must not leak user-entered values into another standard.
+   * Each standard keeps its own snapshot, and a first visit starts clean.
    */
   const applyStandardChange = useCallback((nextStandard: StandardType) => {
+    if (nextStandard === standard) {
+      return;
+    }
+
+    const buildCurrentStandardSnapshot = (): StandardScopedTechniqueState => ({
+      partA: {
+        inspectionSetup: cloneTechniqueValue(inspectionSetup),
+        equipment: cloneTechniqueValue(equipment),
+        calibration: cloneTechniqueValue(calibration),
+        scanParameters: cloneTechniqueValue(scanParameters),
+        acceptanceCriteria: cloneTechniqueValue(acceptanceCriteria),
+        documentation: cloneTechniqueValue(documentation),
+        scanDetails: cloneTechniqueValue(scanDetails),
+        scanPlan: cloneTechniqueValue(scanPlan),
+      },
+      partB: {
+        inspectionSetup: cloneTechniqueValue(inspectionSetupB),
+        equipment: cloneTechniqueValue(equipmentB),
+        calibration: cloneTechniqueValue(calibrationB),
+        scanParameters: cloneTechniqueValue(scanParametersB),
+        acceptanceCriteria: cloneTechniqueValue(acceptanceCriteriaB),
+        documentation: cloneTechniqueValue(documentationB),
+        scanDetails: cloneTechniqueValue(scanDetailsB),
+        scanPlan: cloneTechniqueValue(scanPlanB),
+      },
+      inspectionReport: cloneTechniqueValue(inspectionReport),
+    });
+
+    const applySnapshot = (snapshot: StandardScopedTechniqueState) => {
+      setInspectionSetup(cloneTechniqueValue(snapshot.partA.inspectionSetup));
+      setEquipment(cloneTechniqueValue(snapshot.partA.equipment));
+      setCalibration(cloneTechniqueValue(snapshot.partA.calibration));
+      setScanParameters(cloneTechniqueValue(snapshot.partA.scanParameters));
+      setAcceptanceCriteria(cloneTechniqueValue(snapshot.partA.acceptanceCriteria));
+      setDocumentation(cloneTechniqueValue(snapshot.partA.documentation));
+      setScanDetails(cloneTechniqueValue(snapshot.partA.scanDetails));
+      setScanPlan(cloneTechniqueValue(snapshot.partA.scanPlan));
+
+      setInspectionSetupB(cloneTechniqueValue(snapshot.partB.inspectionSetup));
+      setEquipmentB(cloneTechniqueValue(snapshot.partB.equipment));
+      setCalibrationB(cloneTechniqueValue(snapshot.partB.calibration));
+      setScanParametersB(cloneTechniqueValue(snapshot.partB.scanParameters));
+      setAcceptanceCriteriaB(cloneTechniqueValue(snapshot.partB.acceptanceCriteria));
+      setDocumentationB(cloneTechniqueValue(snapshot.partB.documentation));
+      setScanDetailsB(cloneTechniqueValue(snapshot.partB.scanDetails));
+      setScanPlanB(cloneTechniqueValue(snapshot.partB.scanPlan));
+
+      setInspectionReport(cloneTechniqueValue(snapshot.inspectionReport));
+    };
+
+    const buildFreshStandardSnapshot = (targetStandard: StandardType): StandardScopedTechniqueState => {
+      const createFreshPartState = (): TechniqueSheetPartState => {
+        const partState = createDefaultPartState();
+        partState.inspectionSetup = normalizeInspectionSetupForStandard(
+          cloneTechniqueValue(partState.inspectionSetup),
+          targetStandard,
+        );
+        partState.scanDetails = {
+          scanDetails: normalizeScanDetailsForStandard([], targetStandard) ?? [],
+        };
+        return partState;
+      };
+
+      return {
+        partA: createFreshPartState(),
+        partB: createFreshPartState(),
+        inspectionReport: cloneTechniqueValue(getDefaultInspectionReportData()),
+      };
+    };
+
+    standardStateCacheRef.current[standard] = buildCurrentStandardSnapshot();
+
+    if (!isV2500NdipStandard(nextStandard) && activeTab === "ndip-reference") {
+      setActiveTab("setup");
+    }
+
+    const cachedSnapshot = standardStateCacheRef.current[nextStandard];
+    const nextSnapshot = cachedSnapshot
+      ? cloneTechniqueValue(cachedSnapshot)
+      : buildFreshStandardSnapshot(nextStandard);
+
+    setStandard(nextStandard);
+    applySnapshot(nextSnapshot);
+    return;
     // 1) Update UI-level standard state
     setStandard(nextStandard);
     const isPwNdip = isV2500NdipStandard(nextStandard);
@@ -701,22 +820,23 @@ export function useTechniqueSheetState({
     setActiveTab,
     setStandard,
     standard,
-    setInspectionSetup,
-    setInspectionSetupB,
-    setAcceptanceCriteria,
-    setAcceptanceCriteriaB,
-    setScanParameters,
-    setScanParametersB,
-    setEquipment,
-    setEquipmentB,
-    setCalibration,
-    setCalibrationB,
-    setScanDetails,
-    setScanDetailsB,
     inspectionSetup,
+    equipment,
+    calibration,
+    scanParameters,
+    acceptanceCriteria,
+    documentation,
+    scanDetails,
+    scanPlan,
     inspectionSetupB,
-    acceptanceCriteria.acceptanceClass,
-    acceptanceCriteriaB.acceptanceClass,
+    equipmentB,
+    calibrationB,
+    scanParametersB,
+    acceptanceCriteriaB,
+    documentationB,
+    scanDetailsB,
+    scanPlanB,
+    inspectionReport,
   ]);
 
   return {
