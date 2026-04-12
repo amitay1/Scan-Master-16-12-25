@@ -28,16 +28,17 @@ export function drawHptDiskTechnicalDrawing(
 ): void {
   const stage = resolveV2500Stage(options);
 
-  if (stage === 1 && drawStage1ReferenceFigure(generator, dimensions, layout, options)) {
+  if (drawStageReferenceFigure(generator, dimensions, layout, stage, options)) {
     return;
   }
   drawDiskTechnicalDrawing(generator, dimensions, layout);
 }
 
-function drawStage1ReferenceFigure(
+function drawStageReferenceFigure(
   generator: TechnicalDrawingGenerator,
   dimensions: Dimensions,
   layout: LayoutConfig,
+  stage: 1 | 2,
   options?: {
     standardType?: StandardType;
     partNumber?: string;
@@ -55,11 +56,20 @@ function drawStage1ReferenceFigure(
   const y = layout.frontView.y;
   const width = layout.sideView.x + layout.sideView.width - layout.frontView.x;
   const height = Math.max(layout.frontView.height, layout.sideView.height);
+  const figureLabel = stage === 2 ? 'NDIP-1227' : 'NDIP-1226';
+  const figureDescription =
+    stage === 2
+      ? 'Stage 2 reference profile with M/N/O/P/K/L coverage layout'
+      : 'Stage 1 reference profile with E/A/B/C/D coverage layout';
+  const imagePath =
+    stage === 2
+      ? '/standards/hpt-disk-setup-stage2.png'
+      : '/standards/hpt-disk-setup-stage1.png';
 
-  generator.drawViewLabel(x + width / 2, y, 'HPT DISK SECTION - NDIP-1226 FIGURE 2');
-  generator.drawText(x + width / 2, y + height + 12, 'Stage 1 reference profile with E/A/B/C/D coverage layout', 10, '#666666');
+  generator.drawViewLabel(x + width / 2, y, `HPT DISK SECTION - ${figureLabel} FIGURE 2`);
+  generator.drawText(x + width / 2, y + height + 12, figureDescription, 10, '#666666');
 
-  const raster = new scope.Raster('/standards/hpt-disk-setup-stage1.png') as any;
+  const raster = new scope.Raster(imagePath) as any;
   raster.onLoad = () => {
     const framePaddingX = 16;
     const framePaddingTop = 8;

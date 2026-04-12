@@ -25,6 +25,7 @@ import { CustomDrawingUpload, ArrowOverlay, GeometrySelector } from "@/component
 import { useOllamaVision } from "@/components/scan-overlay/hooks/useOllamaVision";
 import { generateArrowsForGeometry, syncArrowsWithScanDetails } from "@/utils/scanArrowPlacement";
 import { getV2500ScanDetailDefaults } from "@/utils/pwScanDetailDefaults";
+import { getV2500GateSettingsForDirection, isV2500NdipStandard } from "@/utils/pwNdipDefaults";
 import { getActiveMroStage, hasKnownActiveMroContext, isActiveMroStandard } from "@/utils/mroPolicy";
 import { getActiveScanDetails, getActiveScanDirections } from "@/utils/scanDetailsSelection";
 import { includeCurrentOption } from "@/utils/selectOptions";
@@ -134,6 +135,8 @@ const FIXED_SCAN_DETAILS: ExtendedScanDetail[] = [
 const scanDetailIndexModeOptions = ["AUTO", "1MM", "2MM", "5MM"];
 const scanDetailFilterOptions = ["1MHZ", "2MHZ", "3MHZ", "4MHZ", "5MHZ", "7.5MHZ", "10MHZ", "15MHZ", "WIDEBAND", "OFF", "NONE"];
 const scanDetailRejectOptions = ["0%", "5%", "10%", "20%"];
+const GATE_FIELD_KEYS = ["gate1", "gate2", "gate3", "gate4"] as const;
+type GateFieldKey = (typeof GATE_FIELD_KEYS)[number];
 
 const getDefaultScanDetailsForStandard = (standard: StandardType): ExtendedScanDetail[] => {
   return (getV2500ScanDetailDefaults(standard) as ExtendedScanDetail[] | null) ?? FIXED_SCAN_DETAILS;
@@ -500,7 +503,7 @@ export const ScanDetailsTab = ({
   const renderGateEditor = (
     detail: ExtendedScanDetail,
     index: number,
-    gateField: "gate1" | "gate2" | "gate3" | "gate4",
+    gateField: GateFieldKey,
     label: string,
     labelClassName: string,
     inputClassName: string,
@@ -558,6 +561,21 @@ export const ScanDetailsTab = ({
     );
   };
 
+  const getVisibleGateFields = (detail: ExtendedScanDetail): GateFieldKey[] => {
+    if (!isV2500Standard || !isV2500NdipStandard(standard)) {
+      return [...GATE_FIELD_KEYS];
+    }
+
+    const expectedGateSettings = getV2500GateSettingsForDirection(standard, detail.scanningDirection);
+    const expectedGateFields = GATE_FIELD_KEYS.filter((gateField) => Boolean(expectedGateSettings[gateField]));
+    if (expectedGateFields.length > 0) {
+      return expectedGateFields;
+    }
+
+    const existingGateFields = GATE_FIELD_KEYS.filter((gateField) => Boolean(detail[gateField]));
+    return existingGateFields.length > 0 ? existingGateFields : ["gate1"];
+  };
+
   const renderDiskReferenceDiagram = () => {
     const activeDetails = scanDetails.filter((detail) => detail.enabled);
 
@@ -593,10 +611,17 @@ export const ScanDetailsTab = ({
   };
 
   const renderHptDiskReferenceDiagram = () => {
-    const standardImagePath = v2500Stage === 1 ? "/standards/hpt-disk-setup-stage1.png" : null;
+    const standardImagePath =
+      v2500Stage === 1
+        ? "/standards/ndip-1226-gating-scheme.png"
+        : v2500Stage === 2
+          ? "/standards/ndip-1227-gating-scheme.png"
+          : null;
     const referenceLabel =
       v2500Stage === 1
-        ? "Bundled standard reference image"
+        ? "NDIP-1226 Excel gating scheme reference"
+        : v2500Stage === 2
+          ? "NDIP-1227 Excel gating scheme reference"
         : standard === "NDIP-1227"
           ? "No bundled standard reference image for NDIP-1227"
           : standard === "NDIP-1226"
@@ -649,6 +674,7 @@ export const ScanDetailsTab = ({
     const availableIndexModes = includeCurrentOption(scanDetailIndexModeOptions, detail.indexMode);
     const availableFilters = includeCurrentOption(scanDetailFilterOptions, detail.filter);
     const availableRejectValues = includeCurrentOption(scanDetailRejectOptions, detail.reject);
+    const visibleGateFields = getVisibleGateFields(detail);
     const availableIncidentAngles = includeCurrentOption(
       ["18", "19", "20", "21"],
       detail.incidentAngle !== undefined ? String(detail.incidentAngle) : ""
@@ -759,13 +785,51 @@ export const ScanDetailsTab = ({
           <div className="bg-slate-800/80 rounded-lg p-4 border border-emerald-500/30">
             <h4 className="text-sm font-semibold text-emerald-400 mb-3 flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-              Gate Settings
+              {isV2500Standard ? "Gating Scheme" : "Gate Settings"}
             </h4>
             <div className="space-y-4">
-              {renderGateEditor(detail, index, "gate1", "Gate 1", "text-[10px] text-emerald-400/80 uppercase tracking-wide", "h-8 text-xs text-center bg-slate-900/60 border-slate-600 text-slate-100 placeholder:text-slate-500")}
-              {renderGateEditor(detail, index, "gate2", "Gate 2", "text-[10px] text-amber-400/80 uppercase tracking-wide", "h-8 text-xs text-center bg-amber-950/40 border-amber-700/50 text-slate-100 placeholder:text-slate-500")}
-              {renderGateEditor(detail, index, "gate3", "Gate 3", "text-[10px] text-violet-400/80 uppercase tracking-wide", "h-8 text-xs text-center bg-violet-950/40 border-violet-700/50 text-slate-100 placeholder:text-slate-500")}
-              {renderGateEditor(detail, index, "gate4", "Gate 4", "text-[10px] text-rose-400/80 uppercase tracking-wide", "h-8 text-xs text-center bg-rose-950/40 border-rose-700/50 text-slate-100 placeholder:text-slate-500")}
+              {isV2500Standard ? (
+                <div className="space-y-3">
+                  <div className="text-[10px] text-emerald-400/80 uppercase tracking-wide">Vdepth (inches)</div>
+                  <div className="grid grid-cols-3 gap-2 px-1">
+                    <Label className="text-[10px] text-slate-400 uppercase tracking-wide text-center">Position</Label>
+                    <Label className="text-[10px] text-slate-400 uppercase tracking-wide text-center">Start</Label>
+                    <Label className="text-[10px] text-slate-400 uppercase tracking-wide text-center">Stop</Label>
+                  </div>
+                  {visibleGateFields.map((gateField) => {
+                    const gate = detail[gateField] as GateSettings | undefined;
+                    return (
+                      <div key={gateField} className="grid grid-cols-3 gap-2">
+                        <Input
+                          type="text"
+                          value={gateValueToInput(gate?.position)}
+                          onChange={(e) => updateGate(index, gateField, "position", e.target.value || undefined)}
+                          className="h-8 text-xs text-center bg-slate-900/60 border-slate-600 text-slate-100 placeholder:text-slate-500"
+                        />
+                        <Input
+                          type="number"
+                          value={gateValueToInput(gate?.start)}
+                          onChange={(e) => updateGate(index, gateField, "start", parseOptionalNumber(e.target.value))}
+                          className="h-8 text-xs text-center bg-slate-900/60 border-slate-600 text-slate-100 placeholder:text-slate-500"
+                        />
+                        <Input
+                          type="number"
+                          value={gateValueToInput(gate?.stop)}
+                          onChange={(e) => updateGate(index, gateField, "stop", parseOptionalNumber(e.target.value))}
+                          className="h-8 text-xs text-center bg-slate-900/60 border-slate-600 text-slate-100 placeholder:text-slate-500"
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <>
+                  {renderGateEditor(detail, index, "gate1", "Gate 1", "text-[10px] text-emerald-400/80 uppercase tracking-wide", "h-8 text-xs text-center bg-slate-900/60 border-slate-600 text-slate-100 placeholder:text-slate-500")}
+                  {renderGateEditor(detail, index, "gate2", "Gate 2", "text-[10px] text-amber-400/80 uppercase tracking-wide", "h-8 text-xs text-center bg-amber-950/40 border-amber-700/50 text-slate-100 placeholder:text-slate-500")}
+                  {renderGateEditor(detail, index, "gate3", "Gate 3", "text-[10px] text-violet-400/80 uppercase tracking-wide", "h-8 text-xs text-center bg-violet-950/40 border-violet-700/50 text-slate-100 placeholder:text-slate-500")}
+                  {renderGateEditor(detail, index, "gate4", "Gate 4", "text-[10px] text-rose-400/80 uppercase tracking-wide", "h-8 text-xs text-center bg-rose-950/40 border-rose-700/50 text-slate-100 placeholder:text-slate-500")}
+                </>
+              )}
             </div>
           </div>
 

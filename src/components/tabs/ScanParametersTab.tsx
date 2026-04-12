@@ -43,11 +43,16 @@ const getStandardLabel = (standard: StandardType): string => {
   return labels[standard] || standard;
 };
 
-export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E", equipmentFrequency, onEquipmentFrequencyChange, equipmentData, onEquipmentDataChange }: ScanParametersTabProps) => {
+export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E", equipmentFrequency, onEquipmentFrequencyChange, equipmentData, onEquipmentDataChange, partThickness, materialVelocity }: ScanParametersTabProps) => {
   void equipmentFrequency;
   void onEquipmentFrequencyChange;
   void equipmentData;
   void onEquipmentDataChange;
+
+  // Track whether user has manually overridden the water path
+  const [waterPathManualOverride, setWaterPathManualOverride] = useState(false);
+  // Store the auto-calculated reasoning for the tooltip
+  const [waterPathReasoning, setWaterPathReasoning] = useState<string | null>(null);
 
   // Get scan parameters for current standard with fallback
   const scanParams = useMemo(() => {
@@ -156,6 +161,53 @@ export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E", 
       technique: "conventional",
     });
   }, [data, isPwNdip, onChange]);
+
+  // Auto-calculate water path when immersion is selected and inputs are available
+  const isImmersion = (data.scanMethods || []).includes("immersion");
+  const autoWaterPath = useMemo(() => {
+    if (!isImmersion) return null;
+    const freq = equipmentData?.frequency ? parseFloat(equipmentData.frequency) : 0;
+    const diameter = equipmentData?.transducerDiameter ?? 0;
+    const thickness = partThickness ?? 0;
+    return calculateWaterPath({
+      transducerDiameter: diameter,
+      frequency: freq,
+      partThickness: thickness,
+      materialVelocity,
+    });
+  }, [isImmersion, equipmentData?.frequency, equipmentData?.transducerDiameter, partThickness, materialVelocity]);
+
+  // Apply auto-calculated water path when inputs change (unless user overrode manually)
+  useEffect(() => {
+    if (!autoWaterPath || waterPathManualOverride) return;
+    if (autoWaterPath.recommended !== data.waterPath) {
+      updateField("waterPath", autoWaterPath.recommended);
+      setWaterPathReasoning(autoWaterPath.reasoning);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoWaterPath?.recommended, waterPathManualOverride]);
+
+  // Reset manual override flag when key inputs change so auto-calc re-applies
+  useEffect(() => {
+    setWaterPathManualOverride(false);
+  }, [equipmentData?.frequency, equipmentData?.transducerDiameter, partThickness]);
+
+  // Handler for manual water path change (sets the override flag)
+  const handleManualWaterPathChange = useCallback((value: string) => {
+    if (value === '' || value === null) {
+      updateField("waterPath", undefined);
+      setWaterPathManualOverride(true);
+      setWaterPathReasoning(null);
+      return;
+    }
+    const numValue = parseFloat(value);
+    if (!isNaN(numValue)) {
+      updateField("waterPath", numValue);
+      setWaterPathManualOverride(true);
+      setWaterPathReasoning(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Keep phased array field updaters intact while the UI is hidden.
   const updatePhasedArrayField = (field: keyof PhasedArraySettings, value: unknown) => {
@@ -395,24 +447,31 @@ export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E", 
                   fieldKey="waterPath"
                   help="Distance from transducer face to part surface through water column"
                 >
-                  <Input
-                    type="number"
-                    value={data.waterPath ?? ''}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      if (value === '' || value === null) {
-                        updateField("waterPath", undefined);
-                        return;
-                      }
-                      const numValue = parseFloat(value);
-                      if (!isNaN(numValue)) {
-                        updateField("waterPath", numValue);
-                      }
-                    }}
-                    min={0}
-                    step={0.1}
-                    className="bg-background"
-                  />
+                  <div className="space-y-1">
+                    <Input
+                      type="number"
+                      value={data.waterPath ?? ''}
+                      onChange={(e) => handleManualWaterPathChange(e.target.value)}
+                      min={0}
+                      step={0.1}
+                      className="bg-background"
+                    />
+                    {autoWaterPath && !waterPathManualOverride && (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Badge variant="outline" className="text-xs border-amber-500/50 text-amber-400 gap-1 cursor-help">
+                              <Sparkles className="h-3 w-3" /> Auto-Calculated
+                            </Badge>
+                          </TooltipTrigger>
+                          <TooltipContent side="bottom" className="max-w-xs">
+                            <p className="text-xs">{waterPathReasoning}</p>
+                            <p className="text-xs text-muted-foreground mt-1">Range: {autoWaterPath.min}–{autoWaterPath.max}mm</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
+                  </div>
                 </FieldWithHelp>
               </div>
             </Card>
@@ -691,23 +750,30 @@ export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E", 
             fieldKey="waterPath"
             help={isAustenitic ? "25-75mm typical for focused probes in austenitic materials" : undefined}
           >
-            <Input
-              type="number"
-              value={data.waterPath ?? ''}
-              onChange={(e) => {
-                const value = e.target.value;
-                if (value === '' || value === null) {
-                  updateField("waterPath", undefined);
-                  return;
-                }
-                const numValue = parseFloat(value);
-                if (!isNaN(numValue)) {
-                  updateField("waterPath", numValue);
-                }
-              }}
-              min={0}
-              className="bg-background"
-            />
+            <div className="space-y-1">
+              <Input
+                type="number"
+                value={data.waterPath ?? ''}
+                onChange={(e) => handleManualWaterPathChange(e.target.value)}
+                min={0}
+                className="bg-background"
+              />
+              {autoWaterPath && !waterPathManualOverride && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Badge variant="outline" className="text-xs border-amber-500/50 text-amber-400 gap-1 cursor-help">
+                        <Sparkles className="h-3 w-3" /> Auto-Calculated
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="max-w-xs">
+                      <p className="text-xs">{waterPathReasoning}</p>
+                      <p className="text-xs text-muted-foreground mt-1">Range: {autoWaterPath.min}–{autoWaterPath.max}mm</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+            </div>
           </FieldWithHelp>
         )}
 
