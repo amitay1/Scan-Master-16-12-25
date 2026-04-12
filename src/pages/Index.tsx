@@ -823,6 +823,8 @@ const Index = () => {
                           }}
                           equipmentData={currentData.equipment}
                           onEquipmentDataChange={currentData.setEquipment}
+                          partThickness={currentData.inspectionSetup.partThickness}
+                          materialVelocity={currentData.inspectionSetup.acousticVelocity}
                         />
                       </TabsContent>
 

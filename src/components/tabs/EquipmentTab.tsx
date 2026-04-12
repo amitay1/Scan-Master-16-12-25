@@ -6,6 +6,7 @@ import { CalibrationData, EquipmentData, StandardType, TechniqueType } from "@/t
 import { FieldWithHelp } from "@/components/FieldWithHelp";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Info, AlertTriangle, ChevronDown, ChevronRight, Plus, X } from "lucide-react";
 import { useMemo, useState, useEffect } from "react";

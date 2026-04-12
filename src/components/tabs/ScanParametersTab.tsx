@@ -6,13 +6,16 @@ import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScanParametersData, StandardType, PhasedArraySettings, EquipmentData } from "@/types/techniqueSheet";
 import { FieldWithHelp } from "@/components/FieldWithHelp";
-import { Info, Radio } from "lucide-react";
-import { useMemo, useEffect } from "react";
+import { Info, Radio, Sparkles } from "lucide-react";
+import { useMemo, useEffect, useState, useCallback } from "react";
 import {
   scanParametersByStandard,
   calibrationByStandard,
 } from "@/data/standardsDifferences";
 import { includeCurrentOption } from "@/utils/selectOptions";
+import { calculateWaterPath } from "@/utils/waterPathCalculator";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Badge } from "@/components/ui/badge";
 
 interface ScanParametersTabProps {
   data: ScanParametersData;
@@ -22,6 +25,10 @@ interface ScanParametersTabProps {
   onEquipmentFrequencyChange?: (frequency: string) => void;
   equipmentData?: EquipmentData;
   onEquipmentDataChange?: (data: EquipmentData) => void;
+  /** Part thickness from Inspection Setup tab (mm) */
+  partThickness?: number;
+  /** Material acoustic velocity from Inspection Setup tab (m/s) */
+  materialVelocity?: number;
 }
 
 // Get standard label

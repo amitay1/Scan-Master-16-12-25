@@ -14,9 +14,14 @@ export const useServiceWorker = () => {
 
   useEffect(() => {
     let isMounted = true;
+    const isLocalRuntime =
+      window.location.protocol === 'file:' ||
+      window.location.hostname === 'localhost' ||
+      window.location.hostname === '127.0.0.1' ||
+      window.location.hostname === '[::1]';
 
     if ('serviceWorker' in navigator) {
-      if (import.meta.env.PROD) {
+      if (import.meta.env.PROD && !isLocalRuntime) {
         // Define message handler
         const messageHandler = (event: MessageEvent) => {
           if (event.data && event.data.type === 'SYNC_COMPLETE') {

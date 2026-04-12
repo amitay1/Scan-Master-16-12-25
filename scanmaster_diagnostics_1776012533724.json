@@ -1,0 +1,277 @@
+{
+  "exportedAt": "2026-04-12T16:48:53.723Z",
+  "appVersion": "1.0.102",
+  "crashes": [
+    {
+      "id": "crash_1776012365171_nboxoq532",
+      "timestamp": "2026-04-12T16:46:05.171Z",
+      "type": "crash",
+      "error": {
+        "message": "Card is not defined",
+        "stack": "ReferenceError: Card is not defined\n    at rV (http://localhost:5000/assets/index-B_14BH-4.js:67:199021)\n    at Xu (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:6:17041)\n    at Ts (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:8:44280)\n    at Ns (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:8:39955)\n    at Gf (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:8:39883)\n    at Rl (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:8:39737)\n    at Si (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:8:36078)\n    at Cs (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:8:35026)\n    at Ce (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:1:9478)\n    at MessagePort.ft (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:1:9852)",
+        "name": "ReferenceError"
+      },
+      "context": {
+        "route": "/",
+        "componentStack": "\n    at rV (http://localhost:5000/assets/index-B_14BH-4.js:67:190400)\n    at div\n    at http://localhost:5000/assets/ui-vendor-CA1v2eOE.js:1:4674\n    at fe (http://localhost:5000/assets/ui-vendor-CA1v2eOE.js:1:8909)\n    at http://localhost:5000/assets/ui-vendor-CA1v2eOE.js:45:50170\n    at http://localhost:5000/assets/index-B_14BH-4.js:60:17247\n    at div\n    at div\n    at div\n    at http://localhost:5000/assets/ui-vendor-CA1v2eOE.js:1:4674\n    at l (http://localhost:5000/assets/ui-vendor-CA1v2eOE.js:1:1036)\n    at http://localhost:5000/assets/ui-vendor-CA1v2eOE.js:45:48773\n    at div\n    at div\n    at div\n    at NH (http://localhost:5000/assets/index-B_14BH-4.js:67:39620)\n    at tJ (http://localhost:5000/assets/index-B_14BH-4.js:797:75402)\n    at bd (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:8:70650)\n    at Cp (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:8:74266)\n    at sp (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:8:73647)\n    at xp (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:8:76158)\n    at Fte (http://localhost:5000/assets/index-B_14BH-4.js:820:22207)\n    at R7 (http://localhost:5000/assets/index-B_14BH-4.js:55:20329)\n    at b6 (http://localhost:5000/assets/index-B_14BH-4.js:42:36758)\n    at T6 (http://localhost:5000/assets/index-B_14BH-4.js:42:49563)\n    at v6 (http://localhost:5000/assets/index-B_14BH-4.js:42:43107)\n    at y6 (http://localhost:5000/assets/index-B_14BH-4.js:42:41499)\n    at C6 (http://localhost:5000/assets/index-B_14BH-4.js:42:53646)\n    at HM (http://localhost:5000/assets/index-B_14BH-4.js:2:28814)\n    at j7 (http://localhost:5000/assets/index-B_14BH-4.js:55:15320)\n    at Lte\n    at gM (http://localhost:5000/assets/index-B_14BH-4.js:2:2637)\n    at fM (http://localhost:5000/assets/index-B_14BH-4.js:2:2547)"
+      },
+      "systemInfo": {
+        "platform": "Win32",
+        "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) scan-master-inspection-pro/1.1.73 Chrome/142.0.7444.162 Electron/39.2.0 Safari/537.36",
+        "language": "he",
+        "appVersion": "1.0.102",
+        "electronVersion": "electron",
+        "screenSize": "2560x1600",
+        "viewportSize": "2327x1358",
+        "memoryUsage": 39411977,
+        "onLine": true
+      },
+      "factoryInfo": {}
+    },
+    {
+      "id": "crash_1776012359038_nbmnuorbv",
+      "timestamp": "2026-04-12T16:45:59.038Z",
+      "type": "crash",
+      "error": {
+        "message": "Card is not defined",
+        "stack": "ReferenceError: Card is not defined\n    at rV (http://localhost:5000/assets/index-B_14BH-4.js:67:199021)\n    at Xu (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:6:17041)\n    at Ts (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:8:44280)\n    at Ns (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:8:39955)\n    at Gf (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:8:39883)\n    at Rl (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:8:39737)\n    at Si (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:8:36078)\n    at xs (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:8:36889)\n    at Ft (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:6:3273)\n    at http://localhost:5000/assets/react-vendor-CCbXoA-8.js:8:34393",
+        "name": "ReferenceError"
+      },
+      "context": {
+        "route": "/",
+        "componentStack": "\n    at rV (http://localhost:5000/assets/index-B_14BH-4.js:67:190400)\n    at div\n    at http://localhost:5000/assets/ui-vendor-CA1v2eOE.js:1:4674\n    at fe (http://localhost:5000/assets/ui-vendor-CA1v2eOE.js:1:8909)\n    at http://localhost:5000/assets/ui-vendor-CA1v2eOE.js:45:50170\n    at http://localhost:5000/assets/index-B_14BH-4.js:60:17247\n    at div\n    at div\n    at div\n    at http://localhost:5000/assets/ui-vendor-CA1v2eOE.js:1:4674\n    at l (http://localhost:5000/assets/ui-vendor-CA1v2eOE.js:1:1036)\n    at http://localhost:5000/assets/ui-vendor-CA1v2eOE.js:45:48773\n    at div\n    at div\n    at div\n    at NH (http://localhost:5000/assets/index-B_14BH-4.js:67:39620)\n    at tJ (http://localhost:5000/assets/index-B_14BH-4.js:797:75402)\n    at bd (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:8:70650)\n    at Cp (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:8:74266)\n    at sp (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:8:73647)\n    at xp (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:8:76158)\n    at Fte (http://localhost:5000/assets/index-B_14BH-4.js:820:22207)\n    at R7 (http://localhost:5000/assets/index-B_14BH-4.js:55:20329)\n    at b6 (http://localhost:5000/assets/index-B_14BH-4.js:42:36758)\n    at T6 (http://localhost:5000/assets/index-B_14BH-4.js:42:49563)\n    at v6 (http://localhost:5000/assets/index-B_14BH-4.js:42:43107)\n    at y6 (http://localhost:5000/assets/index-B_14BH-4.js:42:41499)\n    at C6 (http://localhost:5000/assets/index-B_14BH-4.js:42:53646)\n    at HM (http://localhost:5000/assets/index-B_14BH-4.js:2:28814)\n    at j7 (http://localhost:5000/assets/index-B_14BH-4.js:55:15320)\n    at Lte\n    at gM (http://localhost:5000/assets/index-B_14BH-4.js:2:2637)\n    at fM (http://localhost:5000/assets/index-B_14BH-4.js:2:2547)"
+      },
+      "systemInfo": {
+        "platform": "Win32",
+        "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) scan-master-inspection-pro/1.1.73 Chrome/142.0.7444.162 Electron/39.2.0 Safari/537.36",
+        "language": "he",
+        "appVersion": "1.0.102",
+        "electronVersion": "electron",
+        "screenSize": "2560x1600",
+        "viewportSize": "2327x1358",
+        "memoryUsage": 33328486,
+        "onLine": true
+      },
+      "factoryInfo": {}
+    },
+    {
+      "id": "crash_1775794939428_rtovltsfr",
+      "timestamp": "2026-04-10T04:22:19.428Z",
+      "type": "crash",
+      "error": {
+        "message": "Cannot access 'Y' before initialization",
+        "stack": "ReferenceError: Cannot access 'Y' before initialization\n    at rV (http://localhost:5000/assets/index-B8jKrB8X.js:67:192708)\n    at Xu (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:6:17041)\n    at Ts (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:8:44280)\n    at Ns (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:8:39955)\n    at Gf (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:8:39883)\n    at Rl (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:8:39737)\n    at Si (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:8:36078)\n    at Cs (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:8:35026)\n    at Ce (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:1:9478)\n    at MessagePort.ft (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:1:9852)",
+        "name": "ReferenceError"
+      },
+      "context": {
+        "route": "/",
+        "componentStack": "\n    at rV (http://localhost:5000/assets/index-B8jKrB8X.js:67:191508)\n    at div\n    at http://localhost:5000/assets/ui-vendor-CA1v2eOE.js:1:4674\n    at fe (http://localhost:5000/assets/ui-vendor-CA1v2eOE.js:1:8909)\n    at http://localhost:5000/assets/ui-vendor-CA1v2eOE.js:45:50170\n    at http://localhost:5000/assets/index-B8jKrB8X.js:60:17247\n    at div\n    at div\n    at div\n    at http://localhost:5000/assets/ui-vendor-CA1v2eOE.js:1:4674\n    at l (http://localhost:5000/assets/ui-vendor-CA1v2eOE.js:1:1036)\n    at http://localhost:5000/assets/ui-vendor-CA1v2eOE.js:45:48773\n    at div\n    at div\n    at div\n    at NH (http://localhost:5000/assets/index-B8jKrB8X.js:67:39623)\n    at eJ (http://localhost:5000/assets/index-B8jKrB8X.js:797:77944)\n    at bd (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:8:70650)\n    at Cp (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:8:74266)\n    at sp (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:8:73647)\n    at xp (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:8:76158)\n    at Ite (http://localhost:5000/assets/index-B8jKrB8X.js:820:22207)\n    at I7 (http://localhost:5000/assets/index-B8jKrB8X.js:55:20329)\n    at y6 (http://localhost:5000/assets/index-B8jKrB8X.js:42:36758)\n    at C6 (http://localhost:5000/assets/index-B8jKrB8X.js:42:49563)\n    at w6 (http://localhost:5000/assets/index-B8jKrB8X.js:42:43107)\n    at v6 (http://localhost:5000/assets/index-B8jKrB8X.js:42:41499)\n    at j6 (http://localhost:5000/assets/index-B8jKrB8X.js:42:53646)\n    at zM (http://localhost:5000/assets/index-B8jKrB8X.js:2:28814)\n    at k7 (http://localhost:5000/assets/index-B8jKrB8X.js:55:15320)\n    at Fte\n    at xM (http://localhost:5000/assets/index-B8jKrB8X.js:2:2637)\n    at pM (http://localhost:5000/assets/index-B8jKrB8X.js:2:2547)"
+      },
+      "systemInfo": {
+        "platform": "Win32",
+        "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) scan-master-inspection-pro/1.1.69 Chrome/142.0.7444.162 Electron/39.2.0 Safari/537.36",
+        "language": "he",
+        "appVersion": "1.0.102",
+        "electronVersion": "electron",
+        "screenSize": "2560x1440",
+        "viewportSize": "2327x1245",
+        "memoryUsage": 21891908,
+        "onLine": true
+      },
+      "factoryInfo": {}
+    },
+    {
+      "id": "crash_1775791518432_gs2groyw0",
+      "timestamp": "2026-04-10T03:25:18.432Z",
+      "type": "crash",
+      "error": {
+        "message": "Cannot access 'Y' before initialization",
+        "stack": "ReferenceError: Cannot access 'Y' before initialization\n    at rV (http://localhost:5000/assets/index-B8jKrB8X.js:67:192708)\n    at Xu (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:6:17041)\n    at Ts (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:8:44280)\n    at Ns (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:8:39955)\n    at Gf (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:8:39883)\n    at Rl (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:8:39737)\n    at Si (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:8:36078)\n    at Cs (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:8:35026)\n    at Ce (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:1:9478)\n    at MessagePort.ft (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:1:9852)",
+        "name": "ReferenceError"
+      },
+      "context": {
+        "route": "/",
+        "componentStack": "\n    at rV (http://localhost:5000/assets/index-B8jKrB8X.js:67:191508)\n    at div\n    at http://localhost:5000/assets/ui-vendor-CA1v2eOE.js:1:4674\n    at fe (http://localhost:5000/assets/ui-vendor-CA1v2eOE.js:1:8909)\n    at http://localhost:5000/assets/ui-vendor-CA1v2eOE.js:45:50170\n    at http://localhost:5000/assets/index-B8jKrB8X.js:60:17247\n    at div\n    at div\n    at div\n    at http://localhost:5000/assets/ui-vendor-CA1v2eOE.js:1:4674\n    at l (http://localhost:5000/assets/ui-vendor-CA1v2eOE.js:1:1036)\n    at http://localhost:5000/assets/ui-vendor-CA1v2eOE.js:45:48773\n    at div\n    at div\n    at div\n    at NH (http://localhost:5000/assets/index-B8jKrB8X.js:67:39623)\n    at eJ (http://localhost:5000/assets/index-B8jKrB8X.js:797:77944)\n    at bd (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:8:70650)\n    at Cp (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:8:74266)\n    at sp (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:8:73647)\n    at xp (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:8:76158)\n    at Ite (http://localhost:5000/assets/index-B8jKrB8X.js:820:22207)\n    at I7 (http://localhost:5000/assets/index-B8jKrB8X.js:55:20329)\n    at y6 (http://localhost:5000/assets/index-B8jKrB8X.js:42:36758)\n    at C6 (http://localhost:5000/assets/index-B8jKrB8X.js:42:49563)\n    at w6 (http://localhost:5000/assets/index-B8jKrB8X.js:42:43107)\n    at v6 (http://localhost:5000/assets/index-B8jKrB8X.js:42:41499)\n    at j6 (http://localhost:5000/assets/index-B8jKrB8X.js:42:53646)\n    at zM (http://localhost:5000/assets/index-B8jKrB8X.js:2:28814)\n    at k7 (http://localhost:5000/assets/index-B8jKrB8X.js:55:15320)\n    at Fte\n    at xM (http://localhost:5000/assets/index-B8jKrB8X.js:2:2637)\n    at pM (http://localhost:5000/assets/index-B8jKrB8X.js:2:2547)"
+      },
+      "systemInfo": {
+        "platform": "Win32",
+        "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) scan-master-inspection-pro/1.1.69 Chrome/142.0.7444.162 Electron/39.2.0 Safari/537.36",
+        "language": "he",
+        "appVersion": "1.0.102",
+        "electronVersion": "electron",
+        "screenSize": "2560x1440",
+        "viewportSize": "2327x1245",
+        "memoryUsage": 23574522,
+        "onLine": true
+      },
+      "factoryInfo": {}
+    },
+    {
+      "id": "crash_1775791327018_w4t1ttmsv",
+      "timestamp": "2026-04-10T03:22:07.018Z",
+      "type": "crash",
+      "error": {
+        "message": "Cannot access 'Y' before initialization",
+        "stack": "ReferenceError: Cannot access 'Y' before initialization\n    at rV (http://localhost:5000/assets/index-B8jKrB8X.js:67:192708)\n    at Xu (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:6:17041)\n    at Ts (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:8:44280)\n    at Ns (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:8:39955)\n    at Gf (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:8:39883)\n    at Rl (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:8:39737)\n    at Si (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:8:36078)\n    at Cs (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:8:35026)\n    at Ce (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:1:9478)\n    at MessagePort.ft (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:1:9852)",
+        "name": "ReferenceError"
+      },
+      "context": {
+        "route": "/",
+        "componentStack": "\n    at rV (http://localhost:5000/assets/index-B8jKrB8X.js:67:191508)\n    at div\n    at http://localhost:5000/assets/ui-vendor-CA1v2eOE.js:1:4674\n    at fe (http://localhost:5000/assets/ui-vendor-CA1v2eOE.js:1:8909)\n    at http://localhost:5000/assets/ui-vendor-CA1v2eOE.js:45:50170\n    at http://localhost:5000/assets/index-B8jKrB8X.js:60:17247\n    at div\n    at div\n    at div\n    at http://localhost:5000/assets/ui-vendor-CA1v2eOE.js:1:4674\n    at l (http://localhost:5000/assets/ui-vendor-CA1v2eOE.js:1:1036)\n    at http://localhost:5000/assets/ui-vendor-CA1v2eOE.js:45:48773\n    at div\n    at div\n    at div\n    at NH (http://localhost:5000/assets/index-B8jKrB8X.js:67:39623)\n    at eJ (http://localhost:5000/assets/index-B8jKrB8X.js:797:77944)\n    at bd (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:8:70650)\n    at Cp (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:8:74266)\n    at sp (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:8:73647)\n    at xp (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:8:76158)\n    at Ite (http://localhost:5000/assets/index-B8jKrB8X.js:820:22207)\n    at I7 (http://localhost:5000/assets/index-B8jKrB8X.js:55:20329)\n    at y6 (http://localhost:5000/assets/index-B8jKrB8X.js:42:36758)\n    at C6 (http://localhost:5000/assets/index-B8jKrB8X.js:42:49563)\n    at w6 (http://localhost:5000/assets/index-B8jKrB8X.js:42:43107)\n    at v6 (http://localhost:5000/assets/index-B8jKrB8X.js:42:41499)\n    at j6 (http://localhost:5000/assets/index-B8jKrB8X.js:42:53646)\n    at zM (http://localhost:5000/assets/index-B8jKrB8X.js:2:28814)\n    at k7 (http://localhost:5000/assets/index-B8jKrB8X.js:55:15320)\n    at Fte\n    at xM (http://localhost:5000/assets/index-B8jKrB8X.js:2:2637)\n    at pM (http://localhost:5000/assets/index-B8jKrB8X.js:2:2547)"
+      },
+      "systemInfo": {
+        "platform": "Win32",
+        "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) scan-master-inspection-pro/1.1.69 Chrome/142.0.7444.162 Electron/39.2.0 Safari/537.36",
+        "language": "he",
+        "appVersion": "1.0.102",
+        "electronVersion": "electron",
+        "screenSize": "2560x1440",
+        "viewportSize": "2327x1245",
+        "memoryUsage": 37108848,
+        "onLine": true
+      },
+      "factoryInfo": {}
+    },
+    {
+      "id": "crash_1775791312964_pqg3bmxfz",
+      "timestamp": "2026-04-10T03:21:52.964Z",
+      "type": "crash",
+      "error": {
+        "message": "Cannot access 'Y' before initialization",
+        "stack": "ReferenceError: Cannot access 'Y' before initialization\n    at rV (http://localhost:5000/assets/index-B8jKrB8X.js:67:192708)\n    at Xu (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:6:17041)\n    at Ts (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:8:44280)\n    at Ns (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:8:39955)\n    at Gf (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:8:39883)\n    at Rl (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:8:39737)\n    at Si (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:8:36078)\n    at Cs (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:8:35026)\n    at Ce (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:1:9478)\n    at MessagePort.ft (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:1:9852)",
+        "name": "ReferenceError"
+      },
+      "context": {
+        "route": "/",
+        "componentStack": "\n    at rV (http://localhost:5000/assets/index-B8jKrB8X.js:67:191508)\n    at div\n    at http://localhost:5000/assets/ui-vendor-CA1v2eOE.js:1:4674\n    at fe (http://localhost:5000/assets/ui-vendor-CA1v2eOE.js:1:8909)\n    at http://localhost:5000/assets/ui-vendor-CA1v2eOE.js:45:50170\n    at http://localhost:5000/assets/index-B8jKrB8X.js:60:17247\n    at div\n    at div\n    at div\n    at http://localhost:5000/assets/ui-vendor-CA1v2eOE.js:1:4674\n    at l (http://localhost:5000/assets/ui-vendor-CA1v2eOE.js:1:1036)\n    at http://localhost:5000/assets/ui-vendor-CA1v2eOE.js:45:48773\n    at div\n    at div\n    at div\n    at NH (http://localhost:5000/assets/index-B8jKrB8X.js:67:39623)\n    at eJ (http://localhost:5000/assets/index-B8jKrB8X.js:797:77944)\n    at bd (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:8:70650)\n    at Cp (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:8:74266)\n    at sp (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:8:73647)\n    at xp (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:8:76158)\n    at Ite (http://localhost:5000/assets/index-B8jKrB8X.js:820:22207)\n    at I7 (http://localhost:5000/assets/index-B8jKrB8X.js:55:20329)\n    at y6 (http://localhost:5000/assets/index-B8jKrB8X.js:42:36758)\n    at C6 (http://localhost:5000/assets/index-B8jKrB8X.js:42:49563)\n    at w6 (http://localhost:5000/assets/index-B8jKrB8X.js:42:43107)\n    at v6 (http://localhost:5000/assets/index-B8jKrB8X.js:42:41499)\n    at j6 (http://localhost:5000/assets/index-B8jKrB8X.js:42:53646)\n    at zM (http://localhost:5000/assets/index-B8jKrB8X.js:2:28814)\n    at k7 (http://localhost:5000/assets/index-B8jKrB8X.js:55:15320)\n    at Fte\n    at xM (http://localhost:5000/assets/index-B8jKrB8X.js:2:2637)\n    at pM (http://localhost:5000/assets/index-B8jKrB8X.js:2:2547)"
+      },
+      "systemInfo": {
+        "platform": "Win32",
+        "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) scan-master-inspection-pro/1.1.69 Chrome/142.0.7444.162 Electron/39.2.0 Safari/537.36",
+        "language": "he",
+        "appVersion": "1.0.102",
+        "electronVersion": "electron",
+        "screenSize": "2560x1440",
+        "viewportSize": "2327x1245",
+        "memoryUsage": 24316864,
+        "onLine": true
+      },
+      "factoryInfo": {}
+    },
+    {
+      "id": "crash_1775129917616_dfvx0hjmp",
+      "timestamp": "2026-04-02T11:38:37.616Z",
+      "type": "crash",
+      "error": {
+        "message": "isV2500Standard is not defined",
+        "stack": "ReferenceError: isV2500Standard is not defined\n    at De (http://localhost:5000/assets/index-DRSO123s.js:435:29161)\n    at ie (http://localhost:5000/assets/index-DRSO123s.js:435:36614)\n    at http://localhost:5000/assets/index-DRSO123s.js:435:49621\n    at Array.map (<anonymous>)\n    at yX (http://localhost:5000/assets/index-DRSO123s.js:435:47506)\n    at Xu (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:6:17041)\n    at li (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:8:3159)\n    at Ts (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:8:45054)\n    at Ns (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:8:39955)\n    at Gf (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:8:39883)\n    at Rl (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:8:39737)\n    at Si (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:8:36078)\n    at xs (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:8:36889)\n    at Ft (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:6:3273)\n    at http://localhost:5000/assets/react-vendor-CCbXoA-8.js:8:34393",
+        "name": "ReferenceError"
+      },
+      "context": {
+        "route": "/",
+        "componentStack": "\n    at yX (http://localhost:5000/assets/index-DRSO123s.js:435:24959)\n    at div\n    at http://localhost:5000/assets/ui-vendor-CA1v2eOE.js:1:4674\n    at fe (http://localhost:5000/assets/ui-vendor-CA1v2eOE.js:1:8909)\n    at http://localhost:5000/assets/ui-vendor-CA1v2eOE.js:45:50170\n    at http://localhost:5000/assets/index-DRSO123s.js:60:17247\n    at div\n    at div\n    at div\n    at http://localhost:5000/assets/ui-vendor-CA1v2eOE.js:1:4674\n    at l (http://localhost:5000/assets/ui-vendor-CA1v2eOE.js:1:1036)\n    at http://localhost:5000/assets/ui-vendor-CA1v2eOE.js:45:48773\n    at div\n    at div\n    at div\n    at aH (http://localhost:5000/assets/index-DRSO123s.js:67:39620)\n    at mQ (http://localhost:5000/assets/index-DRSO123s.js:797:77023)\n    at bd (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:8:70650)\n    at Cp (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:8:74266)\n    at sp (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:8:73647)\n    at xp (http://localhost:5000/assets/react-vendor-CCbXoA-8.js:8:76158)\n    at Xee (http://localhost:5000/assets/index-DRSO123s.js:820:22207)\n    at g7 (http://localhost:5000/assets/index-DRSO123s.js:55:20329)\n    at e6 (http://localhost:5000/assets/index-DRSO123s.js:42:36758)\n    at o6 (http://localhost:5000/assets/index-DRSO123s.js:42:49563)\n    at n6 (http://localhost:5000/assets/index-DRSO123s.js:42:43107)\n    at t6 (http://localhost:5000/assets/index-DRSO123s.js:42:41499)\n    at c6 (http://localhost:5000/assets/index-DRSO123s.js:42:53646)\n    at NM (http://localhost:5000/assets/index-DRSO123s.js:2:28814)\n    at l7 (http://localhost:5000/assets/index-DRSO123s.js:55:15320)\n    at Yee\n    at Z_ (http://localhost:5000/assets/index-DRSO123s.js:2:2637)\n    at Y_ (http://localhost:5000/assets/index-DRSO123s.js:2:2547)"
+      },
+      "systemInfo": {
+        "platform": "Win32",
+        "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) scan-master-inspection-pro/1.1.57 Chrome/142.0.7444.162 Electron/39.2.0 Safari/537.36",
+        "language": "he",
+        "appVersion": "1.0.102",
+        "electronVersion": "electron",
+        "screenSize": "2560x1600",
+        "viewportSize": "2327x1358",
+        "memoryUsage": 42513112,
+        "onLine": true
+      },
+      "factoryInfo": {}
+    }
+  ],
+  "systemInfo": {
+    "platform": "Win32",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) scan-master-inspection-pro/1.1.73 Chrome/142.0.7444.162 Electron/39.2.0 Safari/537.36",
+    "language": "he",
+    "appVersion": "1.0.102",
+    "electronVersion": "electron",
+    "screenSize": "2560x1600",
+    "viewportSize": "2327x1358",
+    "memoryUsage": 23516780,
+    "onLine": true
+  },
+  "settings": {
+    "general": {
+      "language": "en",
+      "theme": "dark",
+      "uiFont": "IBM Plex Sans",
+      "dateFormat": "DD/MM/YYYY",
+      "timeFormat": "24h",
+      "timezone": "Asia/Jerusalem"
+    },
+    "units": {
+      "lengthUnit": "mm",
+      "angleUnit": "degrees",
+      "temperatureUnit": "celsius",
+      "pressureUnit": "bar",
+      "velocityUnit": "m/s",
+      "frequencyDisplay": "MHz"
+    },
+    "defaults": {
+      "defaultStandard": "AMS-STD-2154E",
+      "defaultMaterial": "Aluminum 7075-T6",
+      "defaultFrequency": "5.0",
+      "defaultCouplant": "Water",
+      "defaultProbeType": "Straight Beam",
+      "autoFillEnabled": true,
+      "autoCalculateEnabled": true
+    },
+    "export": {
+      "defaultExportFormat": "pdf",
+      "includeCompanyLogo": true,
+      "includeCoverPage": true,
+      "includeTableOfContents": true,
+      "includeDrawings": true,
+      "include3DViews": false,
+      "pdfQuality": "standard",
+      "pageSize": "A4",
+      "orientation": "portrait"
+    },
+    "company": {
+      "companyName": "",
+      "companyLogo": "",
+      "companyAddress": "",
+      "companyPhone": "",
+      "companyEmail": "",
+      "companyWebsite": "",
+      "certificationNumber": "",
+      "nadcapNumber": "",
+      "iso17025Number": ""
+    },
+    "notifications": {
+      "emailNotifications": false,
+      "validationWarnings": true,
+      "autoSaveReminder": true,
+      "autoSaveInterval": 5,
+      "showTooltips": true,
+      "soundEffects": false
+    },
+    "viewer": {
+      "viewer3DEnabled": true,
+      "viewer3DDefaultSize": "M",
+      "viewer3DAutoRotate": false,
+      "viewer3DShowGrid": true,
+      "viewer3DShowAxes": true,
+      "viewer3DBackgroundColor": "#1a1a2e",
+      "drawingGridEnabled": true,
+      "drawingSnapToGrid": true,
+      "drawingGridSize": 10
+    },
+    "advanced": {
+      "developerMode": false,
+      "debugLogging": false,
+      "experimentalFeatures": false,
+      "cacheEnabled": true,
+      "offlineMode": false,
+      "dataRetentionDays": 365,
+      "maxRecentFiles": 10
+    }
+  },
+  "recentActivity": []
+}
