@@ -379,7 +379,7 @@ export const EquipmentTab = ({
         >
           {isPwNdip ? (
             <Select
-              value={data.manufacturer}
+              value={data.manufacturer || undefined}
               onValueChange={(value) =>
                 onChange({
                   ...data,
@@ -389,7 +389,7 @@ export const EquipmentTab = ({
               }
             >
               <SelectTrigger className="bg-background">
-                <SelectValue />
+                <SelectValue placeholder="" />
               </SelectTrigger>
               <SelectContent>
                 {Object.keys(NDIP_EQUIPMENT_BY_MANUFACTURER).map((manufacturer) => (
@@ -579,7 +579,7 @@ export const EquipmentTab = ({
               }}
             >
               <SelectTrigger className="bg-background">
-                <SelectValue />
+                <SelectValue placeholder="" />
               </SelectTrigger>
               <SelectContent>
                 {couplantOptions.map((option) => (
@@ -712,7 +712,7 @@ export const EquipmentTab = ({
                       onValueChange={(value) => updateField("ndipChuckRiser", value)}
                     >
                       <SelectTrigger className="bg-background">
-                        <SelectValue />
+                        <SelectValue placeholder="" />
                       </SelectTrigger>
                       <SelectContent>
                         {allChuckRiserOptions.map((option) => (
@@ -1013,7 +1013,7 @@ export const EquipmentTab = ({
                       disabled={data.wedgeTypeApplicable === false}
                     >
                       <SelectTrigger className="bg-background flex-1">
-                        <SelectValue />
+                        <SelectValue placeholder="" />
                       </SelectTrigger>
                       <SelectContent className="max-h-[300px]">
                         {availableWedgeTypes.map((wedge) => (

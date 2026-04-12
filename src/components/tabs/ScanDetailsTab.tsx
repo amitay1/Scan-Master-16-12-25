@@ -818,7 +818,7 @@ export const ScanDetailsTab = ({
                     onValueChange={(value) => updateScanDetail(index, "incidentAngle", Number(value))}
                   >
                     <SelectTrigger className="h-8 text-xs bg-slate-900/60 border-slate-600 text-slate-100">
-                      <SelectValue />
+                      <SelectValue placeholder="" />
                     </SelectTrigger>
                     <SelectContent className="bg-slate-800 border-slate-600">
                       {availableIncidentAngles.map((value) => (
@@ -842,7 +842,7 @@ export const ScanDetailsTab = ({
               <div>
                 <Label className="text-[10px] text-slate-400 uppercase tracking-wide">Index</Label>
                 <Select value={detail.indexMode || ""} onValueChange={(v) => updateScanDetail(index, "indexMode", v)}>
-                  <SelectTrigger className="h-8 text-xs bg-slate-900/60 border-slate-600 text-slate-100"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="h-8 text-xs bg-slate-900/60 border-slate-600 text-slate-100"><SelectValue placeholder="" /></SelectTrigger>
                   <SelectContent className="bg-slate-800 border-slate-600">
                     {availableIndexModes.map((value) => (
                       <SelectItem key={value} value={value} className="text-xs text-slate-100">
@@ -864,7 +864,7 @@ export const ScanDetailsTab = ({
               <div>
                 <Label className="text-[10px] text-slate-400 uppercase tracking-wide">Filter</Label>
                 <Select value={detail.filter || ""} onValueChange={(v) => updateScanDetail(index, "filter", v)}>
-                  <SelectTrigger className="h-8 text-xs bg-slate-900/60 border-slate-600 text-slate-100"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="h-8 text-xs bg-slate-900/60 border-slate-600 text-slate-100"><SelectValue placeholder="" /></SelectTrigger>
                   <SelectContent className="bg-slate-800 border-slate-600">
                     {availableFilters.map((value) => (
                       <SelectItem key={value} value={value} className="text-xs text-slate-100">
@@ -877,7 +877,7 @@ export const ScanDetailsTab = ({
               <div>
                 <Label className="text-[10px] text-slate-400 uppercase tracking-wide">Reject</Label>
                 <Select value={detail.reject || ""} onValueChange={(v) => updateScanDetail(index, "reject", v)}>
-                  <SelectTrigger className="h-8 text-xs bg-slate-900/60 border-slate-600 text-slate-100"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="h-8 text-xs bg-slate-900/60 border-slate-600 text-slate-100"><SelectValue placeholder="" /></SelectTrigger>
                   <SelectContent className="bg-slate-800 border-slate-600">
                     {availableRejectValues.map((value) => (
                       <SelectItem key={value} value={value} className="text-xs text-slate-100">

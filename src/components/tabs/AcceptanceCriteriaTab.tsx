@@ -272,7 +272,7 @@ export const AcceptanceCriteriaTab = ({
         <FieldWithHelp label="Acceptance Class / Quality Level" fieldKey="acceptanceClass" required>
           <Select value={data.acceptanceClass} onValueChange={(value) => updateField("acceptanceClass", value)}>
             <SelectTrigger className="bg-background">
-              <SelectValue />
+              <SelectValue placeholder="" />
             </SelectTrigger>
             <SelectContent className="bg-popover z-50">
               {acceptanceClasses.map((cls) => (

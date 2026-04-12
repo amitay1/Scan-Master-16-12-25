@@ -323,7 +323,7 @@ export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E", 
             onValueChange={(value) => updateField("scanType", value)}
           >
             <SelectTrigger className="bg-background">
-              <SelectValue />
+              <SelectValue placeholder="" />
             </SelectTrigger>
             <SelectContent className="bg-popover z-50">
               {availableScanTypes.map((option) => {
@@ -568,7 +568,7 @@ export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E", 
               }}
             >
               <SelectTrigger className="bg-background">
-                <SelectValue />
+                <SelectValue placeholder="" />
               </SelectTrigger>
               <SelectContent className="bg-popover z-50">
                 {scanSpeedPresets.map((speed) => (
@@ -658,7 +658,7 @@ export const ScanParametersTab = ({ data, onChange, standard = "AMS-STD-2154E", 
             onValueChange={(value) => updateField("scanPattern", value)}
           >
             <SelectTrigger className="bg-background">
-              <SelectValue />
+              <SelectValue placeholder="" />
             </SelectTrigger>
             <SelectContent className="bg-popover z-50">
               {!["raster", "bidirectional", "spiral", "helical", "custom"].includes(data.scanPattern) && data.scanPattern && (

@@ -1618,7 +1618,7 @@ export const CalibrationTab = ({
               onValueChange={handleReferenceMaterialChange}
             >
               <SelectTrigger className="bg-background">
-                <SelectValue />
+                <SelectValue placeholder="" />
               </SelectTrigger>
               <SelectContent>
                 {REFERENCE_MATERIAL_OPTIONS.map((material) => (
@@ -1649,7 +1649,7 @@ export const CalibrationTab = ({
             onValueChange={(value) => handleBlockDimensionsModeChange(value as BlockDimensionsMode)}
           >
             <SelectTrigger className="bg-background">
-              <SelectValue />
+              <SelectValue placeholder="" />
             </SelectTrigger>
             <SelectContent>
               {BLOCK_DIMENSIONS_MODE_OPTIONS.map((option) => (

@@ -179,7 +179,7 @@ export const DocumentationTab = ({ data, onChange }: DocumentationTabProps) => {
               }}
             >
               <SelectTrigger className="bg-background">
-                <SelectValue />
+                <SelectValue placeholder="" />
               </SelectTrigger>
               <SelectContent className="bg-popover z-50 max-h-[300px]">
                 {allInspectorLevels.map((level) => (
@@ -214,7 +214,7 @@ export const DocumentationTab = ({ data, onChange }: DocumentationTabProps) => {
               }}
             >
               <SelectTrigger className="bg-background">
-                <SelectValue />
+                <SelectValue placeholder="" />
               </SelectTrigger>
               <SelectContent className="bg-popover z-50">
                 {certifyingOrganizationOptions.map((org) => (

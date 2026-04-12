@@ -1188,7 +1188,7 @@ export const InspectionSetupTab = ({
               }}
             >
               <SelectTrigger className="bg-background">
-                <SelectValue />
+                <SelectValue placeholder="" />
               </SelectTrigger>
               <SelectContent className="max-h-[300px]">
                 {allMaterials.map((mat) => (
@@ -1257,7 +1257,7 @@ export const InspectionSetupTab = ({
               disabled={!data.material}
             >
               <SelectTrigger className="bg-background">
-                <SelectValue />
+                <SelectValue placeholder="" />
               </SelectTrigger>
               <SelectContent className="max-h-[300px]">
                 {data.material && availableMaterialSpecs.map((spec) => (
@@ -1314,7 +1314,7 @@ export const InspectionSetupTab = ({
               }}
             >
               <SelectTrigger className="bg-background">
-                <SelectValue />
+                <SelectValue placeholder="" />
               </SelectTrigger>
               <SelectContent className="max-h-[300px]">
                 {availableHeatTreatments.map((ht) => (
@@ -1959,13 +1959,13 @@ export const InspectionSetupTab = ({
                   </div>
 
                   <Select
-                    value={data.localModelAssetName || ""}
+                    value={data.localModelAssetName || undefined}
                     onValueChange={(value) => {
                       setLocalModelAsset(value === "__parametric__" ? undefined : value);
                     }}
                   >
                     <SelectTrigger className="bg-background">
-                      <SelectValue />
+                      <SelectValue placeholder="" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="__parametric__">Parametric Preview Only</SelectItem>
